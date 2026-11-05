@@ -20,7 +20,7 @@ Route: `/admin`
 | Attention queue | Done (read-only) | —          | Done | Approvals in review · open tickets · undisbursed payouts · orgs with no live plan — links to lists                                                            |
 | Recent activity | Done (read-only) | —          | Done | Latest orgs / subscription changes / support tickets                                                                                                          |
 | Range toggle    | n/a              | —          | Done | 30d / 90d / 12mo — scopes the AI-spend KPI + AI-cost chart                                                                                                    |
-| Sidebar nav     | n/a              | —          | Done | Grouped into labelled sections (`SUPER_ADMIN_NAV_GROUPS`) below a header-less Overview link                                                                   |
+| Sidebar nav     | n/a              | —          | Done | Grouped into labelled sections (`SUPER_ADMIN_NAV_GROUPS`) below a header-less Overview link; includes **Feature availability** under Platform controls        |
 
 > Tracked by [`docs/workflow/done/super-admin-console-overhaul.md`](../../../workflow/done/super-admin-console-overhaul.md).
 
@@ -38,11 +38,11 @@ Landing page for the **platform super-admin** area — a distinct tier from org/
 
 ## Host-facing knowledge
 
-The Super Admin area is an internal control panel for the platform team — it is not visible to hosts, organizations, or guests, and hosts never need to know it exists.
+The Super Admin area is an internal control panel for the platform team - it is not visible to hosts, organizations, or guests, and hosts never need to know it exists.
 
 **Common host questions**
 
-- Q: I run a property — can I see this page?
+- Q: I run a property - can I see this page?
   A: No. This area is only for the platform team that operates the booking system itself, not for hosts or their staff.
 - Q: Does anything here affect my organization's settings?
   A: Only if the platform team makes a change on your behalf (for example, listing your property under a development). Your own organization, property, and team settings are managed from your regular dashboard.
@@ -79,17 +79,18 @@ when the sidebar is collapsed.
 
 ## Implementation map
 
-| Concern       | Path                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| Page          | `ui/src/features/dashboard/super-admin/pages/SuperAdminOverviewPage.tsx`                   |
-| Components    | `ui/src/features/dashboard/super-admin/components/super-admin-overview/*`                  |
-| Hook          | `ui/src/features/dashboard/super-admin/hooks/useSuperAdminOverview.ts`                     |
-| Edge function | `supabase/functions/super-admin-overview/index.ts`                                         |
-| Shared nav    | `ui/src/features/dashboard/super-admin/lib/superAdminPlatformNav.ts`                       |
-| Sidebar       | `ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts` (`buildSuperAdminNavSections`) |
-| Shell / guard | `SuperAdminShell.tsx` / `RequireSuperAdmin.tsx`                                            |
-| Paths         | `ui/src/features/dashboard/super-admin/lib/superAdminPaths.ts`                             |
-| Routes        | `ui/src/features/dashboard/super-admin/routes/index.tsx`                                   |
+| Concern       | Path                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Page          | `ui/src/features/dashboard/super-admin/pages/SuperAdminOverviewPage.tsx`                                                                |
+| Loading       | `SuperAdminOverviewRouteSkeleton` → `SuperAdminOverviewBodySkeleton` (`SuperAdminSkeletons.tsx`) — 12 KPIs, chart rows, recent activity |
+| Components    | `ui/src/features/dashboard/super-admin/components/super-admin-overview/*`                                                               |
+| Hook          | `ui/src/features/dashboard/super-admin/hooks/useSuperAdminOverview.ts`                                                                  |
+| Edge function | `supabase/functions/super-admin-overview/index.ts`                                                                                      |
+| Shared nav    | `ui/src/features/dashboard/super-admin/lib/superAdminPlatformNav.ts`                                                                    |
+| Sidebar       | `ui/src/features/dashboard/bookings/lib/adminSidebarNav.ts` (`buildSuperAdminNavSections`)                                              |
+| Shell / guard | `SuperAdminShell.tsx` / `RequireSuperAdmin.tsx`                                                                                         |
+| Paths         | `ui/src/features/dashboard/super-admin/lib/superAdminPaths.ts`                                                                          |
+| Routes        | `ui/src/features/dashboard/super-admin/routes/index.tsx`                                                                                |
 
 ---
 

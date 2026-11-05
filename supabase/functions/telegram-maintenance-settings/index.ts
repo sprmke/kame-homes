@@ -19,6 +19,7 @@ import {
   mergeTelegramCredentialsPatch,
   parseAction,
   gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
   telegramUnknownAction,
@@ -36,7 +37,7 @@ import {
   telegramCredentialsDto,
 } from '../_shared/telegramCredentialsPatch.ts';
 
-serveAuthenticated('telegram-maintenance-settings', async (req) => {
+serveAuthenticated('telegram-maintenance-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req, 'maintenance');
   const scope = telegramDbScope(asset);
 
@@ -55,6 +56,8 @@ serveAuthenticated('telegram-maintenance-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
     if (gateResponse) return gateResponse;
@@ -97,6 +100,8 @@ serveAuthenticated('telegram-maintenance-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     await ensureTelegramAssetSettings(asset);
     const body = await readJsonBody(req);
     const action = parseAction(body);

@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
 import { Route } from 'react-router-dom';
@@ -8,11 +8,9 @@ import { HelpSupportLayout } from '@/features/dashboard/help-support/components/
 import { helpSupportOrgNestedRoutes } from '@/features/dashboard/help-support/routes';
 import { OrgInboxRedirect } from '@/features/dashboard/inbox/routes';
 import { LegacyAdminRedirect } from '@/features/dashboard/org/components/LegacyAdminRedirect';
-import { OrgAdminShell } from '@/features/dashboard/org/components/OrgAdminShell';
-import { ParkingAdminShell } from '@/features/dashboard/org/components/ParkingAdminShell';
-import { PropertyAdminShell } from '@/features/dashboard/org/components/PropertyAdminShell';
 import type { OrgRouteFn } from '@/features/dashboard/org/routes/guards';
 
+import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import {
   OrgAnalyticsRouteSkeleton,
   OrgBookingsRouteSkeleton,
@@ -21,9 +19,31 @@ import {
   OrgParkingsRouteSkeleton,
   OrgPlansRouteSkeleton,
   OrgPropertiesRouteSkeleton,
+  OrgReviewsRouteSkeleton,
   OrgSettingsRouteSkeleton,
   OrgTeamRouteSkeleton,
 } from '@/components/skeletons/RouteSkeletons';
+
+/** Shells pull in AdminLayout + every dashboard provider; keep them out of the guest entry chunk. */
+const OrgAdminShell = lazy(() =>
+  import('@/features/dashboard/org/components/OrgAdminShell').then((m) => ({
+    default: m.OrgAdminShell,
+  }))
+);
+const ParkingAdminShell = lazy(() =>
+  import('@/features/dashboard/org/components/ParkingAdminShell').then((m) => ({
+    default: m.ParkingAdminShell,
+  }))
+);
+const PropertyAdminShell = lazy(() =>
+  import('@/features/dashboard/org/components/PropertyAdminShell').then((m) => ({
+    default: m.PropertyAdminShell,
+  }))
+);
+
+function lazyShell(shell: ReactNode): ReactNode {
+  return <Suspense fallback={<RouteGuardSkeleton fullScreen />}>{shell}</Suspense>;
+}
 
 const ActivityLogRedirect = lazy(() =>
   import('@/features/dashboard/activity/pages/ActivityLogRedirect').then((m) => ({
@@ -81,6 +101,9 @@ const OrgPlansPage = lazy(() =>
 const OrgTeamPage = lazy(() =>
   import('@/features/dashboard/team/pages/OrgTeamPage').then((m) => ({ default: m.OrgTeamPage }))
 );
+const OrgReviewsPage = lazy(() =>
+  import('@/features/reviews/pages/OrgReviewsPage').then((m) => ({ default: m.OrgReviewsPage }))
+);
 
 export const orgOnboardingRoutes: ReactNode = (
   <>
@@ -92,7 +115,7 @@ export const orgOnboardingRoutes: ReactNode = (
 
 export function orgAdminRoutes(orgRoute: OrgRouteFn): ReactNode {
   return (
-    <Route path="/org/:orgSlug" element={<OrgAdminShell />}>
+    <Route path="/org/:orgSlug" element={lazyShell(<OrgAdminShell />)}>
       <Route
         path="dashboard"
         element={orgRoute('dashboard', <OrgDashboardPage />, <OrgDashboardRouteSkeleton />)}
@@ -100,6 +123,10 @@ export function orgAdminRoutes(orgRoute: OrgRouteFn): ReactNode {
       <Route
         path="bookings"
         element={orgRoute('bookings', <OrgBookingsPage />, <OrgBookingsRouteSkeleton />)}
+      />
+      <Route
+        path="reviews"
+        element={orgRoute('reviews', <OrgReviewsPage />, <OrgReviewsRouteSkeleton />)}
       />
       <Route
         path="settings"
@@ -149,7 +176,7 @@ export function orgScopedRoutes(orgRoute: OrgRouteFn): ReactNode {
 
 export function parkingShellRoute(parkingChildren: ReactNode): ReactNode {
   return (
-    <Route path="/org/:orgSlug/parking/:parkingSlug" element={<ParkingAdminShell />}>
+    <Route path="/org/:orgSlug/parking/:parkingSlug" element={lazyShell(<ParkingAdminShell />)}>
       {parkingChildren}
     </Route>
   );
@@ -157,7 +184,7 @@ export function parkingShellRoute(parkingChildren: ReactNode): ReactNode {
 
 export function propertyShellRoute(propertyChildren: ReactNode): ReactNode {
   return (
-    <Route path="/org/:orgSlug/property/:propertySlug" element={<PropertyAdminShell />}>
+    <Route path="/org/:orgSlug/property/:propertySlug" element={lazyShell(<PropertyAdminShell />)}>
       {propertyChildren}
     </Route>
   );

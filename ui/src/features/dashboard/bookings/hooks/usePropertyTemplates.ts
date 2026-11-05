@@ -18,12 +18,22 @@ export type PropertyTemplateDto = {
   description: string | null;
   previewTemplateSlug: string | null;
   sectionImageUrl: string | null;
+  /** Custom templates only: host folder holding this template, or null when ungrouped. */
+  folderId: string | null;
   updatedAt: string | null;
+};
+
+export type PropertyTemplateFolderDto = {
+  id: string;
+  name: string;
+  position: number;
+  templateCount: number;
 };
 
 export type PropertyTemplatesData = {
   templates: PropertyTemplateDto[];
   placeholdersReference: string[];
+  folders: PropertyTemplateFolderDto[];
 };
 
 export const PROPERTY_TEMPLATES_QUERY_KEY = ['property-templates'] as const;
@@ -65,9 +75,45 @@ export function usePropertyTemplates() {
       return {
         templates: json.data.templates,
         placeholdersReference: json.data.placeholdersReference ?? [],
+        folders: json.data.folders ?? [],
       };
     },
     enabled: Boolean(propertyId),
+  });
+}
+
+/**
+ * Shared PATCH for the organise actions (rename / move / folder CRUD). They all
+ * answer with the whole template list, so each one just invalidates and toasts.
+ */
+function useTemplateOrganiseMutation<TInput>(
+  propertyId: string | null,
+  invalidate: () => void,
+  toBody: (input: TInput) => Record<string, unknown>,
+  successMessage: string,
+  failureMessage: string
+) {
+  return useMutation({
+    mutationFn: async (input: TInput) => {
+      const headers = await authHeaders();
+      const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(toBody(input)),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? failureMessage);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success(successMessage);
+    },
+    onError: (error: Error) => {
+      toast.error(friendlyToastError(error, failureMessage));
+    },
   });
 }
 
@@ -89,6 +135,7 @@ export function usePropertyTemplateMutations() {
       sectionImageUrl?: string | null;
       silent?: boolean;
       publicPagesAutosaveGate?: boolean;
+      settingsVerificationToken?: string;
     }) => {
       const headers = await authHeaders();
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
@@ -100,6 +147,9 @@ export function usePropertyTemplateMutations() {
           name: input.name,
           sectionImageUrl: input.sectionImageUrl,
           ...(input.publicPagesAutosaveGate ? { publicPagesAutosaveGate: true } : {}),
+          ...(input.settingsVerificationToken
+            ? { settingsVerificationToken: input.settingsVerificationToken }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -125,12 +175,18 @@ export function usePropertyTemplateMutations() {
   });
 
   const resetTemplate = useMutation({
-    mutationFn: async (templateKey: string) => {
+    mutationFn: async (input: { templateKey: string; settingsVerificationToken?: string }) => {
       const headers = await authHeaders();
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ action: 'reset', templateKey }),
+        body: JSON.stringify({
+          action: 'reset',
+          templateKey: input.templateKey,
+          ...(input.settingsVerificationToken
+            ? { settingsVerificationToken: input.settingsVerificationToken }
+            : {}),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -148,25 +204,54 @@ export function usePropertyTemplateMutations() {
   });
 
   const createCustomTemplate = useMutation({
-    mutationFn: async (input: { name: string; content: string }) => {
+    mutationFn: async (input: {
+      name: string;
+      content: string;
+      category?: PropertyTemplateCategory;
+      /** Custom category only; omit for Stay guide / Emails. */
+      folderId?: string | null;
+      settingsVerificationToken?: string;
+    }): Promise<{
+      templateKey: string | null;
+    }> => {
       const headers = await authHeaders();
+      const { settingsVerificationToken, ...createBody } = input;
       const res = await fetch(scopedFunctionsUrl('/property-templates-settings', propertyId), {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ action: 'create', ...input }),
+        body: JSON.stringify({
+          action: 'create',
+          ...createBody,
+          ...(settingsVerificationToken ? { settingsVerificationToken } : {}),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error ?? 'Failed to create template');
       }
-      return res.json();
+      const json = (await res.json()) as { data?: PropertyTemplatesData };
+      /* The endpoint answers with the whole list, so the new key is whichever
+       * custom template the cache did not already hold. Lets the caller open it. */
+      const knownKeys = new Set(
+        (
+          queryClient.getQueryData<PropertyTemplatesData>([
+            ...PROPERTY_TEMPLATES_QUERY_KEY,
+            propertyId,
+          ])?.templates ?? []
+        ).map((template) => template.templateKey)
+      );
+      const created = json.data?.templates?.find(
+        (template) =>
+          template.templateKey.startsWith('custom-') && !knownKeys.has(template.templateKey)
+      );
+      return { templateKey: created?.templateKey ?? null };
     },
     onSuccess: () => {
       invalidate();
-      toast.success('Template saved');
+      toast.success('Template created');
     },
     onError: (error: Error) => {
-      toast.error(friendlyToastError(error, 'Failed to save template'));
+      toast.error(friendlyToastError(error, 'Failed to create template'));
     },
   });
 
@@ -186,14 +271,68 @@ export function usePropertyTemplateMutations() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success('Template saved');
+      toast.success('Template deleted');
     },
     onError: (error: Error) => {
-      toast.error(friendlyToastError(error, 'Failed to save template'));
+      toast.error(friendlyToastError(error, 'Failed to delete template'));
     },
   });
 
-  return { saveTemplate, resetTemplate, createCustomTemplate, deleteCustomTemplate };
+  const renameCustomTemplate = useTemplateOrganiseMutation<{ templateKey: string; name: string }>(
+    propertyId,
+    invalidate,
+    (input) => ({ action: 'rename', ...input }),
+    'Template renamed',
+    'Failed to rename template'
+  );
+
+  const moveCustomTemplate = useTemplateOrganiseMutation<{
+    templateKey: string;
+    category: PropertyTemplateCategory;
+    folderId: string | null;
+  }>(
+    propertyId,
+    invalidate,
+    (input) => ({ action: 'move', ...input }),
+    'Template moved',
+    'Failed to move template'
+  );
+
+  const createTemplateFolder = useTemplateOrganiseMutation<{ name: string }>(
+    propertyId,
+    invalidate,
+    (input) => ({ action: 'createFolder', ...input }),
+    'Folder created',
+    'Failed to create folder'
+  );
+
+  const renameTemplateFolder = useTemplateOrganiseMutation<{ folderId: string; name: string }>(
+    propertyId,
+    invalidate,
+    (input) => ({ action: 'renameFolder', ...input }),
+    'Folder renamed',
+    'Failed to rename folder'
+  );
+
+  const deleteTemplateFolder = useTemplateOrganiseMutation<{ folderId: string }>(
+    propertyId,
+    invalidate,
+    (input) => ({ action: 'deleteFolder', ...input }),
+    'Folder deleted',
+    'Failed to delete folder'
+  );
+
+  return {
+    saveTemplate,
+    resetTemplate,
+    createCustomTemplate,
+    deleteCustomTemplate,
+    renameCustomTemplate,
+    moveCustomTemplate,
+    createTemplateFolder,
+    renameTemplateFolder,
+    deleteTemplateFolder,
+  };
 }
 
 /** Manual send of a saved custom template to a booking's guest. */

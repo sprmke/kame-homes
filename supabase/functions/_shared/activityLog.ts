@@ -200,12 +200,108 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'booking',
     summary: (c) => `${c.actorName} cancelled ${label(c, 'a booking')}`,
   },
+  'booking.cancellation_requested': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} requested to cancel ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_approved': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} approved the cancellation of ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_declined': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} declined the cancellation of ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_withdrawn': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} withdrew the cancellation request for ${label(c, 'a booking')}`,
+  },
+  'booking.refund_recorded': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} recorded a refund for ${label(c, 'a booking')}`,
+  },
+  'booking.refund_sent': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} marked a refund as sent for ${label(c, 'a booking')}`,
+  },
   'booking.custom_template_sent': {
     category: 'booking',
     severity: 'info',
     targetType: 'booking',
     summary: (c) =>
       `${c.actorName} sent ${str(c.metadata, 'template_name') ?? 'a custom template'} to ${label(c, 'a booking')}'s guest`,
+  },
+  'booking.workflow_email_sent': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} sent ${str(c.metadata, 'email_kind_label') ?? 'a workflow email'} for ${label(
+        c,
+        'a booking'
+      )}`,
+  },
+  'booking.document_uploaded': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} uploaded ${str(c.metadata, 'asset_label') ?? str(c.metadata, 'asset_type') ?? 'a document'} for ${label(
+        c,
+        'a booking'
+      )}`,
+  },
+  'booking.share_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a GAF/pet share link for ${label(c, 'a booking')}`,
+  },
+  'booking.stay_guide_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a stay guide link for ${label(c, 'a booking')}`,
+  },
+  'booking.guest_form_link_issued': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} issued a guest form link for ${label(c, 'a booking')}`,
+  },
+  'booking.trip_link_issued': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} copied a guest trip link for ${label(c, 'a booking')}`,
+  },
+  'booking.ai_review_run': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} ran AI summary for ${label(c, 'a booking')}`,
+  },
+  'booking.receipt_validated': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => {
+      const count = num(c.metadata, 'count');
+      const noun = count === 1 ? 'receipt' : 'receipts';
+      return `${c.actorName} validated ${count > 0 ? count : 'a'} ${noun} for ${label(c, 'a booking')}`;
+    },
   },
   'booking.document_substep_completed': {
     category: 'booking',
@@ -234,6 +330,70 @@ export const ACTIVITY_ACTION_CATALOG = {
       `${c.actorName} reverted an import of ${num(c.metadata, 'count')} booking${
         num(c.metadata, 'count') === 1 ? '' : 's'
       } from ${label(c, 'a property')}`,
+  },
+
+  // ── Two-way reviews ──────────────────────────────────────────────────────
+  'review.host_submitted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} reviewed the guest on ${label(c, 'a booking')}`,
+  },
+  'review.host_edited': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} edited a guest review on ${label(c, 'a booking')}`,
+  },
+  'review.response_posted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} responded to a review on ${label(c, 'a booking')}`,
+  },
+  'review.response_edited': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} edited a review response on ${label(c, 'a booking')}`,
+  },
+  'review.response_deleted': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} removed a review response on ${label(c, 'a booking')}`,
+  },
+  'review.reported': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'review',
+    summary: (c) =>
+      `${c.actorName} reported a review${c.targetLabel ? ` on ${c.targetLabel}` : ''}`,
+  },
+  'review.removed': {
+    category: 'booking',
+    severity: 'destructive',
+    targetType: 'review',
+    summary: (c) =>
+      `${c.actorName} removed a review${c.targetLabel ? ` on ${c.targetLabel}` : ''} after a report`,
+  },
+  'review.automation_updated': {
+    category: 'settings',
+    severity: 'info',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} updated auto-review rules on ${label(c, 'a property')}`,
+  },
+  'review.auto_review_paused': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} paused auto-review on ${label(c, 'a booking')}`,
+  },
+  'review.auto_review_resumed': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} resumed auto-review on ${label(c, 'a booking')}`,
   },
 
   // ── Parking operations ───────────────────────────────────────────────────
@@ -392,6 +552,12 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'property',
     summary: (c) => `${c.actorName} deleted the property ${label(c, 'a property')}`,
   },
+  'property.cancellation_policy_updated': {
+    category: 'property',
+    severity: 'notice',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} updated the cancellation policy for ${label(c, 'a property')}`,
+  },
   'parking.created': {
     category: 'parking',
     severity: 'notice',
@@ -448,6 +614,21 @@ export const ACTIVITY_ACTION_CATALOG = {
     severity: 'destructive',
     targetType: 'template',
     summary: (c) => `${c.actorName} deleted the template ${label(c, 'a template')}`,
+  },
+  'settings.template_folder_saved': {
+    category: 'settings',
+    severity: 'info',
+    targetType: 'template',
+    summary: (c) =>
+      `${c.actorName} ${
+        str(c.metadata, 'operation') === 'folder_renamed' ? 'renamed' : 'created'
+      } the template folder ${str(c.metadata, 'folder_name') ?? ''}`.trim(),
+  },
+  'settings.template_folder_deleted': {
+    category: 'settings',
+    severity: 'destructive',
+    targetType: 'template',
+    summary: (c) => `${c.actorName} deleted a template folder`,
   },
   'public_pages.config_saved': {
     category: 'public_pages',
@@ -692,13 +873,68 @@ export const ACTIVITY_ACTION_CATALOG = {
     category: 'marketing',
     severity: 'info',
     targetType: 'template',
-    summary: (c) => `${c.actorName} saved the marketing template ${label(c, 'a template')}`,
+    summary: (c) => {
+      const noun = str(c.metadata, 'kind') === 'template' ? 'template' : 'design';
+      const verb =
+        str(c.metadata, 'operation') === 'duplicate'
+          ? 'copied'
+          : str(c.metadata, 'operation') === 'rename'
+            ? 'renamed'
+            : 'saved';
+      return `${c.actorName} ${verb} the marketing ${noun} ${label(c, `a ${noun}`)}`;
+    },
   },
   'marketing.template_deleted': {
     category: 'marketing',
     severity: 'destructive',
     targetType: 'template',
-    summary: (c) => `${c.actorName} deleted the marketing template ${label(c, 'a template')}`,
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} deleted ${count} marketing designs`;
+      return `${c.actorName} deleted the marketing design ${label(c, 'a design')}`;
+    },
+  },
+  'marketing.template_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'template',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} marketing designs`;
+      return `${c.actorName} restored the marketing design ${label(c, 'a design')}`;
+    },
+  },
+  'marketing.media_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'media',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} deleted ${count} media library files`;
+      return `${c.actorName} deleted the media library file ${label(c, 'a file')}`;
+    },
+  },
+  'marketing.media_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'media',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} media library files`;
+      return `${c.actorName} restored the media library file ${label(c, 'a file')}`;
+    },
+  },
+  'marketing.theme_saved': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_theme',
+    summary: (c) => `${c.actorName} saved the marketing theme ${label(c, 'a theme')}`,
+  },
+  'marketing.theme_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'marketing_theme',
+    summary: (c) => `${c.actorName} deleted the marketing theme ${label(c, 'a theme')}`,
   },
   'marketing.published_to_meta': {
     category: 'marketing',
@@ -717,6 +953,27 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} generated an AI image for ${label(c, 'a listing')}` +
       (num(c.metadata, 'credits') ? ` (${num(c.metadata, 'credits')} credits)` : ''),
+  },
+  'marketing.ai_session_deleted': {
+    category: 'marketing',
+    severity: 'destructive',
+    targetType: 'marketing_ai_session',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      const forever = c.metadata.permanent === true ? ' permanently' : '';
+      if (count > 1) return `${c.actorName}${forever} deleted ${count} AI Studio creations`;
+      return `${c.actorName}${forever} deleted the AI Studio creation ${label(c, 'an AI creation')}`;
+    },
+  },
+  'marketing.ai_session_restored': {
+    category: 'marketing',
+    severity: 'info',
+    targetType: 'marketing_ai_session',
+    summary: (c) => {
+      const count = num(c.metadata, 'count', 1);
+      if (count > 1) return `${c.actorName} restored ${count} AI Studio creations`;
+      return `${c.actorName} restored the AI Studio creation ${label(c, 'an AI creation')}`;
+    },
   },
   'marketing.generated_asset_deleted': {
     category: 'marketing',
@@ -745,6 +1002,15 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} ${str(c.metadata, 'decision') ?? 'moderated'} a guest-submitted review`,
   },
+  'inbox.chat_template_sent': {
+    category: 'inbox',
+    severity: 'info',
+    targetType: 'conversation',
+    summary: (c) =>
+      `${c.actorName} sent the template ${
+        str(c.metadata, 'template_name') ?? 'a template'
+      } in ${label(c, 'a conversation')}`,
+  },
   'inbox.settings_changed': {
     category: 'inbox',
     severity: 'info',
@@ -752,6 +1018,35 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} changed inbox settings for ${label(c, 'a listing')}` +
       (c.changeCount ? ` (${c.changeCount} field${c.changeCount === 1 ? '' : 's'})` : ''),
+  },
+  'inbox.ai_handoff': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'conversation',
+    summary: (c) =>
+      `${c.actorName} handed off ${label(c, 'a conversation')} to the host team` +
+      (str(c.metadata, 'reason') ? ` - ${str(c.metadata, 'reason')}` : ''),
+  },
+  'guest_request.booking_inquiry_created': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `A guest submitted a booking inquiry${str(c.metadata, 'checkIn') ? ` for ${str(c.metadata, 'checkIn')} to ${str(c.metadata, 'checkOut')}` : ''}`,
+  },
+  'guest_request.checkin_checkout_requested': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `A guest requested ${str(c.metadata, 'requestType') === 'early_checkin' ? 'an early check-in' : 'a late check-out'}${str(c.metadata, 'requestedTime') ? ` at ${str(c.metadata, 'requestedTime')}` : ''}`,
+  },
+  'guest_request.resolved': {
+    category: 'inbox',
+    severity: 'notice',
+    targetType: 'guest_request',
+    summary: (c) =>
+      `${c.actorName} ${str(c.metadata, 'status') === 'approved' ? 'approved' : 'declined'} a guest request`,
   },
 
   // ── AI controls ────────────────────────────────────────────────────────

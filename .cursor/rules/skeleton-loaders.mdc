@@ -1,0 +1,67 @@
+---
+description: >-
+  Every UI change must keep loading states accurate: skeletons only for async
+  values, rows, media and charts, never for fixed labels, titles, subtitles,
+  descriptions, tab labels, column headers, known icons or known dates.
+  Always-on gate for dashboard and guest UI work.
+alwaysApply: true
+---
+
+# Skeleton loaders — static text first, skeletons only for async
+
+**Non-negotiable:** when a UI surface can load, the loading state must mirror the
+final layout **and** render every fixed element immediately. A skeleton is only
+allowed where the final value is unknown because it waits on a query, mutation,
+permission check, media load, or route chunk.
+
+Full checklist: **`skeleton-loaders`** skill
+(`.agent/skills/skeleton-loaders/SKILL.md`). Architecture + route map:
+**`docs/architecture/skeleton-loaders.md`**.
+
+## Decision table
+
+| Element                                                                        | Render now                                                                    | Skeleton   |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ---------- |
+| Page title, subtitle, section heading, card title, tab label, column header    | ✅                                                                            | ❌         |
+| Field label, helper copy, button label, legend label, empty-state copy         | ✅                                                                            | ❌         |
+| Known icon / icon well (stat card, card header, nav item)                      | ✅                                                                            | ❌         |
+| Known date, month label, day number, fixed count of static items               | ✅                                                                            | ❌         |
+| Stat **value**, trend delta, async count, amount, name, email, status          | ❌                                                                            | ✅         |
+| Async rows / cards / messages / table body / timeline clips                    | ❌                                                                            | ✅         |
+| Chart plot, donut, mini calendar body, preview image/video, PDF page           | ❌                                                                            | ✅         |
+| Action that only exists after data/permissions resolve (Edit, Publish, Invite) | ❌                                                                            | ✅ or hide |
+| Description that concatenates a dynamic range (`Reminders · May 1–31`)         | ✅ static prefix + ✅ skeleton for the range only, or skeleton the whole line |
+
+## Rules
+
+1. **Static-first.** If the text exists in code, it is on screen during loading.
+   Stat cards must pass `title` + `icon` to `StatCardSkeleton`; card headers use
+   the real title/icon; tabs and table headers use the real labels.
+2. **Skeleton the unknown.** Only values that come from data, async actions, or
+   permissions are skeletonized.
+3. **First load only.** Render the skeleton on `isLoading && !data`; cached data
+   stays visible during refetch.
+4. **Match the final shape at 375 / 768 / 1024+.** Same grid, padding, gaps,
+   hidden/visible cards, and mobile/desktop variants. No generic spinner swaps
+   inside a page body.
+5. **State-aware.** Respect `?view=`, the selected tab, default section, empty vs
+   data state, and permission-gated cards when choosing the skeleton variant.
+6. **No extra cost.** Skeletons are static markup only: no timers, observers,
+   fetches, or shared subscriptions.
+
+## Do not ship without
+
+- Route skeleton renders the same page chrome as the loaded page.
+- Page-level loading keeps the header and swaps only the data region.
+- Every stat card shows its fixed label + icon while the value loads.
+- Card/section headings, tab labels and table column headers are real text.
+- Known dates/months/day numbers are real text.
+- The new/updated skeleton is listed in `docs/architecture/skeleton-loaders.md`
+  and the route guide's Loading row when page behavior changed.
+
+## Related
+
+- Skill: **`skeleton-loaders`**
+- Architecture: **`docs/architecture/skeleton-loaders.md`**
+- UI gate: **`mobile-native-ui.mdc`** / **`mobile-responsive`**
+- Docs: **`documentation-maintenance.mdc`** · **`route-guides.mdc`**

@@ -12,6 +12,7 @@ import {
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ui/button-group';
 import { Calendar } from '@/components/ui/calendar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardCompactChrome } from '@/features/dashboard/lib/dashboardChromeContext';
 import { useIsBelowLg, useIsBelowMd } from '@/hooks/useMediaQuery';
 import {
@@ -31,6 +32,11 @@ type Props = DateNavigationState & {
   onClear: () => void;
   /** Stretch trigger across available width (mobile filter card). */
   fullWidth?: boolean;
+  /**
+   * First load of the default month, before a range is applied.
+   * The trigger keeps its icon and chevron; the "Date" label is a skeleton.
+   */
+  labelPending?: boolean;
 };
 
 const PRESET_OPTIONS: {
@@ -59,6 +65,7 @@ export function BookingDateRangeFilter({
   isActive,
   onClear,
   fullWidth = false,
+  labelPending = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -118,6 +125,7 @@ export function BookingDateRangeFilter({
         compact: compactChrome,
       })
     : 'Date';
+  const showLabelSkeleton = labelPending && !isActive;
 
   const triggerActive = isActive || open || calendarOpen;
   const showNav = canNavigate;
@@ -234,7 +242,7 @@ export function BookingDateRangeFilter({
           onClick={handleApplyRange}
           disabled={!localRange?.from || !localRange?.to}
           className={cn(
-            'bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-all duration-100',
+            'bg-primary-strong text-primary-foreground inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-all duration-100',
             'disabled:pointer-events-none disabled:opacity-40',
             'hover:brightness-[1.03] active:scale-[0.98]',
             isMobileLayout && 'min-h-12 flex-1 rounded-xl text-sm'
@@ -255,6 +263,8 @@ export function BookingDateRangeFilter({
       onClick={() => (isCustomMode && isActive ? setCalendarOpen((v) => !v) : setOpen((v) => !v))}
       aria-expanded={open || calendarOpen}
       aria-haspopup="dialog"
+      aria-busy={showLabelSkeleton || undefined}
+      aria-label={showLabelSkeleton ? 'Loading dates' : undefined}
       title={
         compactChrome && isActive
           ? formatDateRangeDisplay(dateRange.from, dateRange.to, datePreset)
@@ -276,20 +286,24 @@ export function BookingDateRangeFilter({
           aria-hidden
         />
       )}
-      <span
-        className={cn(
-          'truncate',
-          compactChrome
-            ? fullWidth
-              ? 'max-w-[min(100%,11rem)]'
-              : 'max-w-[11rem]'
-            : fullWidth
-              ? 'max-w-[min(100%,14rem)]'
-              : 'max-w-[180px]'
-        )}
-      >
-        {triggerLabel}
-      </span>
+      {showLabelSkeleton ? (
+        <Skeleton className="h-3.5 w-12 rounded-md" />
+      ) : (
+        <span
+          className={cn(
+            'truncate',
+            compactChrome
+              ? fullWidth
+                ? 'max-w-[min(100%,11rem)]'
+                : 'max-w-[11rem]'
+              : fullWidth
+                ? 'max-w-[min(100%,14rem)]'
+                : 'max-w-[180px]'
+          )}
+        >
+          {triggerLabel}
+        </span>
+      )}
       <ChevronDown
         className={cn(
           'size-3.5 shrink-0 transition-transform duration-150',
@@ -492,8 +506,8 @@ const CALENDAR_CLASSNAMES = {
   range_start: 'day-range-start',
   range_end: 'day-range-end',
   selected: cn(
-    '[&_button]:bg-primary [&_button]:text-primary-foreground',
-    '[&_button:hover]:bg-primary [&_button:hover]:text-primary-foreground'
+    '[&_button]:bg-primary-strong [&_button]:text-primary-foreground',
+    '[&_button:hover]:bg-primary-strong [&_button:hover]:text-primary-foreground'
   ),
   today: 'font-bold [&_button]:ring-2 [&_button]:ring-primary/30',
   outside:

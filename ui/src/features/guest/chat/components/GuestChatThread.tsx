@@ -1,6 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { Loader2, Paperclip, Pencil, Reply, SendHorizontal, Undo2, X } from 'lucide-react';
+import {
+  Loader2,
+  Paperclip,
+  Pencil,
+  Reply,
+  SendHorizontal,
+  ThumbsDown,
+  ThumbsUp,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { GuestChatFaqSuggestions } from '@/features/guest/chat/components/GuestChatFaqSuggestions';
@@ -12,15 +22,28 @@ import {
   type GuestChatAttachment,
   type GuestChatMessage,
 } from '@/features/guest/chat/lib/guestChatApi';
+import {
+  pickFollowUpFaqs,
+  resolveGuestChatFaqPhase,
+  TALK_TO_HOST_PROMPT,
+} from '@/features/guest/chat/lib/guestChatSuggestions';
 import { BookingCalendarModal } from '@/features/guest/marketing/properties/components/property-detail/BookingCalendarModal';
 
 import {
   InboxMediaPreviewDialog,
   InboxMessageMediaTile,
 } from '@/features/dashboard/inbox/components/InboxMediaPreviewDialog';
+import {
+  ChatTemplateCard,
+  ChatTemplatePreviewDialog,
+} from '@/features/dashboard/inbox/components/ChatTemplateMessage';
 import type { InboxAttachmentPreview } from '@/features/dashboard/inbox/lib/inboxMessageAttachments';
 
 import { ChatComposerContextBar } from '@/components/chat/ChatComposerContextBar';
+import {
+  type ChatTemplateSnapshot,
+  readChatTemplateSnapshot,
+} from '@/components/chat/chatTemplateSnapshot';
 import {
   ChatMessageActionItem,
   ChatMessageActionsMenu,
@@ -95,6 +118,9 @@ type Props = {
   resourceHub?: boolean;
   stayGuideUrl?: string | null;
   tripPath?: string | null;
+  assistantTyping?: boolean;
+  aiFeedback?: Record<string, 1 | -1>;
+  onAiFeedback?: (messageId: string, rating: 1 | -1) => void;
 };
 
 const ACCEPTED_FILE_TYPES = CHAT_ATTACHMENT_ACCEPT;
@@ -127,11 +153,15 @@ export function GuestChatThread({
   resourceHub = true,
   stayGuideUrl = null,
   tripPath = null,
+  assistantTyping = false,
+  aiFeedback = {},
+  onAiFeedback,
 }: Props) {
   const [draft, setDraft] = useState('');
   const [pickingFaq, setPickingFaq] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<GuestChatAttachment[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<InboxAttachmentPreview | null>(null);
+  const [openSnapshot, setOpenSnapshot] = useState<ChatTemplateSnapshot | null>(null);
   const [composerMode, setComposerMode] = useState<ComposerMode>({ kind: 'compose' });
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarCheckIn, setCalendarCheckIn] = useState<Date | null>(null);
@@ -154,6 +184,20 @@ export function GuestChatThread({
 
   const messageTailKey = messages[messages.length - 1]?.id ?? '';
   const isBusy = sending || editing || unsending || uploadingAttachment || pickingFaq;
+  const lastAiMessage = [...messages]
+    .reverse()
+    .find((msg) => msg.is_ai_generated && !msg.deleted_at);
+  const lastGuestMessage = [...messages]
+    .reverse()
+    .find((msg) => msg.direction === 'inbound' && !msg.deleted_at);
+  const followUps = useMemo(() => {
+    if (!lastAiMessage) return [];
+    return pickFollowUpFaqs({
+      phase: resolveGuestChatFaqPhase({ hasInquiryDates, hasMessages: messages.length > 0 }),
+      lastGuestPrompt: lastGuestMessage?.body_text ?? '',
+      lastAiReply: lastAiMessage.body_text ?? '',
+    });
+  }, [hasInquiryDates, lastAiMessage, lastGuestMessage?.body_text, messages.length]);
   const canSend =
     composerMode.kind !== 'edit' &&
     (draft.trim().length > 0 || pendingAttachments.length > 0) &&
@@ -385,6 +429,13 @@ export function GuestChatThread({
           if (!open) setPreviewAttachment(null);
         }}
       />
+      <ChatTemplatePreviewDialog
+        open={!!openSnapshot}
+        onOpenChange={(open) => {
+          if (!open) setOpenSnapshot(null);
+        }}
+        snapshot={openSnapshot}
+      />
 
       {propertySlug ? (
         <BookingCalendarModal
@@ -493,6 +544,24 @@ export function GuestChatThread({
                         Edit
                       </ChatMessageActionItem>
                     ) : null}
+                    {!outbound && msg.is_ai_generated && onAiFeedback ? (
+                      <>
+                        <ChatMessageActionItem
+                          onSelect={() => onAiFeedback(msg.id, 1)}
+                          className="lg:hidden"
+                        >
+                          <ThumbsUp className="size-3.5" aria-hidden />
+                          Helpful
+                        </ChatMessageActionItem>
+                        <ChatMessageActionItem
+                          onSelect={() => onAiFeedback(msg.id, -1)}
+                          className="lg:hidden"
+                        >
+                          <ThumbsDown className="size-3.5" aria-hidden />
+                          Not helpful
+                        </ChatMessageActionItem>
+                      </>
+                    ) : null}
                     {showUnsend ? (
                       <ChatMessageActionItem
                         destructive
@@ -511,36 +580,58 @@ export function GuestChatThread({
                   </ChatMessageActionsMenu>
                 );
 
-                const bubble =
-                  isUnsent || hasText || (!hasText && !hasMedia) ? (
-                    <ChatMessageBubble
-                      bodyText={
-                        isUnsent
-                          ? unsentMessageLabel(outbound)
-                          : hasText
-                            ? bodyText
-                            : '(attachment)'
-                      }
-                      outbound={outbound}
-                      unsent={isUnsent}
-                      sentAt={msg.sent_at}
-                      deliveryStatus={deliveryStatus}
-                      isAiGenerated={!isUnsent && msg.is_ai_generated}
-                      edited={!isUnsent && Boolean(msg.edited_at)}
-                      replyPreviewText={isUnsent ? null : msg.reply_preview_text}
-                      highlightQuery={highlightQuery}
-                      activeHighlightRange={activeHighlightRange}
-                      onRetry={
-                        !isUnsent && msg.delivery_status === 'failed' && onRetryFailed
-                          ? () => onRetryFailed(msg.id, bodyText)
-                          : undefined
-                      }
-                      actions={messageActions}
-                      onCalendarLinkClick={
-                        propertySlug ? () => setCalendarModalOpen(true) : undefined
-                      }
+                const templateSnapshot = isUnsent
+                  ? null
+                  : readChatTemplateSnapshot(msg.template_snapshot);
+
+                const bubble = templateSnapshot ? (
+                  <ChatMessageBubble
+                    variant="card"
+                    bodyText={bodyText}
+                    outbound={outbound}
+                    sentAt={msg.sent_at}
+                    deliveryStatus={deliveryStatus}
+                    replyPreviewText={msg.reply_preview_text}
+                    actions={messageActions}
+                  >
+                    <ChatTemplateCard
+                      snapshot={templateSnapshot}
+                      onOpen={() => setOpenSnapshot(templateSnapshot)}
                     />
-                  ) : null;
+                  </ChatMessageBubble>
+                ) : isUnsent || hasText || (!hasText && !hasMedia) ? (
+                  <ChatMessageBubble
+                    bodyText={
+                      isUnsent ? unsentMessageLabel(outbound) : hasText ? bodyText : '(attachment)'
+                    }
+                    outbound={outbound}
+                    unsent={isUnsent}
+                    sentAt={msg.sent_at}
+                    deliveryStatus={deliveryStatus}
+                    isAiGenerated={!isUnsent && msg.is_ai_generated}
+                    feedback={
+                      !outbound && msg.is_ai_generated && onAiFeedback
+                        ? {
+                            rating: aiFeedback[msg.id] ?? 0,
+                            onRate: (rating) => onAiFeedback(msg.id, rating),
+                          }
+                        : undefined
+                    }
+                    edited={!isUnsent && Boolean(msg.edited_at)}
+                    replyPreviewText={isUnsent ? null : msg.reply_preview_text}
+                    highlightQuery={highlightQuery}
+                    activeHighlightRange={activeHighlightRange}
+                    onRetry={
+                      !isUnsent && msg.delivery_status === 'failed' && onRetryFailed
+                        ? () => onRetryFailed(msg.id, bodyText)
+                        : undefined
+                    }
+                    actions={messageActions}
+                    onCalendarLinkClick={
+                      propertySlug ? () => setCalendarModalOpen(true) : undefined
+                    }
+                  />
+                ) : null;
 
                 return (
                   <div
@@ -594,6 +685,38 @@ export function GuestChatThread({
                 );
               }}
             />
+            {assistantTyping ? (
+              <p className="text-muted-foreground px-1 pt-3 text-xs" aria-live="polite">
+                Assistant is typing…
+              </p>
+            ) : null}
+            {lastAiMessage && composerMode.kind === 'compose' ? (
+              <div className="flex flex-wrap gap-2 pt-3" role="region" aria-label="Follow-up">
+                {followUps.map((faq) => (
+                  <Button
+                    key={faq.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[44px] rounded-full text-xs"
+                    disabled={isBusy}
+                    onClick={() => handlePickFaq(faq.prompt)}
+                  >
+                    {faq.prompt}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-h-[44px] rounded-full text-xs"
+                  disabled={isBusy}
+                  onClick={() => handlePickFaq(TALK_TO_HOST_PROMPT)}
+                >
+                  Talk to the host
+                </Button>
+              </div>
+            ) : null}
           </>
         )}
       </div>

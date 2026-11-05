@@ -1,5 +1,5 @@
 /**
- * AI chat mode vs Advanced mode (docs/workflow/in-progress/ai-chat-mode.md §5).
+ * AI chat mode vs Advanced mode (docs/workflow/done/ai-chat-mode.md §5).
  * Mocked edge functions via the property-team RBAC harness; no live model calls.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -112,11 +112,11 @@ test.describe('@ci AI mode', () => {
     await expect(page).toHaveURL(/canvas=off/);
     await openSplitView(page);
 
-    await page.getByRole('button', { name: 'Close page' }).click();
+    await page.getByRole('button', { name: 'Chat only' }).click();
     await expect(page).toHaveURL(/canvas=off/);
     await expect(canvas(page)).toHaveCount(0);
     await expect(page.getByTestId('assistant-briefing')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Pending review/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Pending review/ })).toBeVisible();
     await expect(page).toHaveTitle(/Assistant/);
 
     await page.getByRole('button', { name: 'Split View' }).click();
@@ -298,7 +298,7 @@ test.describe('@ci AI mode', () => {
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toHaveCount(0);
     // Page icons stay reachable in the collapsed rail during split view.
     await expect(rail.getByRole('navigation', { name: 'Pages' })).toBeVisible();
-    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(64);
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(72);
     const canvasWidth = (await canvas(page).boundingBox())!.width;
     expect(canvasWidth).toBeGreaterThanOrEqual(560);
     await expect(composer(page)).toBeVisible();
@@ -306,8 +306,8 @@ test.describe('@ci AI mode', () => {
     expect(composerWidth).toBeGreaterThan(280);
 
     // Closing the page gives the rail its room back.
-    await page.getByRole('button', { name: 'Close page' }).click();
-    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(300);
+    await page.getByRole('button', { name: 'Chat only' }).click();
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(280);
     await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
 
     // Section-nav pages (Settings, Templates) drop the side nav so forms keep their width.
@@ -316,7 +316,7 @@ test.describe('@ci AI mode', () => {
       timeout: 20_000,
     });
     await expect(canvas(page).locator('[data-section-nav-aside]')).toBeHidden();
-    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(64);
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(72);
   });
 
   test('phone: chat first, single bottom layer, page opens full screen with Back', async ({

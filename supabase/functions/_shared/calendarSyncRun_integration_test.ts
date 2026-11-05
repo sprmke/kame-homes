@@ -146,7 +146,7 @@ async function events(feedId: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 Deno.test(
-  'Phase 1: block-only feed — create, reschedule, remove; feed health tracked',
+  'Phase 1: block-only feed - create, reschedule, remove; feed health tracked',
   async () => {
     const pid = await firstPropertyId();
     const feed = await seedFeed(pid, false);
@@ -204,7 +204,7 @@ Deno.test(
 );
 
 Deno.test(
-  'Phase 2: reservation ingestion — create PENDING_REVIEW booking + block + notification',
+  'Phase 2: reservation ingestion - create PENDING_REVIEW booking + block + notification',
   async () => {
     const pid = await firstPropertyId();
     const feed = await seedFeed(pid, true);
@@ -320,7 +320,7 @@ Deno.test(
 );
 
 Deno.test(
-  'Phase 2: cancellation — cancel while pending; skip when past check-in (stale feed drop)',
+  'Phase 2: cancellation - cancel while pending; skip when past check-in (stale feed drop)',
   async () => {
     const pid = await firstPropertyId();
     const feed = await seedFeed(pid, true);
@@ -443,7 +443,7 @@ Deno.test(
   }
 );
 
-Deno.test('Engine: empty-feed guard — a single empty pull does NOT mass-remove', async () => {
+Deno.test('Engine: empty-feed guard - a single empty pull does NOT mass-remove', async () => {
   const pid = await firstPropertyId();
   const feed = await seedFeed(pid, false);
   try {
@@ -533,9 +533,19 @@ Deno.test(
         ev.some((e) => e.action === 'conflict_detected'),
         'conflict_detected event written'
       );
+      const { data: conflictNotes } = await sb
+        .from('notifications')
+        .select('id, dedupe_key, metadata')
+        .eq('type', 'calendar_conflict')
+        .like('dedupe_key', `conflict:${feed.id}:%`);
+      assertEquals(conflictNotes?.length ?? 0, 1, 'one summary calendar_conflict notification');
+      assertEquals(
+        (conflictNotes?.[0]?.metadata as { conflict_count?: number } | null)?.conflict_count,
+        r.conflicts
+      );
     } finally {
       await sb.from('property_blocked_dates').delete().eq('id', manual?.id);
-      await sb.from('notifications').delete().like('dedupe_key', 'conflict:ov@abnb:%');
+      await sb.from('notifications').delete().like('dedupe_key', `conflict:${feed.id}:%`);
       await cleanupFeed(feed.id);
     }
   }

@@ -1,8 +1,11 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent, type MouseEvent, type ReactElement } from 'react';
 
 import { CalendarRange, Check, Copy, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
+import { FeatureUnavailableNotice } from '@/components/feature-availability/FeatureUnavailableNotice';
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { TierBadge, TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
@@ -45,6 +48,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toastFeatureUnavailable } from '@/lib/featureAvailability/featureUnavailableError';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 import { formatRelative } from '@/utils/format/bookingDisplay';
 
@@ -150,6 +155,10 @@ export function ChannelSyncDialog({
 }: ChannelSyncDialogProps) {
   const gate = useFeatureGate('calendarSync');
   const { open: openUpgradeModal } = useUpgradeModal();
+  const channelSyncAvailability = useFeatureAvailability('pricing.channel_sync');
+  const importAvailability = useFeatureAvailability('pricing.channel_sync.import');
+  const showChannelSyncTierBadge =
+    channelSyncAvailability.available && !channelSyncAvailability.isLoading;
   const settings = useCalendarSyncSettings({
     enabled: open,
   });
@@ -181,7 +190,31 @@ export function ChannelSyncDialog({
   /** Connect stays disabled until the URL passes Airbnb validation. */
   const canConnect = !validationError && !addFeed.isPending;
 
+  type ImportActionButton = ReactElement<{
+    className?: string;
+    disabled?: boolean;
+    onClick?: (e: MouseEvent) => void;
+  }>;
+
+  const wrapImportAction = (button: ImportActionButton) => {
+    if (!importAvailability.available) {
+      return (
+        <FeatureAvailabilityButton featureKey="pricing.channel_sync.import">
+          {button}
+        </FeatureAvailabilityButton>
+      );
+    }
+    if (!gate.canUse) {
+      return <TierBadgeAnchor feature="calendarSync">{button}</TierBadgeAnchor>;
+    }
+    return button;
+  };
+
   const requireCalendarSyncPlan = (): boolean => {
+    if (!importAvailability.available) {
+      toastFeatureUnavailable(importAvailability.message);
+      return false;
+    }
     if (gate.canUse) return true;
     if (!gate.isLoading) openUpgradeModal('calendarSync');
     return false;
@@ -217,7 +250,13 @@ export function ChannelSyncDialog({
   };
 
   const handleExportEnabledChange = (enabled: boolean) => {
-    if (enabled && !requireCalendarSyncPlan()) return;
+    if (enabled) {
+      if (!channelSyncAvailability.available) {
+        toastFeatureUnavailable(channelSyncAvailability.message);
+        return;
+      }
+      if (!requireCalendarSyncPlan()) return;
+    }
     setEnabled.mutate(enabled);
   };
 
@@ -267,11 +306,11 @@ export function ChannelSyncDialog({
             Cancel
           </Button>
         ) : null}
-        <TierBadgeAnchor feature="calendarSync" className={feeds.length > 0 ? 'flex-1' : 'w-full'}>
+        {wrapImportAction(
           <Button type="submit" className="min-h-[44px] w-full" disabled={!canConnect}>
             {addFeed.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Connect'}
           </Button>
-        </TierBadgeAnchor>
+        )}
       </div>
     </form>
   );
@@ -320,6 +359,34 @@ export function ChannelSyncDialog({
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] sm:px-5">
             {gate.isLoading || settings.isLoading ? (
               <ChannelSyncBodySkeleton />
+            ) : !channelSyncAvailability.available && !channelSyncAvailability.isLoading ? (
+              <div className="space-y-4">
+                <FeatureUnavailablePanel
+                  label={channelSyncAvailability.label}
+                  message={channelSyncAvailability.message}
+                  expectedBackLabel={channelSyncAvailability.expectedBackLabel}
+                  reason={channelSyncAvailability.reason}
+                  tone={channelSyncAvailability.tone}
+                />
+                {exportUrl ? (
+                  <div className="space-y-1.5">
+                    <FieldLabel
+                      htmlFor="channel-export-url-readonly"
+                      label="Airbnb export link"
+                      help={PASTE_INTO_AIRBNB_HELP}
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="channel-export-url-readonly"
+                        readOnly
+                        value={exportUrl}
+                        className="h-11 min-w-0 flex-1 font-mono text-xs"
+                      />
+                      <CopyButton value={exportUrl} label="Copy Airbnb export link" />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             ) : settings.isError ? (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <p className="text-destructive text-sm">
@@ -355,6 +422,14 @@ export function ChannelSyncDialog({
                 </TabsList>
 
                 <TabsContent value="import" className="mt-0 space-y-4 focus-visible:ring-0">
+                  {!importAvailability.available && !importAvailability.isLoading ? (
+                    <FeatureUnavailableNotice
+                      title={importAvailability.label}
+                      label={importAvailability.message || 'Imports from Airbnb are paused.'}
+                      expectedBackLabel={importAvailability.expectedBackLabel}
+                      tone={importAvailability.tone}
+                    />
+                  ) : null}
                   {feeds.length === 0 && readOnly ? (
                     <div className="flex flex-col items-center gap-3 py-8 text-center">
                       <div className="bg-muted/80 flex size-12 items-center justify-center rounded-full">
@@ -390,31 +465,37 @@ export function ChannelSyncDialog({
                                 </div>
                                 {!readOnly ? (
                                   <div className="flex shrink-0 items-center gap-0.5">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="size-11"
-                                      disabled={syncNow.isPending && syncNow.variables === feed.id}
-                                      onClick={() => syncNow.mutate(feed.id)}
-                                      aria-label={`Sync ${name} now`}
-                                    >
-                                      {syncNow.isPending && syncNow.variables === feed.id ? (
-                                        <Loader2 className="size-4 animate-spin" />
-                                      ) : (
-                                        <RefreshCw className="size-4" />
-                                      )}
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-muted-foreground hover:text-destructive size-11"
-                                      onClick={() => setPendingRemove(feed)}
-                                      aria-label={`Remove ${name}`}
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </Button>
+                                    {wrapImportAction(
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-11"
+                                        disabled={
+                                          syncNow.isPending && syncNow.variables === feed.id
+                                        }
+                                        onClick={() => syncNow.mutate(feed.id)}
+                                        aria-label={`Sync ${name} now`}
+                                      >
+                                        {syncNow.isPending && syncNow.variables === feed.id ? (
+                                          <Loader2 className="size-4 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="size-4" />
+                                        )}
+                                      </Button>
+                                    )}
+                                    {wrapImportAction(
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-muted-foreground hover:text-destructive size-11"
+                                        onClick={() => setPendingRemove(feed)}
+                                        aria-label={`Remove ${name}`}
+                                      >
+                                        <Trash2 className="size-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 ) : null}
                               </li>
@@ -423,19 +504,21 @@ export function ChannelSyncDialog({
                         </ul>
                       ) : null}
 
-                      {showAddForm ? (
-                        addForm
-                      ) : !readOnly ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="min-h-[44px] w-full gap-1.5"
-                          onClick={() => setAdding(true)}
-                        >
-                          <Plus className="size-4" aria-hidden />
-                          Connect Airbnb
-                        </Button>
-                      ) : null}
+                      {showAddForm
+                        ? addForm
+                        : !readOnly
+                          ? wrapImportAction(
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="min-h-[44px] w-full gap-1.5"
+                                onClick={() => setAdding(true)}
+                              >
+                                <Plus className="size-4" aria-hidden />
+                                Connect Airbnb
+                              </Button>
+                            )
+                          : null}
                     </>
                   )}
 
@@ -471,13 +554,18 @@ export function ChannelSyncDialog({
                         help={SHARE_WITH_AIRBNB_HELP}
                         className="mb-0"
                       />
-                      <TierBadge feature="calendarSync" />
+                      {showChannelSyncTierBadge ? <TierBadge feature="calendarSync" /> : null}
                     </div>
                     <Switch
                       id="channel-export-enabled"
                       checked={exportEnabled}
                       onCheckedChange={handleExportEnabledChange}
-                      disabled={readOnly || setEnabled.isPending || !data?.export.urls}
+                      disabled={
+                        readOnly ||
+                        setEnabled.isPending ||
+                        !data?.export.urls ||
+                        (!channelSyncAvailability.available && !channelSyncAvailability.isLoading)
+                      }
                     />
                   </div>
 

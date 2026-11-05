@@ -62,7 +62,7 @@ export function OrgRecentBookingsList({ orgSlug, bookings, rangeLabel, className
         action={
           <Link
             to={viewAllHref}
-            className="text-primary hover:bg-primary/10 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-semibold transition-colors"
+            className="text-brand-ink hover:bg-primary/10 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-semibold transition-colors"
           >
             View
             <ArrowRight className="size-4 shrink-0" aria-hidden />

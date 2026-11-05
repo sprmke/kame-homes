@@ -51,7 +51,7 @@ export function buildGuestTripIcs(input: {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Kame Homes//Guest Trip//EN',
+    'PRODID:-//Kame Space//Guest Trip//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',

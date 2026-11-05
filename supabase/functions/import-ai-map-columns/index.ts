@@ -143,7 +143,7 @@ serveAuthenticated('import-ai-map-columns', async (req, user) => {
         .maybeSingle();
       const refreshedStatus = String(refreshed?.status ?? '');
       if (refreshedStatus !== 'mapping' && refreshedStatus !== 'mapped') {
-        return jsonError(req, 'Import batch status changed — retry mapping');
+        return jsonError(req, 'Import batch status changed - retry mapping');
       }
     }
   }
@@ -182,14 +182,14 @@ serveAuthenticated('import-ai-map-columns', async (req, user) => {
     return jsonError(req, 'Failed to save column mapping');
   }
   if (!persisted) {
-    return jsonError(req, 'Import batch status changed — retry mapping');
+    return jsonError(req, 'Import batch status changed - retry mapping');
   }
 
   const matchedCount = aiResult.mappings.filter((entry) => entry.status === 'matched').length;
   const reviewCount = aiResult.mappings.filter((entry) => entry.status !== 'matched').length;
 
   console.log(
-    `[import-ai-map-columns] batch ${batchId} — ${matchedCount} matched, ${reviewCount} need review (${aiResult.provider})`
+    `[import-ai-map-columns] batch ${batchId} - ${matchedCount} matched, ${reviewCount} need review (${aiResult.provider})`
   );
 
   return jsonSuccess(req, {

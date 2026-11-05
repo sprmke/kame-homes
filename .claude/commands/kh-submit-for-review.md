@@ -75,7 +75,7 @@ EOF
 Title style: short conventional subject when possible (`fix: …`, `feat: …`, `docs: …`).  
 If an issue number is known, include `Fixes #N` or `Relates to #N`.
 
-7. **Reply** with the PR URL. Mention that merging to `develop` deploys the multi-tenant **dev** app (`dev.kamehomes.space`) via CD Dev — not legacy production.
+7. **Reply** with the PR URL. Mention that merging to `develop` deploys the multi-tenant **dev** app (`kamespace.com`) via CD Dev — not legacy production.
 
 ## Don'ts
 

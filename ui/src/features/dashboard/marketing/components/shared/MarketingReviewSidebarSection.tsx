@@ -112,7 +112,7 @@ export function MarketingReviewSidebarSection({
                     onClick={() => onSelect(review)}
                   >
                     {selected ? (
-                      <span className="bg-primary text-primary-foreground absolute left-1.5 top-1.5 flex size-4 items-center justify-center rounded-full">
+                      <span className="bg-primary-strong text-primary-foreground absolute left-1.5 top-1.5 flex size-4 items-center justify-center rounded-full">
                         <Check className="size-2.5" aria-hidden strokeWidth={3} />
                       </span>
                     ) : null}

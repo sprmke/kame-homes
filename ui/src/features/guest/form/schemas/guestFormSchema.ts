@@ -188,12 +188,12 @@ function buildGuestFormSchema(options: GuestFormSchemaOptions) {
       petVaccination: z.instanceof(File).optional(),
       petImage: z.instanceof(File).optional(),
 
-      // File upload fields — paymentReceipt is optional for Airbnb (no GCash payment step)
-      paymentReceipt: isAirbnb
-        ? z.instanceof(File).optional()
-        : z.instanceof(File, {
-            message: 'Please upload a copy of your downpayment receipt',
-          }),
+      // File upload fields. A missing file is required in `superRefine` below (not here):
+      // Zod marks a failed `instanceof`/`custom` check as fatal, which aborts the rest of
+      // this object's parsing. A required `paymentReceipt` on step 5 therefore swallowed
+      // every superRefine rule (Valid ID, find-us details, pet fields, capacity, cleaning
+      // buffer) while guests were still on steps 1-4.
+      paymentReceipt: z.instanceof(File).optional(),
       validId: z.instanceof(File).optional(),
       guest2ValidId: z.instanceof(File).optional(),
       guest3ValidId: z.instanceof(File).optional(),
@@ -320,6 +320,14 @@ function buildGuestFormSchema(options: GuestFormSchemaOptions) {
           });
         }
       });
+
+      if (!isAirbnb && !data.paymentReceipt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please upload a copy of your downpayment receipt',
+          path: ['paymentReceipt'],
+        });
+      }
 
       if ((data.findUs === 'Friend' || data.findUs === 'Others') && !data.findUsDetails) {
         ctx.addIssue({

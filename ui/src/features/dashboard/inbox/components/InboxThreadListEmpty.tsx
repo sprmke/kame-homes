@@ -1,5 +1,6 @@
 import { Plug, RefreshCw } from 'lucide-react';
 
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,11 @@ type Props = {
     | 'load-error'
     | 'empty'
     | 'search-not-loaded'
-    | 'search-empty';
+    | 'search-empty'
+    | 'feature-unavailable';
+  featureUnavailableLabel?: string;
+  featureUnavailableMessage?: string;
+  featureUnavailableExpectedBack?: string | null;
   canConnect: boolean;
   syncError?: string | null;
   loadError?: string | null;
@@ -33,7 +38,21 @@ export function InboxThreadListEmpty({
   canLoadOlderFromMeta = false,
   onLoadOlderFromMeta,
   loadingOlderFromMeta = false,
+  featureUnavailableLabel,
+  featureUnavailableMessage,
+  featureUnavailableExpectedBack,
 }: Props) {
+  if (variant === 'feature-unavailable') {
+    return (
+      <FeatureUnavailablePanel
+        compact
+        label={featureUnavailableLabel ?? 'Facebook and Instagram chat'}
+        message={featureUnavailableMessage ?? 'This feature is temporarily unavailable.'}
+        expectedBackLabel={featureUnavailableExpectedBack}
+      />
+    );
+  }
+
   if (variant === 'not-connected') {
     return (
       <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">

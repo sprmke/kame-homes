@@ -7,7 +7,7 @@
 # heuristic itself is wrong (a query builder built once and reused/chained across
 # branches, so the bound and the `.select(` land in statements the line-scan can't
 # connect) or where a query is intentionally left unbounded pending a real fix — each
-# entry names which. See docs/workflow/planned/production-readiness-checklist/
+# entry names which. See docs/workflow/in-progress/production-readiness/checklist/
 # 10-paginate-large-lists.md for the two confirmed worst offenders this guard was
 # built alongside (`listBookings`, `fetchAllBookingsForFinance` — both already fixed).
 #
@@ -171,6 +171,10 @@ ALLOWLIST=(
   'calendar-sync-settings/index.ts'
   'create-organization/index.ts'
   'dashboard-assistant-conversations/index.ts'
+  # Only the insert-returning `.select('id, step_index')` is unbounded to the line-scan:
+  # it returns exactly the rows just written, and the array is already capped by
+  # assistantMaxPlanSteps. The file's other selects are `.maybeSingle()` or `.limit(20)`.
+  'dashboard-assistant-chat/index.ts'
   'decide-contract-consideration/index.ts'
   'delete-organization/index.ts'
   'generate-marketing-media/index.ts'

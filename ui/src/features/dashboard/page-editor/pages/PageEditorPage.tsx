@@ -23,8 +23,8 @@ import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { validateOrgBrandColor } from '@/features/dashboard/org/lib/orgSettingsValidation';
 import {
   resolveCancellationPolicyDisplay,
-  validateCancellationPolicySettings,
-} from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+  validateCancellationPolicy,
+} from '@/features/dashboard/org/lib/cancellationPolicy';
 import { resolveHouseRulesForDisplay } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
 import {
   resolveAmenityLabels,
@@ -293,8 +293,8 @@ function PropertyLandingPageEditor({
   });
 
   const cancellationError =
-    content.cancellationPolicy.type === 'custom'
-      ? validateCancellationPolicySettings(content.cancellationPolicy)
+    content.cancellationPolicy?.presetId === 'custom'
+      ? validateCancellationPolicy(content.cancellationPolicy)
       : null;
 
   const contentFingerprint = useMemo(
@@ -468,7 +468,7 @@ function PropertyLandingPageEditor({
     (configQuery.isLoading && !configQuery.data) ||
     previewJwt === null ||
     (previewQuery.isLoading && !previewQuery.data) ||
-    !hydrated ||
+    (!hydrated && !configQuery.isError) ||
     !brandHydrated ||
     !contentHydrated ||
     !appSettings;

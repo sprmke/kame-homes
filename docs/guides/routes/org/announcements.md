@@ -34,7 +34,7 @@ Property-only team members who cannot open org routes still reach announcements 
 
 ## Host-facing knowledge
 
-This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group.
+This is where you read official notices from Kame Space - scheduled maintenance, new features, and updates for your buildings. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group.
 
 **Common host questions**
 
@@ -46,6 +46,8 @@ This is where you read official notices from Kame Homes — scheduled maintenanc
   A: Yes. Next to each group title (Platform or a development name), tap **Read all** when that group has unread notices.
 - Q: What's the difference between Platform and a development name?
   A: **Platform** applies to all hosts. A development name applies only to properties or parkings linked to that development.
+- Q: Do announcements also show as a banner on other pages?
+  A: No. They live on the Announcements page and its detail view. The red dot on **Announcements** is the prompt that a new notice is waiting.
 
 ## Permissions
 

@@ -38,7 +38,7 @@ export function SearchEmptyState({
             type="button"
             onClick={onRequestLocation}
             disabled={locationRequesting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-5 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+            className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 mt-5 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {locationRequesting ? 'Checking…' : 'Use my location'}
           </button>
@@ -72,7 +72,7 @@ export function SearchEmptyState({
           <button
             type="button"
             onClick={onSearchNearby}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold"
+            className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 min-h-[44px] cursor-pointer rounded-full px-5 text-sm font-semibold"
           >
             Search nearby
           </button>

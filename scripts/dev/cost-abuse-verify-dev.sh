@@ -16,8 +16,8 @@ if [[ -z "$BASE_URL" ]]; then
   echo "Set BASE_URL to hosted dev functions root (…/functions/v1)." >&2
   exit 1
 fi
-if [[ "$BASE_URL" == *"zfttdwtceyqszyeyhilc"* ]]; then
-  echo "Refusing legacy production project ref." >&2
+if [[ "$BASE_URL" == *"fworvijbrwpyngycotbz"* ]]; then
+  echo "Refusing: this ref serves production. Run cost probes against a disposable project." >&2
   exit 1
 fi
 
@@ -30,7 +30,7 @@ echo "== Public endpoint abuse smoke =="
 
 echo ""
 echo "== CORS origin probe =="
-ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-https://dev.kamehomes.space}" ./scripts/dev/check-cors-origins.sh
+ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-http://localhost:5173}" ./scripts/dev/check-cors-origins.sh
 
 if [[ -n "${SUPABASE_URL:-}" && -n "${ANON_KEY:-}" && -n "${STORAGE_OBJECT_PATH:-}" ]]; then
   echo ""

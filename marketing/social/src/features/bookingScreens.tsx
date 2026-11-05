@@ -201,7 +201,7 @@ export function ReceiptCheckScreen(a: ScreenAnim) {
           {[
             ['Reference no.', '4019 2283 7716'],
             ['Date', 'Oct 12, 2026 2:13 PM'],
-            ['Sent to', 'Kame Homes · ****4471'],
+            ['Sent to', 'Kame Space · ****4471'],
           ].map(([k, v]) => (
             <div
               key={k}

@@ -10,11 +10,13 @@ import { useAiDashboardAssistantSettings } from '@/features/dashboard/ai-assista
 import type {
   ChatBlock,
   ConfirmActionResponse,
+  ConfirmPlanResponse,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import {
   AiAssistantSessionContext,
   type AiAssistantSessionValue,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantSessionContext';
+import { shouldPromptAssistantUpgrade } from '@/features/dashboard/ai-assistant/lib/assistantAccess';
 import { resolveAssistantAiOffReason } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
 import {
   EMPTY_ASSISTANT_DRAFT,
@@ -38,6 +40,7 @@ import type { ChatSendInput } from '@/features/dashboard/ai-assistant/lib/chatAt
 import {
   dynamicFormValuesToLines,
   patchActionConfirmationStatus,
+  patchActionPlanStatus,
 } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
 import { useDashboardMode } from '@/features/dashboard/ai-assistant/lib/dashboardModeContext';
 import { selectContextualSuggestions } from '@/features/dashboard/ai-assistant/lib/moduleSuggestions';
@@ -85,9 +88,12 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
     regenerateLastTurn,
     editAndResend,
     resolveAction,
+    resolvePlan,
   } = chat;
 
-  const { accessible } = useAiAssistantAccess(propertyId);
+  const access = useAiAssistantAccess(propertyId);
+  const { accessible, permissionAllowed, permissionLoading, planGate } = access;
+  const accessPending = access.isLoading || permissionLoading || planGate.isLoading;
   const readOnly = !accessible;
   const { data: assistantSettings } = useAiDashboardAssistantSettings({ includeUsage: true });
   const aiOffReason = resolveAssistantAiOffReason(assistantSettings?.aiBlocker, chat.aiBlocker);
@@ -222,10 +228,19 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
 
   // ── Actions (every one respects the plan gate the same way) ───────────────────────────────
   const blocked = useCallback(() => {
-    if (!readOnly) return false;
-    openUpgradeModal('aiDashboardAssistant');
-    return true;
-  }, [readOnly, openUpgradeModal]);
+    if (accessPending) return true;
+    if (
+      shouldPromptAssistantUpgrade({
+        accessPending,
+        permissionAllowed,
+        accessible,
+      })
+    ) {
+      openUpgradeModal('aiDashboardAssistant');
+      return true;
+    }
+    return !accessible;
+  }, [accessPending, accessible, openUpgradeModal, permissionAllowed]);
 
   const lastUserContext = useCallback(
     () => [...messages].reverse().find((message) => message.role === 'user')?.attachedContext,
@@ -329,6 +344,28 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
     [queryClient, resolveAction]
   );
 
+  const confirmPlan = useCallback(
+    async (
+      planId: string,
+      confirm: boolean,
+      selectedStepIds?: string[]
+    ): Promise<ConfirmPlanResponse | null> => {
+      const result = await resolvePlan(planId, confirm, selectedStepIds);
+      if (result?.steps?.some((s) => s.status === 'executed')) {
+        // Live booking cards (and any open booking page) pick up any step's change.
+        void queryClient.invalidateQueries({ queryKey: BOOKING_QUERY_KEY('').slice(0, 1) });
+      }
+      if (result && result.status !== 'proposed' && result.status !== 'running') {
+        const nextStatus = result.status;
+        setCanvasBlock((current) =>
+          current ? (patchActionPlanStatus([current], planId, nextStatus)[0] ?? current) : current
+        );
+      }
+      return result;
+    },
+    [queryClient, resolvePlan]
+  );
+
   const resetSurfaceState = useCallback(() => {
     setComposerKey((n) => n + 1);
     setSuggestionNonce((n) => n + 1);
@@ -384,6 +421,7 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
       regenerate,
       submitEdit,
       confirmAction,
+      confirmPlan,
       newChat,
       selectConversation,
       onConversationDeleted,
@@ -410,6 +448,7 @@ export function AiAssistantSessionProvider({ children }: { children: ReactNode }
       regenerate,
       submitEdit,
       confirmAction,
+      confirmPlan,
       newChat,
       selectConversation,
       onConversationDeleted,

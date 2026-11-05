@@ -2,6 +2,7 @@
  * List notifications for the caller's org (keyset pagination on created_at).
  */
 
+import { summarizeNotificationsUnread } from '../_shared/notificationsUnreadSummary.ts';
 import { resolveNotificationsAccess } from '../_shared/notificationsAccess.ts';
 import {
   enrichNotificationRowForDisplay,
@@ -59,23 +60,6 @@ function inboxUnreadConversationIds(rows: NotificationRow[]): Set<string> {
   return unread;
 }
 
-function countCollapsedUnread(rows: NotificationRow[]): number {
-  const inboxUnread = inboxUnreadConversationIds(rows);
-  let count = 0;
-  const seenInbox = new Set<string>();
-  for (const row of rows) {
-    if (!isUnread(row)) continue;
-    if (row.type === 'inbox_new_message' && row.conversation_id) {
-      if (seenInbox.has(row.conversation_id)) continue;
-      seenInbox.add(row.conversation_id);
-      count++;
-      continue;
-    }
-    count++;
-  }
-  return count;
-}
-
 serveAuthenticated('notifications-list', async (req, user) => {
   if (req.method !== 'GET') {
     return jsonError(req, 'Method not allowed', 405);
@@ -83,7 +67,12 @@ serveAuthenticated('notifications-list', async (req, user) => {
 
   const ctx = await resolveNotificationsAccess(req);
   if (ctx.planLimited) {
-    return jsonSuccess(req, { notifications: [], nextCursor: null, unreadCount: 0 });
+    return jsonSuccess(req, {
+      notifications: [],
+      nextCursor: null,
+      unreadCount: 0,
+      unreadSummary: { inbox: 0, bookings: 0, reviews: 0 },
+    });
   }
   const url = new URL(req.url);
   const cursor = url.searchParams.get('cursor');
@@ -193,7 +182,16 @@ serveAuthenticated('notifications-list', async (req, user) => {
 
   // Must include type + conversation_id so inbox rows collapse one-per-conversation
   // (legacy per-message rows) — same rule as the list payload above.
-  const unreadCount = countCollapsedUnread((unreadRows ?? []) as NotificationRow[]);
+  const unreadSummary = summarizeNotificationsUnread((unreadRows ?? []) as NotificationRow[]);
 
-  return jsonSuccess(req, { notifications, nextCursor, unreadCount });
+  return jsonSuccess(req, {
+    notifications,
+    nextCursor,
+    unreadCount: unreadSummary.unreadCount,
+    unreadSummary: {
+      inbox: unreadSummary.unreadInbox,
+      bookings: unreadSummary.unreadBookings,
+      reviews: unreadSummary.unreadReviews,
+    },
+  });
 });

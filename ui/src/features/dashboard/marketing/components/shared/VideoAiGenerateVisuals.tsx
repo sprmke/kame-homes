@@ -42,7 +42,7 @@ export function VideoSuggestionPreview({
           `,
         }}
       />
-      {/* Bottom scrim — same device as live video overlays */}
+      {/* Bottom scrim - same device as live video overlays */}
       <div
         className="absolute inset-x-0 bottom-0 h-[58%]"
         style={{
@@ -190,7 +190,7 @@ export function VideoCategoryChips({
             className={cn(
               'focus-visible:ring-ring min-h-[36px] min-w-0 cursor-pointer rounded-full border px-1 py-1 text-center text-[10px] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 sm:text-[11px]',
               active
-                ? 'border-primary bg-primary text-primary-foreground'
+                ? 'border-primary bg-primary-strong text-primary-foreground'
                 : 'border-border/70 bg-background text-foreground hover:bg-background/80'
             )}
           >

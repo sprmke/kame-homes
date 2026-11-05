@@ -46,7 +46,7 @@ export function OrgPendingActionsCard({ orgSlug, items, className }: Props) {
           items.length > 0 ? (
             <Link
               to={viewAllHref}
-              className="text-primary hover:bg-primary/10 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-semibold transition-colors"
+              className="text-brand-ink hover:bg-primary/10 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 text-sm font-semibold transition-colors"
             >
               View
               <ArrowRight className="size-4 shrink-0" aria-hidden />
@@ -119,7 +119,7 @@ export function OrgPendingActionsCard({ orgSlug, items, className }: Props) {
             {overflow > 0 ? (
               <Link
                 to={viewAllHref}
-                className="border-border/60 bg-muted/30 text-primary hover:bg-primary/10 mt-3 flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors"
+                className="border-border/60 bg-muted/30 text-brand-ink hover:bg-primary/10 mt-3 flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors"
               >
                 View all
                 <span className="text-muted-foreground font-medium">(+{overflow} more)</span>

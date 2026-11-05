@@ -23,7 +23,12 @@ import {
   type ResolvedAiLimits,
 } from './aiLimitResolver.ts';
 import { upsertAiPlatformOrgSettings, upsertAiPlatformPropertySettings } from './aiUsageService.ts';
-import { upsertDashboardAssistantOrgSettings } from './dashboardAssistantSettings.ts';
+import {
+  getDashboardAssistantGlobalSettings,
+  getDashboardAssistantOrgSettings,
+  resolveDashboardAssistantKillSwitch,
+  upsertDashboardAssistantOrgSettings,
+} from './dashboardAssistantSettings.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { updateVoiceReceptionistPropertyLimits } from './voiceReceptionistService.ts';
 import { patchMarketingGenerationOverrides } from './marketingGenerationFeatureConfig.ts';
@@ -57,6 +62,10 @@ export const ORG_OVERRIDE_KEYS: readonly AiLimitKey[] = [
   'assistantDailyMessageLimit',
   'assistantMonthlyMessageLimit',
   'assistantDailyWriteActionLimit',
+  'assistantMaxToolRounds',
+  'assistantMaxPlanSteps',
+  'guestRequestDailyLimit',
+  'assistantTurnCreditCeiling',
 ];
 
 export const PROPERTY_OVERRIDE_KEYS: readonly AiLimitKey[] = [
@@ -262,7 +271,7 @@ const SCOPE_TABLE: Record<AiLimitScope, string> = {
   development: 'developments',
 };
 
-async function assertTargetsExist(scope: AiLimitScope, ids: string[]): Promise<void> {
+export async function assertTargetsExist(scope: AiLimitScope, ids: string[]): Promise<void> {
   const { data, error } = await createServiceClient()
     .from(SCOPE_TABLE[scope])
     .select('id')
@@ -371,6 +380,95 @@ export async function setPlanProfile(
   return { code: String(data.code), name: String(data.name), profile };
 }
 
+// ─── Phase 6 kill-switch overrides (org-scoped only) ─────────────────────────
+
+export type KillSwitchKey = 'agenticModeEnabled' | 'planApprovalEnabled' | 'guestActionsEnabled';
+
+export const KILL_SWITCH_KEYS: readonly KillSwitchKey[] = [
+  'agenticModeEnabled',
+  'planApprovalEnabled',
+  'guestActionsEnabled',
+];
+
+/** Validates a `{ key: boolean | null }` map. `null` clears the override (inherit). */
+export function parseKillSwitchOverrides(
+  raw: unknown
+): Partial<Record<KillSwitchKey, boolean | null>> {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new AiLimitAdminError('Request body must be an object');
+  }
+  const out: Partial<Record<KillSwitchKey, boolean | null>> = {};
+  for (const key of KILL_SWITCH_KEYS) {
+    const value = (raw as Record<string, unknown>)[key];
+    if (value === undefined) continue;
+    if (value !== null && typeof value !== 'boolean') {
+      throw new AiLimitAdminError(`${key} must be a boolean or null when provided`);
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+export async function setKillSwitchOverrides(
+  organizationId: string,
+  overrides: Partial<Record<KillSwitchKey, boolean | null>>,
+  adminId: string
+): Promise<void> {
+  await assertTargetsExist('organization', [organizationId]);
+  await upsertDashboardAssistantOrgSettings({
+    organizationId,
+    agenticModeEnabled: overrides.agenticModeEnabled,
+    planApprovalEnabled: overrides.planApprovalEnabled,
+    guestActionsEnabled: overrides.guestActionsEnabled,
+    updatedBy: adminId,
+  });
+}
+
+export type KillSwitchState = {
+  agenticModeEnabled: boolean;
+  planApprovalEnabled: boolean;
+  guestActionsEnabled: boolean;
+};
+
+export type OrgKillSwitches = {
+  global: KillSwitchState;
+  override: { [K in KillSwitchKey]: boolean | null };
+  effective: KillSwitchState;
+};
+
+export async function loadOrgKillSwitches(organizationId: string): Promise<OrgKillSwitches> {
+  const [global, org] = await Promise.all([
+    getDashboardAssistantGlobalSettings(),
+    getDashboardAssistantOrgSettings(organizationId),
+  ]);
+  return {
+    global: {
+      agenticModeEnabled: global.agenticModeEnabled,
+      planApprovalEnabled: global.planApprovalEnabled,
+      guestActionsEnabled: global.guestActionsEnabled,
+    },
+    override: {
+      agenticModeEnabled: org.agenticModeEnabledOverride,
+      planApprovalEnabled: org.planApprovalEnabledOverride,
+      guestActionsEnabled: org.guestActionsEnabledOverride,
+    },
+    effective: {
+      agenticModeEnabled: resolveDashboardAssistantKillSwitch(
+        global.agenticModeEnabled,
+        org.agenticModeEnabledOverride
+      ),
+      planApprovalEnabled: resolveDashboardAssistantKillSwitch(
+        global.planApprovalEnabled,
+        org.planApprovalEnabledOverride
+      ),
+      guestActionsEnabled: resolveDashboardAssistantKillSwitch(
+        global.guestActionsEnabled,
+        org.guestActionsEnabledOverride
+      ),
+    },
+  };
+}
+
 // ─── Overrides ───────────────────────────────────────────────────────────────
 
 function pick(
@@ -401,6 +499,10 @@ async function setOrgOverrides(
     'assistantDailyMessageLimit',
     'assistantMonthlyMessageLimit',
     'assistantDailyWriteActionLimit',
+    'assistantMaxToolRounds',
+    'assistantMaxPlanSteps',
+    'guestRequestDailyLimit',
+    'assistantTurnCreditCeiling',
   ]);
   const sb = createServiceClient();
 
@@ -422,6 +524,10 @@ async function setOrgOverrides(
       dailyMessageLimit: assistant.assistantDailyMessageLimit,
       monthlyMessageLimit: assistant.assistantMonthlyMessageLimit,
       dailyWriteActionLimit: assistant.assistantDailyWriteActionLimit,
+      maxToolRounds: assistant.assistantMaxToolRounds,
+      maxPlanSteps: assistant.assistantMaxPlanSteps,
+      guestRequestDailyLimit: assistant.guestRequestDailyLimit,
+      turnCreditCeiling: assistant.assistantTurnCreditCeiling,
       overrideReason: reason,
       updatedBy: adminId,
     });
@@ -438,7 +544,9 @@ async function setOrgOverrides(
       .maybeSingle(),
     sb
       .from('ai_dashboard_assistant_org_settings')
-      .select('daily_message_limit, monthly_message_limit, daily_write_action_limit')
+      .select(
+        'daily_message_limit, monthly_message_limit, daily_write_action_limit, assistant_max_tool_rounds, assistant_max_plan_steps, guest_request_daily_limit, assistant_turn_credit_ceiling'
+      )
       .eq('organization_id', organizationId)
       .maybeSingle(),
   ]);
@@ -869,6 +977,7 @@ export async function loadOrgDetail(organizationId: string) {
     profiles,
     dailyRes,
     propertyUsageRes,
+    killSwitches,
   ] = await Promise.all([
     sb.from('organizations').select('id, name, slug').eq('id', organizationId).maybeSingle(),
     resolveOrgAiLimitsBatch([organizationId]),
@@ -891,6 +1000,7 @@ export async function loadOrgDetail(organizationId: string) {
       .select('property_id, call_count, estimated_cost_usd')
       .eq('organization_id', organizationId)
       .gte('usage_date', monthStartUtc()),
+    loadOrgKillSwitches(organizationId),
   ]);
   if (error) throw new Error(error.message);
   if (!org) throw new AiLimitAdminError('Organization not found', 404);
@@ -935,6 +1045,7 @@ export async function loadOrgDetail(organizationId: string) {
       costUsd: round(Number(row.estimated_cost_usd ?? 0)),
     })),
     profiles: profiles.map((p) => ({ id: p.id, code: p.code, name: p.name })),
+    killSwitches,
   };
 }
 

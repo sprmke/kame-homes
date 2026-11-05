@@ -59,6 +59,20 @@ export function countStayNights(checkInDate: string, checkOutDate: string): numb
   return Math.max(0, d);
 }
 
+/**
+ * Nights a stay occupies for availability, pricing and reporting.
+ *
+ * Same-day stays are allowed (day use: check in and out on the same date) and occupy the
+ * check-in night, so they count as **one** night everywhere: calendar blocks, overlap
+ * checks, ICS export, nightly-rate math and stay-length metrics. Unparseable dates return 0.
+ */
+export function occupiedStayNights(checkInDate: string, checkOutDate: string): number {
+  const ci = normalizeDateToYYYYMMDD(checkInDate);
+  const co = normalizeDateToYYYYMMDD(checkOutDate);
+  if (!ci || !co || co < ci) return 0;
+  return Math.max(1, countStayNights(ci, co));
+}
+
 /** Formats a time string to 24-hour HH:mm (parses 12-hour AM/PM before bare H:mm). */
 export const formatTime = (timeStr: string | null | undefined): string => {
   if (!timeStr) return '';

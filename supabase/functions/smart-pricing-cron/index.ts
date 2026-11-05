@@ -17,6 +17,7 @@ import { serveCronPost } from '../_shared/serveEdge.ts';
 import { resolveOrgIdForProperty } from '../_shared/aiUsageService.ts';
 import { manilaTodayYmd } from '../_shared/calendarAvailabilityManila.ts';
 import { maybeRunSmartPricingAi } from '../_shared/smartPricingAi.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import {
   computeSmartPricingForProperty,
   runAutopilotForProperty,
@@ -124,6 +125,14 @@ serveCronPost('smart-pricing-cron', cronSecretOk, async () => {
     } catch (err) {
       errors.push({ propertyId, error: (err as Error).message });
     }
+  }
+
+  if (applied > 0) {
+    await capturePostHogEvent('smart_pricing_applied', {
+      logPrefix: 'smart-pricing-cron',
+      properties: { nights_changed: applied, mode: 'auto' },
+      system: true,
+    });
   }
 
   return {

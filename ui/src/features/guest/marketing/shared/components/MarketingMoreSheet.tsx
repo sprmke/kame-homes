@@ -24,6 +24,7 @@ import {
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { ThemeToggle } from '@/components/theme/MarketingThemeToggle';
 import {
   BottomSheet,
@@ -90,7 +91,7 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       {/*
         `layout="split"`: BottomSheetContent measures link list + footer content and
-        sets a definite `height` that shrinks to fit (capped 680px / 92dvh) — see
+        sets a definite `height` that shrinks to fit (capped 680px / 92dvh) - see
         bottom-sheet.tsx for why pure CSS (max-height alone) can't do this on iOS
         Safari. Only the link list scrolls once content exceeds the cap; theme/mode +
         sign-in/out stay pinned.
@@ -126,7 +127,7 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
                       className={cn(
                         'flex min-h-[44px] items-center rounded-lg px-2.5 text-sm font-medium transition-colors',
                         active
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-primary-strong text-primary-foreground'
                           : 'text-foreground hover:bg-muted/60 active:bg-muted'
                       )}
                     >
@@ -157,6 +158,10 @@ export function MarketingMoreSheet({ open, onOpenChange }: Props) {
                 </a>
               ) : null}
             </div>
+            <InstallAppEntry
+              variant="menu-item"
+              className="text-foreground hover:bg-muted/60 h-auto min-h-11 w-full justify-start gap-2 px-2.5 text-sm font-medium"
+            />
             <div className="flex items-center justify-between gap-3 px-2.5">
               <p className="text-muted-foreground min-w-0 text-xs">{platformCopyrightLine()}</p>
               <div className="flex shrink-0 items-center gap-1">

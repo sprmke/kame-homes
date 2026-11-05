@@ -63,7 +63,11 @@ function PageChrome({ children }: { children: React.ReactNode }) {
   useAdminLayoutFillMain(true);
 
   return (
-    <AdminMobilePage title="Stay Guide" titleId="stay-guide-editor-heading">
+    <AdminMobilePage
+      title="Stay Guide"
+      subtitle="Write the stay guide guests read before arrival."
+      titleId="stay-guide-editor-heading"
+    >
       {children}
     </AdminMobilePage>
   );
@@ -333,8 +337,8 @@ export function StayGuidePageEditor({
     (configQuery.isLoading && !configQuery.data) ||
     (previewQuery.isLoading && !previewQuery.data) ||
     (templatesQuery.isLoading && !templatesQuery.data) ||
-    !hydrated ||
-    !contentHydrated;
+    (!hydrated && !configQuery.isError) ||
+    (!contentHydrated && !templatesQuery.isError);
 
   if (isBootstrapping) {
     return (

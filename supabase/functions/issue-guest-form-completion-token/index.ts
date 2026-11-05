@@ -9,6 +9,7 @@
  * booking_source='Airbnb'), still be PENDING_REVIEW, and its check-out must not be past.
  */
 
+import { bookingTargetLabel, logBookingDetailActivity } from '../_shared/bookingActivityLog.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { issueGuestFormCompletionToken } from '../_shared/guestFormCompletion.ts';
 import {
@@ -36,7 +37,7 @@ const REASON_MESSAGE: Record<string, { message: string; status: number }> = {
 
 serveAuthenticated('issue-guest-form-completion-token', async (req) => {
   requireHttpMethod(req, 'POST');
-  const { property } = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
+  const propertyAccess = await resolveScopedPropertyAccess(req, 'bookings.detail.workflow:edit');
 
   const body = await readJsonBody(req);
   const bookingId = body?.bookingId;
@@ -44,7 +45,7 @@ serveAuthenticated('issue-guest-form-completion-token', async (req) => {
     return jsonError(req, 'bookingId (string) is required');
   }
 
-  await verifyBookingBelongsToProperty(bookingId, property.id);
+  await verifyBookingBelongsToProperty(bookingId, propertyAccess.property.id);
 
   const booking = await DatabaseService.getBookingById(bookingId);
   if (!booking) return jsonError(req, 'Booking not found', 404);
@@ -57,6 +58,14 @@ serveAuthenticated('issue-guest-form-completion-token', async (req) => {
     };
     return jsonError(req, mapped.message, mapped.status);
   }
+
+  await logBookingDetailActivity({
+    action: 'booking.guest_form_link_issued',
+    propertyAccess,
+    req,
+    bookingId,
+    targetLabel: bookingTargetLabel(booking),
+  });
 
   return jsonSuccess(req, {
     bookingId,

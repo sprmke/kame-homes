@@ -51,6 +51,9 @@ export function GuestMessagesHub({ threads }: Props) {
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -197,6 +200,9 @@ export function GuestMessagesHub({ threads }: Props) {
                 hasOlderMessages={!!hasNextPage}
                 loadingOlder={isFetchingNextPage}
                 onLoadOlder={() => void fetchNextPage()}
+                assistantTyping={assistantTyping}
+                aiFeedback={aiFeedback}
+                onAiFeedback={(messageId, rating) => void submitAiFeedback(messageId, rating)}
               />
             </>
           ) : (

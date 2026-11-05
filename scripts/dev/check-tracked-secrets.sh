@@ -31,7 +31,7 @@ paths=(
 
 matches=$(git grep -nE -I -- "$regex" -- "${paths[@]}" \
   ':(exclude)*.lock' \
-  ':(exclude)docs/workflow/planned/production-readiness-checklist/baselines/*' \
+  ':(exclude)docs/workflow/in-progress/production-readiness/checklist/baselines/*' \
   ':(exclude)supabase/snippets/*' \
   2>/dev/null || true)
 

@@ -5,6 +5,7 @@ import {
   isPropertyTowerForResidence,
   isValidUnitNumber,
   formatTowerAndUnit,
+  parseTowerAndUnitFromLegacy,
   sanitizeUnitNumberInput,
   PROPERTY_TOWERS,
 } from '@/features/dashboard/org/lib/propertyTowerUnit';
@@ -30,6 +31,19 @@ describe('isValidUnitNumber', () => {
 describe('formatTowerAndUnit', () => {
   it('formatTowerAndUnit is exported', () => {
     expect(typeof formatTowerAndUnit).toBe('function');
+  });
+});
+
+describe('parseTowerAndUnitFromLegacy', () => {
+  it('parses Monaco 2604', () => {
+    expect(parseTowerAndUnitFromLegacy('Monaco 2604')).toEqual({
+      tower: 'Monaco',
+      unitNumber: '2604',
+    });
+  });
+
+  it('returns null for unknown text', () => {
+    expect(parseTowerAndUnitFromLegacy('Tower A 12')).toBeNull();
   });
 });
 

@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '../_shared/supabaseJs.ts';
+import { fetchPublicHttp } from '../_shared/safeOutboundUrl.ts';
 import {
   APPROVAL_INTAKE_DEV_CONTROLS,
   findApprovedAttachmentFilename,
@@ -35,9 +36,11 @@ import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 import { verifyResendWebhookSignature } from '../_shared/resendWebhookVerify.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
+import { captureSentryMessage } from '../_shared/sentry.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
 import { buildActorContext } from '../_shared/activityLog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 type ResendReceivedEvent = {
   type?: string;
@@ -111,7 +114,7 @@ function resendAuthFailureMessage(status: number, apiMessage?: string): string {
   if (status === 401) {
     return (
       apiMessage ??
-      'Resend attachments API returned 401 — use a Full access API key (Sending-only keys cannot read inbound attachments)'
+      'Resend attachments API returned 401 - use a Full access API key (Sending-only keys cannot read inbound attachments)'
     );
   }
   return apiMessage ?? `Resend attachments request failed (${status})`;
@@ -229,10 +232,28 @@ async function resolvePropertyIdBySlug(slug: string): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
+const MAX_APPROVAL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
 async function downloadAttachmentBytes(downloadUrl: string): Promise<Uint8Array> {
-  const res = await fetch(downloadUrl);
+  // SSRF: the URL comes from the inbound webhook payload, so re-validate every hop.
+  const res = await fetchPublicHttp(downloadUrl, {}, { httpsOnly: true, maxHops: 3 });
   if (!res.ok) throw new Error(`Attachment download failed (${res.status})`);
-  return new Uint8Array(await res.arrayBuffer());
+  const declared = res.headers.get('content-length');
+  if (declared && Number(declared) > MAX_APPROVAL_ATTACHMENT_BYTES) {
+    throw new Error('Attachment too large');
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength > MAX_APPROVAL_ATTACHMENT_BYTES) throw new Error('Attachment too large');
+  if (
+    buf.byteLength < 4 ||
+    buf[0] !== 0x25 ||
+    buf[1] !== 0x50 ||
+    buf[2] !== 0x44 ||
+    buf[3] !== 0x46
+  ) {
+    throw new Error('Attachment is not a PDF');
+  }
+  return buf;
 }
 
 async function uploadApprovedPdf(params: {
@@ -437,7 +458,7 @@ async function processReceivedEmail(event: ResendReceivedEvent): Promise<{
       title: parsed.kind === 'gaf' ? 'GAF auto-approved' : 'Pet document auto-approved',
       body: `${guestName}'s ${parsed.kind === 'gaf' ? 'GAF' : 'pet'} document was auto-approved.`,
       bookingId,
-      metadata: bookingNotificationMetadata(match.booking),
+      metadata: bookingNotificationMetadata(match.booking as any),
       dedupeKey: `${bookingId}:${parsed.kind === 'gaf' ? 'booking_gaf_auto_approved' : 'booking_pet_auto_approved'}`,
     });
   } catch (err) {
@@ -485,6 +506,14 @@ servePublic('approval-email-webhook', async (req) => {
       windowSec: 60,
     });
     if (limited) return limited;
+    // Resend inbound carries guest ID and pet documents. A rejected signature is either a
+    // rotated secret (which stops approvals silently) or someone probing the endpoint.
+    await captureSentryMessage('resend inbound signature rejected', {
+      logPrefix: 'approval-email-webhook',
+      level: 'warning',
+      tags: { provider: 'resend', webhook: 'signature' },
+      fingerprint: ['webhook_signature', 'resend'],
+    });
     return jsonError(req, 'Invalid signature', 403);
   }
 
@@ -520,6 +549,16 @@ servePublic('approval-email-webhook', async (req) => {
 
   try {
     const result = await processReceivedEmail(event);
+    // Inbound approval resolved: approved documents are applied to the booking, everything
+    // else is a skip or a failure. No guest or sender address is sent.
+    await capturePostHogEvent('host_approval_resolved', {
+      logPrefix: 'approval-email-webhook',
+      properties: {
+        outcome: result.action,
+        ...(result.kind ? { kind: result.kind } : {}),
+      },
+      system: true,
+    });
     return new Response(JSON.stringify({ success: true, ...result }), {
       status: 200,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

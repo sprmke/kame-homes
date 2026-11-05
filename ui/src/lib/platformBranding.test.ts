@@ -9,6 +9,7 @@ import {
   platformWordmarkParts,
   platformMarkInitial,
   platformWatermarkLabel,
+  platformFormerNameNote,
   platformLegalSubject,
   platformLegalIntro,
   platformProductLabel,
@@ -49,14 +50,26 @@ describe('platformCopyrightLine', () => {
 });
 
 describe('platformWordmarkParts', () => {
-  it('platformWordmarkParts is exported', () => {
-    expect(typeof platformWordmarkParts).toBe('function');
+  it('splits the default name into the two-tone wordmark', () => {
+    expect(platformWordmarkParts()).toEqual({ primary: 'Kame', accent: 'Space' });
   });
 });
 
 describe('platformMarkInitial', () => {
-  it('platformMarkInitial is exported', () => {
-    expect(typeof platformMarkInitial).toBe('function');
+  it('uses the first letter of the primary word', () => {
+    expect(platformMarkInitial()).toBe('K');
+  });
+});
+
+describe('platformWatermarkLabel', () => {
+  it('uppercases the platform name for plan-gate tiles', () => {
+    expect(platformWatermarkLabel()).toBe('KAME SPACE');
+  });
+});
+
+describe('platformFormerNameNote', () => {
+  it('discloses the former name once for legal pages', () => {
+    expect(platformFormerNameNote()).toBe('Kame Space was previously called Kame Homes.');
   });
 });
 

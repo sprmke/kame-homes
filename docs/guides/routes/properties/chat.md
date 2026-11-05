@@ -45,13 +45,13 @@ Guests message you from a property listing before they book. They start in a cha
 - Q: How are voice calls turned into captions? Is there an extra charge?
   A: The same AI that talks to the guest also writes the captions live, during the call. There is no separate transcription service and no extra charge per call for captions. Audio is never saved.
 - Q: What are the suggested questions guests see before they message me?
-  A: When a guest opens chat with no messages yet, they see five starter questions tailored to where they are in the conversation: browsing the listing (pre-booking), asking about specific dates (inquiry), or mid-stay follow-ups once messages exist (ongoing). Examples include check-in times, parking, pets, WiFi, pricing for selected dates, WiFi password, or late checkout — depending on phase. Tapping one sends that question like a normal message. There are no action buttons, only questions. The Stays inbox (existing threads) does not show these starters.
+  A: When a guest opens chat with no messages yet, they see five starter questions tailored to where they are in the conversation: browsing the listing (pre-booking), asking about specific dates (inquiry), or mid-stay follow-ups once messages exist (ongoing). Examples include check-in times, parking, pets, WiFi, pricing for selected dates, WiFi password, or late checkout - depending on phase. Tapping one sends that question like a normal message. There are no action buttons, only questions. The Stays inbox (existing threads) does not show these starters.
 
 ---
 
 ## Entry (property detail) — primary
 
-1. **Contact host** on **`ListingHostCard`** → **`GuestAuthModal`** if signed out, then **`ContactHostSheet`** chat modal (`ResponsiveModal`: centered on `lg+`, bottom sheet below `lg` — **2026-09-10:** was previously always a raw centered `Dialog` despite the "Sheet" name; the parking equivalent, `ParkingChatSheet`, had the same bug and got the same fix).
+1. **Contact host** on **`ListingHostCard`** → **`GuestAuthModal`** if signed out, then **`ContactHostSheet`** chat modal (`ResponsiveModal`: centered on `lg+`, bottom sheet below `lg` — **2026-09-10:** was previously always a raw centered `Dialog` despite the "Sheet" name; the parking equivalent, `ParkingChatSheet`, had the same bug and got the same fix). The sheet header and the full-screen chat header use the organization name.
 2. **First inquiry:** if no prior messages with this host on this property, **`BookingCalendarModal`** is required before the first send.
 3. **Return visit:** existing thread loads via **`guest-web-chat-resume`** — dates optional; chat history shows immediately.
 4. Guest composes message → **Send** → thread stays in modal. If the thread is empty, five phase-aware FAQ starter cards appear above the composer (same card UI as the host AI assistant, questions only — no Actions switcher). Phase is **pre_booking** before dates, **inquiry** after dates are set, **ongoing** once any message exists. Tapping a card sends that question. On a first inquiry without dates, tapping a starter fills the message and opens the date picker; after dates are saved the question sends automatically.
@@ -167,7 +167,7 @@ Host replies use **`social-inbox-send`** (web branch). When the guest is offline
 
 **Realtime typing:** Supabase Broadcast channel **`chat-typing:{conversationId}`** (guest ↔ host; not persisted).
 
-**Attachments:** JPEG/PNG/WebP/PDF up to 10 MB via **`upload-guest-chat-asset`**; stored in **`guest-chat-attachments`**; referenced on send as JSON `{ kind, url, label? }`.
+**Attachments:** JPEG/PNG/WebP/HEIC/PDF up to 10 MB via **`upload-guest-chat-asset`**; file bytes must match the declared type (magic-byte sniff, same helper as host inbox replies); stored in **`guest-chat-attachments`**; referenced on send as JSON `{ kind, url, label? }`.
 
 **In-thread search:** Compact search control in the **chat header** (guest) or inbox conversation header (host). Opens a **dedicated search row** below the header (same bar as host inbox) with match counter, up/down navigation, and in-bubble highlights. Header identity stays visible while searching.
 
@@ -202,7 +202,7 @@ Shared components: `ui/src/components/chat/*`, `ui/src/lib/chat/chatMessageForma
 | **9**  | Guest resource hub — self-serve link strip for ongoing threads                                          | **Shipped** |
 | **10** | Stay guide deep link in resource hub when guest has active booking                                      | **Shipped** |
 
-Backlog: [GitHub Issue #110 — Epic 10](https://github.com/sprmke/kame-homes/issues/110) (**Guest ↔ host chat**).
+Backlog: [GitHub Issue #110 — Epic 10](https://github.com/sprmke/kame-space/issues/110) (**Guest ↔ host chat**).
 
 ## Implementation map
 

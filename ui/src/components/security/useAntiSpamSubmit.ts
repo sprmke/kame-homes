@@ -37,7 +37,7 @@ export type AntiSpamSubmitController = {
 /**
  * One hook that wires both invisible anti-spam layers into a public form:
  * a Cloudflare Turnstile widget (invisible-first) + a honeypot/timing field.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 3 / Phase 5)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 3 / Phase 5)
  *
  * Usage:
  *   const antiSpam = useAntiSpamSubmit({ action: 'submit-form' });

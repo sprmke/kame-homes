@@ -64,7 +64,7 @@ export function AiCreditWalletCard({ initialOrgId }: { initialOrgId?: string } =
         <div className="min-w-0">
           <p className="font-medium">AI credit wallet</p>
           <p className="text-muted-foreground text-xs">
-            Manual top-up/comp — ahead of real billing
+            Manual top-up/comp - ahead of real billing
           </p>
         </div>
       </div>

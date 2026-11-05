@@ -37,7 +37,7 @@ const markInitial = platformMarkInitial();
 function BrandLockup({ frame, delay = 0 }: { frame: number; delay?: number }) {
   return (
     <div className="flex items-center gap-3" style={reveal(frame, delay)}>
-      <span className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-2xl text-xl font-black shadow-lg">
+      <span className="bg-primary-strong text-primary-foreground flex size-12 items-center justify-center rounded-2xl text-xl font-black shadow-lg">
         {markInitial || 'K'}
       </span>
       <p className="text-foreground text-[28px] font-extrabold tracking-tight">
@@ -188,7 +188,7 @@ export function OutroScene() {
         </div>
 
         <div className="mt-10 flex items-center gap-3" style={reveal(frame, 70)}>
-          <span className="bg-primary text-primary-foreground inline-flex h-14 items-center gap-2 rounded-xl px-7 text-lg font-bold shadow-lg">
+          <span className="bg-primary-strong text-primary-foreground inline-flex h-14 items-center gap-2 rounded-xl px-7 text-lg font-bold shadow-lg">
             Start free
             <ArrowRight className="size-5" />
           </span>

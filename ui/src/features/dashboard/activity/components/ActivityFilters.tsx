@@ -333,7 +333,7 @@ function ActivityDateRangeField({
               onClick={apply}
               disabled={!localRange?.from || !localRange?.to}
               className={cn(
-                'bg-primary text-primary-foreground inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-[12px] font-semibold transition-opacity',
+                'bg-primary-strong text-primary-foreground inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-[12px] font-semibold transition-opacity',
                 'disabled:pointer-events-none disabled:opacity-40'
               )}
             >
@@ -390,8 +390,8 @@ const RANGE_CALENDAR_CLASSNAMES = {
   range_start: 'day-range-start',
   range_end: 'day-range-end',
   selected: cn(
-    '[&_button]:bg-primary [&_button]:text-primary-foreground',
-    '[&_button:hover]:bg-primary [&_button:hover]:text-primary-foreground'
+    '[&_button]:bg-primary-strong [&_button]:text-primary-foreground',
+    '[&_button:hover]:bg-primary-strong [&_button:hover]:text-primary-foreground'
   ),
   today: 'font-bold [&_button]:ring-2 [&_button]:ring-primary/30',
   outside:

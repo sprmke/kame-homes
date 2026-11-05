@@ -10,9 +10,6 @@ import {
   designPresetThumbnailKey,
   videoThumbnailKey,
   videoPresetThumbnailKey,
-  calendarThumbnailKey,
-  calendarPresetThumbnailKey,
-  calendarSavedStylesThumbnailKey,
   savedDesignThumbnailKey,
   savedVideoThumbnailKey,
 } from '@/features/dashboard/marketing/lib/marketingTemplateThumbnailCache';
@@ -68,24 +65,6 @@ describe('videoThumbnailKey', () => {
 describe('videoPresetThumbnailKey', () => {
   it('videoPresetThumbnailKey is exported', () => {
     expect(typeof videoPresetThumbnailKey).toBe('function');
-  });
-});
-
-describe('calendarThumbnailKey', () => {
-  it('calendarThumbnailKey is exported', () => {
-    expect(typeof calendarThumbnailKey).toBe('function');
-  });
-});
-
-describe('calendarPresetThumbnailKey', () => {
-  it('calendarPresetThumbnailKey is exported', () => {
-    expect(typeof calendarPresetThumbnailKey).toBe('function');
-  });
-});
-
-describe('calendarSavedStylesThumbnailKey', () => {
-  it('calendarSavedStylesThumbnailKey is exported', () => {
-    expect(typeof calendarSavedStylesThumbnailKey).toBe('function');
   });
 });
 

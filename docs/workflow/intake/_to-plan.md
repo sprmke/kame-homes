@@ -1,8 +1,10 @@
 ---
-title: 'Claude To Plan'
-status: archived
-tags: [planning]
-updated: 2026-10-05
+title: 'Tasks To Plan'
+status: active
+tags: [planning, intake, backlog]
+updated: 2026-11-06
+stage: intake
+kind: backlog
 ---
 
 **Status legend:** ❌ cancelled / won't do · ✅ done · 🧪 for testing · 📋 planned (plan doc written) · 🚧 in progress · 🔵 pending / open
@@ -20,130 +22,157 @@ We can separate our dashboard redesign to different phases. Maybe start with bas
 
 Just make sure that we don't change or affect any public related pages that we have. make sure not even one single style on our public pages will be affected. We need to make sure that the design in our dashboard is scoped & isolated and will not affect our public UIs.
 
-# → **Won't do:** [`../wont-do/dashboard-ground-up-redesign.md`](../wont-do/dashboard-ground-up-redesign.md) — incremental dashboard polish only; no dedicated ground-up pass
+→ **Won't do:** [`../wont-do/dashboard-ground-up-redesign.md`](../wont-do/dashboard-ground-up-redesign.md) — incremental dashboard polish only; no dedicated ground-up pass
 
 ===
 
-✅ Improve for-hosts landing page
+❌ Super admin — manage "Coming soon" surfaces
 
-For host mode, we should improve the landing page for /for-hosts that showcase all the features and functionalities that we have from our dashboard. I want to have a stunning, looks very professional, animated landing page that showcase all the features that we have for our system.
+Super-admin UI to configure which product areas show **Coming soon** (or are hidden) app-wide — e.g. public `/services`, gated marketing features, AI credit top-up stubs, Page Editor "other guest pages", and future modules before launch.
 
-Reviews section from hosts is also good. We can use mock data for now.
+- Central config (DB or app settings) keyed by feature/surface id.
+- Dashboard + public consumers read the same flag so hosts/guests see consistent copy.
+- Optional scheduled enable date or environment override (dev vs prod).
 
-# We should also need to update our header menus for hosts mode
-
-===
-
-✅ Refine Property Templates page
-
-We should have a tab for standard, email and other templates.
-Then, we should support for host to add new template for each tab/category.
-===
-
-✅ OPTION A: Improve stay guide UI/UX page
-
-The stay guide page looks very plain and not appealing at all. This needs to be mobile friendly, looks professional, interactive and has wow factor so that when hosts send this link to their guests, they will be happy using it.
-
-# → **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md) (Option B; Option A is stay-guide slice of same plan)
+→ **Won't do:** [`../wont-do/module-status-management.md`](../wont-do/module-status-management.md) · **Related:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md); [`services.md`](../../guides/routes/services.md)
 
 ===
 
-✅ OPTION B: Templated configurable & shareable custom pages
+✅ Able to send documents through chat
 
-Generate 3-5 templated stunning and professional looking landing pages/stay guide pages that contains these standard templates, property information and booking information for hosts to send their to their guests.
+In our Inbox > Chat section. it's also helpful for our hosts if they can send the available links, files, documents, etc that we have per property & booking.
+Best examples of this are:
 
-<Provide sample designs here>
+Files: Approved GAF, Approved Pet, Parking Endorsement,
+Links: Stay Guide, Property, Calendar, Messages
 
-On the dashboard, we will have new menu and page for "Custom Pages" where they can selected templated pages that's configurable and shareable.
-Maybe we will offer a simplified website editor?
+Let's put a new icon for these beside the Quick reply & suggest section.
 
-# → **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md)
-
-===
-
-✅ Make our main public search bar fully working
-
-Let's analyze all public data that we have for developments, properties, parkings, etc and based from our data, we need to have a solid implementation on how our main search bar is going to work, this should be smart, cached, and fully working similar on how popular apps offer search bar that can find, filter, search and suggest information based on our search inputs that we have (where, when, |who).
-
-Let's implement a smart search bar that can understand what the user wants to search and based from it, provide info or suggest common or similar search input text.
-
-Our search should suggest information for where. And when they click search button, we should have smart and suggest results.
-
-See how popular apps do this and make sure we have similar UI/UX and search results/suggestion.
-
-Make sure that filtered result are animated and we display it elegantly. Not sure if we need to redirect it new /search result page or we can just display and update our content section based on result.
-
-# → **Done:** [`../done/smart-search-bar.md`](../done/smart-search-bar.md)
+→ **Done:** [`../done/inbox-share-links-and-files.md`](../done/inbox-share-links-and-files.md) — Inbox composer Share icon; durable GAF/Pet share links; calendar link opens in-place availability modal (2026-08-22)
 
 ===
 
-✅ Make filters fully working
+✅ Accurately track AI usages for each AI actions and features, decide limit granularity, prep for paid AI credits
 
-Once we finalized and have fully working search bar and functionality, we should also update and make our filter works fully end to end.
-
-Based on which route or module we are, we should provide smart filter options and make sure all options are smartly suggested and all of it should properly filter our results/items.
-
-The goal is to have a very smart filter sidebar section to filter any data that we have on different modules & pages.
-
-We should also refine and update our sort options based on our data and make sure this will also work properly.
-
-# → **Done:** [`../done/smart-filters.md`](../done/smart-filters.md)
+→ **Done:** [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md) — Phases 1–3 shipped (attribution, credit ledger, enforcement, wallet UI). Phase 4 paid top-up deferred.
 
 ===
 
-✅ Marketing 1: Improve Marketing Calendar Templates
+✅ Airbnb / OTA calendar sync
 
-Right now, our marketing calendar templates look simple and okay.
-They do not look beautiful, stunning, eye catching, and doesn't have that wow factor.
-Please improve all these templates and provide better categories. Each template should have different characteristics, showcase all settings available for calendar customization, different fonts, element shapes/border/spacing/colors, etc.
-The end goal is the every template looks so good where host cannot select which one to choose because they all look good!
-===
-
-✅ Marketing 2: Improve Marketing Design Templates & Customizablity
-
-Same with calendar templates above. Right now, our canvas template are too plain and does not look good.The
-goal is that each template should be production ready and "instagramable" and ready to publish with confidence and excitement to their social platforms.
-===
-
-✅ Marketing 3: Improve Marketing Video Templates & Customizablity
-
-Same with marketing design templates goal.
-
-# → **Follow-up (Quiet Coast Motion):** from-scratch Video redo — Video-only categories + storyboard recipes. Spec: `docs/archive/superpowers/specs/marketing-video-quiet-coast-motion-design.md`. Plan: `docs/workflow/done/marketing-video-quiet-coast-motion.md`.
+→ **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md) — Phase 1 + 2 shipped; staging browser walk-through pending
 
 ===
 
-✅ Marketing 4: Use AI to generate marketing calendar, design and video templates
+✅ Allow features based on subscription plan & show payment subscription modal
 
-Now that we made some improvements on marketing calendar, canvas and video editors, I want to really extend by having AI feature that will generate design and video templates from scratch that looks very beautiful, elegant, instagrammable and has wow factor to hosts.
+Now that we build the pricing page, integrate payment subscription flow, etc.
+The next part that we need to do is to check all each pages and features that we have on our app, and implement the validation of access based on subscription plan. Then, we should also display our subscription or payment modal if a feature they are trying to access is not within their plan.
 
-The generated result can be configured by some prompts, suggestions, etc (please make some research how popular media editors do AI generated flow).
+The important part here is we should analyze each feature and functionality and we should display the subscription modal on the best UX possible. My end goal is that user can still play around on these features but to do important action, that's when they need to pay or subscribe.
 
-We can also make some research if there's a free or low cost API that can do this. Either the AI generates the calendar, canvas and video from scratch or custom or it's own way, OR it will reads and build new designs based on our existing technologies, templates and settings that we have for each marketing module.
+Best example of this is that on marketing module, I would like user to access and see the potential of the feature so that we can showcase every feature that we have. They can edit, create template but the preview should have watermark and they need to publish or save that's when we display the subscription or payment modal to fully use each feature that we have.
 
-The end goal is that with the help of AI, we should be able to generate calendar, canvas and video templates for our hosts that's still using our booking or property information and some prompts/settings.
+The goal of this plan is to analyze the paid features that we have, check when's and what's the best time or moment we will display these subscription modal.
 
-# → **Done:** [`../done/marketing-ai-generated-templates.md`](../done/marketing-ai-generated-templates.md) (calendar, design, and video AI generate shipped)
+Again, please generate a detailed plan and separate docs for this so that we have mapping the flow and when we are triggering the payment gate modal.
 
-===
-
-✅ Refine footer & create public pages
-
-Footer trimmed; About/Contact/Support/Cookies routes live; Terms/Privacy/Cookie Policy grounded in product copy.
-
-# → **Done:** [`../done/refine-footer-public-pages.md`](../done/refine-footer-public-pages.md)
+→ **Done:** [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) (deferrals: custom pages create, automated booking toggle, search visibility tier)
 
 ===
 
-✅ Refine our route guides to have complete context for each page & section in our app
+✅ Also, here are the things we need to adjust and make sure we add from our tasks list:
 
-Let's refine and update our /docs/guides directory and make sure we have documentation for all features, flow, logic and complete understanding on what's available and happening for each pages and section in our app.
+Bookings
 
-Make sure we always update and add any new routes or updated any missed routes. Revisit each guide doc routes and make sure we update with our latest changes available.
+-
 
-This document will be helpful in our project while we develop it and my goal is to provide this docs when we integrate AI chat in our dashboard to provide better response and context to hosts when they ask something about some app knowledge, features, flow, process, etc
+Finance
 
-# The goal of this docs is to become a context and product knowledge for our AI receptionist & dashboard AI assistant features
+- Update our plan to include finance reporting should be on starter plan. But access to finance is free
+
+Maintenance
+
+- maintenance export/reporting should be on starter plan as well
+
+Team
+
+- Add team member if reached limit should display our upgrade plan modal
+
+Marketing
+
+- make sure download, publish button (if there's meta connected), display upgrade plan modal
+- make the preview overlay more evident and rendered multiple times to fill the whole canvas for calendar, canvas and video. Meaning, I want these overlay to have many text that covers entire canvas. Also, use "Kame Space" instead of "Preview"?
+- clicking generate inside the generate modal should open display our upgrade plan modal.
+
+Notifications
+
+- Update our plan so that free only include in-app notification but telegram notification should be on starter plan
+- For free plan, editing or clicking save and test tg or enabling telegram cards/modules should display our upgrade plan modal
+
+Inbox
+
+- Update our plan to support Meta chat to business tier. Clicking connect to Meta will display our upgrade plan modal
+- Then for normal chat, I'm still wondering if I should free this or move it to starter plan? Please analyze and decide what's best tier is this feature
+- Free user can still open quick replies and automation so that they know what are the features we can offer
+
+Templates
+
+- Make each wisywig editor to have a blurry overlay but i still want each text to be readable for both edit and preview mode.
+- Free can still open placeholders and reset
+- Clicking add custom template should open our upgrade plan modal
+
+Public pages
+
+- For free users, let's still display the pages, user still can edit but let's remove the autosave feature and display manual save button if user edited something, and upon clicking save, it will open our upgrade plan modal
+
+Settings
+
+- Settings section that require paid plan should be hidden our secondary menu and card section. Analyze each section carefully and only display it if current plan achieve it
+
+Check other pages, public pages, sections, modules, flow, process and make sure we covered everything
+
+Make sure we update our plan cards and compare plans for all the new changes please.
+
+Also, it's helpful if we can add a badge that displays the different plan tier required to make it work. Either on menu, section, buttons, elements. Just make sure that we display this beautiful and look professional how big apps display this so that user knows if a specific feature require higher plan. Also, of course, do not display a badge if user already had that paid plan unless a higher plan is required to enable that feature.
+
+Also, our upgrade plan modal should be dynamic and display the tier needed for specific feature that they action. Also, please include on another phase in our plan that we should be smart and also handle what if user avail starter plan, then, want to upgrade to next plan. The pricing should be smart and less than the actual current price - already paid plan price. Maybe reuse our upgrade to existing modal that we have when we click upgrade plan? Or maybe, use same layout but change content that's more aligned to action user wants to do? Decide best UI/UX for this.
+
+Also, for security as well, we need to make sure that these limitations are not UI only. Meaning, technical user can still open dev tools, remove the overlay elements and see the actual real data. We need to make sure that implement a mechanism to make it secure if user do that and make sure backend implementations still respect our plan tiers. The goal is to have a security or mechanism to prevent user to hack or do tricky things to achieve result by not paying paid plan and modifying elements in the UI.
+
+Please also improve our upgrade plan modal text or content and UI so that user easily understand that they need to upgrade to access or do that action
+
+→ Make sure as well that we updated the necessary docs for all these changes please.
+
+===
+
+✅ Back up legacy prod env vars, secrets and config (prerequisite)
+
+Save or make sure we still have access to all the important environment variables for both Vercel and Supabase that we have on the legacy prod, so that if we need it on the new app, we still have access to them. Save them on another environment variable file for backup, covering the legacy prod environment variables, secrets, and configuration. Do this before we start working on the Kame Space renaming or rebranding plan.
+
+→ **Done:** [`../done/kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) — closed 2026-11-03; blocks the cutover (Phase 1 and decommission) and the rebrand no more.
+
+===
+
+✅ Booking from listing e2e
+
+I want you to review our whole booking end to end flow and make sure it's production ready. When a guest book from our listing page or from our guest form. Please review each step, flow and process that we have. Improve UI/UX or flow that we need to improve.
+
+The end goal is to make sure that we don't miss any important step or process for e2e booking process. Make sure we provide the best UX as much as possible to our guest.
+
+# Do /impeccable critique, audit, review, harden & polish of our current e2e booking process and list down things that we can improve and create superpowers executable plan for it.
+
+===
+
+✅ Display announcements per development from super admin
+
+===
+
+✅ Document, refine, finalize booking detail & workflow
+
+Multi-tenant document-requirements config + Resend inbound approvals shipped. Deferred: payment auto-settlement, parking redesign, booking-detail UX polish (see done doc).
+
+→ **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md) · v1 slice: [`../done/booking-workflow-configurable-docs.md`](../done/booking-workflow-configurable-docs.md)
 
 ===
 
@@ -162,144 +191,24 @@ All the settings should be configurable in our admin dashboard as well. If we ca
 
 I think there are a lot of existing projects like this, what we need to plan and refine is this should be production grade level, will not introduce any issues or security risks, it should not crash, and it should be easy to use and helpful for guests.
 
-# → **Done:** [`../done/ai-voice-receptionist.md`](../done/ai-voice-receptionist.md)
+→ **Done:** [`../done/ai-voice-receptionist.md`](../done/ai-voice-receptionist.md)
 
 # ✅ AI receptionist production-readiness review
 
 Harden the shipped guest voice receptionist for production: current Gemini Live protocol, transcript integrity, atomic session lifecycle, tiered guest-safe context, guardrails, reconnects, low-latency conversation UX, privacy, observability, automated tests, and staged rollout.
 
-# → **Done:** [`../done/ai-receptionist-production-readiness.md`](../done/ai-receptionist-production-readiness.md) · [`../done/ai-receptionist-experience-pass.md`](../done/ai-receptionist-experience-pass.md)
+→ **Done:** [`../in-progress/production-readiness/audits/ai-receptionist-production-readiness.md`](../in-progress/production-readiness/audits/ai-receptionist-production-readiness.md) · [`../done/ai-receptionist-experience-pass.md`](../done/ai-receptionist-experience-pass.md)
 
 ===
 
-✅ Provide chat app that can access and manage entire dashboard
+✅ Finalize plans & billing
 
-Another big module that I'd like to support is to have a chat app that can access and manage entire dashboard. This should be a chat app that can understand natural language, and can do actions like booking, check-in, check-out, etc. It should be able to understand the context of the conversation and respond accordingly.
+I noticed some limitation are not respected on free tier like team members, etc.
+Also, make sure we update org level pages & section & elements to display plans pills & badge as well. Like team members per org
+Clicking continue to payment should redirect user to org level, plans & billing page and billing tab?
+We also need to make sure that we cover and require payment when we add more properties
 
-What we want is to simplify all property management with the help of AI. It should have access to our APIs, get information, execute actions based on context.
-
-The chat response or suggestion should have a good looking UI/UX within the chat, we should display different kind of UI elements like cards, lists, buttons, etc. to make it more interactive and helpful.
-
-This should be very smart and it will act like an assistant that have all information on how our system and every feature work, the flow and process, it should be very helpful and can suggest helpful actions and information to our host so that they can manage their property more efficiently and easily without the needs to do everything manually and this will also reduce complexity of understanding the whole app, process, logic and flow.
-
-This is a very important feature that will make our system much more powerful and helpful and reasons for user to subscribe and use our system.
-
-Again, this should not provide any sensitive or execute any harmful actions that may affect the system. We should implement a strong guard rails or security measures for this feature.
-
-Also, we need to make sure that this is connected to our AI receptionist, or may share same util, process, flow since both of these modules are using AI.
-We need to plan the architecture, flow, process for both module to build a production ready chat app.
-
-Also, this should be tied app with our pricing and subscription module so that we can limit the free usages of this feature to a certain amount and charge for additional usage.
-
-# → **Done:** [`../done/ai-dashboard-assistant.md`](../done/ai-dashboard-assistant.md) · v2 full coverage: [`../done/ai-dashboard-assistant-v2-full-coverage.md`](../done/ai-dashboard-assistant-v2-full-coverage.md)
-
-===
-
-✅ Booking from listing e2e
-
-I want you to review our whole booking end to end flow and make sure it's production ready. When a guest book from our listing page or from our guest form. Please review each step, flow and process that we have. Improve UI/UX or flow that we need to improve.
-
-The end goal is to make sure that we don't miss any important step or process for e2e booking process. Make sure we provide the best UX as much as possible to our guest.
-
-# Do /impeccable critique, audit, review, harden & polish of our current e2e booking process and list down things that we can improve and create superpowers executable plan for it.
-
-===
-
-✅ Optimize how AI integrated in our app
-
-Make a research and find the best optimal way to connect our application with AI for faster info retrieval, action execution, etc.
-
-Maybe we can use our docs guide or obsedian vault or RAG/light RAG or something like graphify? Or if there's better library or technology that we can use.
-
-Also, I'm wondering if having docs/guides for each page of the app is the best optimal way to document and use this for AI to have context of our entire application?
-
-The goal is to find and implement the best way to document each flow, logic, process of each feature, pages, sections that's happening on our entire application that's fastest, optimal, and best lowest token consumption. It should be production ready
-
-Let's update our implementation that's using or relying with AI like the AI-auto reply, AI receptionist, and other future related features that will use AI.
-
-# → **Done:** [`../done/docs-obsidian-tooling-sync.md`](../done/docs-obsidian-tooling-sync.md)
-
-===
-
-✅ In app notification for chat & other activity
-
-When we receive new chat or guest message from inbox, we should display a toast or notification message on our app as long as we are using the app and even we are not on inbox page.
-
-For now, I think this would be helpful for chat events, but if you can see other features and functionality that you think we can add to our notification. Feel free to suggest and plan it as well
-
-Maybe analyze all the activities, events and actions that we have on Notifications page module as support in app notification on all activities, events or actions that you think it's helpful to display within our app.
-
-Analyze how popular apps how handle this and make sure we implement the way possible and make sure it will not result to any kind of performance or heavy process issues.
-
-# → **Done:** [`../done/in-app-notifications.md`](../done/in-app-notifications.md)
-
-===
-
-✅ Smart import data with use of AI
-
-# Shipped: [`../done/smart-ai-data-importer.md`](../done/smart-ai-data-importer.md) + [`../done/import-preview-fix-queue.md`](../done/import-preview-fix-queue.md)
-
-===
-
-✅ Avail parking e2e flow
-
-Phase 1: Plan how host received parking booking
-The first phase than we need to finalize for parking e2e is how host should receive and handle parking bookings. Should we follow how property bookings? Create new workflow and different status for parking? Also, how we should notify parking host that they received parking and need immediate review? Same telegram flow?
-
-    Phase 0: Update parking registration, settings, etc
-      - Update parking registration to ask for type (car, motor)
-      - Update parking dimension to list of car type we can accommodate? In relation to height clearance
-    Phase 1a: How do we notify both side (host & guest) about the parking request
-      - Host side:
-        - For immediate booking, use broadcast notif? First to accept will get the booking, if not process after 5 or 10mins, send new broadcast request.
-        - How host will accept, reject, manage, send parking endorsement, etc
-      - Guest side:
-        - We should have realtime update if someone avail our parking, parking status, how guest can get and view parking endorsement
-    Phase 1b: Create or reuse property detail page for parking detail page & edit form
-      - Parking host should be able or required to modify their parking size/dimension so that we know if a certain car is fit or not when we connect or provide parking to guests
-    Phase 1c: Create new workflow, actions & status for parking e2e flow
-    Phase 1d: Update bookings page to support updated flow, changes (list, kanban?)
-    Phase 1e: Review, refine, finalize and make sure it's production ready, multi-tenant/property/user, etc
-
-Phase 2a: Get immediate parking
-
-- When a guest avail a same day or on the spot look for available parking slot
-- What's the logic or process to get the best parking available
-  - Check-in & check-out
-  - Respect tower unless bay
-  - Is car going to fit on parking dimension
-- Parking expiration: when host did not accept or process parking after a certain period, we will pass and look for other parking host
-  - 15mins expiration for booking. 1hr expiration for non-same day/upcoming bookings
-- Flow when we don't find available parking, do refund & notify guests?
-
-Phase 2b: Look for parking after a confirmed booking from other host/property (upcoming/advance parking booking)
-
-- When a guest book a property and require parking, and host does not have any parking, we should plan a way to automatically search and look for available parking on the same booking date/s and we should notify parking host to accept and manage it.
-- Mostly same flow and logic with immediate parking flow
-
-Phase 3: Finalize how we display parking from our listing
-
-How are we going to display or provide UI/UX when guests/user wants to find a parking.
-Same UI that we have now? But what if that parking host is not responsive anymore? Or not replying immediately?
-
-- Should provide few ways to get parking?
-  - A: Same UI listing we have for properties
-  - B: Find/search available parking based on filters
-
-Phase 4: Manual & Physical on site tasks:
-
-- Picture different type of parking (tower, bay). Edit and add parking slot number dynamically
-- Measure dimension and height clearance
-
-# → **Done (Phase 0 & Phase 1):** [`../done/parking-e2e-phase1-overview.md`](../done/parking-e2e-phase1-overview.md) (+ companions in `done/`). Phases 2–5, 7–8 **done**; Phase 6 + production-readiness **planned:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md).
-
-===
-
-✅ Help & Support page (org + property level)
-
-Now that we have the AI assistant in the dashboard, build a Help & Support page for hosts at both org and property level: Documentation (from docs/guides Host-facing knowledge, filtered to never expose sensitive/internal info), AI Chat (opens the existing dashboard assistant sidebar), Ticket/App Support (dynamic per-category fields — bug/inquiry/suggestion/business — replied to from a new super-admin page), and FAQs (20-50 items generated from the docs). Every docs/guides change should stay synced to whatever powers this automatically.
-
-# → **Done:** [`../done/help-support-center.md`](../done/help-support-center.md)
+→ **Done:** [`../done/finalize-plans-billing.md`](../done/finalize-plans-billing.md)
 
 ===
 
@@ -309,45 +218,44 @@ Now that we have the AI assistant in the dashboard, build a Help & Support page 
 
 ===
 
-✅ Able to send documents through chat
+✅ Get Google services approval (OAuth verification, production-ready Google APIs)
 
-In our Inbox > Chat section. it's also helpful for our hosts if they can send the available links, files, documents, etc that we have per property & booking.
-Best examples of this are:
+that we updated our domain and updated our app name and prepared the application for production release the next important thing that I would like you to do is to get approval from Google about the different Google related services that we are using in our app. I think we already have an existing plan or documentation for this but I think it's outdated because of these recent changes that we did so what I want you to do is to make sure that we update these docs review this carefully if you think we will need to create one from the scratch then please do but our goal is to make sure that we generate an updated guide on what are the things that we need to do what are the things that we need to configure set up so that we could do this Google API services approval so that our user can use our app especially the multi-tenant support and so that user will no longer see this not yet verified app when they sign in using Google. So the goal of this is to make sure that our app is fully ready for production and we consider any Google related service to be production ready as well.
 
-Files: Approved GAF, Approved Pet, Parking Endorsement,
-Links: Stay Guide, Property, Calendar, Messages
+→ **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) — brand verification approved and published 2026-11-03; sign-in closed.
 
-Let's put a new icon for these beside the Quick reply & suggest section.
-
-# → **Done:** [`../done/inbox-share-links-and-files.md`](../done/inbox-share-links-and-files.md) — Inbox composer Share icon; durable GAF/Pet share links; calendar link opens in-place availability modal (2026-08-22)
+→ **In progress:** [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md) — post-launch billing upgrade (by 2026-12-03), Maps quotas/budget, Gemini paid tier, Fonts, legacy cleanup (H-01…H-12).
 
 ===
 
-✅ Plans & Pricing
+✅ Guest Review after booking
 
-Now, I think we are ready to implement the plans & pricing for our application.
-Now, we have different separate plans for this which will be work on next phases.
-For this, we need to create a foundation plan to implement the plans & pricing.
+Standalone `/properties/:slug/guest-review`, SD form review section, edge functions, feedback tags + photo upload.
 
-First, we need to build the Plans page for this. Generate the best UI/UX for payment, displaying different plans, end to end flow of subscribing & payment, etc.
+→ **Done:** [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
 
-For the pricing tiers, check for this plan:
-docs/workflow/done/ai-usage-metering-credits-foundation.md
+===
 
-For payment integration with Pay mongo, check for this plan:
-docs/workflow/done/paymongo-subscription-billing.md
+✅ Harden guest inbox meta facebook and instagram module
 
-For the AI credits usage, check for this plan:
-docs/workflow/done/ai-usage-metering-credits-foundation.md
+One big module that we need to review the implementation carefully is the Inbox Meta facebook and instagram implementation. I want you to do deep checking and review and make sure that our module there is complete and production ready. Make sure we don't have poor implementation, restructure or recode that module if needed so that we have good implementation, production ready and scalable solutions.
 
-Again, the goal of this plan is scoped only to build the Pricing page.
-Do not work on these referenced plan. We will work on it one by one.
+One major thing I would like you to refine and improve is that refetching of new messages every time we visit Inbox page. Right now, We need to disconnect and reconnect to fetch new message. That should be automatic please.
 
-# → **Done:** [`../done/host-plans-pricing-page.md`](../done/host-plans-pricing-page.md) (host Plans page + PayMongo checkout) · tiers foundation: [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md) · PayMongo: [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) · feature gating: [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) · AI credits: [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md)
+Also, I think Meta has only window period for auto-reply or to able reply? If that's the case, we should improve the UI/UX and display messages that cannot be reply and improve the UI or message that only the messages within the period is visible to our chat.
+
+Also, I want you to refine and improve how we save and store conversations and how we cache them and invalidate them. We need to make sure that this module will not cause any performance issues, security concern, etc.
+
+Also, we should have solid implementation and flow for disconnection and clearing of messages and provide best UI/UX when we connect to a page and fetch messages.
+
+Also, I want you to visit if we can support the comments on facebook post on Facebook & Instagram, if not, then let's remove that!
+
+→ **Done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md) — webhook health-check/resubscribe, non-destructive disconnect, HUMAN_AGENT 7-day tag, comment scope removed, backfill + error UX hardening (2026-08-20)
 
 ===
 
 ✅ Host plans and pricing tiers for property listings
+
 Based on all the features that we have, we should analyze all thea features & functionalities that we have and create different pricing tiers.
 Also, we need these pricing to be easy to understand for hosts and not looks very complicated.
 The idea that I have in mind is we will have 4 tiers of pricing for our hosts.
@@ -405,7 +313,39 @@ Again, these are just the initial pricing. This should not be final and we need 
 
 There's also another pricing model that user can choose of which is commission based on the successful/completed booking. But we can plan this further but make sure that our plan is also considered this and can easily support this pricing model.
 
-# → **Partial foundation only (retired from live UI 2026-08-24):** schema + `COMPLETED` ledger hook in [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md). **Not host-selectable** — catalog row inactive; super-admin/public/host Plans exclude it until a full commission product (self-serve + collection) is planned and shipped. See `docs/architecture/plans-feature-matrix.md` § Pending: commission pricing.
+→ **Partial foundation only (retired from live UI 2026-08-24):** schema + `COMPLETED` ledger hook in [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md). **Not host-selectable** — catalog row inactive; super-admin/public/host Plans exclude it until a full commission product (self-serve + collection) is planned and shipped. See `docs/architecture/plans-feature-matrix.md` § Pending: commission pricing.
+
+===
+
+✅ Implement Sentry & Posthog
+
+PostHog owns product analytics: UI error tracking via `posthog-js` / `@posthog/react`, session replay, feature flags, source-map upload, and `posthog-node` on the edge. Sentry owns every fault: browser, service worker, edge, crons, webhooks and side effects. Both are wired and configured; paid-tier alert routing remains deferred.
+
+→ **Done:** [`../done/observability-sentry-posthog-split/README.md`](../done/observability-sentry-posthog-split/README.md)
+
+===
+
+✅ Improve for-hosts landing page
+
+For host mode, we should improve the landing page for /for-hosts that showcase all the features and functionalities that we have from our dashboard. I want to have a stunning, looks very professional, animated landing page that showcase all the features that we have for our system.
+
+Reviews section from hosts is also good. We can use mock data for now.
+
+# We should also need to update our header menus for hosts mode
+
+===
+
+✅ In app notification for chat & other activity
+
+When we receive new chat or guest message from inbox, we should display a toast or notification message on our app as long as we are using the app and even we are not on inbox page.
+
+For now, I think this would be helpful for chat events, but if you can see other features and functionality that you think we can add to our notification. Feel free to suggest and plan it as well
+
+Maybe analyze all the activities, events and actions that we have on Notifications page module as support in app notification on all activities, events or actions that you think it's helpful to display within our app.
+
+Analyze how popular apps how handle this and make sure we implement the way possible and make sure it will not result to any kind of performance or heavy process issues.
+
+→ **Done:** [`../done/in-app-notifications.md`](../done/in-app-notifications.md)
 
 ===
 
@@ -420,24 +360,236 @@ For the actual amount, this maybe vary and to follow up, but I want you that our
 Also, please give me detailed step how to properly set Paymongo, how to setup sandbox or test account and real account.
 Please create a detailed plan for this and put it on our planned directory
 
-# → **Done:** [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) (checkout, webhook, cron, suspension gate — env setup required for live)
+→ **Done:** [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) (checkout, webhook, cron, suspension gate — env setup required for live)
 
 ===
 
-✅ Allow features based on subscription plan & show payment subscription modal
+✅ Legacy prod → multi-tenant prod cutover (data, storage, accounts, cleanup)
 
-Now that we build the pricing page, integrate payment subscription flow, etc.
-The next part that we need to do is to check all each pages and features that we have on our app, and implement the validation of access based on subscription plan. Then, we should also display our subscription or payment modal if a feature they are trying to access is not within their plan.
+let's prepare the migration and make sure that we successfully transfer all the data all the storage assets that we have from the current super base that we have in production to our new super base which is different account also I think we have different Versailles account as well so we need to make sure that we consider that. Next, I want you to make sure that we properly do the migration that we have on the main repo. If you will notice and check we have huge thousands or few thousands of new changes especially if you compare the broad applications that we have and the new dev and new applications that we have so our goal is to make sure that we restore and we properly do the data migrations to the new apps. that we have right now. Make sure that we consider everything from data from doing and creating a migration script to create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle the migration script and create a data for the org and property level for our Kami homes so again make sure that we handle everything especially in our new app we have this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new organization and property level so I want you to make sure that we properly consider that we should create this data migration properly and make sure that the current and all data structure should be properly migrated into this new new application and data structure that we have. again I want you to be very careful on this and our goal is to properly migrate and use our new application to the new services new repo new Vercel account new super base account and new other services that you have so that we can properly use this new application and deploy them to production once everything is good and then once everything's good I want you to clean up the old repo the old domain and other things that we need to clean up. you to plan this carefully list on all the tasks that we need to do make sure we cover everything and what I want you to make sure as well is that future bookings that we have on our current and production app should still work and should be considered as well in our new app so that we have this seamless transition from the current app that we have on the production and the one that we have this new Kami Space application
 
-The important part here is we should analyze each feature and functionality and we should display the subscription modal on the best UX possible. My end goal is that user can still play around on these features but to do important action, that's when they need to pay or subscribe.
+→ **Done:** [`../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) — Phase 0 inventory and R1 local rehearsal (dump, restore, upgrade) partly done; `resolve-booking-property` shipped.
 
-Best example of this is that on marketing module, I would like user to access and see the potential of the feature so that we can showcase every feature that we have. They can edit, create template but the preview should have watermark and they need to publish or save that's when we display the subscription or payment modal to fully use each feature that we have.
+===
 
-The goal of this plan is to analyze the paid features that we have, check when's and what's the best time or moment we will display these subscription modal.
+✅ Make filters fully working
 
-Again, please generate a detailed plan and separate docs for this so that we have mapping the flow and when we are triggering the payment gate modal.
+Once we finalized and have fully working search bar and functionality, we should also update and make our filter works fully end to end.
 
-# → **Done:** [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) (deferrals: custom pages create, automated booking toggle, search visibility tier)
+Based on which route or module we are, we should provide smart filter options and make sure all options are smartly suggested and all of it should properly filter our results/items.
+
+The goal is to have a very smart filter sidebar section to filter any data that we have on different modules & pages.
+
+We should also refine and update our sort options based on our data and make sure this will also work properly.
+
+→ **Done:** [`../done/smart-filters.md`](../done/smart-filters.md)
+
+===
+
+✅ Make our main public search bar fully working
+
+Let's analyze all public data that we have for developments, properties, parkings, etc and based from our data, we need to have a solid implementation on how our main search bar is going to work, this should be smart, cached, and fully working similar on how popular apps offer search bar that can find, filter, search and suggest information based on our search inputs that we have (where, when, |who).
+
+Let's implement a smart search bar that can understand what the user wants to search and based from it, provide info or suggest common or similar search input text.
+
+Our search should suggest information for where. And when they click search button, we should have smart and suggest results.
+
+See how popular apps do this and make sure we have similar UI/UX and search results/suggestion.
+
+Make sure that filtered result are animated and we display it elegantly. Not sure if we need to redirect it new /search result page or we can just display and update our content section based on result.
+
+→ **Done:** [`../done/smart-search-bar.md`](../done/smart-search-bar.md)
+
+===
+
+✅ Make public pages editable via a host-facing Page Editor (left controls / right realtime preview)
+
+I think the next module that we need is to make our public pages editable.
+Meaning, instead of open page, we will have edit button page.
+And clicking it will open our page editor. On our page editor, host can edit and configure the content that we have for our public pages.
+Analyze each public pages and check which content, controls, features that we can make configurable. From styling, show/hide content, toggle flow or certain functionality. Let's try to make everything much flexible and configurable as much as possible.
+
+Example: For stay guide, we will list down all the templates available, add or remove templates on the page, configure positioning and styling, etc.
+
+One important thing to consider is that if a certain setting is already configurable via setting, we need to remove that from our property settings so that we have single source of truth and no redundant control settings. This is also good so that our property settings will be lessen.
+
+Please generate the best UI/UX for our page editor please and make sure that we have controls section on the left side and realtime update preview on the right side.
+
+We to ensure that this management and editing of page content would not be too technical and too overwhelming for our hosts. This should be easy to the eyes, comfortable and easy to use and navigate and balance of advanced and easy to use.
+
+If we can also update our existing public pages list as well, that would be great. I don't think listing grid items like this is the best UI for this? PLease analyze and improve as well
+
+→ **Done:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md) — Stay Guide + Property Landing Page Editor, gallery redesign, Settings migration (Phases 0–7); Phase 8 backlog deferred (2026-08-20)
+
+===
+
+✅ Marketing 1: Improve Marketing Calendar Templates
+
+Right now, our marketing calendar templates look simple and okay.
+They do not look beautiful, stunning, eye catching, and doesn't have that wow factor.
+Please improve all these templates and provide better categories. Each template should have different characteristics, showcase all settings available for calendar customization, different fonts, element shapes/border/spacing/colors, etc.
+The end goal is the every template looks so good where host cannot select which one to choose because they all look good!
+
+===
+
+✅ Marketing 2: Improve Marketing Design Templates & Customizablity
+
+Same with calendar templates above. Right now, our canvas template are too plain and does not look good.The
+goal is that each template should be production ready and "instagramable" and ready to publish with confidence and excitement to their social platforms.
+
+===
+
+✅ Marketing 3: Improve Marketing Video Templates & Customizablity
+
+Same with marketing design templates goal.
+
+→ **Follow-up (Quiet Coast Motion):** from-scratch Video redo — Video-only categories + storyboard recipes. Spec: `docs/archive/superpowers/specs/marketing-video-quiet-coast-motion-design.md`. Plan: `docs/workflow/done/marketing-video-quiet-coast-motion.md`.
+
+===
+
+✅ Marketing 4: Use AI to generate marketing calendar, design and video templates
+
+Now that we made some improvements on marketing calendar, canvas and video editors, I want to really extend by having AI feature that will generate design and video templates from scratch that looks very beautiful, elegant, instagrammable and has wow factor to hosts.
+
+The generated result can be configured by some prompts, suggestions, etc (please make some research how popular media editors do AI generated flow).
+
+We can also make some research if there's a free or low cost API that can do this. Either the AI generates the calendar, canvas and video from scratch or custom or it's own way, OR it will reads and build new designs based on our existing technologies, templates and settings that we have for each marketing module.
+
+The end goal is that with the help of AI, we should be able to generate calendar, canvas and video templates for our hosts that's still using our booking or property information and some prompts/settings.
+
+→ **Done:** [`../done/marketing-ai-generated-templates.md`](../done/marketing-ai-generated-templates.md) (calendar, design, and video AI generate shipped)
+
+===
+
+✅ Marketing 5: Refine & finalize Marketing module
+
+- Make sure each module is optimized. Right now, something looks broken and when we visit the page and each tab, the app becomes kinda laggy and have performance issues. The thumbnails are not loading properly, creating new item somewhat breaks other thumbnails, switching to other orientation feels like rendering broken thumbnails, playing video preview does not fully play the video, it requires 2-3x click to fully play it which is broken.
+- Make sure AI generations for 3 modules are production ready, renders beautiful designs, content are engaging and easy to read, designs and videos are instagrammable and ready to post, etc.
+- If app is connected to social platform like Facebook and Instagram, make sure we support quick and easy publishing for post & story.
+
+→ **Done:** [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) — perf/thumbnail/playback bugs + AI-gen/publish correctness fixes shipped. Meta scheduling/confirmation gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
+
+===
+
+✅ Marketing — edit guest review page design
+
+Let hosts customize the guest review experience from the **Marketing** module (or Public Pages / Page Editor sibling), similar to Stay Guide and Property Landing:
+
+- Template or canvas presets for `/guest-review` (and optionally SD form review step) — typography, colors, hero/brand, thank-you state.
+- Reuse marketing design editor / Polotno patterns where sensible; preview with sample booking context.
+- Single source of truth — avoid duplicating controls already on property settings unless marketing owns visual layer only.
+
+→ **Done:** [`../done/marketing-guest-review-studio.md`](../done/marketing-guest-review-studio.md) · guest review module: [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
+
+===
+
+✅ Move domain to kamespace.com (DNS, Vercel, email, OAuth, third parties)
+
+another goal that we will need to do is to update the existing domain from using Kamehomes.space to use the KameSpace.com. this would be a necessary thing that we need to do especially this domain would be the right fit on our app and since we will rename the Kamehomes to KameSpace this would be the appropriate domain also I want you to carefully check if there are other configurations other third-party services that we need to update this domain change so that we made sure that we didn't miss anything and make sure that every features every functionality every third party that we are using is using the updated domain that we have again I want you to be very smart I want you to check other places that we have again I want you to be very smart I want you to check other places that we have again I want you to be very smart I want you to check other places and configurations and dependencies that we have that will require us to update this because of this domain change that we did
+
+→ **Done:** [`../done/kamespace-04-domain-move-kamespace-com.md`](../done/kamespace-04-domain-move-kamespace-com.md) — closed 2026-11-04; production is on `kamespace.com`.
+
+===
+
+✅ Optimize how AI integrated in our app
+
+Make a research and find the best optimal way to connect our application with AI for faster info retrieval, action execution, etc.
+
+Maybe we can use our docs guide or obsedian vault or RAG/light RAG or something like graphify? Or if there's better library or technology that we can use.
+
+Also, I'm wondering if having docs/guides for each page of the app is the best optimal way to document and use this for AI to have context of our entire application?
+
+The goal is to find and implement the best way to document each flow, logic, process of each feature, pages, sections that's happening on our entire application that's fastest, optimal, and best lowest token consumption. It should be production ready
+
+Let's update our implementation that's using or relying with AI like the AI-auto reply, AI receptionist, and other future related features that will use AI.
+
+→ **Done:** [`../done/docs-obsidian-tooling-sync.md`](../done/docs-obsidian-tooling-sync.md)
+
+===
+
+✅ OPTION A: Improve stay guide UI/UX page
+
+The stay guide page looks very plain and not appealing at all. This needs to be mobile friendly, looks professional, interactive and has wow factor so that when hosts send this link to their guests, they will be happy using it.
+
+→ **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md) (Option B; Option A is stay-guide slice of same plan)
+
+===
+
+✅ OPTION B: Templated configurable & shareable custom pages
+
+Generate 3-5 templated stunning and professional looking landing pages/stay guide pages that contains these standard templates, property information and booking information for hosts to send their to their guests.
+
+<Provide sample designs here>
+
+On the dashboard, we will have new menu and page for "Custom Pages" where they can selected templated pages that's configurable and shareable.
+Maybe we will offer a simplified website editor?
+
+→ **Done:** [`../done/custom-pages-module.md`](../done/custom-pages-module.md)
+
+===
+
+✅ Org portfolio pricing bundles (Pro ≤3 / Business ≤5 / Business Plus ≤10)
+
+Pivot from strict per-property billing to org-scoped portfolio caps for Pro/Business tiers while keeping Free/Starter/Managed/Commission per-property.
+
+→ **In progress:** [`../done/pricing-portfolio-bundling.md`](../done/pricing-portfolio-bundling.md)
+
+===
+
+✅ Plans & Pricing
+
+Now, I think we are ready to implement the plans & pricing for our application.
+Now, we have different separate plans for this which will be work on next phases.
+For this, we need to create a foundation plan to implement the plans & pricing.
+
+First, we need to build the Plans page for this. Generate the best UI/UX for payment, displaying different plans, end to end flow of subscribing & payment, etc.
+
+For the pricing tiers, check for this plan:
+docs/workflow/done/ai-usage-metering-credits-foundation.md
+
+For payment integration with Pay mongo, check for this plan:
+docs/workflow/done/paymongo-subscription-billing.md
+
+For the AI credits usage, check for this plan:
+docs/workflow/done/ai-usage-metering-credits-foundation.md
+
+Again, the goal of this plan is scoped only to build the Pricing page.
+Do not work on these referenced plan. We will work on it one by one.
+
+→ **Done:** [`../done/host-plans-pricing-page.md`](../done/host-plans-pricing-page.md) (host Plans page + PayMongo checkout) · tiers foundation: [`../done/host-plans-and-pricing-tiers.md`](../done/host-plans-and-pricing-tiers.md) · PayMongo: [`../done/paymongo-subscription-billing.md`](../done/paymongo-subscription-billing.md) · feature gating: [`../done/feature-gating-subscription-upgrade.md`](../done/feature-gating-subscription-upgrade.md) · AI credits: [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md)
+
+===
+
+✅ Pool fee should be configurable via development settings and we need to adjust AI receptionist or AI tool that beside on reading property & booking info, we should also check which development it's under the current property and have access to development information just like the amenities, pool fee, schedule of pool, requirements, guides, etc
+
+===
+
+✅ Property guest rewards & vouchers (Reviews split)
+
+→ **Done:** [`../done/property-guest-rewards-vouchers.md`](../done/property-guest-rewards-vouchers.md)
+
+===
+
+✅ Provide chat app that can access and manage entire dashboard
+
+Another big module that I'd like to support is to have a chat app that can access and manage entire dashboard. This should be a chat app that can understand natural language, and can do actions like booking, check-in, check-out, etc. It should be able to understand the context of the conversation and respond accordingly.
+
+What we want is to simplify all property management with the help of AI. It should have access to our APIs, get information, execute actions based on context.
+
+The chat response or suggestion should have a good looking UI/UX within the chat, we should display different kind of UI elements like cards, lists, buttons, etc. to make it more interactive and helpful.
+
+This should be very smart and it will act like an assistant that have all information on how our system and every feature work, the flow and process, it should be very helpful and can suggest helpful actions and information to our host so that they can manage their property more efficiently and easily without the needs to do everything manually and this will also reduce complexity of understanding the whole app, process, logic and flow.
+
+This is a very important feature that will make our system much more powerful and helpful and reasons for user to subscribe and use our system.
+
+Again, this should not provide any sensitive or execute any harmful actions that may affect the system. We should implement a strong guard rails or security measures for this feature.
+
+Also, we need to make sure that this is connected to our AI receptionist, or may share same util, process, flow since both of these modules are using AI.
+We need to plan the architecture, flow, process for both module to build a production ready chat app.
+
+Also, this should be tied app with our pricing and subscription module so that we can limit the free usages of this feature to a certain amount and charge for additional usage.
+
+→ **Done:** [`../done/ai-dashboard-assistant.md`](../done/ai-dashboard-assistant.md) · v2 full coverage: [`../done/ai-dashboard-assistant-v2-full-coverage.md`](../done/ai-dashboard-assistant-v2-full-coverage.md)
 
 ===
 
@@ -464,163 +616,14 @@ We should also be smart and able to provide a seamless connection for multi flow
 
 With these so much info, we need to generate the best UI/UX for this within the chat, if a dropdown will not fit or best UI to display and provide long information or multi flow, we can also display the options or actions or flow or diagram in the center and on top/overlay on the conversation content. Make a research and analyze how popular apps handle such scenario and generate the best UI/UX for this please.
 
-# → **Done:** [`../done/ai-assistant-universal-context-pickers.md`](../done/ai-assistant-universal-context-pickers.md)
-
-===
-
-✅ Make public pages editable via a host-facing Page Editor (left controls / right realtime preview)
-
-I think the next module that we need is to make our public pages editable.
-Meaning, instead of open page, we will have edit button page.
-And clicking it will open our page editor. On our page editor, host can edit and configure the content that we have for our public pages.
-Analyze each public pages and check which content, controls, features that we can make configurable. From styling, show/hide content, toggle flow or certain functionality. Let's try to make everything much flexible and configurable as much as possible.
-
-Example: For stay guide, we will list down all the templates available, add or remove templates on the page, configure positioning and styling, etc.
-
-One important thing to consider is that if a certain setting is already configurable via setting, we need to remove that from our property settings so that we have single source of truth and no redundant control settings. This is also good so that our property settings will be lessen.
-
-Please generate the best UI/UX for our page editor please and make sure that we have controls section on the left side and realtime update preview on the right side.
-
-We to ensure that this management and editing of page content would not be too technical and too overwhelming for our hosts. This should be easy to the eyes, comfortable and easy to use and navigate and balance of advanced and easy to use.
-
-If we can also update our existing public pages list as well, that would be great. I don't think listing grid items like this is the best UI for this? PLease analyze and improve as well
-
-# → **Done:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md) — Stay Guide + Property Landing Page Editor, gallery redesign, Settings migration (Phases 0–7); Phase 8 backlog deferred (2026-08-20)
-
-===
-
-✅ Harden guest inbox meta facebook and instagram module
-
-One big module that we need to review the implementation carefully is the Inbox Meta facebook and instagram implementation. I want you to do deep checking and review and make sure that our module there is complete and production ready. Make sure we don't have poor implementation, restructure or recode that module if needed so that we have good implementation, production ready and scalable solutions.
-
-One major thing I would like you to refine and improve is that refetching of new messages every time we visit Inbox page. Right now, We need to disconnect and reconnect to fetch new message. That should be automatic please.
-
-Also, I think Meta has only window period for auto-reply or to able reply? If that's the case, we should improve the UI/UX and display messages that cannot be reply and improve the UI or message that only the messages within the period is visible to our chat.
-
-Also, I want you to refine and improve how we save and store conversations and how we cache them and invalidate them. We need to make sure that this module will not cause any performance issues, security concern, etc.
-
-Also, we should have solid implementation and flow for disconnection and clearing of messages and provide best UI/UX when we connect to a page and fetch messages.
-
-Also, I want you to visit if we can support the comments on facebook post on Facebook & Instagram, if not, then let's remove that!
-
-# → **Done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md) — webhook health-check/resubscribe, non-destructive disconnect, HUMAN_AGENT 7-day tag, comment scope removed, backfill + error UX hardening (2026-08-20)
-
-===
-
-✅ Org portfolio pricing bundles (Pro ≤3 / Business ≤5 / Business Plus ≤10)
-
-Pivot from strict per-property billing to org-scoped portfolio caps for Pro/Business tiers while keeping Free/Starter/Managed/Commission per-property.
-
-# → **Planned:** [`../planned/pricing-portfolio-bundling.md`](../planned/pricing-portfolio-bundling.md)
-
-===
-
-✅ Accurately track AI usages for each AI actions and features, decide limit granularity, prep for paid AI credits
-
-# → **Done:** [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md) — Phases 1–3 shipped (attribution, credit ledger, enforcement, wallet UI). Phase 4 paid top-up deferred.
-
-===
-
-✅ Property guest rewards & vouchers (Reviews split)
-
-# → **Done:** [`../done/property-guest-rewards-vouchers.md`](../done/property-guest-rewards-vouchers.md)
-
-===
-
-✅ Voucher reveal styles (host-selectable animation)
-
-Spin the wheel, slot scroll/reel (current), flip card — property setting under Reviews & vouchers; guest `/sd-form` + guest-review.
-
-# → **Done:** [`../done/voucher-reveal-styles.md`](../done/voucher-reveal-styles.md)
-
-===
-
-✅ Guest Review after booking
-
-Standalone `/properties/:slug/guest-review`, SD form review section, edge functions, feedback tags + photo upload.
-
-# → **Done:** [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
+→ **Done:** [`../done/ai-assistant-universal-context-pickers.md`](../done/ai-assistant-universal-context-pickers.md)
 
 ===
 
 ✅ Refine AI settings from property & super admin settings
 
-# → **Done (Phases 1–3):** meter UI shipped — [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md). Phase 4 paid top-up still backlog: [`../planned/ai-credits-topup-purchase.md`](../planned/ai-credits-topup-purchase.md). **Ownership split shipped:** host keeps toggle + usage only, all AI limits move to super-admin profiles — [`../done/ai-settings-super-admin-ownership.md`](../done/ai-settings-super-admin-ownership.md)
+→ **Done (Phases 1–3):** meter UI shipped — [`../done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md). Phase 4 paid top-up still backlog: [`../planned/ai-credits-topup-purchase.md`](../planned/ai-credits-topup-purchase.md). **Ownership split shipped:** host keeps toggle + usage only, all AI limits move to super-admin profiles — [`../done/ai-settings-super-admin-ownership.md`](../done/ai-settings-super-admin-ownership.md)
 
-===
-
-✅ Finalize plans & billing
-I noticed some limitation are not respected on free tier like team members, etc.
-Also, make sure we update org level pages & section & elements to display plans pills & badge as well. Like team members per org
-Clicking continue to payment should redirect user to org level, plans & billing page and billing tab?
-We also need to make sure that we cover and require payment when we add more properties
-
-# → **Done:** [`../done/finalize-plans-billing.md`](../done/finalize-plans-billing.md)
-
-===
-
-✅ Also, here are the things we need to adjust and make sure we add from our tasks list:
-
-Bookings
-
--
-
-Finance
-
-- Update our plan to include finance reporting should be on starter plan. But access to finance is free
-
-Maintenance
-
-- maintenance export/reporting should be on starter plan as well
-
-Team
-
-- Add team member if reached limit should display our upgrade plan modal
-
-Marketing
-
-- make sure download, publish button (if there's meta connected), display upgrade plan modal
-- make the preview overlay more evident and rendered multiple times to fill the whole canvas for calendar, canvas and video. Meaning, I want these overlay to have many text that covers entire canvas. Also, use "Kame Homes" instead of "Preview"?
-- clicking generate inside the generate modal should open display our upgrade plan modal.
-
-Notifications
-
-- Update our plan so that free only include in-app notification but telegram notification should be on starter plan
-- For free plan, editing or clicking save and test tg or enabling telegram cards/modules should display our upgrade plan modal
-
-Inbox
-
-- Update our plan to support Meta chat to business tier. Clicking connect to Meta will display our upgrade plan modal
-- Then for normal chat, I'm still wondering if I should free this or move it to starter plan? Please analyze and decide what's best tier is this feature
-- Free user can still open quick replies and automation so that they know what are the features we can offer
-
-Templates
-
-- Make each wisywig editor to have a blurry overlay but i still want each text to be readable for both edit and preview mode.
-- Free can still open placeholders and reset
-- Clicking add custom template should open our upgrade plan modal
-
-Public pages
-
-- For free users, let's still display the pages, user still can edit but let's remove the autosave feature and display manual save button if user edited something, and upon clicking save, it will open our upgrade plan modal
-
-Settings
-
-- Settings section that require paid plan should be hidden our secondary menu and card section. Analyze each section carefully and only display it if current plan achieve it
-
-Check other pages, public pages, sections, modules, flow, process and make sure we covered everything
-
-Make sure we update our plan cards and compare plans for all the new changes please.
-
-Also, it's helpful if we can add a badge that displays the different plan tier required to make it work. Either on menu, section, buttons, elements. Just make sure that we display this beautiful and look professional how big apps display this so that user knows if a specific feature require higher plan. Also, of course, do not display a badge if user already had that paid plan unless a higher plan is required to enable that feature.
-
-Also, our upgrade plan modal should be dynamic and display the tier needed for specific feature that they action. Also, please include on another phase in our plan that we should be smart and also handle what if user avail starter plan, then, want to upgrade to next plan. The pricing should be smart and less than the actual current price - already paid plan price. Maybe reuse our upgrade to existing modal that we have when we click upgrade plan? Or maybe, use same layout but change content that's more aligned to action user wants to do? Decide best UI/UX for this.
-
-Also, for security as well, we need to make sure that these limitations are not UI only. Meaning, technical user can still open dev tools, remove the overlay elements and see the actual real data. We need to make sure that implement a mechanism to make it secure if user do that and make sure backend implementations still respect our plan tiers. The goal is to have a security or mechanism to prevent user to hack or do tricky things to achieve result by not paying paid plan and modifying elements in the UI.
-
-Please also improve our upgrade plan modal text or content and UI so that user easily understand that they need to upgrade to access or do that action
-
-→ Make sure as well that we updated the necessary docs for all these changes please.
 ===
 
 ✅ Refine booking detail page, edit and workflow (multi-tenancy config)
@@ -634,13 +637,52 @@ Please also improve our upgrade plan modal text or content and UI so that user e
   - 🔵 Refine and improve UI/UX for each step/status (deferred polish)
 
 → **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md)
+
 ===
 
-✅ Document, refine, finalize booking detail & workflow
+✅ Refine footer & create public pages
 
-Multi-tenant document-requirements config + Resend inbound approvals shipped. Deferred: payment auto-settlement, parking redesign, booking-detail UX polish (see done doc).
+Footer trimmed; About/Contact/Support/Cookies routes live; Terms/Privacy/Cookie Policy grounded in product copy.
 
-→ **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md) · v1 slice: [`../done/booking-workflow-configurable-docs.md`](../done/booking-workflow-configurable-docs.md)
+→ **Done:** [`../done/refine-footer-public-pages.md`](../done/refine-footer-public-pages.md)
+
+===
+
+✅ Refine our route guides to have complete context for each page & section in our app
+
+Let's refine and update our /docs/guides directory and make sure we have documentation for all features, flow, logic and complete understanding on what's available and happening for each pages and section in our app.
+
+Make sure we always update and add any new routes or updated any missed routes. Revisit each guide doc routes and make sure we update with our latest changes available.
+
+This document will be helpful in our project while we develop it and my goal is to provide this docs when we integrate AI chat in our dashboard to provide better response and context to hosts when they ask something about some app knowledge, features, flow, process, etc
+
+# The goal of this docs is to become a context and product knowledge for our AI receptionist & dashboard AI assistant features
+
+===
+
+✅ Refine Property Templates page
+
+We should have a tab for standard, email and other templates.
+Then, we should support for host to add new template for each tab/category.
+
+===
+
+✅ Rename Kame Homes to Kame Space
+
+Once we did the migration properly and check on the dev and new prod that everything is working properly, our next goal is to rename Kami Homes to be Kami Space I want you to carefully check every text every label every environment variables every dynamic text that is related to Kami Homes and make sure that we update them to Kami Space I want you to update all the docs all the usages and all the occurrence that we use the Kami Homes I want you to carefully check the different casing text casing and make sure that we will no longer use Kami Homes on the entire applications either code wise and text label or any text that is displayed in the application make sure to also check any back-end related services or back-end code changes that using this Kami Homes I want you to check the email templates and third-party usages that we use this Kami Homes and make sure to update everything I want you to review this carefully if you need to create a plan to make sure that we missed anything please do but I want you to make sure that we update all the Kami Homes text labels and code related changes that ties to homes so that we could have this transition of naming to Kami Space
+
+→ **Done:** [`../done/kamespace-03-rebrand-kame-homes-to-kame-space.md`](../done/kamespace-03-rebrand-kame-homes-to-kame-space.md) — closed 2026-11-04.
+
+===
+
+✅ Review implementation on the following modules
+
+Review the implementation on the following modules and make sure we simplify, recode, improve and make sure it's production ready and does not contain trash code or changes, poor implemented features caused by AI vibe coding. Be a 10x senior software engineering and review the following modules and make sure it met our standards and they are all production ready and will not cause any performance issue or security and lastly, make sure everything is still working properly
+
+- Marketing — partial: [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps split to a planned follow-up)
+- Inbox (Meta chats) — **done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md)
+- Real-time web chat app (host & guest side)
+
 ===
 
 ✅ Review, refine and improve e2e of booking flow/page
@@ -648,32 +690,19 @@ Multi-tenant document-requirements config + Resend inbound approvals shipped. De
 Overlaps booking multi-tenancy — config closed; remaining UX polish deferred (see done doc).
 
 → **Done:** [`../done/booking-workflow-multi-tenancy.md`](../done/booking-workflow-multi-tenancy.md)
+
+===
+
+✅ Smart import data with use of AI
+
+# Shipped: [`../done/smart-ai-data-importer.md`](../done/smart-ai-data-importer.md) + [`../done/import-preview-fix-queue.md`](../done/import-preview-fix-queue.md)
+
 ===
 
 ✅ Stay Guide page templates parity (Showcase engine)
 
 → **Done:** [`../done/stay-guide-showcase-templates.md`](../done/stay-guide-showcase-templates.md)
-===
 
-✅ Airbnb / OTA calendar sync
-
-→ **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md) — Phase 1 + 2 shipped; staging browser walk-through pending
-===
-
-✅ Marketing — edit guest review page design
-
-Let hosts customize the guest review experience from the **Marketing** module (or Public Pages / Page Editor sibling), similar to Stay Guide and Property Landing:
-
-- Template or canvas presets for `/guest-review` (and optionally SD form review step) — typography, colors, hero/brand, thank-you state.
-- Reuse marketing design editor / Polotno patterns where sensible; preview with sample booking context.
-- Single source of truth — avoid duplicating controls already on property settings unless marketing owns visual layer only.
-
-→ **Done:** [`../done/marketing-guest-review-studio.md`](../done/marketing-guest-review-studio.md) · guest review module: [`../done/guest-review-module-refinement.md`](../done/guest-review-module-refinement.md)
-===
-
-✅ Refine and finalize team permissions
-
-→ **Done (property):** [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) · **Org follow-on:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md)
 ===
 
 ✅ Super admin console overhaul
@@ -681,6 +710,124 @@ Let hosts customize the guest review experience from the **Marketing** module (o
 Phases 0–7 shipped (grouped nav, Overview dashboard, org hub, 4 of 10 Phase 6 modules). Remaining console backlog in planned followups.
 
 → **Done:** [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md) · audit log: [`../done/super-admin-audit-log.md`](../done/super-admin-audit-log.md) · AI usage: [`../done/super-admin-ai-usage-dashboard.md`](../done/super-admin-ai-usage-dashboard.md) · platform settings: [`../done/super-admin-platform-settings.md`](../done/super-admin-platform-settings.md) · global search: [`../done/super-admin-global-search.md`](../done/super-admin-global-search.md) · **Follow-ups:** [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md)
+
+===
+
+✅ Think and plan how AI can help us manage pricing better
+
+===
+
+✅ Voucher reveal styles (host-selectable animation)
+
+Spin the wheel, slot scroll/reel (current), flip card — property setting under Reviews & vouchers; guest `/sd-form` + guest-review.
+
+→ **Done:** [`../done/voucher-reveal-styles.md`](../done/voucher-reveal-styles.md)
+
+===
+
+🧪 AI companion: response quality, speed, and generative UI
+
+→ **For testing:** [`../for-testing/ai-companion-response-quality-and-generative-ui.md`](../for-testing/ai-companion-response-quality-and-generative-ui.md) — Dashboard assistant and guest receptionist tone, speed and generative UI. Live screenshot QA pending.
+
+===
+
+🧪 Copy property settings to other properties
+
+When we have multiple properties, hosts should reuse settings/config/design from one property to others. Review each property page, module, and flow for what can be shared.
+
+→ **For testing:** [`../for-testing/property-settings-copy-to-properties.md`](../for-testing/property-settings-copy-to-properties.md)
+
+===
+
+🧪 Do an ground up redesign for mobile view
+
+I want to have a rebuilt or groundup redesign for mobile view to make our app look and feels like a native mobile app.
+Not just simply a website or page that's adjusted to be responsive to different resolution.
+We need to consider the best UI/UX for each page, section and components that we have in our app
+The end goal is when we resize to mobile view, it should look and feel like a native mobile app where we have main navigation on the bottom, mobile element animation and transitions, etc
+
+Apply to all pages including both public and dashboard pages
+
+→ **In progress:** [`../for-testing/mobile-native-redesign.md`](../for-testing/mobile-native-redesign.md)
+
+===
+
+🧪 Help & Support page (org + property level)
+
+Now that we have the AI assistant in the dashboard, build a Help & Support page for hosts at both org and property level: Documentation (from docs/guides Host-facing knowledge, filtered to never expose sensitive/internal info), AI Chat (opens the existing dashboard assistant sidebar), Ticket/App Support (dynamic per-category fields — bug/inquiry/suggestion/business — replied to from a new super-admin page), and FAQs (20-50 items generated from the docs). Every docs/guides change should stay synced to whatever powers this automatically.
+
+→ **In progress:** [`../planned/support-content-and-faq-sync.md`](../planned/support-content-and-faq-sync.md) · shipped baseline: [`../for-testing/help-support-center.md`](../for-testing/help-support-center.md)
+
+===
+
+🧪 Host Analytics module — performance insights + AI coaching
+
+→ **For testing:** [`../for-testing/host-analytics-module.md`](../for-testing/host-analytics-module.md) — Give hosts a dedicated Analytics page in the dashboard that turns their own booking history into decisions: see how the listing is performing now, compare it to the previous period and the same period last year, look forward at what is...
+
+===
+
+🧪 Host onboarding setup guide
+
+Post-registration resumable Setup Guide overlay — stepper over real settings/pricing/payments/guest-form/verification sections (same validation + save paths), non-blocking dashboard launcher, derived progress; optional Recommended verification → 1 month of Pro (super-admin-controlled).
+
+→ **For testing:** [`../for-testing/host-onboarding-setup-guide.md`](../for-testing/host-onboarding-setup-guide.md)
+
+===
+
+🧪 Host tour film redesign
+
+→ **For testing:** [`../for-testing/host-tour-film-redesign.md`](../for-testing/host-tour-film-redesign.md) — Ground-up rebuild of the narrated Remotion product tour on /for-hosts (and /for-hosts/v2, /for-hosts/login, /for-guests/login, onboarding side panel).
+
+===
+
+🧪 Host verification tiers (Phase 3 partial)
+
+Phases 1–2 shipped (Verified/Recommended modal polish, Tier 2 docs, admin queue priority). Browse search boost for Recommended hosts deferred until public listings API.
+
+→ **For testing:** [`../for-testing/host-verification-tiers.md`](../for-testing/host-verification-tiers.md) · scope split shipped: [`../for-testing/verification-scope-split.md`](../for-testing/verification-scope-split.md)
+
+===
+
+🧪 Listing contract renewal modal
+
+→ **For testing:** [`../for-testing/listing-contract-renewal-modal.md`](../for-testing/listing-contract-renewal-modal.md) — Replace the non-dismissible listing contract strip with a listing-scoped renewal reminder modal (pre-expiry, grace, locked), a daily snooze and a renew path into Listing Verification.
+
+===
+
+🧪 Marketing AI image generation — quality hardening & production readiness
+
+→ **For testing:** [`../for-testing/marketing-ai-image-quality-hardening.md`](../for-testing/marketing-ai-image-quality-hardening.md) — Stage (2026-10-21): for testing. Phases 1–6 are in code. What is left is the 20-prompt blind image score. The user is the judge. 2026-09-28: Postable, designed posts now come from AI Post (marketing-ai-poster-studio.md): real photos...
+
+===
+
+🧪 Marketing AI Studio — conversations with versions, and Library polish
+
+→ **For testing:** [`../for-testing/marketing-ai-studio-sessions-and-library-polish.md`](../for-testing/marketing-ai-studio-sessions-and-library-polish.md) — Route: /org/:orgSlug/property/:propertySlug/marketing · Guide: marketing.md · Follows: marketing-studio-library-and-workspace-redesign.md
+
+===
+
+🧪 Marketing AI video: quality pass and production readiness
+
+→ **For testing:** [`../for-testing/marketing-ai-video-quality.md`](../for-testing/marketing-ai-video-quality.md) — Goal: Generate tab videos a host can post to Reels / Stories without editing, at the bar set by Higgsfield-style apps, with the same guardrails as the image hardening (marketing-ai-image-quality-hardening.md).
+
+===
+
+🧪 Marketing Studio — library-first workspace, save model and AI Studio redesign
+
+→ **For testing:** [`../for-testing/marketing-studio-library-and-workspace-redesign.md`](../for-testing/marketing-studio-library-and-workspace-redesign.md) — Route: /org/:orgSlug/property/:propertySlug/marketing · Module: ui/src/features/dashboard/marketing/ · Guide: docs/guides/routes/org/property/marketing.md · Related: marketing-studio-mobile-and-dashboard-responsive.md,...
+
+===
+
+🧪 Marketing Studio: collage editor + module restructure
+
+→ **For testing:** [`../for-testing/marketing-collage-editor.md`](../for-testing/marketing-collage-editor.md) — Shipped and automated-verified — bun run type-check / lint / test (Vitest) / test:edge (Deno, incl. new _shared/marketingUploadStorage_test.ts) / build (precache budget OK) / test:e2e:ci (marketing suite, incl. new...
+
+===
+
+🧪 Marketing — Multi-track video editor, media library and upload quotas
+
+→ **For testing:** [`../for-testing/marketing-video-editor-multitrack.md`](../for-testing/marketing-video-editor-multitrack.md) — Multi-track video editor plus media library, upload quotas, plan quotas, RBAC leaves and sweeper cron; desktop and phone UI.
+
 ===
 
 🧪 Onboarding verification simplify
@@ -688,13 +835,63 @@ Phases 0–7 shipped (grouped nav, Overview dashboard, org hub, 4 of 10 Phase 6 
 Step 2 Property Rights (Parking Rights when parking-only) from existing verification-rights values. Step 3 Valid ID + Facebook Page screenshot only. Listing Verified: proof of ownership. Listing Recommended: additional proof + Azure PMO. Listing go-live stays on listing base approve.
 
 → **For testing:** [`../for-testing/onboarding-verification-simplify.md`](../for-testing/onboarding-verification-simplify.md) · spec: [`../for-testing/onboarding-verification-simplify-design.md`](../for-testing/onboarding-verification-simplify-design.md)
+
 ===
 
-🧪 Host verification tiers (Phase 3 partial)
+🧪 Org Activity & Audit Log — every team action across org, property, and parking
 
-Phases 1–2 shipped (Verified/Recommended modal polish, Tier 2 docs, admin queue priority). Browse search boost for Recommended hosts deferred until public listings API.
+→ **For testing:** [`../for-testing/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md) — Append-only activity_log with emitters across every mutating surface, Activity routes at org/property/parking, export and retention cron.
 
-→ **For testing:** [`../for-testing/host-verification-tiers.md`](../for-testing/host-verification-tiers.md) · scope split shipped: [`../done/verification-scope-split.md`](../done/verification-scope-split.md)
+===
+
+🧪 Org-level granular team permissions
+
+→ **For testing:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md) · property catalog shipped: [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md)
+
+===
+
+🧪 Parking ↔ property production parity
+
+v1 parity and org-native entitlements shipped.
+
+→ **For testing:** [`../for-testing/parking-property-parity.md`](../for-testing/parking-property-parity.md)
+
+===
+
+🧪 Public pages: native element sizing
+
+→ **For testing:** [`../for-testing/public-native-density.md`](../for-testing/public-native-density.md) — Native type scale, spacing and touch targets across public pages at 375px and up.
+
+===
+
+🧪 PWA v2: native app experience, smart install, smooth updates, full coverage
+
+→ **For testing:** [`../for-testing/pwa-v2-native-app-experience.md`](../for-testing/pwa-v2-native-app-experience.md) — Launch resolver, tiered precache, install eligibility, safe updates, offline drafts and Sync Center, guest offline messages, push preferences.
+
+===
+
+🧪 PWA — installable app, native push, offline access + sync
+
+→ **For testing:** [`../for-testing/pwa-installable-offline-push.md`](../for-testing/pwa-installable-offline-push.md) — Implementation status (2026-09-02): Phases 0–7 built in one pass. Installable PWA + Workbox SW + kill-switch, offline read (query-persist allowlist), cross-platform Web Push wired to the Notification Center, offline write/sync (inbox...
+
+===
+
+🧪 Refine and finalize team permissions
+
+→ **Done (property):** [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) · **Org follow-on:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md)
+
+===
+
+🧪 Smart pricing with AI
+
+→ **For testing:** [`../for-testing/smart-pricing-ai.md`](../for-testing/smart-pricing-ai.md)
+
+===
+
+🧪 Super Admin step-up OTP for sensitive actions
+
+→ **For testing:** [`../for-testing/super-admin-step-up-otp.md`](../for-testing/super-admin-step-up-otp.md) — Add a second factor to every critical / money / global-config action in the Super Admin console (/admin/). Even with a stolen super-admin session, an attacker cannot change a subscription, move money, or flip a platform-wide switch...
+
 ===
 
 🧪 Superhost program
@@ -702,11 +899,37 @@ Phases 1–2 shipped (Verified/Recommended modal polish, Tier 2 docs, admin queu
 Earned-only org Superhost badge — metrics, cron, Trust UI shipped; manual QA pending.
 
 → **For testing:** [`../for-testing/superhost-program.md`](../for-testing/superhost-program.md)
+
 ===
 
-🧪 Smart pricing with AI
+🧪 Two-way reviews — guests rate stays, hosts rate guests
 
-→ **For testing:** [`../for-testing/smart-pricing-ai.md`](../for-testing/smart-pricing-ai.md)
+→ **For testing:** [`../for-testing/two-way-reviews.md`](../for-testing/two-way-reviews.md) — Turn today's one-way, SD-refund-embedded guest review into a complete two-way review system, modeled on Airbnb / Vrbo and adapted to Kame Space:
+
+===
+
+📋 AI Assistant — bulk/range pricing with diff preview
+
+→ **In progress:** [`../planned/ai-assistant-bulk-pricing-chat.md`](../planned/ai-assistant-bulk-pricing-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + architecture §5.
+
+===
+
+📋 AI Assistant — parking broadcast fan-out
+
+→ **In progress:** [`../planned/ai-assistant-parking-broadcast-chat.md`](../planned/ai-assistant-parking-broadcast-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + Part E matrix.
+
+===
+
+📋 AI Assistant — settings validators
+
+→ **In progress:** [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md) — Shared validators plus OTP-safe assistant writes for payment methods, email automations and document requirements.
+
+===
+
+📋 AI paid provider selection + production-safe quota tuning
+
+→ **In progress:** [`../planned/ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md) — 1. Provider: stay on Google Gemini. Move from free multi-key rotation to one paid pay-as-you-go GEMINI_API_KEY per environment, keep a paid GROQ_API_KEY as text-only fallback. Gemini is the only single provider that covers our whole...
+
 ===
 
 📋 Analyze entire app pages & features and brainstorm how AI can help us for each feature
@@ -719,113 +942,102 @@ Example:
 - Use AI to help managing finance, analyze big expenses, how to fix and suggest financial strats, etc
 
 → **Plan / backlog:** [`../planned/ai-opportunities-roadmap.md`](../planned/ai-opportunities-roadmap.md)
+
 ===
 
-📋 Super admin — manage "Coming soon" surfaces
+📋 Dashboard mobile native v2 (ground-up phone redesign)
 
-Super-admin UI to configure which product areas show **Coming soon** (or are hidden) app-wide — e.g. public `/services`, gated marketing features, AI credit top-up stubs, Page Editor "other guest pages", and future modules before launch.
+→ **In progress:** [`../planned/dashboard-mobile-native-v2.md`](../planned/dashboard-mobile-native-v2.md) — Rebuild every dashboard screen's phone layout (max-lg) so it looks and behaves like a native iOS/Android app, matching the product shots in marketing/social/src/features/Screens.tsx. Desktop (lg+) keeps its current layout and behavior....
 
-- Central config (DB or app settings) keyed by feature/surface id.
-- Dashboard + public consumers read the same flag so hosts/guests see consistent copy.
-- Optional scheduled enable date or environment override (dev vs prod).
-
-→ **Planned:** [`../planned/module-status-management.md`](../planned/module-status-management.md) · **Related:** [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md); [`services.md`](../../guides/routes/services.md)
 ===
 
-✅ Marketing 5: Refine & finalize Marketing module
+📋 Guest Trust & Safety Reporting — report a host, property, or organization
 
-- Make sure each module is optimized. Right now, something looks broken and when we visit the page and each tab, the app becomes kinda laggy and have performance issues. The thumbnails are not loading properly, creating new item somewhat breaks other thumbnails, switching to other orientation feels like rendering broken thumbnails, playing video preview does not fully play the video, it requires 2-3x click to fully play it which is broken.
-- Make sure AI generations for 3 modules are production ready, renders beautiful designs, content are engaging and easy to read, designs and videos are instagrammable and ready to post, etc.
-- If app is connected to social platform like Facebook and Instagram, make sure we support quick and easy publishing for post & story.
+→ **In progress:** [`../planned/guest-trust-safety-reporting.md`](../planned/guest-trust-safety-reporting.md) — Let signed-in guests (and prospective guests browsing while signed in) report a property/listing, a host/organization, or a conversation for fraud, misrepresentation, safety, or abuse — routed to a platform-side super-admin Trust &...
 
-→ **Done:** [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) — perf/thumbnail/playback bugs + AI-gen/publish correctness fixes shipped. Meta scheduling/confirmation gaps split to [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md).
 ===
 
-🧪 Do an ground up redesign for mobile view
+📋 Live Identity Verification — guided capture, phone handoff, PhilSys QR, liveness
 
-I want to have a rebuilt or groundup redesign for mobile view to make our app look and feels like a native mobile app.
-Not just simply a website or page that's adjusted to be responsive to different resolution.
-We need to consider the best UI/UX for each page, section and components that we have in our app
-The end goal is when we resize to mobile view, it should look and feel like a native mobile app where we have main navigation on the bottom, mobile element animation and transitions, etc
+→ **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md) — Replace today's "pick a file from your gallery" identity capture — on both the guest booking form and the host/org verification flow — with one shared guided live capture module: desktop starts it, a QR hands it to the phone, the phone...
 
-Apply to all pages including both public and dashboard pages
-
-→ **In progress:** [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md)
 ===
 
-🚧 CI/CD + multi-tenant environments — [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · matrix [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md)
+📋 Marketing storage: unified org quota, retention, and cost guardrails
 
-**Now:** `develop` → `dev.kamehomes.space` → **fwor…** (`cd-dev.yml` + Vercel Preview). Legacy unchanged (`main` → `kamehomes.space` → **zftt…**).
+→ **In progress:** [`../planned/marketing-storage-quotas-and-retention.md`](../planned/marketing-storage-quotas-and-retention.md) — Marketing Studio writes a lot of bytes: host uploads (images, video, music), canvas uploads, AI image and video outputs, every refinement version of an AI session, saved-design thumbnails, and data-URL exports pushed to Meta. We are on...
 
-**Pending at prod release (Phase B):**
-
-- Create **MULTI_TENANT_PROD** Supabase project
-- Implement **`scripts/migrate/legacy-to-mt-prod/`** — Postgres + Storage **`zftt…` → mt-prod**
-- Merge **`develop` → `main`**; **`kame-homes`** Production branch = **`main`** (not a `production` git branch)
-- Wire **`app.kamehomes.space`** + Vercel Production `VITE_*` → mt-prod
-- Google OAuth **prod** client + Auth on mt-prod
-- Enable GitHub **`production`** secrets + **`cd-prod.yml`**
-
-→ Design: [`ci-cd-dev-prod-design.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod-design.md) · plan: [`ci-cd-dev-prod.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod.md) · index [`ci-cd-environments/README.md`](../in-progress/ci-cd-environments/README.md)
 ===
 
-🧪 Review implementation on the following modules
+📋 Multi-residence support — config decoupling from Azure North
 
-Review the implementation on the following modules and make sure we simplify, recode, improve and make sure it's production ready and does not contain trash code or changes, poor implemented features caused by AI vibe coding. Be a 10x senior software engineering and review the following modules and make sure it met our standards and they are all production ready and will not cause any performance issue or security and lastly, make sure everything is still working properly
+→ **In progress:** [`../planned/multi-residence-config-decoupling.md`](../planned/multi-residence-config-decoupling.md) — Goal. Support any number of residences / developments / real-estate types without code changes, with per-residence configuration edited from /admin, and Azure North reduced to a seeded row that behaves byte-identically to today.
 
-- Marketing — partial: [`../done/marketing-module-refinement.md`](../done/marketing-module-refinement.md) (perf/AI-gen fixes shipped; Meta publish gaps open)
-- Inbox (Meta chats) — **done:** [`../done/guest-inbox-meta-hardening.md`](../done/guest-inbox-meta-hardening.md)
-- Real-time web chat app (host & guest side)
-  \===
+===
 
-🧪 Org-level granular team permissions
+📋 Org Activity & Audit Log — follow-ups (RBAC leaves, cron rows, notice emitters, partitioning)
 
-→ **For testing:** [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md) · property catalog shipped: [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md)
+→ **In progress:** [`../planned/activity-log-followups.md`](../planned/activity-log-followups.md) — Split from the core Org Activity plan so the core phases could move to QA: dedicated RBAC leaves, cron summary rows, notice-tier emitters, guest ticket/profile handlers, and monthly partitioning. None of these block the feature.
+
+===
+
+📋 Parking E2E Phase 6 — Behavioral Ranking, Transparency & Trust/Safety
+
+→ **In progress:** [`../planned/parking-e2e-phase6-ranking-trust-safety.md`](../planned/parking-e2e-phase6-ranking-trust-safety.md) — Part of Parking E2E Phase 2+ overview. Depends on Phase 2 (price ranking baseline) and Phase 5 (chat/response-time signal source) having run in production long enough to accumulate real data — this phase is explicitly sequenced _after_...
+
+===
+
+📋 Property Management Feature Roadmap — Competitive Research
+
+→ **In progress:** [`../planned/property-management-feature-roadmap.md`](../planned/property-management-feature-roadmap.md) — Competitive research feature catalog vs Guesty, Hostaway, Lodgify, Hospitable and OwnerRez, tiered Quick Win / Mid-Term / Big Bet.
+
 ===
 
 📋 Scheduled marketing posts/story
 
-→ **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Meta scheduling cron + `scheduledAt` UI + confirmation/permalink + retry + Reels (split from the done Marketing 5 bug-fix slice)
+→ **In progress:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Meta scheduling cron + `scheduledAt` UI + confirmation/permalink + retry + Reels (split from the done Marketing 5 bug-fix slice)
+
 ===
 
-🧪 Improve onboarding flow
+📋 Supabase capacity and operational readiness
 
-Refine the full host onboarding flow end to end — not just the left showcase panel.
+→ **In progress:** [`../planned/supabase-capacity-and-operational-readiness.md`](../planned/supabase-capacity-and-operational-readiness.md) — Capacity and operational plan for hosted dev and mt-prod: plan tier, metrics and alerts, advisor triage, query and public-cache fixes, load tests and restore drills.
 
-- Left section: auto-play carousel (or similar) of animated dashboard features; interactive, professional, responsive at all breakpoints.
-- Right section / steps: review org → property → verification → first listing setup for clarity, fewer dead ends, and better progress signaling.
-- Align with verification tiers, plans gating, and post-onboarding first actions (settings completion, public pages, inbox connect).
-- Reuse or extend `HostWorkspaceSidePanel` / `onboarding-host-workspace-showcase` patterns where they still fit.
-
-→ **Partial:** [`../done/onboarding-host-workspace-showcase.md`](../done/onboarding-host-workspace-showcase.md) (auth left panel only). Full flow polish remains open. Post-registration Setup Guide: [`../in-progress/host-onboarding-setup-guide.md`](../in-progress/host-onboarding-setup-guide.md).
 ===
 
-🧪 Copy property settings to other properties
+📋 Super admin — org, property, host, and listing management
 
-When we have multiple properties, hosts should reuse settings/config/design from one property to others. Review each property page, module, and flow for what can be shared.
+Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc support:
 
-→ **For testing:** [`../for-testing/property-settings-copy-to-properties.md`](../for-testing/property-settings-copy-to-properties.md)
+- **Orgs** — list/search, view owner, plan/subscription state, suspend or impersonation-safe read-only drill-down.
+- **Properties & parking** — list/filter by org, verification/plan badges, featured visibility, basic edit or flag actions.
+- **Hosts** — tie org owner + members to listings; quick links to approvals queue and support tickets.
+- **Plans & billing** — read org entitlements, manual overrides (credits, comp tier) where product allows.
+
+→ **Partial today:** Phases 0–7 console shipped — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md). Remaining backlog: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md)
+
 ===
 
-🧪 Host onboarding setup guide
+📋 Super Admin — service cost control & optimization
 
-Post-registration resumable Setup Guide overlay — stepper over real settings/pricing/payments/guest-form/verification sections (same validation + save paths), non-blocking dashboard launcher, derived progress; optional Recommended verification → 1 month of Pro (super-admin-controlled).
+→ **In progress:** [`../planned/super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md) — Spun out of the Sept 2026 infrastructure cost audit (docs/workflow/intake/_to-prompt.md → "Check current functionalities … that may cost us"). The audit inventoried every metered external service GFM depends on. This plan makes the app...
 
-→ **For testing:** [`../for-testing/host-onboarding-setup-guide.md`](../for-testing/host-onboarding-setup-guide.md)
 ===
 
-🧪 Implement Sentry & Posthog
+📋 Support to buy more AI credits when they run out of token from their current plan
 
-PostHog implemented (UI error tracking, analytics, session replay, feature flags, source-map upload; edge capture through shared error and cron paths). Sentry remains deferred.
-
-→ **For testing:** [`../for-testing/posthog-analytics-production-readiness.md`](../for-testing/posthog-analytics-production-readiness.md) — operator project setup, keys, alerts, and funnels remain.
 ===
 
-🧪 Parking ↔ property production parity
+🚧 Agentic AI: dashboard assistant + guest receptionist
 
-v1 parity and org-native entitlements shipped.
+→ **In progress:** [`../in-progress/agentic-ai-assistants.md`](../in-progress/agentic-ai-assistants.md) — Plan, chain tools, recover from tool errors, and verify before replying, with existing RBAC and safety guardrails.
 
-→ **For testing:** [`../for-testing/parking-property-parity.md`](../for-testing/parking-property-parity.md)
+===
+
+🚧 AI Studio example gallery: generate the photo and clip sample assets
+
+→ **In progress:** [`../in-progress/ai-studio-sample-assets.md`](../in-progress/ai-studio-sample-assets.md) — Split out from: ../done/ai-studio-example-gallery.md (Phase 2), 2026-11-02. That plan shipped — the full gallery, detail view, form wiring, catalog, and asset pipeline are code-complete, tested and QA'd. Post examples are live today....
+
 ===
 
 🚧 Another big change I would like to implement is to refine the whole parking e2e flow.
@@ -894,36 +1106,127 @@ From the dashboard, there should be a copyable link for parking owner hosts wher
 
 We should apply all the same logic and flow that we have from above except that this is direct booking and guest needs to manually fill up their information, car details and pay the parking.
 
-→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **Planned:** Phase 6 + [`../planned/parking-e2e-production-readiness.md`](../planned/parking-e2e-production-readiness.md)
+→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **In progress:** Phase 6 + [`../in-progress/production-readiness/audits/parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md)
+
 ===
 
-🔵 Host/Guest booking payment e2e
+🚧 Avail parking e2e flow
+
+Phase 1: Plan how host received parking booking
+The first phase than we need to finalize for parking e2e is how host should receive and handle parking bookings. Should we follow how property bookings? Create new workflow and different status for parking? Also, how we should notify parking host that they received parking and need immediate review? Same telegram flow?
+
+    Phase 0: Update parking registration, settings, etc
+      - Update parking registration to ask for type (car, motor)
+      - Update parking dimension to list of car type we can accommodate? In relation to height clearance
+    Phase 1a: How do we notify both side (host & guest) about the parking request
+      - Host side:
+        - For immediate booking, use broadcast notif? First to accept will get the booking, if not process after 5 or 10mins, send new broadcast request.
+        - How host will accept, reject, manage, send parking endorsement, etc
+      - Guest side:
+        - We should have realtime update if someone avail our parking, parking status, how guest can get and view parking endorsement
+    Phase 1b: Create or reuse property detail page for parking detail page & edit form
+      - Parking host should be able or required to modify their parking size/dimension so that we know if a certain car is fit or not when we connect or provide parking to guests
+    Phase 1c: Create new workflow, actions & status for parking e2e flow
+    Phase 1d: Update bookings page to support updated flow, changes (list, kanban?)
+    Phase 1e: Review, refine, finalize and make sure it's production ready, multi-tenant/property/user, etc
+
+Phase 2a: Get immediate parking
+
+- When a guest avail a same day or on the spot look for available parking slot
+- What's the logic or process to get the best parking available
+  - Check-in & check-out
+  - Respect tower unless bay
+  - Is car going to fit on parking dimension
+- Parking expiration: when host did not accept or process parking after a certain period, we will pass and look for other parking host
+  - 15mins expiration for booking. 1hr expiration for non-same day/upcoming bookings
+- Flow when we don't find available parking, do refund & notify guests?
+
+Phase 2b: Look for parking after a confirmed booking from other host/property (upcoming/advance parking booking)
+
+- When a guest book a property and require parking, and host does not have any parking, we should plan a way to automatically search and look for available parking on the same booking date/s and we should notify parking host to accept and manage it.
+- Mostly same flow and logic with immediate parking flow
+
+Phase 3: Finalize how we display parking from our listing
+
+How are we going to display or provide UI/UX when guests/user wants to find a parking.
+Same UI that we have now? But what if that parking host is not responsive anymore? Or not replying immediately?
+
+- Should provide few ways to get parking?
+  - A: Same UI listing we have for properties
+  - B: Find/search available parking based on filters
+
+Phase 4: Manual & Physical on site tasks:
+
+- Picture different type of parking (tower, bay). Edit and add parking slot number dynamically
+- Measure dimension and height clearance
+
+→ **Done (Phase 0 & Phase 1):** [`../done/parking-e2e-phase1-overview.md`](../done/parking-e2e-phase1-overview.md) (+ companions in `done/`). Phases 2–5, 7–8 **done**; Phase 6 + production-readiness **planned:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md).
+
 ===
 
-🔵 Invoice generator? Or provide invoice every after successful booking
+🚧 CI/CD + multi-tenant environments — [`multi-tenant-dev-prod-environments.md`](../in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) · matrix [`ci-cd-environment-matrix.md`](../../archive/operations/ci-cd-environment-matrix.md)
+
+**Now:** `develop` → `dev.kamespace.com` → **fwor…** (`cd-dev.yml` + Vercel Preview). Legacy unchanged (`main` → `kamespace.com` → **zftt…**).
+
+**Pending at prod release (Phase B):**
+
+- Create **MULTI_TENANT_PROD** Supabase project
+- Implement **`scripts/migrate/legacy-to-mt-prod/`** — Postgres + Storage **`zftt…` → mt-prod**
+- Merge **`develop` → `main`**; **`kame-homes`** Production branch = **`main`** (not a `production` git branch)
+- Wire **`app.kamehomes.space`** + Vercel Production `VITE_*` → mt-prod
+- Google OAuth **prod** client + Auth on mt-prod
+- Enable GitHub **`production`** secrets + **`cd-prod.yml`**
+
+→ Design: [`ci-cd-dev-prod-design.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod-design.md) · plan: [`ci-cd-dev-prod.md`](../in-progress/ci-cd-environments/ci-cd-dev-prod.md) · index [`ci-cd-environments/README.md`](../in-progress/ci-cd-environments/README.md)
+
 ===
 
-🔵 Guest chat to confirmed booking flow e2e
+🚧 Guest trip hub (one page per booking)
+
+→ **In progress:** [`../in-progress/guest-trip-hub.md`](../in-progress/guest-trip-hub.md) — One page per booking for the whole stay, from form submit through check-out and deposit refund.
+
 ===
 
-🔵 Redesign our main landing page
+🚧 Improve onboarding flow
+
+Refine the full host onboarding flow end to end — not just the left showcase panel.
+
+- Left section: auto-play carousel (or similar) of animated dashboard features; interactive, professional, responsive at all breakpoints.
+- Right section / steps: review org → property → verification → first listing setup for clarity, fewer dead ends, and better progress signaling.
+- Align with verification tiers, plans gating, and post-onboarding first actions (settings completion, public pages, inbox connect).
+- Reuse or extend `HostWorkspaceSidePanel` / `onboarding-host-workspace-showcase` patterns where they still fit.
+
+→ **Partial:** the auth left-panel showcase shipped (`onboarding-host-workspace-showcase`). Full onboarding flow polish remains open. The post-registration Setup Guide plan is in `for-testing`.
+
 ===
 
-🚧 Implement Sentry & Posthog
+🚧 Marketing AI Poster Studio: from AI photo to postable designed posts
 
-PostHog implemented (UI: error tracking + analytics + session replay + feature flags via `posthog-js`/`@posthog/react`, source map upload via `@posthog/rollup-plugin`; edge: `posthog-node` wired into every function — `handleEdgeError` + `serveCronPost` choke points, plus the handful of pre-`serveEdge.ts` functions that call `serve()` directly). Sentry deferred — see `docs/architecture/integrations.md` §9.5. Still pending: user creates the PostHog project (US Cloud), sets `VITE_POSTHOG_KEY` / `POSTHOG_API_KEY` (edge) / `POSTHOG_PERSONAL_API_KEY`+`POSTHOG_PROJECT_ID` (UI build, source maps), turns on Session Recording, and deploys.
+→ **In progress:** [`../in-progress/marketing-ai-poster-studio.md`](../in-progress/marketing-ai-poster-studio.md) — 2026-10-19: brand colors + preferred fonts (Phase 1.1 color/font fields) and "Save as my style" (8.5) are covered by Marketing themes: AI Post follows the active theme.
+
 ===
 
-🔵 Offer ads within the app
+🚧 Marketing Studio mobile parity + dashboard responsive polish
+
+→ **In progress:** [`../in-progress/marketing-studio-mobile-and-dashboard-responsive.md`](../in-progress/marketing-studio-mobile-and-dashboard-responsive.md) — Stage (2026-10-21): in progress. This file sat in planned/ after editor follow-ups had already shipped. The studio shell is verified on mobile-native-redesign phase 4ac. Still open here: pricing-calendar touch range select, and...
+
 ===
 
-✅ Display announcements per development from super admin
+🚧 Marketing themes: theme-first Marketing Studio
+
+→ **In progress:** [`../in-progress/marketing-themes.md`](../in-progress/marketing-themes.md) — Stage (2026-10-21): in progress. Core library, editors, and follow-the-theme behavior are shipped and can be tried. Still open in this plan, so it is not QA-only: phase 7 extras (describe a theme with AI, save an AI result as a theme,...
+
 ===
 
-🔵 Monitoring for suspicious or unusual activities from super admin
+🚧 Pre-production checklist — apply every optimization item across the whole app
+
+Take the pre-prod checklist (cache API responses, load balancer, index the DB, compress images, loading skeletons, cache expensive queries, debounce input handlers, split code into chunks, add CDN, paginate large lists, compress API payloads, unnecessary re-renders ❌, minify JS/CSS, add lazy loading, defer non-critical scripts, unused dependencies ❌, DB connection pooling) plus the platform readiness list (frontend, backend & APIs, database, storage, auth/permissions, hosting & deployment, cloud computing, CI/CD & version control, security & RLS, rate limiting, caching & CDN, load balancing & scalability, error tracking & logs, analytics, SDLC testing, availability & recovery) and produce one detailed plan per item, applied everywhere in the codebase — not spot fixes.
+
+→ **In progress:** [`../in-progress/production-readiness/checklist/README.md`](../in-progress/production-readiness/checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
+
 ===
 
-🧪 Prod readiness checklist
+🚧 Prod readiness checklist
 
 - Frontend
 - Backend & APIs
@@ -941,63 +1244,79 @@ PostHog implemented (UI: error tracking + analytics + session replay + feature f
 - Analytics
 - SDLC Testing
 - Availability & Recovery
-  \===
+
+===
+
+🚧 Production readiness launch audit — consolidate, re-verify, and close gaps
+
+Merge every production readiness checklist and plan into one folder, re-test everything on a freshly deployed dev, add missing modules, run an OWASP pass, then list what is good and what still needs fixing.
+
+→ **In progress:** [`../in-progress/production-readiness/`](../in-progress/production-readiness/README.md) · plan [`production-readiness-launch-audit.md`](../in-progress/production-readiness/production-readiness-launch-audit.md)
+
+===
+
+🚧 Redesign explore landing page
+
+===
 
 🚧 Review each dashboard pages, section & actions based on user role
 
 After we refine the roles & permissions that we have on both org and property level, we need to revisit and review each pages within the dashboard and make sure that each section, elements, action, process, flow, basically everything is well thought and only be accessible based on user role
 
-→ Unblocked by [`../done/granular-team-permissions.md`](../done/granular-team-permissions.md) (property granular catalog shipped). Org follow-on: [`../for-testing/org-granular-team-permissions.md`](../for-testing/org-granular-team-permissions.md). Audit against live leaf ids remains open.
+→ Unblocked by the property granular catalog, which shipped. The org follow-on is in `for-testing`. Audit against live leaf ids remains open.
+
 ===
 
-✅ Pool fee should be configurable via development settings and we need to adjust AI receptionist or AI tool that beside on reading property & booking info, we should also check which development it's under the current property and have access to development information just like the amenities, pool fee, schedule of pool, requirements, guides, etc
+🚧 Super Admin: System health module
+
+→ **In progress:** [`../in-progress/super-admin-system-health.md`](../in-progress/super-admin-system-health.md) — Give platform operators one place under /admin/health that answers "is every part of the app configured and working right now, and if not, what do I fix?". It checks UI and edge environment variables, third-party credentials (expired,...
+
 ===
 
-🔵 Create marketing video ads for our app with remotion that features our core & main features
-===
+🚧 Cancellation Process
 
-🔵 Support google map directions from use current area to properties/places
-===
+→ **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 
-🔵 Cancellation Process
-===
-
-🚧 Redesign for hosts landing page
-===
-
-🔵 Manage how to give free AI credits to new users, give discount for special events/occasions
-===
-
-✅ Think and plan how AI can help us manage pricing better
-===
-
-🚧 Redesign explore landing page
 ===
 
 🔵 Community group chat
+
 ===
 
-📋 Support to buy more AI credits when they run out of token from their current plan
+🔵 Create marketing video ads for our app with remotion that features our core & main features
+
+===
+
+🔵 Guest chat to confirmed booking flow e2e
+
+===
+
+🔵 Host/Guest booking payment e2e
+
+===
+
+🔵 Invoice generator? Or provide invoice every after successful booking
+
+===
+
+🔵 Manage how to give free AI credits to new users, give discount for special events/occasions
+
+===
+
+🔵 Monitoring for suspicious or unusual activities from super admin
+
+===
+
+🔵 Offer ads within the app
+
+===
+
+🔵 Redesign our main landing page
+
 ===
 
 🔵 Refine emails being received as host & guests
+
 ===
 
-📋 Super admin — org, property, host, and listing management
-
-Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc support:
-
-- **Orgs** — list/search, view owner, plan/subscription state, suspend or impersonation-safe read-only drill-down.
-- **Properties & parking** — list/filter by org, verification/plan badges, featured visibility, basic edit or flag actions.
-- **Hosts** — tie org owner + members to listings; quick links to approvals queue and support tickets.
-- **Plans & billing** — read org entitlements, manual overrides (credits, comp tier) where product allows.
-
-→ **Partial today:** Phases 0–7 console shipped — [`../done/super-admin-console-overhaul.md`](../done/super-admin-console-overhaul.md). Remaining backlog: [`../planned/super-admin-console-followups.md`](../planned/super-admin-console-followups.md)
-===
-
-📋 Pre-production checklist — apply every optimization item across the whole app
-
-Take the pre-prod checklist (cache API responses, load balancer, index the DB, compress images, loading skeletons, cache expensive queries, debounce input handlers, split code into chunks, add CDN, paginate large lists, compress API payloads, unnecessary re-renders ❌, minify JS/CSS, add lazy loading, defer non-critical scripts, unused dependencies ❌, DB connection pooling) plus the platform readiness list (frontend, backend & APIs, database, storage, auth/permissions, hosting & deployment, cloud computing, CI/CD & version control, security & RLS, rate limiting, caching & CDN, load balancing & scalability, error tracking & logs, analytics, SDLC testing, availability & recovery) and produce one detailed plan per item, applied everywhere in the codebase — not spot fixes.
-
-→ **Planned:** [`../planned/production-readiness-checklist/README.md`](../planned/production-readiness-checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
-===
+🔵 Support google map directions from use current area to properties/places

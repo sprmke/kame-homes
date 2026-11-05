@@ -1,6 +1,6 @@
 /**
  * Cheap, invisible first-line bot filters for public forms — no IO, no external calls.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
  *
  * These run *before* the CAPTCHA `siteverify` round-trip so obvious scripted
  * submissions are rejected without spending a network call or a provider quota.

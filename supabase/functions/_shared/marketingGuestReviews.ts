@@ -140,5 +140,5 @@ export function truncateReviewQuote(text: string, max = 160): string {
 export function formatReviewAttribution(author: string, date?: string): string {
   const name = author.trim() || 'Guest';
   const when = date?.trim();
-  return when ? `— ${name} · ${when}` : `— ${name}`;
+  return when ? `- ${name} · ${when}` : `- ${name}`;
 }

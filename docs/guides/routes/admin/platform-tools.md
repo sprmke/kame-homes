@@ -129,11 +129,11 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 
 ## Testing
 
-| Layer  | Path / spec                                             | Manual                                                      |
-| ------ | ------------------------------------------------------- | ----------------------------------------------------------- |
-| Unit   | `superAdminVerification_test.ts` when auth rules change | —                                                           |
-| E2E    | N/A — use `adminShellSmoke` for `/admin` shell only     | —                                                           |
-| Manual | —                                                       | [`super-admin-manual.md`](../testing/super-admin-manual.md) |
+| Layer  | Path / spec                                             | Manual                                                         |
+| ------ | ------------------------------------------------------- | -------------------------------------------------------------- |
+| Unit   | `superAdminVerification_test.ts` when auth rules change | —                                                              |
+| E2E    | N/A — use `adminShellSmoke` for `/admin` shell only     | —                                                              |
+| Manual | —                                                       | [`super-admin-manual.md`](../../testing/super-admin-manual.md) |
 
 ---
 
@@ -144,7 +144,7 @@ The AI usage page shows what AI costs the platform and how reliable each AI feat
 - [`docs/workflow/done/super-admin-ai-usage-dashboard.md`](../../../workflow/done/super-admin-ai-usage-dashboard.md)
 - [`docs/workflow/done/super-admin-platform-settings.md`](../../../workflow/done/super-admin-platform-settings.md)
 - [`docs/workflow/done/super-admin-global-search.md`](../../../workflow/done/super-admin-global-search.md)
-- [`docs/workflow/planned/production-readiness-checklist/23-rate-limiting.md`](../../../workflow/planned/production-readiness-checklist/23-rate-limiting.md) — rate-limit plan + exit gate
+- [`docs/workflow/in-progress/production-readiness/checklist/23-rate-limiting.md`](../../../workflow/in-progress/production-readiness/checklist/23-rate-limiting.md) — rate-limit plan + exit gate
 
 ---
 

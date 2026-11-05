@@ -1,65 +1,111 @@
 ---
-description: PWA — service worker, offline cache allowlist, push, offline outbox, kill-switch
+description: PWA — service worker, precache tiers, install offer, updates, offline cache allowlist, push, offline outbox, kill-switch
 globs:
   - ui/src/pwa/**
   - ui/src/lib/pwa/**
   - ui/src/components/pwa/**
+  - ui/src/features/launch/**
   - ui/src/features/dashboard/offline/**
+  - ui/src/hooks/useOfflineFormDraft.ts
   - ui/vite.config.ts
   - scripts/pwa/**
   - supabase/functions/push-*/**
   - supabase/functions/_shared/webPushService.ts
   - supabase/functions/_shared/pushRecipients.ts
   - supabase/functions/_shared/idempotency.ts
+  - supabase/functions/_shared/notificationPreferences.ts
+  - supabase/functions/notification-preferences/**
   - supabase/migrations/*push_subscriptions*.sql
   - supabase/migrations/*push_fanout*.sql
   - supabase/migrations/*request_idempotency*.sql
+  - supabase/migrations/*notification_preferences*.sql
 alwaysApply: false
 ---
 
 # PWA rule
 
-Canonical detail: **`docs/architecture/pwa.md`**. This rule is the invariant checklist.
+Canonical detail: **`docs/architecture/pwa.md`**. Plan: `docs/workflow/for-testing/pwa-v2-native-app-experience.md`. This rule is the invariant checklist.
 
 ## Service worker
 
-- **`ui/src/pwa/sw.ts` is worker-only** — never import `@/…` app code (pulls DOM modules into the worker bundle). Shared constants go in `ui/src/pwa/shared.ts` (imported by both).
-- The SW is type-checked via `ui/src/pwa/tsconfig.json` (WebWorker lib), wired into `bun run type-check` / `build`. New SW globals not in the TS lib (`renotify`, `sync`/`periodicsync` events) need a local cast, not a lib bump.
-- **No `setDefaultHandler`** — unmatched requests (POSTs, SSE like the dashboard assistant, auth) must pass straight to the network.
-- Registered manually via `@/lib/pwa/useRegisterSW` (`workbox-window`) + `injectRegister: false` — never `virtual:pwa-register/*` (breaks under a stale Vite process). Update prompt is ours (`UpdatePrompt`).
-- `injectManifest`, not `generateSW`. `registerType: 'prompt'` — never auto-reload a running operator.
+- **`ui/src/pwa/sw.ts` is worker-only** — never import `@/…` app code (pulls DOM modules into the worker bundle). Shared constants go in `ui/src/pwa/shared.ts`; pure logic goes in `ui/src/pwa/swLogic.ts` (unit-tested).
+- **The precache list must be rebuilt on every worker start**, not only in the `install` handler. A service worker is stopped aggressively; state that lives only in `install` is gone when it wakes to serve a navigation, which breaks offline boot. The list is read from the cached `/precache-tiers.json` (`precacheReady`).
+- **Never run `precache.activate()` with an empty expected set** — it deletes the whole shell. Always `await precacheReady` first.
+- The SW is type-checked via `ui/src/pwa/tsconfig.json` (WebWorker lib). New globals not in the TS lib need a local cast, not a lib bump.
+- **No `setDefaultHandler`** — unmatched requests (POSTs, SSE like the dashboard assistant, auth) pass straight to the network.
+- Registered manually via `@/lib/pwa/useRegisterSW` (`workbox-window`) + `injectRegister: false` — never `virtual:pwa-register/*`.
+- `injectManifest`, not `generateSW`.
+- One `controllerchange` reload listener for the whole page. Auto-apply is gated by `canAutoReload` (max two automatic reloads per tab session); the Update ready / Force update buttons are **not** — they always call `accept` as `user`. Never reload over a dirty guard.
+
+## Precache tiers
+
+- `scripts/pwa/precache-globs.json` is the single source of truth; `generate-precache-tiers.mjs` writes `dist/precache-tiers.json` from `dist/.vite/manifest.json`.
+- Tier by **folder, not by filename**: `features/guest/**` → shell, `features/dashboard/**` → host, editors/PDF/video/charts → `onDemandPrefixes`. A new route lands in a tier by where it lives.
+- A chunk statically imported by shell code is **promoted to shell** automatically (correctness beats the diet). Do not hand-pin a chunk into a tier.
+- `bun run build` fails on a shell / host / total budget overrun. Fix by code-splitting or adding an on-demand prefix — never by raising the budget without a decision.
+
+## Launch routing
+
+- `start_url` is `/app?source=pwa` and every manifest shortcut goes through `/app`. Never point `start_url` at `/` (that is how installed apps opened the public marketplace).
+- **`manifest.id` never changes.** A new value is a new app identity and orphans every existing install.
+- Shortcut handling belongs in the launch resolver, never in a layout-only provider.
+- `/app` accepts no `next=` parameter; it must not become an open redirect.
+
+## Install offer
+
+- `ui/src/lib/pwa/installEligibility.ts` decides; components render. Do not add an ad-hoc timer or a `beforeinstallprompt` button elsewhere.
+- **Never offer mid-task**: booking form, sd-form, pay-parking, checkout, onboarding, editors, or with a dirty unsaved-changes guard / open sheet / another PWA surface visible.
+- Never offer inside an in-app browser (Facebook, Messenger, Instagram, TikTok, LINE, Viber, Google app, Telegram).
+- Dismissal cooldown is 14 / 30 / 90 days, then passive entry only.
+- **First-launch surfaces gate on `standalone`**, not on a device flag alone. `FirstLaunchWelcome` in a browser tab covered the guest landing page on every first visit; `display-mode` is the only correct trigger.
+- `gfm:install:memory` is **device-scoped on purpose** — it survives sign-out and must **not** be added to `purgeOfflineState`.
 
 ## Offline cache allowlist — deliberate
 
-- **`ui/src/lib/pwa/offlineQueryAllowlist.ts#OFFLINE_PERSIST_KEY_ROOTS` is canonical.** Only add a query-key root here when an operator genuinely needs to _read_ that data offline.
-- Every added root puts operator PII on a possibly shared device, **unencrypted at rest**, cleared only on logout. Keep it tight; prefer read-only views.
-- When you add a root, also add the matching Edge Function name to `SW_CACHEABLE_FUNCTIONS` in `ui/src/pwa/shared.ts` if it should also runtime-cache — and only if the server classifies that function `public*` (`httpResponse.ts`). Never add a `private`/`no-store` endpoint.
+- **`ui/src/lib/pwa/offlineQueryAllowlist.ts#OFFLINE_PERSIST_KEY_ROOTS` is canonical.** Only add a root when an operator genuinely needs to _read_ that data offline.
+- Every added root puts operator PII on a possibly shared device, **unencrypted at rest**, cleared only on logout. Keep it tight; prefer read-only views; never persist write-oriented surfaces (editors, team invites, plan checkout, super admin).
+- Infinite queries are capped at two persisted pages.
+- When you add a root, also add the matching Edge Function name to `SW_CACHEABLE_FUNCTIONS` **only if** the server classifies it `public*` in `httpResponse.ts`. `swCacheableFunctions.test.ts` enforces this.
 
 ## Tenant / identity isolation
 
 - All Cache API + IndexedDB names are `gfm-`-prefixed. The query persister is keyed **per viewer id** (`user-<uuid>` / `anon`).
-- Anything that stores per-viewer state must be wiped by **`ui/src/lib/pwa/purgeOfflineState.ts`** — update it when you add a new `gfm-*` store.
-- `purgeOfflineState` runs on `SIGNED_OUT` (via `PwaQueryPersistence`) and on the SW kill-switch (`KILLED` message).
+- Anything that stores per-viewer state must be wiped by **`ui/src/lib/pwa/purgeOfflineState.ts`** — update it when you add a new `gfm-*` store (drafts and the outbox are already wired).
+- `purgeOfflineState` runs on `SIGNED_OUT` (via `PwaQueryPersistence`), on the kill-switch (`KILLED`), and from "Clear offline data".
+
+## Guest form drafts
+
+- `useOfflineFormDraft` / `saveFormDraft` store **device-local** drafts in `gfm-drafts`. Never sync them; never persist `File`/`Blob` outside the dedicated files key.
+- Restoring must be an **explicit user action** after any server prefill has settled — never an automatic `form.reset()` on mount (it would race the `bookingId` prefill paths).
 
 ## Push
 
 - Fan-out is **trigger → `pg_net` → `push-fanout`**, secret-gated (`X-Push-Fanout-Secret`). Never inline in `notificationService.ts`.
-- Recipients mirror the realtime rule: **org owner + active `organization_members`** (`_shared/pushRecipients.ts`). Property/parking-only members get neither — same known gap as realtime.
+- Recipients are org owner + active `organization_members` **plus** `property_members` / `parking_members` scoped to the notification, gated on `notifications:view` + the section leaf for the type.
 - `push-fanout` is non-fatal end to end. `webPushService.ts` never throws; prune on 404/410, retire a subscription at `failure_count` 5.
-- Migrations for `push_subscriptions` / `request_idempotency` **must** add explicit `service_role` grants (RLS-enabled table without a grant = "permission denied").
-- `enablePush()` must be called from a user gesture (iOS). On iOS the opt-in control stays hidden until the app is installed (`needsInstallFirst`).
+- Badge counts are **per user** — group subscriptions by owner before sending.
+- Never add a second OS notification path in the client; a focused tab shows a toast, the SW owns OS banners.
+- Migrations for `push_subscriptions` / `request_idempotency` **must** add explicit `service_role` grants.
+- `enablePush()` must be called from a user gesture (iOS). On iOS the opt-in control stays hidden until the app is installed.
+- **Preferences filter the OS push only.** `notification_preferences` is per user (one row, global across orgs); the in-app bell must keep every notification. Never filter `notifications` rows by a mute.
+- Quiet hours use the stored IANA zone. `start === end` means "no window" — never treat it as 24 h. Keep `calendar_sync_failing` in the bypass set.
+- The group list lives twice (Vite + Deno); `ui/.../notificationPreferences.test.ts` reads the Deno source and fails when they drift.
+
+## UI conventions that come from this module
+
+- Any `target="_blank"` anchor sets `rel="noopener"` and every `window.open(..., '_blank')` passes `noopener,noreferrer`; `externalLinks.test.ts` enforces it.
+- When a page shows persisted data, add `<StaleDataLabel updatedAt={dataUpdatedAt} />`; it self-hides online.
+- Standalone list screens get `usePullToRefresh` + `PullToRefreshIndicator`; never attach the gesture to a container that is not already at `scrollTop === 0`.
+- New per-tab UI state keys use the `gfm:` prefix; scroll memory is `sessionStorage`, install memory is device-scoped `localStorage`.
 
 ## Offline outbox
 
-- Queue **only** on a connectivity failure. A server 4xx/5xx is a real error — re-throw it, never queue a validation failure.
-- Every queued mutation carries an `Idempotency-Key`; the server endpoint **must** be wrapped with `_shared/idempotency.ts#withIdempotency`. Don't queue an endpoint that isn't wrapped.
-- Don't queue mutations coupled to file uploads (booking transitions with receipts, inbox attachment replies) — those stay online-only.
-
-## Precache budget
-
-- `scripts/pwa/precache-globs.json` is the single source of truth (config + CI checker read it). Editing the globs anywhere else drifts them.
-- `bun run build` fails if the precache exceeds `budgetKiB`. Fix by code-splitting or `globIgnores`-ing the offending chunk — don't just raise the budget.
+- Queue **only** on a connectivity failure. A server 4xx/5xx is a real error — re-throw it.
+- Every queued mutation carries an `Idempotency-Key`; the server endpoint **must** be wrapped with `_shared/idempotency.ts#withIdempotency`.
+- Don't queue mutations coupled to file uploads or irreversible email side effects.
 
 ## Kill-switch
 
-- `ui/public/pwa-version.json` (`{ disabled, minBuild }`) is the recovery lever for a bad SW deploy. Served `no-store`. Keep the SW's `checkKillSwitch` resilient — it must **never** self-destruct on a failed fetch.
+- `ui/public/pwa-version.json` (`{ disabled, minBuild, forceUpdateBelow }`) is the recovery lever. Served `no-store`.
+- `checkVersionDescriptor` must **never** self-destruct on a failed fetch.
+- Legacy-origin redirects must never catch `sw.js`, `pwa-version.json`, `manifest.webmanifest`, `precache-tiers.json` or `retirement-sw.js`.

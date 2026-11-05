@@ -3,6 +3,7 @@ import type { AdminAssetScope } from '@/features/dashboard/org/lib/adminAssetSco
 import { scopedAssetFunctionsUrl } from '@/features/dashboard/org/lib/adminAssetScope';
 import { throwIfAiQuota } from '@/features/dashboard/org/lib/aiQuotaToast';
 
+import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
 import { supabase } from '@/lib/supabase/client';
 
 export async function getAdminJwt(): Promise<string> {
@@ -58,6 +59,7 @@ export async function patchTelegramSettings<TData>(
     feature?: string;
   };
   throwIfAiQuota(json, res);
+  throwIfFeatureUnavailableBody(json);
   if (!json.success || !json.data) {
     throw new Error(json.error ?? fallbackError);
   }
@@ -80,6 +82,7 @@ export async function postTelegramSettingsAction<T>(
     body: JSON.stringify(body),
   });
   const json = (await res.json()) as EdgeSuccess<T> & Record<string, unknown>;
+  throwIfFeatureUnavailableBody(json);
   if (!json.success) {
     throw new Error(json.error ?? fallbackError);
   }

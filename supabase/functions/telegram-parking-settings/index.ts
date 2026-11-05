@@ -10,6 +10,7 @@ import {
   mergeTelegramCredentialsPatch,
   parseAction,
   gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
   telegramUnknownAction,
@@ -29,7 +30,7 @@ import {
 } from '../_shared/telegramParking.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-serveAuthenticated('telegram-parking-settings', async (req) => {
+serveAuthenticated('telegram-parking-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req);
   if (asset.kind !== 'parking') {
     return jsonError(req, 'parking_id is required', 400);
@@ -52,6 +53,8 @@ serveAuthenticated('telegram-parking-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
     if (gateResponse) return gateResponse;
@@ -76,6 +79,8 @@ serveAuthenticated('telegram-parking-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const action = parseAction(body);
 

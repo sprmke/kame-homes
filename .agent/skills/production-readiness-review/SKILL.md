@@ -12,7 +12,7 @@ disable-model-invocation: true
 # Production readiness review (phases 5–10)
 
 Act as a **skeptical senior reviewer** of the Tier 1 backend-of-frontend work
-(documents **05–10** under `docs/workflow/planned/production-readiness-checklist/`).
+(documents **05–10** under `docs/workflow/in-progress/production-readiness/checklist/`).
 
 **Default:** review only. Do **not** edit code unless the user asks to fix findings.
 

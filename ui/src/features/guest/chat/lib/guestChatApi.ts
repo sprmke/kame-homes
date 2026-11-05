@@ -32,6 +32,11 @@ async function guestJwt(): Promise<string> {
   return token;
 }
 
+/** Absolute URL for the guest message endpoint — used by the offline outbox. */
+export function guestChatMessagesUrl(): string {
+  return `${FUNCTIONS_URL}/guest-web-chat-messages`;
+}
+
 async function guestEdgePost(path: string, body: Record<string, unknown>) {
   const jwt = await guestJwt();
   const res = await fetch(`${FUNCTIONS_URL}/${path}`, {
@@ -148,6 +153,8 @@ export type GuestChatMessage = {
   deleted_at?: string | null;
   reply_to_message_id?: string | null;
   reply_preview_text?: string | null;
+  message_kind?: 'text' | 'template';
+  template_snapshot?: unknown | null;
 };
 
 export function canGuestEditMessage(
@@ -238,12 +245,27 @@ export async function sendGuestChatMessage(
   conversationId: string,
   text: string,
   opts?: { replyToMessageId?: string; attachments?: GuestChatAttachment[] }
-): Promise<void> {
-  await guestEdgePost('guest-web-chat-messages', {
+): Promise<{ assistantWillReply: boolean }> {
+  const payload = await guestEdgePost('guest-web-chat-messages', {
     conversationId,
     text,
     replyToMessageId: opts?.replyToMessageId,
     attachments: opts?.attachments,
+  });
+  return { assistantWillReply: payload.assistantWillReply === true };
+}
+
+export async function submitGuestChatAiFeedback(input: {
+  conversationId: string;
+  messageId: string;
+  rating: 1 | -1 | 0;
+  reason?: string;
+}): Promise<void> {
+  await guestEdgePost('guest-web-chat-feedback', {
+    conversationId: input.conversationId,
+    messageId: input.messageId,
+    rating: input.rating,
+    reason: input.reason,
   });
 }
 

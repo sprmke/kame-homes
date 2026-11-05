@@ -51,7 +51,7 @@ First-time hosts complete this wizard right after signing in with Google: organi
 - Q: Why did a contract renewal popup appear when I logged in?
   A: One of your property or parking listings has a hosting contract ending soon, in grace, or past grace. The reminder shows the listing name and how many days you have left.
 - Q: Can I dismiss the renewal reminder and deal with it later?
-  A: Before the contract ends, yes — dismiss snoozes it until tomorrow (Manila time). During grace you can dismiss until you refresh the page. Once access is locked for that listing, submit a renewal from inside that listing's dashboard.
+  A: Before the contract ends, yes - dismiss snoozes it until tomorrow (Manila time). During grace you can dismiss until you refresh the page. Once access is locked for that listing, submit a renewal from inside that listing's dashboard.
 - Q: Where do I upload a renewed hosting contract?
   A: Tap **Submit renewal contract** in the reminder, or open **Verification** from the property or parking sidebar.
 - Q: What Facebook screenshot do I need on setup?
@@ -157,7 +157,7 @@ When a property or parking listing's hosting contract nears expiry, is in grace,
 - Modal title follows the active step: **Get Verified** / **Get Recommended**; **Changes requested** in forced resubmit (stepper hidden).
 - On phone/tablet the modal is a **bottom sheet** (`ResponsiveModal` `sheetLayout="split"`): sticky header + footer, middle section scrolls so long Verified uploads are not clipped.
 - Sidebar CTA uses a soft primary wash and “Earn your Recommended badge.” when Tier 2 is not yet approved. Stays visible as **Verification** when both tiers are approved (status view; contract renewals / reverification later). Shown on **org** admin routes only — property/parking sidebars use the listing verification CTA instead.
-- Public **Recommended** badge (`ListingRecommendedBadge`) has tooltip: identity, ownership, and Azure records checked by Kame Homes; shown on host page hero and **`ListingHostCard`** on property/parking detail (not duplicated next to the type badge).
+- Public **Recommended** badge (`ListingRecommendedBadge`) has tooltip: identity, ownership, and Azure records checked by Kame Space. It sits beside the organization name on the host page hero and on **`ListingHostCard`** (property and parking detail). No extra "Recommended host" line.
 - Copy constants: `ui/.../lib/verificationCopy.ts`.
 
 ### Phase 2–3 roadmap

@@ -3,6 +3,10 @@
  * Event-driven (SD form submit) + instant + hourly cron (new booking, pending docs, balance receipt, SD refund).
  */
 
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -28,9 +32,48 @@ import {
   formatDateForEmail,
 } from './utils.ts';
 import { formatReceiptVerdictLabel } from './receiptValidationService.ts';
+import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 
 const MANILA_TZ = 'Asia/Manila';
-const APP_BASE_URL = 'https://kamehomes.space';
+
+/** `/org/:orgSlug/property/:propertySlug/bookings` per property, resolved once per invocation. */
+const ADMIN_BOOKING_PATH_CACHE = new Map<string, string>();
+
+async function resolveAdminBookingPathBase(
+  propertyId: string | null | undefined
+): Promise<string | null> {
+  if (!propertyId) return null;
+  const cached = ADMIN_BOOKING_PATH_CACHE.get(propertyId);
+  if (cached) return cached;
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+  const { data: property, error: propertyError } = await supabase
+    .from('properties')
+    .select('slug, organization_id')
+    .eq('id', propertyId)
+    .maybeSingle();
+  if (propertyError || !property?.slug || !property.organization_id) {
+    if (propertyError) console.error('[telegram-admin] resolve property slugs:', propertyError);
+    return null;
+  }
+
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .select('slug')
+    .eq('id', property.organization_id)
+    .maybeSingle();
+  if (orgError || !org?.slug) {
+    if (orgError) console.error('[telegram-admin] resolve org slug:', orgError);
+    return null;
+  }
+
+  const base = `/org/${org.slug}/property/${property.slug}/bookings`;
+  ADMIN_BOOKING_PATH_CACHE.set(propertyId, base);
+  return base;
+}
 
 const DEFAULT_BALANCE_RECEIPT_NEEDED_TEMPLATE = `💳 Balance Receipt Needed
 
@@ -245,7 +288,7 @@ function formatBookingSourceLabel(raw: unknown): string {
 function buildUrgentNotice(checkInDate: unknown): string {
   const ciYmd = normalizeBookingDateToYmd(String(checkInDate ?? ''));
   if (ciYmd !== manilaTodayYmd()) return '';
-  return '🚨 URGENT — Same-day check-in!\nThis request requires immediate attention.\n\n';
+  return '🚨 URGENT - Same-day check-in!\nThis request requires immediate attention.\n\n';
 }
 
 function formatCurrency(amount: number | null): string {
@@ -263,7 +306,7 @@ function formatSdRefundMethod(method: unknown): string {
 
 function sdRefundFieldOrDash(value: unknown): string {
   const v = String(value ?? '').trim();
-  return v || '—';
+  return v || '-';
 }
 
 /** Method-aware payout lines for admin Telegram copy (GCash phone, bank transfer, or cash). */
@@ -284,27 +327,27 @@ function buildSdRefundDetailsBlock(booking: BookingRow): string {
   if (method === 'cash') {
     return 'Cash pickup at check-out';
   }
-  return '—';
+  return '-';
 }
 
 function buildSdRefundPlaceholderFields(booking: BookingRow): Record<string, string> {
   const method = String(booking.sd_refund_method ?? '').trim();
   const guestPhone = String(booking.guest_phone_number ?? '').trim();
 
-  let bank = '—';
-  let accountName = '—';
-  let accountNumber = '—';
-  let payoutPhone = '—';
+  let bank = '-';
+  let accountName = '-';
+  let accountNumber = '-';
+  let payoutPhone = '-';
 
   if (method === 'same_phone') {
     bank = 'GCash';
-    payoutPhone = guestPhone || '—';
-    accountNumber = guestPhone || '—';
+    payoutPhone = guestPhone || '-';
+    accountNumber = guestPhone || '-';
   } else if (method === 'other_bank') {
     bank = sdRefundFieldOrDash(booking.sd_refund_bank);
     accountName = sdRefundFieldOrDash(booking.sd_refund_account_name);
     accountNumber = sdRefundFieldOrDash(booking.sd_refund_account_number);
-    if (bank === 'GCash' && accountNumber !== '—') {
+    if (bank === 'GCash' && accountNumber !== '-') {
       payoutPhone = accountNumber;
     }
   } else if (method === 'cash') {
@@ -344,7 +387,10 @@ function areAllRequiredDocsComplete(booking: BookingRow): boolean {
   return gafDone && parkingDone && petDone;
 }
 
-function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, string> {
+function buildAdminBookingPlaceholders(
+  booking: BookingRow,
+  adminBookingBase?: string | null
+): Record<string, string> {
   const ciRaw = String(booking.check_in_date ?? '');
   const coRaw = String(booking.check_out_date ?? '');
   const ciYmd = normalizeBookingDateToYmd(ciRaw) ?? ciRaw;
@@ -396,7 +442,9 @@ function buildAdminBookingPlaceholders(booking: BookingRow): Record<string, stri
     ),
     balance_receipt_ai_summary: String(booking.balance_receipt_ai_summary ?? '').trim() || 'N/A',
     ...buildSdRefundPlaceholderFields(booking),
-    booking_link: `${APP_BASE_URL}/bookings/${booking.id}`,
+    booking_link: adminBookingBase
+      ? `${resolvePublicGuestAppOrigin()}${adminBookingBase}/${String(booking.id ?? '')}`
+      : `${resolvePublicGuestAppOrigin()}/org`,
   };
 }
 
@@ -505,6 +553,10 @@ async function sendAdminTelegramMessage(
   text: string,
   scope?: TelegramAssetScopeRef | string | null
 ): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
   const creds = await resolveAdminTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-admin] credentials issue:', creds.error);
@@ -606,7 +658,7 @@ async function recordNotificationLog(
   if (error?.code === '23505') return { ok: true };
   if (error?.code === '23514') {
     console.error(
-      '[telegram-admin] notification_type rejected by DB check — deploy migration ' +
+      '[telegram-admin] notification_type rejected by DB check - deploy migration ' +
         '20260705120000_telegram_admin_new_booking_hourly.sql and ' +
         '20260721140000_telegram_admin_balance_receipt_hourly_fix.sql',
       error
@@ -624,7 +676,8 @@ async function sendAdminTemplateForBooking(
   template: string,
   booking: BookingRow
 ): Promise<{ ok: boolean; error?: string }> {
-  const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking));
+  const adminBookingBase = await resolveAdminBookingPathBase(propertyIdFromRow(booking));
+  const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking, adminBookingBase));
   const unresolved = text.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-admin] unresolved placeholders:', unresolved.join(', '));
@@ -633,7 +686,13 @@ async function sendAdminTemplateForBooking(
 }
 
 export type AdminNotifySkip =
-  'disabled' | 'notify_off' | 'missing_env' | 'send_failed' | 'no_settings' | 'dedupe';
+  | 'disabled'
+  | 'notify_off'
+  | 'missing_env'
+  | 'send_failed'
+  | 'feature_unavailable'
+  | 'no_settings'
+  | 'dedupe';
 
 /** After a brand-new guest submission row is inserted. */
 export async function notifyTelegramAdminNewBooking(
@@ -650,7 +709,12 @@ export async function notifyTelegramAdminNewBooking(
 
   const r = await sendAdminTemplateForBooking(settings.new_booking_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   const bookingId = String(booking.id ?? '').trim();
   if (bookingId) {
@@ -674,7 +738,12 @@ export async function notifyTelegramAdminSdFormSubmitted(
 
   const r = await sendAdminTemplateForBooking(settings.sd_form_submitted_template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   return { sent: true };
 }
@@ -715,7 +784,12 @@ export async function notifyTelegramAdminBalanceReceiptUploaded(
     DEFAULT_BALANCE_RECEIPT_UPLOADED_TEMPLATE;
   const r = await sendAdminTemplateForBooking(template, booking);
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   if (bookingId && receiptUrl) {
     await recordNotificationLog(bookingId, 'balance_receipt_uploaded', dedupeKey);
@@ -832,7 +906,9 @@ export async function runAdminHourlyAlerts(opts?: {
     }
     const r = await sendAdminTemplateForBooking(template, booking);
     if (!r.ok) {
-      if (r.error) errors.push(`${notificationType}:${id}:${r.error}`);
+      if (r.error && !isTelegramFeatureUnavailableError(r.error)) {
+        errors.push(`${notificationType}:${id}:${r.error}`);
+      }
       return false;
     }
     if (!opts?.force) {
@@ -997,7 +1073,8 @@ export async function renderAdminDraftPreview(
     };
   }
 
-  const placeholders = buildAdminBookingPlaceholders(booking);
+  const adminBookingBase = await resolveAdminBookingPathBase(propertyIdFromRow(booking));
+  const placeholders = buildAdminBookingPlaceholders(booking, adminBookingBase);
   const renderedText = applyPlaceholders(trimmed, placeholders);
   return {
     renderedText,

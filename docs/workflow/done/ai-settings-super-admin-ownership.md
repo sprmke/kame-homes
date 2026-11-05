@@ -13,7 +13,7 @@ updated: 2026-09-27
 1. **Hosts lose every AI number.** Org admins and property managers keep exactly two things: an **on/off toggle per AI feature** and a **read-only usage panel**. Every limit — call, cost, credit, message, write-action, session, generation cap — becomes super-admin-only.
 2. **Limits stop being free-form per tenant.** They move to **named AI limit profiles** (`ai_limit_profiles`) that a super admin authors once and assigns to many orgs/properties, with plan tier as the default binding. A per-tenant numeric override still exists but is the exception, super-admin-only, and always shown as "overridden from profile X".
 3. **One console owns it.** `/admin/ai-usage` and the platform AI cards merge into **`/admin/ai`** with tabs Usage · Limits · Profiles · Wallets, driven by one bulk-capable endpoint so budget changes hit N orgs in one action instead of N visits.
-4. **This plan is about ownership and manageability, not the numbers.** The actual quota values, cost-based enforcement and per-feature sub-caps stay in [`ai-paid-provider-and-production-quotas.md`](./ai-paid-provider-and-production-quotas.md); the wider multi-service budget console stays in [`super-admin-service-cost-monitoring.md`](./super-admin-service-cost-monitoring.md). This plan gives both of those a single place to write into.
+4. **This plan is about ownership and manageability, not the numbers.** The actual quota values, cost-based enforcement and per-feature sub-caps stay in [`ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md); the wider multi-service budget console stays in [`super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md). This plan gives both of those a single place to write into.
 
 ## Problem
 
@@ -188,17 +188,17 @@ Skills to run before claiming done: `documentation-maintenance`, `route-guides`,
 
 ## Non-goals
 
-- Re-tuning the actual limit values, cost-based enforcement, per-feature sub-caps, guest/staff split — [`ai-paid-provider-and-production-quotas.md`](./ai-paid-provider-and-production-quotas.md).
-- Multi-service (Resend, Maps, PayMongo, Supabase) budget control — [`super-admin-service-cost-monitoring.md`](./super-admin-service-cost-monitoring.md).
-- Host-purchasable credit top-ups — [`ai-credits-topup-purchase.md`](./ai-credits-topup-purchase.md).
+- Re-tuning the actual limit values, cost-based enforcement, per-feature sub-caps, guest/staff split — [`ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md).
+- Multi-service (Resend, Maps, PayMongo, Supabase) budget control — [`super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md).
+- Host-purchasable credit top-ups — [`ai-credits-topup-purchase.md`](../planned/ai-credits-topup-purchase.md).
 - Adding or removing AI features; changing any model, prompt or provider.
 
 ## Related
 
-- [`ai-paid-provider-and-production-quotas.md`](./ai-paid-provider-and-production-quotas.md) — the numbers this plan's profiles will hold
-- [`super-admin-service-cost-monitoring.md`](./super-admin-service-cost-monitoring.md) — the wider cost console this fits inside
-- [`ai-credits-topup-purchase.md`](./ai-credits-topup-purchase.md) — what happens when a profile's allowance runs out
-- [`module-status-management.md`](./module-status-management.md) — overlapping "super admin turns features on/off" registry; the toggles here should not become a third mechanism
+- [`ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md) — the numbers this plan's profiles will hold
+- [`super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md) — the wider cost console this fits inside
+- [`ai-credits-topup-purchase.md`](../planned/ai-credits-topup-purchase.md) — what happens when a profile's allowance runs out
+- [`module-status-management.md`](../wont-do/module-status-management.md) — overlapping "super admin turns features on/off" registry; the toggles here should not become a third mechanism
 - [`docs/workflow/done/ai-usage-metering-credits-foundation.md`](../done/ai-usage-metering-credits-foundation.md) — the shipped foundation being re-owned
 
 ## Implementation notes (shipped 2026-09-27)

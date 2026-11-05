@@ -36,7 +36,7 @@ export async function getDefaultPropertyId(): Promise<string> {
       .limit(1)
       .maybeSingle();
     if (!anyProp?.id) {
-      throw new Error('No property configured — run multi-tenancy migration');
+      throw new Error('No property configured - run multi-tenancy migration');
     }
     cachedDefaultPropertyId = anyProp.id;
     return anyProp.id;

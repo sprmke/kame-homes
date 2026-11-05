@@ -75,6 +75,21 @@ const GATES: Gate[] = [
     feature: 'smartPricing',
   },
   {
+    fn: 'marketing-themes',
+    leaf: 'marketing.templates:add',
+    feature: 'customTemplates',
+  },
+  {
+    fn: 'marketing-themes',
+    leaf: 'marketing.templates:edit',
+    feature: 'customTemplates',
+  },
+  {
+    fn: 'marketing-themes',
+    leaf: 'marketing.templates:delete',
+    feature: null,
+  },
+  {
     fn: 'dashboard-assistant-chat',
     leaf: 'assistant:view',
     feature: 'aiDashboardAssistant',

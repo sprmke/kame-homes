@@ -3,9 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SlidersHorizontal } from 'lucide-react';
 
-import { SidebarTenantScope } from '@/features/dashboard/org/components/TenantSwitchers';
-import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
-
+import { HeroTenantScope } from '@/components/mobile/HeroTenantScope';
 import {
   Sheet,
   SheetContent,
@@ -106,11 +104,7 @@ export function MobileStickyChrome({
               )}
             >
               <div className="mobile-sticky-chrome-scope min-w-0 flex-1">
-                {superAdmin ? (
-                  <SuperAdminSidebarScope collapsed={false} variant="onPrimary" />
-                ) : (
-                  <SidebarTenantScope collapsed={false} variant="onPrimary" />
-                )}
+                <HeroTenantScope superAdmin={superAdmin} />
               </div>
               {trailing ? (
                 <div className="mobile-sticky-chrome-trailing flex shrink-0 items-center gap-0.5">
@@ -151,7 +145,7 @@ export function MobileStickyChrome({
                     >
                       <SlidersHorizontal className="size-3.5" aria-hidden />
                       {moreActiveCount > 0 ? (
-                        <span className="bg-primary text-primary-foreground absolute -right-0.5 -top-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-bold tabular-nums">
+                        <span className="bg-primary-strong text-primary-foreground absolute -right-0.5 -top-0.5 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-0.5 text-[8px] font-bold tabular-nums">
                           {moreActiveCount > 9 ? '9+' : moreActiveCount}
                         </span>
                       ) : null}
@@ -180,7 +174,7 @@ export function MobileStickyChrome({
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="bg-primary text-primary-foreground native-press flex min-h-[48px] w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors"
+                className="bg-primary-strong text-primary-foreground native-press flex min-h-[48px] w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors"
               >
                 Done
               </button>

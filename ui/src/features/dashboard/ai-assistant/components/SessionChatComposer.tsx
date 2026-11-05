@@ -69,7 +69,7 @@ export function SessionChatComposer({ overlayContainer, autoFocus, className }: 
       onSend={session.send}
       sending={session.sending}
       onCancel={session.cancelTurn}
-      disabled={session.pending || !online}
+      disabled={session.pending || session.readOnly || !online}
       overlayContainer={overlayContainer}
       onPickSuggestion={(prompt, attachedContext) =>
         session.pickSuggestion(prompt, attachedContext)

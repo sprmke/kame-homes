@@ -122,7 +122,7 @@ const StatsCard = React.forwardRef<HTMLDivElement, StatsCardProps>(
               </div>
             )}
           </div>
-          {icon && <div className="bg-primary/10 text-primary rounded-xl p-3">{icon}</div>}
+          {icon && <div className="bg-primary/10 text-brand-ink rounded-xl p-3">{icon}</div>}
         </div>
       </CardContent>
     </Card>

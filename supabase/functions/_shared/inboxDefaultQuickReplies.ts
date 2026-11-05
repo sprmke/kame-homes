@@ -15,7 +15,7 @@ export const INBOX_DEFAULT_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Availability',
     body_text:
-      'You can check our available dates here: {{calendar_link}} — let me know your preferred check-in and check-out and I’ll confirm for you.',
+      'You can check our available dates here: {{calendar_link}}. Let me know your preferred check-in and check-out and I’ll confirm for you.',
     sort_order: 0,
   },
   {
@@ -27,7 +27,7 @@ export const INBOX_DEFAULT_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Check-in',
     body_text:
-      'Check-in is from 2:00 PM and check-out is by 12:00 PM (Asia/Manila). Early check-in may be possible if the unit is ready — just ask.',
+      'Check-in is from 2:00 PM and check-out is by 12:00 PM (Asia/Manila). Early check-in may be possible if the unit is ready. Just ask.',
     sort_order: 2,
   },
   {
@@ -45,7 +45,7 @@ export const INBOX_DEFAULT_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Location',
     body_text:
-      'We’re in Azure North, San Fernando, Pampanga. Map pin: {{map_link}} — I can send the exact unit address once your dates are confirmed.',
+      'We’re in Azure North, San Fernando, Pampanga. Map pin: {{map_link}}. I can send the exact unit address once your dates are confirmed.',
     sort_order: 5,
   },
   {
@@ -69,7 +69,7 @@ export const INBOX_DEFAULT_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Follow-up',
     body_text:
-      'Thanks for reaching out, {{guest_name}}! Let me know if you have any other questions — happy to help with your stay.',
+      'Thanks for reaching out, {{guest_name}}! Let me know if you have any other questions. Happy to help with your stay.',
     sort_order: 9,
   },
 ];
@@ -119,7 +119,7 @@ export const INBOX_DEFAULT_PARKING_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Lost ticket / access code',
     body_text:
-      'No worries — send me your plate number or booking reference and I’ll resend your access details.',
+      'No worries. Send me your plate number or booking reference and I’ll resend your access details.',
     sort_order: 7,
   },
   {
@@ -131,7 +131,7 @@ export const INBOX_DEFAULT_PARKING_QUICK_REPLIES: DefaultQuickReplySeed[] = [
   {
     title: 'Follow-up',
     body_text:
-      'Thanks for reaching out! Let me know if you have any other questions about parking — happy to help.',
+      'Thanks for reaching out! Let me know if you have any other questions about parking. Happy to help.',
     sort_order: 9,
   },
 ];

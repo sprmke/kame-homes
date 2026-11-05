@@ -35,6 +35,10 @@ run_step() {
 run_step "type-check" bun run type-check
 run_step "lint (ESLint errors block CD — warnings OK)" bun run lint
 run_step "check:filenames" bun run check:filenames
+run_step "brand guard (retired product name)" bun scripts/brand/check-brand.ts --check
+run_step "AI knowledge coverage" bun run check:ai-knowledge-coverage
+run_step "support content format" bun run check:support-content
+run_step "support content parser tests" bun run test:support-content
 run_step "migration versions" bash scripts/dev/check-migration-versions.sh
 run_step "migration security" bash scripts/dev/check-migration-security.sh
 run_step "unit tests (Vitest)" bun run test
@@ -43,6 +47,9 @@ run_step "edge unit tests (Deno _shared)" bun run test:edge
 run_step "servePublic rate-limit coverage" bash scripts/dev/check-serve-public-rate-limit.sh
 run_step "authenticated wrapper log-only rate check" bash scripts/dev/check-authenticated-rate-limit.sh
 run_step "unbounded query guard" bash scripts/dev/check-unbounded-select.sh
+run_step "posthog is analytics only (observability split P1)" \
+  bash scripts/dev/check-posthog-analytics-only.sh
+run_step "sentry has one import surface" bash scripts/dev/check-sentry-imports.sh
 run_step "cache class guard" bash scripts/dev/check-cache-class.sh
 run_step "select('*') guard" bash scripts/dev/check-select-star.sh
 run_step "public static asset size" bash scripts/dev/check-public-asset-size.sh

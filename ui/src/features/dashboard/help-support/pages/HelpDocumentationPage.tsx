@@ -24,6 +24,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 const GUIDE_GROUP_META: Record<HelpGuideGroup, { description: string; Icon: typeof BookOpen }> = {
   Organization: { description: 'Team and org settings', Icon: Building2 },
@@ -57,6 +58,12 @@ function ArticleList({
           key={article.routeGuidePath}
           title={displayHelpArticleTitle(article.title)}
           defaultOpen={defaultOpen}
+          onFirstOpen={() =>
+            captureAppEvent('help_article_viewed', {
+              article_slug: article.routeGuidePath,
+              surface: 'dashboard_help',
+            })
+          }
         >
           <dl className="space-y-5">
             {article.qaItems.map((qa) => (

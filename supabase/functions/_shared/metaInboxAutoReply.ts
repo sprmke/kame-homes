@@ -2,6 +2,9 @@
  * Optional AI auto-send after inbound Meta DM webhooks.
  */
 
+import { isAutoReplyPausedByHandoff } from './aiHandoff.ts';
+import { logActivity, type ActorContext } from './activityLog.ts';
+import { runGuestReceptionistTurn } from './guestReceptionistTurn.ts';
 import { getPageAccessToken, sendMetaMessage } from './metaInboxGraph.ts';
 import {
   consumeAutoReplyBudget,
@@ -10,9 +13,16 @@ import {
   isWithinAutoReplyCooldown,
   loadAutoReplySettings,
 } from './inboxAutoReplyPolicy.ts';
-import { isWithinMessagingWindowFromInbound, suggestInboxReply } from './socialInboxAiService.ts';
+import { isWithinMessagingWindowFromInbound } from './socialInboxAiService.ts';
 import { socialInboxDb } from './socialInboxDb.ts';
-import { getConversationByExternalThread, insertMessageIfNew, listMessages, updateConversationAfterMessage } from './socialInboxService.ts';
+import {
+  getConversationByExternalThread,
+  insertMessageIfNew,
+  listMessages,
+  updateConversationAfterMessage,
+} from './socialInboxService.ts';
+import { isFeatureAvailable } from './featureAvailability.ts';
+import { capturePostHogEvent } from './posthog.ts';
 import type { SocialPlatform } from './socialInboxTypes.ts';
 
 export async function maybeAutoReplyToInboundDm(
@@ -21,11 +31,17 @@ export async function maybeAutoReplyToInboundDm(
   platform: Extract<SocialPlatform, 'facebook' | 'instagram'>,
   inboundExternalMessageId: string
 ): Promise<void> {
+  if (!(await isFeatureAvailable('inbox.meta.auto_reply'))) {
+    console.log('[metaInboxAutoReply] skipped: feature_unavailable');
+    return;
+  }
+
   const settings = await loadAutoReplySettings(orgId, platform);
   if (!settings) return;
 
   const conv = await getConversationByExternalThread(orgId, platform, threadId);
   if (!conv || conv.conversation_type !== 'dm') return;
+  if (isAutoReplyPausedByHandoff(conv)) return;
   if (!isWithinMessagingWindowFromInbound(conv.last_inbound_at)) return;
   if (!(await isAutoReplyEntitled(orgId, (conv.property_id as string | null) ?? null))) return;
 
@@ -44,20 +60,23 @@ export async function maybeAutoReplyToInboundDm(
 
   if (!(await consumeAutoReplyBudget(conv.id))) return;
 
-  const reply = await suggestInboxReply({
+  const reply = await runGuestReceptionistTurn({
     orgId,
+    conversationId: conv.id,
     platform,
     conversationType: conv.conversation_type,
     participantName: conv.participant_name,
     propertyId: (conv.property_id as string | null) ?? null,
     inquiryCheckIn: (conv.inquiry_check_in as string | null) ?? null,
     inquiryCheckOut: (conv.inquiry_check_out as string | null) ?? null,
+    guestUserId: (conv.guest_user_id as string | null) ?? null,
     messages: messages.map((m) => ({
       direction: m.direction,
       body: m.body_text,
       sentAt: m.sent_at,
     })),
     systemPromptOverride: settings.ai_system_prompt,
+    feature: 'inbox_auto_reply',
   });
   if (!isSendableAutoReply(reply)) return;
   const draft = reply.suggestion;
@@ -69,7 +88,12 @@ export async function maybeAutoReplyToInboundDm(
     recipientId: conv.external_participant_id ?? '',
     text: draft,
     platform,
+    availabilityKey: 'inbox.meta.auto_reply',
   });
+  if (!result.ok) {
+    console.log('[metaInboxAutoReply] skipped: feature_unavailable');
+    return;
+  }
 
   const now = new Date().toISOString();
   await insertMessageIfNew({
@@ -88,5 +112,42 @@ export async function maybeAutoReplyToInboundDm(
     subject_preview: draft.slice(0, 500),
     last_message_at: now,
     reply_status: 'replied',
+    ...(reply.handoffRequested
+      ? {
+          aiHandoff: {
+            ai_handoff: {
+              reason: reply.handoffReason ?? 'Guest asked to speak with the host team.',
+            },
+          },
+        }
+      : {}),
+  });
+  if (reply.handoffRequested) {
+    await logActivity({
+      action: 'inbox.ai_handoff',
+      organizationId: orgId,
+      propertyId: (conv.property_id as string | null) ?? null,
+      actor: {
+        actorType: 'ai_assistant',
+        source: 'ai_assistant',
+        displayName: 'AI receptionist',
+      } satisfies ActorContext,
+      targetId: conv.id,
+      targetLabel: conv.participant_name as string | undefined,
+      metadata: { reason: reply.handoffReason ?? null },
+    });
+  }
+
+  // The reply exists at this point, so this is a sent outcome and not an attempt. No person
+  // context: the webhook caller is Meta. `handoff` is not modelled — the replier either sends
+  // or stays silent, and silence is the absence of this event rather than a second one.
+  await capturePostHogEvent('inbox_auto_reply_sent', {
+    logPrefix: 'metaInboxAutoReply',
+    groups: {
+      organization: orgId,
+      ...(conv.property_id ? { property: conv.property_id } : {}),
+    },
+    properties: { channel: platform === 'facebook' ? 'messenger' : 'instagram' },
+    system: true,
   });
 }

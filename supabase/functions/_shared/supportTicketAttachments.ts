@@ -1,6 +1,7 @@
 import { createServiceClient } from './orgAuth.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import type { SupportTicketScope } from './supportTicketScope.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const SUPPORT_TICKET_BUCKET = 'support-ticket-attachments';
 
@@ -73,9 +74,10 @@ export async function uploadSupportTicketAttachmentFromBytes(
   if (!SUPPORT_TICKET_ATTACHMENT_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, WebP, HEIC, MP4, or MOV');
   }
+  const contentType = assertUploadMatchesBytes(input.bytes, mime, SUPPORT_TICKET_ATTACHMENT_MIME);
   assertWithinUploadLimit(
     { size: input.bytes.byteLength },
-    mime.startsWith('video/') ? 'video' : 'image'
+    contentType.startsWith('video/') ? 'video' : 'image'
   );
 
   const safeName =
@@ -90,7 +92,7 @@ export async function uploadSupportTicketAttachmentFromBytes(
     .from(SUPPORT_TICKET_BUCKET)
     .upload(storagePath, input.bytes, {
       upsert: false,
-      contentType: mime,
+      contentType,
       cacheControl: '31536000',
     });
 
@@ -100,7 +102,7 @@ export async function uploadSupportTicketAttachmentFromBytes(
 
   return {
     name: safeName,
-    mimeType: mime,
+    mimeType: contentType,
     size: input.bytes.byteLength,
     path: storagePath,
   };

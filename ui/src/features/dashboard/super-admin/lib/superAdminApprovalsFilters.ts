@@ -4,6 +4,7 @@ import type {
   ExternalReviewApprovalSummary,
   ListingVerificationApprovalSummary,
   OrgApprovalSummary,
+  ReportedReviewApprovalSummary,
   SuperAdminApprovalTypeFilter,
 } from '@/features/dashboard/super-admin/types/approval';
 
@@ -24,7 +25,7 @@ export const DEFAULT_APPROVALS_FILTERS: SuperAdminApprovalsFilters = {
 
 function matchesTypeFilter(item: ApprovalQueueItem, type: SuperAdminApprovalTypeFilter): boolean {
   if (type === 'all') return true;
-  if (type === 'reviews') return item.type === 'external_review';
+  if (type === 'reviews') return item.type === 'external_review' || item.type === 'reported_review';
   if (type === 'listing_verification') return item.type === 'listing_verification';
   if (item.type !== 'org_verification') return false;
   if (type === 'property') return item.hostModes.includes('property');
@@ -38,7 +39,7 @@ function matchesStatusFilter(
 ): boolean {
   if (status === 'all') return true;
 
-  if (item.type === 'external_review') {
+  if (item.type === 'external_review' || item.type === 'reported_review') {
     if (status === 'changes') return false;
     return item.moderationStatus === status;
   }
@@ -102,6 +103,19 @@ export function filterSuperAdminApprovals(
       return haystack.includes(search);
     }
 
+    if (item.type === 'reported_review') {
+      const haystack = [
+        item.propertyName,
+        item.organizationName,
+        item.reviewText,
+        item.reason,
+        item.details,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(search);
+    }
+
     if (item.type === 'listing_verification') {
       const haystack = [
         item.listingName,
@@ -146,7 +160,16 @@ export function isExternalReviewApprovalSummary(
   return item.type === 'external_review';
 }
 
+export function isReportedReviewApprovalSummary(
+  item: ApprovalQueueItem
+): item is ReportedReviewApprovalSummary {
+  return item.type === 'reported_review';
+}
+
 export function approvalQueueItemKey(item: ApprovalQueueItem): string {
+  if (item.type === 'reported_review') {
+    return `reported:${item.reportId}`;
+  }
   if (item.type === 'external_review') {
     return `review:${item.propertyId}:${item.reviewId}`;
   }
@@ -157,7 +180,9 @@ export function approvalQueueItemKey(item: ApprovalQueueItem): string {
 }
 
 function isApprovalPending(item: ApprovalQueueItem): boolean {
-  if (item.type === 'external_review') return item.moderationStatus === 'pending';
+  if (item.type === 'external_review' || item.type === 'reported_review') {
+    return item.moderationStatus === 'pending';
+  }
   if (item.type === 'listing_verification') {
     return item.baseStatus === 'pending' || item.recommendedStatus === 'pending';
   }
@@ -170,7 +195,9 @@ export function superAdminApprovalsSummaryFromList(approvals: ApprovalQueueItem[
   const listingVerifications = approvals.filter(
     (item) => item.type === 'listing_verification'
   ).length;
-  const reviews = approvals.filter((item) => item.type === 'external_review').length;
+  const reviews = approvals.filter(
+    (item) => item.type === 'external_review' || item.type === 'reported_review'
+  ).length;
 
   return { total: approvals.length, pending, orgVerifications, listingVerifications, reviews };
 }

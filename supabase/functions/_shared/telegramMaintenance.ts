@@ -2,6 +2,7 @@
  * Maintenance operating Telegram due-date reminders.
  */
 
+import { isTelegramFeatureUnavailableError } from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -280,11 +281,11 @@ function buildMaintenanceReminderPlaceholders(
   const daysUntil = daysBetweenIso(today, due);
   return {
     label: String(row.label ?? ''),
-    category: String(row.category ?? '—'),
+    category: String(row.category ?? '-'),
     due_date: formatDisplayDate(due),
     scheduled_on: formatDisplayDate(String(row.scheduled_on).slice(0, 10)),
     days_until_due: String(Math.max(0, daysUntil)),
-    notes: String(row.notes ?? '').trim() || '—',
+    notes: String(row.notes ?? '').trim() || '-',
   };
 }
 
@@ -472,7 +473,9 @@ export async function runMaintenanceDueReminders(options?: {
     const message = renderMaintenanceReminderMessage(row, template, today);
     const result = await sendMaintenanceTelegramMessage(message, options.propertyId);
     if (!result.ok) {
-      errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      if (!isTelegramFeatureUnavailableError(result.error)) {
+        errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      }
       continue;
     }
 

@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
+  DEFAULT_DESCRIPTION,
   buildPropertyJsonLd,
   buildRobotsTxt,
   injectMetaIntoHtml,
@@ -41,7 +45,7 @@ describe('isCrawlerUserAgent', () => {
 
 describe('injectMetaIntoHtml', () => {
   const shell =
-    '<html><head><title>Kame Homes</title><meta name="description" content="old" /></head><body></body></html>';
+    '<html><head><title>Old Brand</title><meta name="description" content="old" /></head><body></body></html>';
 
   it('replaces title + description and escapes values', () => {
     const html = injectMetaIntoHtml(shell, {
@@ -57,6 +61,18 @@ describe('injectMetaIntoHtml', () => {
     expect(html).toContain('og:image');
     expect(html).not.toContain('</script><script>alert(1)');
     expect(html.match(/<title>/g)?.length).toBe(1);
+  });
+
+  it('replaces the index.html default description without duplicating it', () => {
+    const indexHtml = readFileSync(resolve(__dirname, '../../../index.html'), 'utf8');
+    expect(indexHtml).toContain(DEFAULT_DESCRIPTION);
+    const html = injectMetaIntoHtml(indexHtml, {
+      title: 'Condo',
+      description: 'Listing description',
+      canonicalUrl: 'https://example.com/properties/a',
+    });
+    expect(html.match(/name="description"/g)?.length).toBe(1);
+    expect(html).not.toContain(DEFAULT_DESCRIPTION);
   });
 
   it('truncates long descriptions in tags', () => {
@@ -98,7 +114,7 @@ describe('helpers', () => {
   });
 
   it('robots.txt points at the sitemap and blocks private areas', () => {
-    const txt = buildRobotsTxt('https://example.com');
+    const txt = buildRobotsTxt('https://example.com', ['example.com']);
     expect(txt).toContain('Sitemap: https://example.com/sitemap.xml');
     expect(txt).toContain('Disallow: /org/');
     expect(txt).toContain('Disallow: /account');
@@ -108,5 +124,23 @@ describe('helpers', () => {
 describe('robots trip pages', () => {
   it('keeps per-booking trip pages out of search', () => {
     expect(buildRobotsTxt('https://kamehomes.space')).toContain('Disallow: /*/trip?');
+  });
+
+  it('blocks all crawling on hosts outside the indexable list (dev, previews)', () => {
+    for (const origin of ['https://dev.kamespace.com', 'https://kame-homes-git-x.vercel.app']) {
+      expect(buildRobotsTxt(origin)).toBe('User-agent: *\nDisallow: /\n');
+    }
+    expect(buildRobotsTxt('https://app.kamehomes.space')).toContain('Allow: /');
+    expect(buildRobotsTxt('https://app.kamehomes.space')).toContain('Sitemap:');
+  });
+
+  it('indexes the kamespace production domain', () => {
+    // Regression: the rebrand moved production to kamespace.com but the host list
+    // still only knew kamehomes.space, so production served `Disallow: /`.
+    for (const origin of ['https://kamespace.com', 'https://www.kamespace.com']) {
+      const txt = buildRobotsTxt(origin);
+      expect(txt).toContain('Allow: /');
+      expect(txt).toContain(`Sitemap: ${origin}/sitemap.xml`);
+    }
   });
 });

@@ -43,7 +43,7 @@ serveSuperAdmin('ai-platform-credit-wallet', async (req, admin) => {
 
   const org = await resolveOrganization(orgId, orgSlug);
   if (!org) {
-    return jsonError(req, 'Organization not found — provide a valid org_id or org_slug', 404);
+    return jsonError(req, 'Organization not found - provide a valid org_id or org_slug', 404);
   }
 
   if (req.method === 'GET') {

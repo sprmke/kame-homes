@@ -107,7 +107,7 @@ export function FilmShell({
       <aside className="border-sidebar-border bg-sidebar flex w-[248px] shrink-0 flex-col border-r">
         <div className="border-sidebar-border border-b px-3 py-3">
           <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
-            <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+            <span className="bg-primary-strong text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
               <ScopeIcon className="size-[18px]" />
             </span>
             <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function FilmShell({
                   className={cn(
                     'flex items-center gap-3 rounded-xl px-3 py-[7px] text-sm font-medium',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      ? 'bg-primary-strong text-primary-foreground shadow-sm'
                       : 'text-sidebar-foreground'
                   )}
                 >

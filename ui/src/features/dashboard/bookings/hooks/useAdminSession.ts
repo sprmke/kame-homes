@@ -6,6 +6,7 @@ import {
 } from '@/features/dashboard/org/lib/listingContractRenewalSession';
 
 import { clearE2EAdminSession, readE2EAdminSession } from '@/lib/e2e/adminSession';
+import { captureError } from '@/lib/sentry/capture';
 import { supabase } from '@/lib/supabase/client';
 
 import type { Session } from '@supabase/supabase-js';
@@ -61,6 +62,11 @@ export function useAdminSession(): AdminSessionState {
         .catch((err) => {
           if (cancelled) return;
           console.error('[useAdminSession] getSession failed', err);
+          captureError(err, {
+            level: 'warning',
+            tags: { auth: 'session_read', persona: 'admin' },
+            fingerprint: ['auth', 'get_session'],
+          });
           hydratedSession = null;
           setIsLoading(false);
         });

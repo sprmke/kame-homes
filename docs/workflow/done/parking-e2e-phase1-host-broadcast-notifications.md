@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Parking E2E — Phase 1a (Host Side): Broadcast, Claim, Notify'
-status: implemented
+status: done
 tags: [planning, planned-modules, parking, booking-workflow, integrations]
-updated: 2026-08-17
+updated: 2026-11-04
 ---
 
 # Parking E2E — Phase 1a (Host Side): Broadcast, Claim, Notify

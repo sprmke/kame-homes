@@ -47,6 +47,8 @@ export type GuestPaymentInfo = {
   organizationName: string;
   defaultParkingRateGuest: number;
   petFee: number;
+  /** Property Default down payment (flat, per booking). */
+  downPayment: number;
 };
 
 export const DEFAULT_GUEST_PAYMENT_INFO: GuestPaymentInfo = {
@@ -76,6 +78,7 @@ export const DEFAULT_GUEST_PAYMENT_INFO: GuestPaymentInfo = {
   organizationName: '',
   defaultParkingRateGuest: 400,
   petFee: 300,
+  downPayment: 1500,
 };
 
 function guestPaymentInfoUrl(propertySlug: string | null): string {

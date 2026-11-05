@@ -14,6 +14,11 @@ import {
   DESIGN_FORMAT_DIMENSIONS,
   type DesignTemplateFormat,
 } from '@/features/dashboard/marketing/lib/templateRegistry';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import {
+  posterPaletteInputFromTheme,
+  themedPosterFontPairing,
+} from '@/features/dashboard/marketing/lib/theme/posterThemeAdapter';
 
 export type PhotoSizeMap = Record<string, { width: number; height: number } | undefined>;
 
@@ -33,7 +38,12 @@ export function compilePosterDocument(
   spec: PosterSpec,
   facts: PosterFacts,
   format: DesignTemplateFormat,
-  options?: { photoSizes?: PhotoSizeMap; brandColor?: string | null }
+  options?: {
+    photoSizes?: PhotoSizeMap;
+    brandColor?: string | null;
+    /** Marketing theme: palette and type follow it; the archetype keeps its craft. */
+    theme?: MarketingThemeTokens | null;
+  }
 ): PolotnoDesignDocument {
   const { width, height } = DESIGN_FORMAT_DIMENSIONS[format];
   const canvas = createPosterCanvas(width, height);
@@ -43,18 +53,24 @@ export function compilePosterDocument(
     .map((url) => ({ url, size: options?.photoSizes?.[url] ?? null }));
   // Every photo-led archetype needs a photo; the type-only layout is the safe fallback.
   const archetype = photos.length > 0 ? spec.archetype : 'minimal-title';
-  const palette = derivePosterPalette({
-    accent: spec.palette.accent ?? options?.brandColor ?? null,
-    secondary: spec.palette.secondary,
-    field: spec.palette.field,
-  });
+  const theme = options?.theme ?? null;
+  const palette = derivePosterPalette(
+    theme
+      ? posterPaletteInputFromTheme(theme)
+      : {
+          accent: spec.palette.accent ?? options?.brandColor ?? null,
+          secondary: spec.palette.secondary,
+          field: spec.palette.field,
+        }
+  );
+  const pairing = POSTER_FONT_PAIRINGS[spec.fontPairing];
 
   resetIds();
   const result = POSTER_ARCHETYPES[archetype]({
     canvas,
     spec: { ...spec, archetype },
     facts,
-    fonts: POSTER_FONT_PAIRINGS[spec.fontPairing],
+    fonts: theme ? themedPosterFontPairing(pairing, theme) : pairing,
     palette,
     photos,
   });

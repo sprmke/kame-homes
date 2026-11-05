@@ -22,6 +22,10 @@ import {
   verifyPropertyAccess,
 } from './orgAuth.ts';
 import { hasOrgPermission } from './orgTeamPermissions.ts';
+import {
+  checkDashboardAssistantQuota,
+  getDashboardAssistantOrgSettings,
+} from './dashboardAssistantSettings.ts';
 import { getActiveOrgSubscription, resolveOrgEntitlements } from './planEntitlements.ts';
 import type { PlanFeatures } from './planFeatures.ts';
 import { createSupportTicket, SupportTicketCreateError } from './supportTicketCreate.ts';
@@ -503,6 +507,8 @@ export async function toolGetOrgPlanSnapshot(ctx: Phase4ToolContext): Promise<Ph
 
   const subscription = await getActiveOrgSubscription(ctx.organizationId);
   const entitlements = await resolveOrgEntitlements(ctx.organizationId);
+  const orgSettings = await getDashboardAssistantOrgSettings(ctx.organizationId);
+  const quota = await checkDashboardAssistantQuota(ctx.organizationId, orgSettings);
 
   const sb = createServiceClient();
   const { data: properties } = await sb
@@ -545,6 +551,11 @@ export async function toolGetOrgPlanSnapshot(ctx: Phase4ToolContext): Promise<Ph
         enrolled: assignedPropertyIds.includes(row.id as string),
       })),
       features,
+      assistantQuota: {
+        messagesUsedToday: quota.messageCountToday,
+        dailyMessageLimit: quota.dailyMessageLimit,
+        messagesRemainingToday: Math.max(0, quota.dailyMessageLimit - quota.messageCountToday),
+      },
       note: 'Checkout, payment-method changes, and downgrades still require the Plans & Billing page.',
     },
   };
@@ -634,6 +645,6 @@ export const GET_HOST_ANNOUNCEMENT_TOOL_DECLARATION = {
 export const GET_ORG_PLAN_SNAPSHOT_TOOL_DECLARATION = {
   name: 'get_org_plan_snapshot',
   description:
-    'Read the org subscription plan name, status, enrolled properties, and key feature entitlements. Does not start checkout or change billing.',
+    'Read the org subscription plan name, status, enrolled properties, key feature entitlements, and remaining AI assistant messages for today. Does not start checkout or change billing.',
   parameters: { type: 'object', properties: {} },
 };

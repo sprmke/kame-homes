@@ -18,7 +18,7 @@ import {
 import { HOST_TOUR_FEATURE_COUNT } from '@/features/guest/marketing/for-hosts/data/hostTourChapters';
 
 /**
- * All copy and demo data for the ground-up `/for-hosts/preview` redesign lives here so the
+ * All copy and demo data for the ground-up `/for-hosts/v2` redesign lives here so the
  * words can be reviewed in one place. Every section component reads from this file.
  */
 
@@ -30,7 +30,7 @@ export const heroContent = {
   eyebrow: 'For property hosts',
   /** Rendered as masked lines; the last word carries the teal accent. */
   headline: ['Every stay,', 'start to finish,', 'on one dashboard.'],
-  lead: 'Kame Homes replaces the spreadsheet, the Airbnb tab, the Messenger threads, and the receipt folder with one workflow, and keeps it moving while you are away from your desk.',
+  lead: 'Kame Space replaces the spreadsheet, the Airbnb tab, the Messenger threads, and the receipt folder with one workflow, and keeps it moving while you are away from your desk.',
   primaryCta: { label: 'Start free', to: '/for-hosts/login' },
   secondaryCta: { label: 'Watch the tour', sectionId: 'features' },
   trustLine: 'No card to start · Works on your phone · Cancel anytime',

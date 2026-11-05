@@ -10,7 +10,9 @@
 
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { loadAppSettingsRow, resolveAppSettings } from '../_shared/appSettings.ts';
-import { guestReviewExistsForBooking } from '../_shared/guestReviewService.ts';
+import { getGuestReviewDraft } from '../_shared/guestReviewService.ts';
+import { guestCanReview } from '../_shared/reviewEligibility.ts';
+import { getReviewWindow } from '../_shared/reviewWindow.ts';
 import { resolveVoucherPrizes } from '../_shared/voucher.ts';
 import { normalizeVoucherRevealStyle } from '../_shared/voucherRevealStyle.ts';
 import { authorizeGuestBookingAccess } from '../_shared/guestBookingAccessToken.ts';
@@ -72,7 +74,11 @@ servePublic('get-sd-form', async (req) => {
   const voucherPrizes = resolveVoucherPrizes(settingsRow?.voucher_prizes);
   const voucherRevealStyle = normalizeVoucherRevealStyle(settingsRow?.voucher_reveal_style);
   const sd = row.security_deposit != null ? Number(row.security_deposit) : 1500;
-  const guestReviewSubmitted = await guestReviewExistsForBooking(bookingId);
+  const [reviewDraft, reviewWindow] = await Promise.all([
+    getGuestReviewDraft(bookingId),
+    getReviewWindow(bookingId),
+  ]);
+  const guestReviewSubmitted = Boolean(reviewDraft);
 
   return jsonSuccess(req, {
     bookingId: row.id,
@@ -82,6 +88,9 @@ servePublic('get-sd-form', async (req) => {
     check_in_date: row.check_in_date,
     check_out_date: row.check_out_date,
     guest_review_submitted: guestReviewSubmitted,
+    review_draft: reviewDraft,
+    review_closes_at: reviewWindow?.closes_at ?? null,
+    can_edit_review: guestCanReview(row, reviewWindow),
     email_logo_url: settings.emailLogoUrl,
     brand_color: settings.brandColor,
     next_stay_voucher_code: row.next_stay_voucher_code ?? null,

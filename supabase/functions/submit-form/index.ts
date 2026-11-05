@@ -26,10 +26,10 @@ import { createServiceClient, tryGetAuthenticatedUser } from '../_shared/orgAuth
 import { applyVoucherToBooking, assertVoucherEligible } from '../_shared/voucherRedemption.ts';
 import { linkGuestBookingsByEmail } from '../_shared/guestProfileService.ts';
 import { checkIpRateLimit, clientIpFromRequest } from '../_shared/publicRateLimit.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import {
-  validateGuestFormCheckOutAfterCheckIn,
+  validateGuestFormCheckOutNotBeforeCheckIn,
   validateGuestFormFormatFields,
 } from '../_shared/guestFormSubmitValidation.ts';
 import {
@@ -38,6 +38,11 @@ import {
   mintGuestBookingAccessToken,
 } from '../_shared/guestBookingAccessToken.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
+import {
+  captureSnapshotForBooking,
+  PolicyChangedError,
+} from '../_shared/cancellationService.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -87,7 +92,7 @@ serve(async (req) => {
     // Returns a ready-to-send Response (with CORS + captchaFailed/rateLimited
     // flags) when the caller should be blocked; null when they pass. The L1
     // in-memory `checkIpRateLimit` above stays as a cheap burst dampener.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, formData, {
       scope: 'submit-form',
       rateLimit: { limit: 20, windowSec: 60 },
@@ -122,7 +127,7 @@ serve(async (req) => {
     );
     console.log('  Send workflow emails: ❌ (GAF / ack / pet / parking only on admin transitions)');
     console.log(
-      `  New Booking Request email (EMAIL_REPLY_TO): ${isSendEmailEnabled ? '✅' : '❌'} (FormData/sendEmail, default on — only sent after a DB save with an id; not this flag alone)`
+      `  New Booking Request email (EMAIL_REPLY_TO): ${isSendEmailEnabled ? '✅' : '❌'} (FormData/sendEmail, default on - only sent after a DB save with an id; not this flag alone)`
     );
     console.log('---');
 
@@ -142,7 +147,7 @@ serve(async (req) => {
     console.log('  Check-out:', checkOutDate);
     console.log('  Booking ID:', bookingId);
 
-    const dateOrder = validateGuestFormCheckOutAfterCheckIn(checkInDate, checkOutDate);
+    const dateOrder = validateGuestFormCheckOutNotBeforeCheckIn(checkInDate, checkOutDate);
     if (!dateOrder.ok) throw new Error(dateOrder.message);
 
     const formatValidation = validateGuestFormFormatFields(formData);
@@ -294,6 +299,31 @@ serve(async (req) => {
 
     const isNewGuestSubmission = isSaveToDatabaseEnabled && !!bookingId && !existingData;
 
+    /**
+     * Cancellation policy snapshot — captured before the write so a host edit
+     * mid-checkout fails closed with `409 policy_changed`. Only new bookings get
+     * a snapshot; guest edits keep the one they booked with.
+     */
+    let cancellationSnapshot = null as Awaited<ReturnType<typeof captureSnapshotForBooking>> | null;
+    let cancellationAcceptedAt: string | null = null;
+    if (isSaveToDatabaseEnabled && propertyId && !existingData) {
+      const clientVersionId = formData.get('cancellationPolicyVersionId');
+      const clientHash = formData.get('cancellationPolicyHash');
+      const accepted = formData.get('cancellationPolicyAccepted') === 'true';
+      cancellationSnapshot = await captureSnapshotForBooking({
+        propertyId,
+        capturedFrom: 'guest_form',
+        clientVersionId: typeof clientVersionId === 'string' ? clientVersionId : undefined,
+        clientHash: typeof clientHash === 'string' ? clientHash : undefined,
+      });
+      if (cancellationSnapshot.policy && !accepted) {
+        throw new Error(
+          'CANCELLATION_POLICY_NOT_ACCEPTED: Tick the cancellation policy agreement to continue.'
+        );
+      }
+      cancellationAcceptedAt = accepted ? new Date().toISOString() : null;
+    }
+
     const guestUser = await tryGetAuthenticatedUser(req);
 
     const appliedVoucherSourceBookingId = (
@@ -365,6 +395,29 @@ serve(async (req) => {
         } else {
           throw voucherErr;
         }
+      }
+    }
+
+    if (cancellationSnapshot && submissionData?.id) {
+      try {
+        const sb = createServiceClient();
+        const { error: snapshotError } = await sb
+          .from('guest_submissions')
+          .update({
+            cancellation_policy_snapshot: cancellationSnapshot,
+            cancellation_policy_accepted_at: cancellationAcceptedAt,
+            booked_at: new Date().toISOString(),
+          })
+          .eq('id', String(submissionData.id))
+          .is('cancellation_policy_snapshot', null);
+        if (snapshotError) {
+          console.error('[submit-form] cancellation snapshot write failed:', snapshotError);
+        } else {
+          (submissionData as Record<string, unknown>).cancellation_policy_snapshot =
+            cancellationSnapshot;
+        }
+      } catch (snapshotErr) {
+        console.error('[submit-form] cancellation snapshot write failed (non-fatal):', snapshotErr);
       }
     }
 
@@ -534,18 +587,50 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error processing form submission:', error);
+
+    if (error instanceof PolicyChangedError) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'policy_changed',
+          message: error.message,
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith('CANCELLATION_POLICY_NOT_ACCEPTED:')) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'cancellation_policy_not_accepted',
+          message: message.split(':').slice(1).join(':').trim(),
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     await capturePostHogEvent('guest_form_rejected', {
       logPrefix: 'submit-form',
       request: req,
       system: true,
       properties: { reason: 'validation' },
     });
-    await capturePostHogException(error, { logPrefix: 'submit-form', request: req });
+    // A rejected guest form is an outcome (already emitted as guest_form_rejected).
+    // Only a genuine server fault reaches Sentry.
+    await captureFaultIfServerError(req, error, 'submit-form');
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 400,

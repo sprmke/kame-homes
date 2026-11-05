@@ -7,6 +7,7 @@ import { PropertySettingsSectionAlert } from '@/features/dashboard/org/component
 import { PropertyVoucherSettingsBlock } from '@/features/dashboard/org/components/property-settings/PropertyVoucherSettingsBlock';
 import type { PropertyExternalReview } from '@/features/dashboard/org/lib/propertyExternalReviews';
 import type { PropertySettingsSectionId } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import { propertySettingsSectionBanner } from '@/features/dashboard/org/lib/propertySettingsFieldError';
 
 export function PropertyGuestRewardsSection({
@@ -16,6 +17,7 @@ export function PropertyGuestRewardsSection({
   markFieldInteracted,
   onChange,
   sectionMessages,
+  issueSectionIds = [],
   onSaveReview,
   savingReviewId,
   externalReviewsBaseline,
@@ -30,6 +32,7 @@ export function PropertyGuestRewardsSection({
     value: AppSettingsFormValues[K]
   ) => void;
   sectionMessages: Partial<Record<PropertySettingsSectionId, string>>;
+  issueSectionIds?: readonly PropertySettingsSectionId[];
   onSaveReview?: (reviewId: string) => void;
   savingReviewId?: string | null;
 }) {
@@ -62,6 +65,7 @@ export function PropertyGuestRewardsSection({
             onPrizesChange={(prizes) => onChange('voucherPrizes', prizes)}
             onRevealStyleChange={(style) => onChange('voucherRevealStyle', style)}
             onInteract={() => markFieldInteracted('property-vouchers')}
+            manageNeedsAttention={propertySettingsSectionHasIssue('guest-rewards', issueSectionIds)}
           />
           {resolveFieldError('property-vouchers') ? (
             <p className="text-destructive text-xs">{resolveFieldError('property-vouchers')}</p>

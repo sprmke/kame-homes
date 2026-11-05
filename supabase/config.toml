@@ -22,7 +22,11 @@ major_version = 17
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql", "../scripts/dev/seed-dashboard-demo-data.sql"]
+sql_paths = [
+  "../scripts/dev/seed-local-org-bootstrap.sql",
+  "./seed.sql",
+  "../scripts/dev/seed-dashboard-demo-data.sql",
+]
 
 # Admin sign-in (Google OAuth). Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET in
 # ui/.env.development (same file as Vite dev vars). dev.sh / npm run start:supabase
@@ -47,7 +51,7 @@ redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
 skip_nonce_check = false
 
 # Bot protection for the passwordless email-OTP flow (`signInWithOtp`). Google
-# OAuth is unaffected. Anti-spam plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+# OAuth is unaffected. Anti-spam plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
 #
 # Committed as `enabled = false` so a stale local `ui/.env.development` (no
 # TURNSTILE_SECRET_KEY) can't brick every local login. To turn it on:
@@ -62,6 +66,19 @@ skip_nonce_check = false
 enabled = false
 provider = "turnstile"
 secret = "env(TURNSTILE_SECRET_KEY)"
+
+# Sign-in email. `signInWithOtp` sends `confirmation` for a new email and
+# `magic_link` for an existing one, so both point at the same template: the
+# app verifies a 6-digit code, and the stock Supabase templates only contain a
+# link. Hosted projects keep their own copy in Dashboard -> Authentication ->
+# Emails; config.toml only affects local. See docs/guides/routes/auth.md.
+[auth.email.template.confirmation]
+subject = "Your Kame Space sign-in code"
+content_path = "./supabase/templates/auth/sign-in-code.html"
+
+[auth.email.template.magic_link]
+subject = "Your Kame Space sign-in code"
+content_path = "./supabase/templates/auth/sign-in-code.html"
 
 [storage]
 enabled = true
@@ -307,6 +324,47 @@ static_files = [
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
 
+[functions.guest-cancel-booking]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.guest-cancellation-request]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.submit-guest-refund-details]
+verify_jwt = false
+
+[functions.respond-cancellation-request]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.record-booking-refund]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.cancellation-policy-impact]
+verify_jwt = false
+
+[functions.cancellation-refund-cron]
+verify_jwt = false
+
 [functions.parking-broadcast-email]
 verify_jwt = false
 static_files = [
@@ -521,6 +579,9 @@ verify_jwt = false
 [functions.super-admin-rate-limits]
 verify_jwt = false
 
+[functions.super-admin-sentry-test]
+verify_jwt = false
+
 [functions.list-super-admin-audit]
 verify_jwt = false
 
@@ -534,6 +595,12 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.platform-settings]
+verify_jwt = false
+
+[functions.feature-availability]
+verify_jwt = false
+
+[functions.get-feature-availability]
 verify_jwt = false
 
 [functions.super-admin-search]
@@ -724,6 +791,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.list-public-pricing-plans]
+verify_jwt = false
+
+[functions.list-public-support-faqs]
 verify_jwt = false
 
 [functions.property-templates-settings]
@@ -932,6 +1002,9 @@ verify_jwt = false
 [functions.marketing-templates]
 verify_jwt = false
 
+[functions.marketing-themes]
+verify_jwt = false
+
 [functions.list-property-guest-reviews]
 verify_jwt = false
 
@@ -963,6 +1036,12 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.marketing-music]
+verify_jwt = false
+
+[functions.marketing-media]
+verify_jwt = false
+
+[functions.marketing-media-sweeper]
 verify_jwt = false
 
 [functions.list-developments]
@@ -1147,6 +1226,7 @@ verify_jwt = false
 [functions.notifications-mark-read]
 verify_jwt = false
 
+
 # Web Push (PWA). subscribe/unsubscribe do their own auth (serveAuthenticated);
 # push-fanout is secret-gated (X-Push-Fanout-Secret) and called by the
 # notifications AFTER INSERT trigger via pg_net.
@@ -1241,3 +1321,60 @@ verify_jwt = false
 # [functions.telegram-marketing-cron] Manila 10:00 / 15:00 / 21:00 → UTC cron: 0 2,7,13 * * *
 # [functions.query-cache-sweep-cron] Manila 10:17 → UTC cron: 17 2 * * * (see migration
 #   20261316121700_query_cache_table.sql#sync_query_cache_sweep_cron_job)
+
+[functions.guest-web-chat-feedback]
+verify_jwt = false
+
+[functions.get-guest-reputation]
+verify_jwt = false
+
+[functions.submit-host-guest-review]
+verify_jwt = false
+
+[functions.review-lifecycle-cron]
+verify_jwt = false
+
+[functions.list-property-reviews]
+verify_jwt = false
+
+[functions.list-org-reviews]
+verify_jwt = false
+
+[functions.review-automation-settings]
+verify_jwt = false
+
+[functions.draft-review-with-ai]
+verify_jwt = false
+
+[functions.respond-to-guest-review]
+verify_jwt = false
+
+[functions.report-review]
+verify_jwt = false
+
+[functions.list-my-reviews]
+verify_jwt = false
+
+[functions.respond-to-host-review]
+verify_jwt = false
+
+[functions.moderate-review-report]
+verify_jwt = false
+
+[functions.marketing-ai-sessions]
+verify_jwt = false
+
+[functions.super-admin-system-health]
+verify_jwt = false
+
+[functions.resolve-booking-property]
+verify_jwt = false
+
+[functions.chat-templates]
+verify_jwt = false
+
+[functions.ops-report]
+verify_jwt = false
+
+[functions.ops-report-cron]
+verify_jwt = false

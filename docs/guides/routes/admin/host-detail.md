@@ -2,7 +2,7 @@
 title: 'Host Detail — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-05
+updated: 2026-11-05
 ---
 
 # Host Detail — operator guide
@@ -19,7 +19,7 @@ Route: `/admin/hosts/:hostId`
 
 | Section       | E2E save | Validation | Docs | Notes                                                                                                     |
 | ------------- | -------- | ---------- | ---- | --------------------------------------------------------------------------------------------------------- |
-| Header        | Done     | —          | Done | Avatar/initial, name, email, **← Hosts** back link (`SuperAdminDetailHeader`)                             |
+| Header        | Done     | —          | Done | Avatar/initial, name, page description, email, **← Hosts** back link (`SuperAdminDetailHeader`)           |
 | Stat cards    | Done     | —          | Done | Organizations / Properties / Parking slots (`host.stats`) — the first two double as the mode switch       |
 | Mode dropdown | Done     | —          | Done | `Organizations` \| `Properties` — replaces the old pill tabs, URL-persisted `?mode=`                      |
 | Organizations | Done     | —          | Done | Search + grid/table view + pagination                                                                     |
@@ -39,16 +39,16 @@ organizations or properties from here (that happens in the host's own dashboard,
 
 ## Host-facing knowledge
 
-Internal platform-team tooling — a combined lookup of every organization and property a host
+Internal platform-team tooling - a combined lookup of every organization and property a host
 owns, across all of their organizations. Hosts never see it.
 
 **Common host questions**
 
 - Q: If I own more than one organization, does the platform team see all of them here?
-  A: Yes — every organization you own, and every property under any of them, appears on your host
+  A: Yes. Every organization you own, and every property under any of them, appears on your host
   profile.
 - Q: Can the platform team edit my organization or property settings from here?
-  A: No — this page only displays them. Editing happens in your own dashboard, or (for
+  A: No. This page only displays them. Editing happens in your own dashboard, or (for
   plan/verification/support) the platform team's per-organization hub.
 
 ---

@@ -33,6 +33,12 @@ export const ASSISTANT_ROUTES = {
     permission: 'org.bookings:view',
     query: ['status', 'from', 'to', 'q'],
   },
+  'org.reviews': {
+    scope: 'org',
+    path: 'reviews',
+    label: 'Reviews',
+    permission: 'org.reviews:view',
+  },
   'org.properties': {
     scope: 'org',
     path: 'properties',
@@ -126,6 +132,12 @@ export const ASSISTANT_ROUTES = {
     permission: 'marketing:view',
   },
   'property.inbox': { scope: 'property', path: 'inbox', label: 'Inbox', permission: 'inbox:view' },
+  'property.reviews': {
+    scope: 'property',
+    path: 'reviews',
+    label: 'Reviews',
+    permission: 'reviews:view',
+  },
   'property.notifications': {
     scope: 'property',
     path: 'notifications',

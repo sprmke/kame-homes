@@ -47,7 +47,7 @@ Hostaway [reservations|finance|maintenance] how to
 Lodgify [pricing|guest communication] property manager
 ```
 
-## Adaptation checklist for Kame Homes
+## Adaptation checklist for Kame Space
 
 - [ ] Mobile-first at 375px (`mobile-responsive.mdc`)
 - [ ] No extra UI copy (`minimal-ui-copy`)

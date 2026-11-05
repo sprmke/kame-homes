@@ -7,7 +7,7 @@ import { c, STORY_SAFE, type Format } from '../theme';
 import { TopBar } from './shared';
 
 /**
- * 11 · Versus. Comparison table: the chat-and-spreadsheet way vs Kame Homes, one job
+ * 11 · Versus. Comparison table: the chat-and-spreadsheet way vs Kame Space, one job
  * per row. The Kame column is a solid brand plane, the old column stays quiet.
  */
 
@@ -89,7 +89,7 @@ function Table({
             color: c.white,
           }}
         >
-          <Diamond size={18 * k} color={c.white} /> Kame Homes
+          <Diamond size={18 * k} color={c.white} /> Kame Space
         </span>
       </div>
       {list.map(([label, old, kame], i) => (
@@ -232,7 +232,7 @@ function VersusBody({ frame }: { frame: number }) {
         {kicker}
         <div style={{ marginTop: 30 }}>{head(hsz)}</div>
         <Sub size={30} style={{ marginTop: 34, maxWidth: 520, ...reveal(frame, 30) }}>
-          Every job you do by hand today has a place in Kame Homes.
+          Every job you do by hand today has a place in Kame Space.
         </Sub>
         <div
           style={{

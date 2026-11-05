@@ -3,9 +3,11 @@ stage: in-progress
 title: 'Marketing AI Poster Studio: from AI photo to postable designed posts'
 status: in-progress
 tags: [workflow, planned, marketing, ai, image-generation, polotno, design]
-updated: 2026-09-29
+updated: 2026-11-06
 kind: plan
 ---
+
+> **2026-10-19:** brand colors + preferred fonts (Phase 1.1 color/font fields) and "Save as my style" (8.5) are covered by [Marketing themes](./marketing-themes.md): AI Post follows the active theme.
 
 ## Implementation status (2026-09-28, pass 2: hardening)
 
@@ -59,7 +61,7 @@ kind: plan
 
 ## Context
 
-The user wants Marketing Studio to produce finished social posts on par with 7 reference posts from a PH staycation Facebook page (Kame Home "Coffee • View • You time", "Slow mornings", "Game on, stay in", Four J's Cabin "Bali" day and night, "The Upper Room"). The output has to be beautiful, easy to read, believable and ready to post without manual editing.
+The user wants Marketing Studio to produce finished social posts on par with 7 reference posts from a PH staycation Facebook page (Kame Space "Coffee • View • You time", "Slow mornings", "Game on, stay in", Four J's Cabin "Bali" day and night, "The Upper Room"). The output has to be beautiful, easy to read, believable and ready to post without manual editing.
 
 **Why we can't get there today.** The references are **designed posters**: a _real photo of the property_, plus layered typography, badges, amenity icons, an info bar and brand marks. Our pipelines produce either:
 
@@ -85,7 +87,7 @@ The user wants Marketing Studio to produce finished social posts on par with 7 r
 | 3   | Four J's "Bali" (night)         | Same content, **palette follows the photo** (navy + gold); **frosted glass** description card; name in a pill; 7-icon amenity grid; **glass check-in/out card**; location pin + list of nearby landmarks; closing CTA                                                                                                                                                     |
 | 4   | The Upper Room                  | **Restraint**: photo with a centered title only. Elegant high-contrast serif, tracked caps subtitle, tiny leaf ornament. Proves "minimal" is a valid archetype                                                                                                                                                                                                            |
 | 5   | = 2 (duplicate)                 |                                                                                                                                                                                                                                                                                                                                                                           |
-| 6   | Kame "Slow mornings"            | Magazine cover: big serif + script overlap, "at KAME HOME" with a brand wordmark, thin rule, subtitle; **glass amenity strip** with 4 icon+label items; footer tagline; mascot sticker bottom-right                                                                                                                                                                       |
+| 6   | Kame "Slow mornings"            | Magazine cover: big serif + script overlap, "at KAME SPACE" with a brand wordmark, thin rule, subtitle; **glass amenity strip** with 4 icon+label items; footer tagline; mascot sticker bottom-right                                                                                                                                                                      |
 | 7   | Kame "Game on, stay in"         | Feature spotlight (PS5): two-tone chunky headline with a **white outline stroke** and brand green; **circular sticker badge** with sparkle; "Perfect for" card with 4 icons; script "Good vibes, great games!" + heart doodle; location pill + tagline footer                                                                                                             |
 
 **Shared rules we'll encode:**
@@ -128,7 +130,7 @@ Host picks: goal (promo / vibe / amenity spotlight / feature / info / reviews), 
 
 - [ ] 0.1 Save the 7 references (6 unique) as a private benchmark set under `docs/workflow/assets/poster-benchmarks/` with a written teardown per image (Part A).
 - [ ] 0.2 Define a **postability rubric** scored 1–5: legibility, hierarchy, fit with the photo, brand consistency, factual accuracy, "looks AI-made" (inverse), and "would post as-is" (yes/no).
-- [ ] 0.3 Build a **golden property fixture set**: Kame Home (condo, cozy), a resort/villa (pool), a minimal studio, a property with a weak phone photo, and one with no brand kit.
+- [ ] 0.3 Build a **golden property fixture set**: Kame Space (condo, cozy), a resort/villa (pool), a minimal studio, a property with a weak phone photo, and one with no brand kit.
 - [ ] 0.4 Baseline: run today's Design tab AI and Generate tab on the fixtures and score them blind. This is the number to beat.
 - [ ] 0.5 Ship gate: mean ≥ 4.0 on every rubric axis, ≥ 70% "would post as-is", 0 factual or spelling errors, no regression vs baseline on any axis.
 
@@ -146,7 +148,7 @@ Host picks: goal (promo / vibe / amenity spotlight / feature / info / reviews), 
   - Elegant serif: Cormorant Garamond, Playfair Display, DM Serif Display (keep Fraunces)
   - Tracked caps and sans: Montserrat, Poppins (keep Jost, Plus Jakarta)
 - [ ] 2.2 **Curated font pairings (~10)** replacing today's 4, each named after a mood. Examples: "Cozy Café" (Fredoka + Allura + Poppins), "Tropical Script" (Montserrat caps + Great Vibes + Poppins), "Editorial Calm" (Cormorant + Jost caps), "Magazine Cover" (Playfair + Sacramento + Jost), "Playful Pop" (Lilita One + Chewy + Poppins). Pairings are **hand-picked**; the AI chooses one and never invents fonts.
-- [ ] 2.3 **Type styles as tokens:** each pairing defines `display`, `script`, `eyebrow` (caps, +20–30% tracking), `body` and `chip`, each with size ramp, line-height, weight, stroke (outline), shadow and case. This lets us reproduce the "KAME HOME with white outline + drop shadow" look.
+- [ ] 2.3 **Type styles as tokens:** each pairing defines `display`, `script`, `eyebrow` (caps, +20–30% tracking), `body` and `chip`, each with size ramp, line-height, weight, stroke (outline), shadow and case. This lets us reproduce the "KAME SPACE with white outline + drop shadow" look.
 - [ ] 2.4 **Amenity icon set:** one consistent line icon family (Lucide or Phosphor) as SVG with a fixed stroke width. Map every `AMENITY_LABELS` id (`_shared/publicPropertyAmenities.ts`) and custom-amenity keyword to an icon. Reuse the mapping in `ui/src/features/guest/marketing/properties/components/property-detail/PropertyAmenities.tsx` if it exists. Also add icons for the info bar (clock, shield, pin, calendar, car, people) and for "perfect for" items.
 - [ ] 2.5 **Poster modules**, each a pure function returning Polotno children in `ui/.../lib/polotno/modules/`:
   - `pillBadge` (with • / \| separators)

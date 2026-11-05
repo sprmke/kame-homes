@@ -107,7 +107,7 @@ describe('rollupOrgPortfolio', () => {
     expect(rollupOrgPortfolio(rows).attentionCount).toBe(1);
   });
 
-  it('counts attention for underbooked, empty, or soft occupancy — not balances', () => {
+  it('counts attention for underbooked, empty, or soft occupancy - not balances', () => {
     expect(
       listingNeedsAttention({
         forwardOccupancyState30d: 'strong',

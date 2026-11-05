@@ -1,8 +1,8 @@
 ---
 title: 'PayMongo subscription billing (host → platform)'
-status: active
+status: done
 tags: [workflow, done, billing, paymongo]
-updated: 2026-08-18
+updated: 2026-11-04
 stage: done
 kind: plan
 ---
@@ -11,7 +11,7 @@ kind: plan
 
 > **Shipped 2026-08-18 (property-scoped adaptation).** Implemented on **`property_subscriptions`** / **`pricing_plans`**: PayMongo checkout + webhook fulfillment, renewal/dunning cron, super-admin payment settings + manual cron trigger, host Plans billing UX, **`RequirePropertySubscriptionAccess`** suspension gate. **Requires env setup** before live use — [`docs/archive/operations/paymongo-billing-setup.md`](../../archive/operations/paymongo-billing-setup.md). **Intentionally not built:** org Settings Billing tab (billing on Property Plans), org-scoped subscription tables, AI credit PayMongo top-up (separate plan).
 
-> **Plan catalog alignment (2026-08-18):** Property-scoped tier catalog and assignments live in **`pricing_plans`** / **`property_subscriptions`** from **[`host-plans-and-pricing-tiers.md`](../in-progress/host-plans-and-pricing-tiers.md)** (shipped). When implementing PayMongo checkout, attach payment/transaction tables to **`property_subscriptions`** by **`property_id`** — do **not** re-derive parallel **`platform_subscription_plans`** / org-scoped plan catalogs from this doc's original draft.
+> **Plan catalog alignment (2026-08-18):** Property-scoped tier catalog and assignments live in **`pricing_plans`** / **`property_subscriptions`** from **[`host-plans-and-pricing-tiers.md`](host-plans-and-pricing-tiers.md)** (shipped). When implementing PayMongo checkout, attach payment/transaction tables to **`property_subscriptions`** by **`property_id`** — do **not** re-derive parallel **`platform_subscription_plans`** / org-scoped plan catalogs from this doc's original draft.
 
 ## Goal
 

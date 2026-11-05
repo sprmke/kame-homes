@@ -2,9 +2,13 @@ import { useState, type ReactNode } from 'react';
 
 import { Grid3X3, Share2 } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 import { GalleryLightbox } from '@/features/guest/marketing/shared/components/GalleryLightbox';
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
 import { LISTING_PLACEHOLDER_PROPERTY } from '@/features/guest/marketing/shared/lib/mockListingImages';
+
+import { shareContent } from '@/lib/pwa/share';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -182,12 +186,13 @@ export function ListingGallery({
             size="sm"
             className="bg-background/90 hover:bg-background min-h-[44px] gap-2 rounded-full backdrop-blur-sm"
             onClick={() => {
-              if (navigator.share) {
-                void navigator.share({
-                  title: listingName,
-                  url: window.location.href,
-                });
-              }
+              // Shared helper: native share sheet, clipboard fallback, toast outcome.
+              void shareContent({ title: listingName, url: window.location.href }).then(
+                (outcome) => {
+                  if (outcome === 'copied') toast.success('Link copied');
+                  else if (outcome === 'unavailable') toast.error('Could not share this link');
+                }
+              );
             }}
           >
             <Share2 className="h-4 w-4" />

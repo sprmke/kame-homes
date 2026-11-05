@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/scripts/dev/check-linked-project.sh"
 
 LABEL="${1:-hosted-dev}"
-OUT_DIR="$ROOT/docs/workflow/planned/production-readiness-checklist/baselines"
+OUT_DIR="$ROOT/docs/workflow/in-progress/production-readiness/checklist/baselines"
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 OUT_JSON="$OUT_DIR/${STAMP%%T*}-pg-stat-statements-${LABEL}.json"
 

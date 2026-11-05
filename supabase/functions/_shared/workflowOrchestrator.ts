@@ -9,6 +9,7 @@
  */
 
 import { DatabaseService } from './databaseService.ts';
+import { captureSideEffectFailure } from './sentry.ts';
 import { ensureGuestStayGuideToken } from './guestStayGuide.ts';
 import {
   checkGuestBalanceSettlement,
@@ -23,6 +24,8 @@ import {
   sendEmail,
   sendPetEmail,
   sendBookingAcknowledgement,
+  sendBookingCancelledGuest,
+  sendBookingCancelledHost,
   sendReadyForCheckin,
   sendSdRefundFormRequest,
 } from './emailService.ts';
@@ -127,6 +130,21 @@ export type TransitionPayload = {
    */
   document_completion_target?:
     'PENDING_GAF' | 'PENDING_PARKING_REQUEST' | 'PENDING_PET_REQUEST' | string;
+
+  /**
+   * Cancellation metadata for any `→ CANCELLED` transition. Written in the same
+   * update as the status change so a cancellation never exists without a record
+   * of who asked and why.
+   */
+  cancellation?: {
+    initiator: 'guest' | 'host' | 'ota' | 'system';
+    reasonCode: string;
+    reasonNote?: string | null;
+    refundDuePhp?: number | null;
+    refundPercent?: number | null;
+    notifyGuest?: boolean;
+    policyTitle?: string | null;
+  };
 };
 
 /**
@@ -162,6 +180,8 @@ export type TransitionResult = {
      * Client may surface a settings hint — distinct from `automationSkippedByPlan`.
      */
     automationSkippedByHost: string[];
+    /** Workflow emails that were due but Resend rejected or errored; the transition still applied. */
+    emailsFailed?: string[];
     /**
      * True when every guest-facing side effect (acknowledgement / ready-for-check-in /
      * SD-refund-form emails, stay-guide token, guest bell notifications) was skipped because
@@ -258,7 +278,7 @@ function requireResolvedDocTarget(
   }
   if (!resolved.configured) {
     console.warn(
-      `[orchestrator] ${field} "${target}" is not in this property's document requirements (${configuredIds}) — writing legacy ${resolved.requirementId} columns only. Set that requirement's pdfTemplateId to "${resolved.requirementId}" so the sub-step tracks it.`
+      `[orchestrator] ${field} "${target}" is not in this property's document requirements (${configuredIds}) - writing legacy ${resolved.requirementId} columns only. Set that requirement's pdfTemplateId to "${resolved.requirementId}" so the sub-step tracks it.`
     );
   }
   return resolved;
@@ -424,7 +444,7 @@ export class WorkflowOrchestrator {
     if (isReviewProceedAttempt) {
       if (documentRequirements.length === 0 && toStatus !== 'READY_FOR_CHECKIN') {
         console.log(
-          `[orchestrator] Empty document requirements for property ${propertyId ?? 'unknown'} — rewriting ${toStatus} → READY_FOR_CHECKIN`
+          `[orchestrator] Empty document requirements for property ${propertyId ?? 'unknown'} - rewriting ${toStatus} → READY_FOR_CHECKIN`
         );
         toStatus = 'READY_FOR_CHECKIN';
       } else if (documentRequirements.length > 0 && toStatus === 'READY_FOR_CHECKIN') {
@@ -588,7 +608,9 @@ export class WorkflowOrchestrator {
         docComplete === 'PENDING_PARKING_REQUEST';
 
       if (docComplete === 'PENDING_PARKING_REQUEST' && manual) {
-        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
           aiVerdictOverridden = true;
         }
       }
@@ -637,7 +659,9 @@ export class WorkflowOrchestrator {
       (docComplete === 'PENDING_PARKING_REQUEST' && manual)
     ) {
       if (fromStatus === 'PENDING_PARKING_REQUEST') {
-        if (assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)) {
+        if (
+          assertParkingPaymentReceiptIfRequired(payload, booking as Record<string, unknown>, actor)
+        ) {
           aiVerdictOverridden = true;
         }
       }
@@ -747,6 +771,26 @@ export class WorkflowOrchestrator {
       workflowFields.document_requirement_completions = completionsMap;
     }
 
+    // Cancellation metadata is part of the same write as the status change.
+    if (toStatus === 'CANCELLED') {
+      const cancellation = payload.cancellation;
+      const actorType = actor?.actorType;
+      const defaultInitiator =
+        actorType === 'guest' || actorType === 'public'
+          ? 'guest'
+          : actorType === 'cron' || actorType === 'system'
+            ? 'system'
+            : 'host';
+      workflowFields.cancelled_at = new Date().toISOString();
+      workflowFields.cancelled_by = cancellation?.initiator ?? defaultInitiator;
+      if (cancellation?.reasonCode) {
+        workflowFields.cancellation_reason_code = cancellation.reasonCode;
+      }
+      if (cancellation?.reasonNote !== undefined) {
+        workflowFields.cancellation_reason_note = cancellation.reasonNote ?? null;
+      }
+    }
+
     // 5. Persist workflow fields + update status
     if (flag(devControls, 'saveToDatabase')) {
       if (Object.keys(workflowFields).length > 0) {
@@ -786,7 +830,7 @@ export class WorkflowOrchestrator {
       );
       if (allConfigurableDocsDone && parkingDone) {
         console.log(
-          `[orchestrator] All document sub-steps complete for ${bookingId} — auto-advancing to READY_FOR_CHECKIN`
+          `[orchestrator] All document sub-steps complete for ${bookingId} - auto-advancing to READY_FOR_CHECKIN`
         );
         try {
           // Recursive call: preserve caller email flags but always send
@@ -840,6 +884,7 @@ export class WorkflowOrchestrator {
         shouldGenerateGafRequestPdf
           ? generatePDF(fd, propertyId).catch((err) => {
               console.error('[orchestrator] GAF PDF generation failed:', err);
+          void captureSideEffectFailure('pdf:gaf', err, { bookingStatusTo: toStatus });
               throw new Error(
                 `GAF request PDF could not be generated. Ensure templates/guest-form-template.pdf exists in Storage. ${
                   err instanceof Error ? err.message : String(err)
@@ -850,6 +895,7 @@ export class WorkflowOrchestrator {
         shouldGeneratePetRequestPdf
           ? generatePetPDF(fd, propertyId).catch((err) => {
               console.error('[orchestrator] Pet request PDF generation failed:', err);
+          void captureSideEffectFailure('pdf:pet_request', err, { bookingStatusTo: toStatus });
               throw new Error(
                 `Pet request PDF could not be generated. Ensure templates/pet-form-template.pdf exists in Storage. ${
                   err instanceof Error ? err.message : String(err)
@@ -899,6 +945,7 @@ export class WorkflowOrchestrator {
 
     // 8. Emails — based on side-effect matrix in booking-workflow.mdc §3
     const emailsSent: string[] = [];
+    const emailsFailed: string[] = [];
     const automationSkippedByPlan: string[] = [];
     const automationSkippedByHost: string[] = [];
     let externalSuppressed = false;
@@ -934,6 +981,11 @@ export class WorkflowOrchestrator {
           emailsSent.push('gaf_request');
         } catch (err) {
           console.error('[orchestrator] GAF request email failed:', err);
+          emailsFailed.push('gaf_request');
+          await captureSideEffectFailure('email:gaf_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
         }
       } else if (
         isReviewToInitialDocs &&
@@ -958,6 +1010,11 @@ export class WorkflowOrchestrator {
           emailsSent.push('booking_acknowledgement');
         } catch (err) {
           console.error('[orchestrator] Booking acknowledgement email failed:', err);
+          emailsFailed.push('booking_acknowledgement');
+          await captureSideEffectFailure('email:booking_acknowledgement', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
         }
       } else if (flag(devControls, 'sendBookingAcknowledgementEmail')) {
         console.log('[orchestrator] Booking acknowledgement email skipped (org automation off)');
@@ -983,6 +1040,11 @@ export class WorkflowOrchestrator {
           emailsSent.push('pet_request');
         } catch (err) {
           console.error('[orchestrator] Pet request email failed:', err);
+          await captureSideEffectFailure('email:pet_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+          emailsFailed.push('pet_request');
         }
       } else if (
         isReviewToInitialDocs &&
@@ -1009,6 +1071,10 @@ export class WorkflowOrchestrator {
         if (refreshed) updatedBooking = refreshed;
       } catch (err) {
         console.error('[orchestrator] Stay guide token failed (non-fatal):', err);
+        await captureSideEffectFailure('stay_guide_token', err, {
+          level: 'warning',
+          bookingStatusTo: toStatus,
+        });
       }
     }
 
@@ -1040,6 +1106,11 @@ export class WorkflowOrchestrator {
         emailsSent.push('ready_for_checkin');
       } catch (err) {
         console.error('[orchestrator] Ready-for-check-in email failed:', err);
+        emailsFailed.push('ready_for_checkin');
+        await captureSideEffectFailure('email:ready_for_checkin', err, {
+          provider: 'resend',
+          bookingStatusTo: toStatus,
+        });
       }
     } else if (
       toStatus === 'READY_FOR_CHECKIN' &&
@@ -1085,6 +1156,11 @@ export class WorkflowOrchestrator {
           }
         } catch (err) {
           console.error('[orchestrator] SD refund form request email failed:', err);
+          await captureSideEffectFailure('email:sd_refund_request', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+          emailsFailed.push('sd_refund_form_request');
         }
       }
     } else if (
@@ -1168,8 +1244,82 @@ export class WorkflowOrchestrator {
       }
     }
 
+    // ── Cancellation emails ──────────────────────────────────────────────────
+    // `payload.cancellation` is set by every cancel path. OTA feed drops pass
+    // `notifyGuest: false`; the channel already told the guest.
+    if (toStatus === 'CANCELLED' && payload.cancellation) {
+      const cancellation = payload.cancellation;
+      const notifyGuest = cancellation.notifyGuest !== false;
+      if (suppressGuestSideEffects) externalSuppressed = true;
+
+      if (notifyGuest && !suppressGuestSideEffects) {
+        try {
+          await sendBookingCancelledGuest(updatedBooking, {
+            refundDuePhp: Number(cancellation.refundDuePhp ?? 0),
+            refundPercent: cancellation.refundPercent ?? null,
+            reasonCode: cancellation.reasonCode,
+            reasonNote: cancellation.reasonNote ?? null,
+            initiator: cancellation.initiator,
+            policyTitle: cancellation.policyTitle ?? null,
+          });
+          emailsSent.push('booking_cancelled_guest');
+        } catch (err) {
+          console.error('[orchestrator] Guest cancellation email failed:', err);
+          emailsFailed.push('booking_cancelled_guest');
+          await captureSideEffectFailure('email:booking_cancelled_guest', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+        }
+      }
+
+      if (cancellation.initiator !== 'host') {
+        try {
+          await sendBookingCancelledHost(updatedBooking, {
+            refundDuePhp: Number(cancellation.refundDuePhp ?? 0),
+            refundPercent: cancellation.refundPercent ?? null,
+            reasonCode: cancellation.reasonCode,
+            reasonNote: cancellation.reasonNote ?? null,
+            initiator: cancellation.initiator,
+            policyTitle: cancellation.policyTitle ?? null,
+          });
+          emailsSent.push('booking_cancelled_host');
+        } catch (err) {
+          console.error('[orchestrator] Host cancellation email failed:', err);
+          emailsFailed.push('booking_cancelled_host');
+          await captureSideEffectFailure('email:booking_cancelled_host', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+        }
+      }
+
+      const organizationId = await resolveNotificationOrgId();
+      if (organizationId && cancellation.initiator === 'guest') {
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_cancelled_by_guest',
+            title: 'Booking cancelled',
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'} cancelled their booking.`,
+            bookingId,
+            metadata: {
+              ...bookingNotificationMetadata(updatedBooking),
+              reason_code: cancellation.reasonCode,
+              refund_due_php: cancellation.refundDuePhp ?? 0,
+            },
+            dedupeKey: `${bookingId}:cancelled`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Cancellation notification failed (non-fatal):', notifyError);
+        }
+      }
+    }
+
     console.log(`[orchestrator] Transition complete: ${fromStatus} → ${toStatus}`, {
       emailsSent,
+      emailsFailed,
     });
 
     if (flag(devControls, 'saveToDatabase')) {
@@ -1190,6 +1340,8 @@ export class WorkflowOrchestrator {
         manual,
         actor,
         aiVerdictOverridden,
+        emailsFailed,
+        cancellation: payload.cancellation ?? null,
         resolveOrgId: resolveNotificationOrgId,
       });
       await this.logTransitionPostHog({
@@ -1201,6 +1353,7 @@ export class WorkflowOrchestrator {
         completionsChanged,
         manual,
         actor,
+        cancellation: payload.cancellation ?? null,
       });
 
       // ── Cache invalidation (doc 12, Phase 12.5) — routed through the orchestrator's side
@@ -1224,6 +1377,7 @@ export class WorkflowOrchestrator {
       booking: updatedBooking,
       sideEffects: {
         emails: emailsSent,
+        ...(emailsFailed.length > 0 ? { emailsFailed } : {}),
         automationSkippedByPlan,
         automationSkippedByHost,
         ...(externalSuppressed ? { externalSuppressed: true } : {}),
@@ -1256,6 +1410,7 @@ export class WorkflowOrchestrator {
     completionsChanged: boolean;
     manual: boolean;
     actor?: ActorContext;
+    cancellation?: TransitionPayload['cancellation'] | null;
   }): Promise<void> {
     try {
       const statusChanged = args.fromStatus !== args.toStatus;
@@ -1290,6 +1445,9 @@ export class WorkflowOrchestrator {
           properties: {
             ...baseProps,
             previous_status: args.fromStatus,
+            initiator: args.cancellation?.initiator ?? actorType,
+            reason_code: args.cancellation?.reasonCode ?? undefined,
+            refund_percent: args.cancellation?.refundPercent ?? undefined,
           },
         });
         return;
@@ -1316,6 +1474,8 @@ export class WorkflowOrchestrator {
     manual: boolean;
     actor?: ActorContext;
     aiVerdictOverridden?: boolean;
+    emailsFailed?: string[];
+    cancellation?: TransitionPayload['cancellation'] | null;
     resolveOrgId: () => Promise<string | null>;
   }): Promise<void> {
     try {
@@ -1355,6 +1515,16 @@ export class WorkflowOrchestrator {
           manual: args.manual,
           ...(isDocSubstep && args.completionTarget ? { requirement: args.completionTarget } : {}),
           ...(args.aiVerdictOverridden ? { ai_verdict_overridden: true } : {}),
+          ...(args.emailsFailed?.length ? { emails_failed: args.emailsFailed } : {}),
+          ...(args.cancellation
+            ? {
+                cancellation_initiator: args.cancellation.initiator,
+                cancellation_reason_code: args.cancellation.reasonCode,
+                cancellation_reason_note: args.cancellation.reasonNote ?? null,
+                refund_due_php: args.cancellation.refundDuePhp ?? null,
+                refund_percent: args.cancellation.refundPercent ?? null,
+              }
+            : {}),
         },
       });
     } catch (err) {

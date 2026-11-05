@@ -21,8 +21,10 @@ import {
   exchangeMetaLongLivedUserToken,
   fetchMetaUserPages,
 } from '../_shared/metaInboxGraph.ts';
+import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -76,6 +78,16 @@ serve(async (req) => {
     return Response.redirect(dest, 302);
   }
 
+  if (!(await isFeatureAvailable('inbox.meta.connect'))) {
+    const dest = buildMetaOAuthErrorRedirect(
+      st.return_origin,
+      st.return_path,
+      'feature_unavailable'
+    );
+    if (state) await sb.from('meta_inbox_oauth_state').delete().eq('state', state);
+    return Response.redirect(dest, 302);
+  }
+
   try {
     const short = await exchangeMetaCodeForToken(code);
     const userToken = await exchangeMetaLongLivedUserToken(short.access_token);
@@ -90,6 +102,18 @@ serve(async (req) => {
       await connectMetaInboxPage(st.organization_id, pages[0]!, {
         propertyId: st.property_id,
         parkingId: st.parking_id,
+      });
+      await capturePostHogEvent('meta_inbox_connected', {
+        logPrefix: 'meta-inbox-oauth-callback',
+        groups: {
+          organization: st.organization_id,
+          ...(st.property_id ? { property: st.property_id } : {}),
+          ...(st.parking_id ? { parking: st.parking_id } : {}),
+        },
+        properties: {
+          channel: pages[0]!.instagram_business_account ? 'instagram' : 'messenger',
+        },
+        system: true,
       });
       await sb.from('meta_inbox_oauth_state').delete().eq('state', state);
       return Response.redirect(
@@ -117,7 +141,13 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error('[meta-inbox-oauth-callback]', e);
-    await capturePostHogException(e, { logPrefix: 'meta-inbox-oauth-callback', request: req });
+    await captureSentryException(e, {
+      logPrefix: 'meta-inbox-oauth-callback',
+      url: req.url,
+      method: req.method,
+      tags: { provider: 'meta' },
+      fingerprint: ['meta-inbox-oauth-callback'],
+    });
     const dest = buildMetaOAuthErrorRedirect(
       st.return_origin,
       st.return_path,

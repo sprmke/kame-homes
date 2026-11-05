@@ -9,7 +9,7 @@ kind: qa
 
 # QA — Voucher reveal styles
 
-Manual checklist for [`../done/voucher-reveal-styles.md`](../done/voucher-reveal-styles.md). Automated mocked coverage: [`../../guides/testing/voucher-reveal-playwright.md`](../../guides/testing/voucher-reveal-playwright.md). Use local `./dev.sh` + a booking in `READY_FOR_CHECKOUT` with SD form available.
+Manual checklist for [`../done/voucher-reveal-styles.md`](../../done/voucher-reveal-styles.md). Automated mocked coverage: [`../../guides/testing/voucher-reveal-playwright.md`](../../../guides/testing/voucher-reveal-playwright.md). Use local `./dev.sh` + a booking in `READY_FOR_CHECKOUT` with SD form available.
 
 **Reset voucher for QA** (local only): SQL in `docs/architecture/edge-functions.md` § Reset next-stay voucher.
 

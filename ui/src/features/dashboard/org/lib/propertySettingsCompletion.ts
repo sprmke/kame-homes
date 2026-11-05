@@ -9,7 +9,7 @@ import {
   validatePaymentAccountNumber,
   validatePaymentProvider,
 } from '@/features/dashboard/org/lib/paymentProviders';
-import { validateCancellationPolicySettings } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import { validateCancellationPolicy } from '@/features/dashboard/org/lib/cancellationPolicy';
 import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import { SD_REFUND_CRON_EMAIL_LEAD_MAX_HOURS } from '@/features/dashboard/org/lib/propertyEmailAutomation';
 import { countPropertyMedia } from '@/features/dashboard/org/lib/propertyMedia';
@@ -279,16 +279,12 @@ export function computePropertySettingsCompletion(
   }
 
   // ── Cancellation ──
-  if (profile.cancellationPolicy.type === 'custom') {
-    const cancellationErr = validateCancellationPolicySettings(profile.cancellationPolicy);
+  if (profile.cancellationPolicy === null) {
+    addSectionIssue('cancellation', 'Choose a cancellation policy.');
+  } else if (profile.cancellationPolicy.presetId === 'custom') {
+    const cancellationErr = validateCancellationPolicy(profile.cancellationPolicy);
     if (cancellationErr) {
-      if (cancellationErr.includes('title')) {
-        addFieldError('cancellation-custom-title', cancellationErr, 'cancellation');
-      } else if (cancellationErr.includes('description')) {
-        addFieldError('cancellation-custom-description', cancellationErr, 'cancellation');
-      } else {
-        addFieldError('cancellation-custom-title', cancellationErr, 'cancellation');
-      }
+      addFieldError('cancellation-policy', cancellationErr, 'cancellation');
     }
   }
 
@@ -422,4 +418,12 @@ export function computePropertySettingsCompletion(
     firstErrorMessage,
     isComplete: issueSectionIds.length === 0,
   };
+}
+
+/** Same signal as the section nav attention dot. */
+export function propertySettingsSectionHasIssue(
+  sectionId: PropertySettingsSectionId,
+  issueSectionIds: readonly PropertySettingsSectionId[]
+): boolean {
+  return issueSectionIds.includes(sectionId);
 }

@@ -29,7 +29,7 @@ async function signPayload(
   return `v1,${btoa(binarySig)}`;
 }
 
-Deno.test('verifyResendWebhookSignature — valid signature', async () => {
+Deno.test('verifyResendWebhookSignature - valid signature', async () => {
   const rawBody = '{"type":"email.received"}';
   const svixId = 'msg_test_001';
   const svixTimestamp = String(Math.floor(Date.now() / 1000));
@@ -46,7 +46,7 @@ Deno.test('verifyResendWebhookSignature — valid signature', async () => {
   assert(ok);
 });
 
-Deno.test('verifyResendWebhookSignature — rejects tampered body', async () => {
+Deno.test('verifyResendWebhookSignature - rejects tampered body', async () => {
   const rawBody = '{"type":"email.received"}';
   const svixId = 'msg_test_002';
   const svixTimestamp = String(Math.floor(Date.now() / 1000));
@@ -63,7 +63,7 @@ Deno.test('verifyResendWebhookSignature — rejects tampered body', async () => 
   assertEquals(ok, false);
 });
 
-Deno.test('verifyResendWebhookSignature — rejects stale timestamp', async () => {
+Deno.test('verifyResendWebhookSignature - rejects stale timestamp', async () => {
   const rawBody = '{"type":"email.received"}';
   const svixId = 'msg_test_003';
   const svixTimestamp = String(Math.floor(Date.now() / 1000) - 600);

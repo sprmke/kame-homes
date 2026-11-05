@@ -28,7 +28,7 @@ Signed-in guests see next-stay vouchers earned after a completed stay (review + 
 
 ## Host-facing knowledge
 
-Guests keep vouchers they earned from a previous stay in their account under **Vouchers**. They can apply one when booking the same property again. The discount lowers the stay rate you set at review — it does not change the guest’s downpayment amount.
+Guests keep vouchers they earned from a previous stay in their account under **Vouchers**. They can apply one when booking the same property again. The discount lowers the stay rate you set at review - it does not change the guest’s downpayment amount.
 
 **Common host questions**
 
@@ -37,7 +37,11 @@ Guests keep vouchers they earned from a previous stay in their account under **V
 - Q: Does the voucher change what they pay as downpayment?
   A: No. Downpayment stays as usual. The voucher reduces the booking rate when you review pricing.
 - Q: How do I see that a guest used a voucher?
-  A: Open the booking → Pricing. You’ll see a **Guest voucher** block and a lower pre-filled booking rate on Review pricing.
+  A: Open the booking → Pricing. You'll see a **Guest voucher** block and a lower pre-filled booking rate on Review pricing.
+- Q: When does a guest earn a voucher?
+  A: After a completed stay, when the guest leaves a review and claims the next-stay reward.
+- Q: Can a guest transfer a voucher or use two at once?
+  A: No. A voucher stays with the guest who earned it and applies to one future booking at the same property. Vouchers cannot be stacked.
 
 ---
 

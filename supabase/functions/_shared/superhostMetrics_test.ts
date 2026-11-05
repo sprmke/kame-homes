@@ -243,3 +243,21 @@ Deno.test('all four criteria required', () => {
   assert(allSuperhostCriteriaMet(criteria));
   assertEquals(criteria.rating.required, SUPERHOST_THRESHOLDS.minRating);
 });
+
+Deno.test('cancellation rate counts only host cancellations', () => {
+  const asOf = '2026-08-31';
+  const bookings = Array.from({ length: 10 }, (_, i) => ({
+    status: (i < 3 ? 'CANCELLED' : 'COMPLETED') as 'COMPLETED' | 'CANCELLED',
+    checkOutDate: `2026-08-${String(i + 1).padStart(2, '0')}`,
+    checkInDate: `2026-08-${String(i + 1).padStart(2, '0')}`,
+    numberOfNights: 2,
+    cancelledBy: (i === 0 ? 'host' : i === 1 ? 'guest' : 'ota') as
+      | 'host'
+      | 'guest'
+      | 'ota'
+      | null,
+  }));
+  const metric = computeCancellationRateMetric(bookings, asOf);
+  assertEquals(metric.sampleSize, 10);
+  assertEquals(metric.value, 0.1);
+});

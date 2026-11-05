@@ -2,7 +2,7 @@
 title: 'Parking notifications — operator guide'
 status: active
 tags: [guides, routes, org, parking]
-updated: 2026-09-02
+updated: 2026-11-05
 ---
 
 # Parking notifications — operator guide
@@ -34,7 +34,11 @@ Deep links:
 
 Hub for **in-app activity** (same org-wide feed as the bell) and **Telegram** alerts for this parking slot.
 
-**Plan gating:** **Telegram Chat enable** and the **AI dashboard assistant** gate on the org's own live subscription (or Free default) — `requireOrgFeature`/`resolveOrgEntitlements` server-side, `useFeatureGate`/`useOrgPlan` client-side — same as any org-only page, no property involved. Closed 2026-09-09; see [`parking-property-parity.md`](../../../workflow/in-progress/parking-property-parity.md).
+Page subtitle: "Manage in-app notifications and Telegram alerts for this parking slot."
+
+**Plan gating:** **Telegram Chat enable** and the **AI dashboard assistant** gate on the org's own live subscription (or Free default) — `requireOrgFeature`/`resolveOrgEntitlements` server-side, `useFeatureGate`/`useOrgPlan` client-side — same as any org-only page, no property involved. Closed 2026-09-09; see [`parking-property-parity.md`](../../../../workflow/for-testing/parking-property-parity.md).
+
+**Feature availability (super-admin):** Same Telegram keys as property notifications (`notifications.telegram`, `.settings`, `.delivery`). Shared bot token and module cards use `TelegramNotificationsTelegramSection`; PATCH/POST on `telegram-*-settings` return 503 when settings are off.
 
 ### This device (PWA)
 
@@ -79,6 +83,8 @@ Parking **Notifications** configures Telegram alerts for this slot. The **Chat**
   A: Reservation Telegram templates are wired for this slot, but some reservation events depend on the parking booking flow shipping. Finance due-date reminders work today when finance Telegram is enabled and transactions have due dates.
 - Q: How do I jump straight to finance reminders?
   A: Open notifications with the finance module selected in the URL, or scroll to the **Finance** card on this page.
+- Q: Can I test a notification section before turning it on?
+  A: Yes. Each section has a **Save and test** action that confirms the bot token and chat ID before alerts start.
 
 ---
 
@@ -124,21 +130,22 @@ Cron: global `telegram-finance-cron` (hourly) processes unpaid `finance_line_ite
 
 ## Implementation map
 
-| Concern       | Path                                                                                                              |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Page          | `ui/src/features/dashboard/parking/pages/ParkingNotificationsPage.tsx`                                            |
-| In-app list   | `ui/src/features/dashboard/notifications/components/InAppNotificationsPanel.tsx`                                  |
-| Bell          | `ui/src/features/dashboard/notifications/components/NotificationBell.tsx` (desktop FAB; mobile Notifications tab) |
-| Chat card     | `ui/src/features/dashboard/bookings/components/TelegramChatSettingsCard.tsx`                                      |
-| Chat hooks    | `ui/src/features/dashboard/bookings/hooks/useTelegramChatSettings.ts`                                             |
-| Parking card  | `ui/src/features/dashboard/parking/components/TelegramParkingSettingsCard.tsx`                                    |
-| Finance card  | `ui/src/features/dashboard/bookings/components/TelegramFinanceSettingsCard.tsx`                                   |
-| Finance hooks | `ui/src/features/dashboard/bookings/hooks/useTelegramFinanceSettings.ts`                                          |
-| Chat edge     | `supabase/functions/telegram-chat-settings/index.ts`                                                              |
-| Parking edge  | `supabase/functions/telegram-parking-settings/index.ts`                                                           |
-| Finance edge  | `supabase/functions/telegram-finance-settings/index.ts`                                                           |
-| Chat notify   | `supabase/functions/_shared/telegramChat.ts` → `notifyTelegramChatInbound`                                        |
-| Cron          | `supabase/functions/telegram-finance-cron/index.ts`                                                               |
+| Concern       | Path                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Page          | `ui/src/features/dashboard/parking/pages/ParkingNotificationsPage.tsx`                                                 |
+| Loading       | `NotificationsPageBodySkeleton` (`NotificationsSkeleton.tsx`) — section nav, in-app cards, three Telegram module cards |
+| In-app list   | `ui/src/features/dashboard/notifications/components/InAppNotificationsPanel.tsx`                                       |
+| Bell          | `ui/src/features/dashboard/notifications/components/NotificationBell.tsx` (desktop FAB; mobile Notifications tab)      |
+| Chat card     | `ui/src/features/dashboard/bookings/components/TelegramChatSettingsCard.tsx`                                           |
+| Chat hooks    | `ui/src/features/dashboard/bookings/hooks/useTelegramChatSettings.ts`                                                  |
+| Parking card  | `ui/src/features/dashboard/parking/components/TelegramParkingSettingsCard.tsx`                                         |
+| Finance card  | `ui/src/features/dashboard/bookings/components/TelegramFinanceSettingsCard.tsx`                                        |
+| Finance hooks | `ui/src/features/dashboard/bookings/hooks/useTelegramFinanceSettings.ts`                                               |
+| Chat edge     | `supabase/functions/telegram-chat-settings/index.ts`                                                                   |
+| Parking edge  | `supabase/functions/telegram-parking-settings/index.ts`                                                                |
+| Finance edge  | `supabase/functions/telegram-finance-settings/index.ts`                                                                |
+| Chat notify   | `supabase/functions/_shared/telegramChat.ts` → `notifyTelegramChatInbound`                                             |
+| Cron          | `supabase/functions/telegram-finance-cron/index.ts`                                                                    |
 
 ---
 

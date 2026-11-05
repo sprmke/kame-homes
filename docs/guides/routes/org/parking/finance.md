@@ -29,6 +29,10 @@ Parking **Finance** tracks money in and out for this slot only: rent collected, 
   A: Configure **Finance** notifications (Telegram) under this slot’s **Notifications** page, then add due dates when you create or edit expense lines.
 - Q: Who can add or delete transactions?
   A: Team members with finance edit access for this parking slot. View-only roles can see summaries but not change lines.
+- Q: How do I add an operating expense?
+  A: Use **Add Transaction**, choose expense, then set the category, amount, date, and notes. Recurring lines can repeat on a schedule.
+- Q: Can I export parking finance for my accountant?
+  A: Yes. **Export report** offers an overview, the transactions list, or a full PDF report for the selected range. Stays are left out because parking finance has no guest-stay ledger.
 
 ---
 
@@ -71,15 +75,16 @@ Property finance uses `property_id` instead; never send both.
 
 ## Implementation map
 
-| Concern      | Path                                                                                           |
-| ------------ | ---------------------------------------------------------------------------------------------- |
-| Page         | `ui/src/features/dashboard/parking/pages/ParkingFinancePage.tsx`                               |
-| Shared UI    | `ui/src/features/dashboard/finance/components/*`                                               |
-| Hooks        | `useFinanceSummary`, `useFinanceLineItems` (asset scope via `useAdminAssetScope`)              |
-| API client   | `ui/src/features/dashboard/finance/hooks/useFinanceApi.ts`, `assetEdgeFetch`                   |
-| DB           | `finance_line_items.parking_id` — migration `20260919120000_finance_line_items_parking_id.sql` |
-| Server scope | `supabase/functions/_shared/financeAssetScope.ts`                                              |
-| Server CRUD  | `supabase/functions/finance-line-items/index.ts`                                               |
+| Concern      | Path                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| Page         | `ui/src/features/dashboard/parking/pages/ParkingFinancePage.tsx`                                      |
+| Loading      | `FinancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — same KPIs, charts, toolbar, responsive ledger |
+| Shared UI    | `ui/src/features/dashboard/finance/components/*`                                                      |
+| Hooks        | `useFinanceSummary`, `useFinanceLineItems` (asset scope via `useAdminAssetScope`)                     |
+| API client   | `ui/src/features/dashboard/finance/hooks/useFinanceApi.ts`, `assetEdgeFetch`                          |
+| DB           | `finance_line_items.parking_id` — migration `20260919120000_finance_line_items_parking_id.sql`        |
+| Server scope | `supabase/functions/_shared/financeAssetScope.ts`                                                     |
+| Server CRUD  | `supabase/functions/finance-line-items/index.ts`                                                      |
 
 ---
 

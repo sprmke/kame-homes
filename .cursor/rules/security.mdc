@@ -59,7 +59,22 @@ Minimize logs. Storage paths: `{propertyId}/…` via `bookingStoragePaths.ts` (l
 
 Guest form **reads and writes** (`get-form`, `get-sd-form`, `get-guest-review`, `submit-form` updates, `submit-sd-form`, `submit-guest-review`, `claim-sd-voucher`) require `authorizeGuestBookingAccess` when `GUEST_BOOKING_ACCESS_ENFORCE=true`. Token may be `?access=` or body/FormData `access`. Never return unsigned storage URLs for private guest-doc buckets.
 
+Two-way reviews: unpublished counterpart text never leaves the authoring side (lists, emails, bells, PostHog, AI drafts). `host_guest_reviews.internal_note` stays inside the authoring org. Public listing aggregates use `property_review_summary` (published only).
+
 Public writes: `antiSpamGate` (heuristics + Turnstile when keys live + durable RL). New `servePublic` handlers must wire `publicGetRateLimitGate` (CI: `check-serve-public-rate-limit.sh`).
+
+## Telemetry PII
+
+Two vendors, one deny list. Neither gets names, emails, phone numbers, addresses, message
+bodies, ID or receipt contents, file URLs, or `access` / `complete` / `token` query values.
+
+- **Sentry** (faults): `user.id` only, no email, no IP. Requests are scrubbed before they
+  leave the isolate or the browser.
+- **PostHog** (outcomes): host / super-admin email may appear on the person profile; guest
+  email never does.
+- The list lives once, in `ui/src/lib/telemetry/scrub.ts` and
+  `supabase/functions/_shared/telemetryScrub.ts`; a parity test fails if they drift. Add a new
+  sensitive key to **both**, in the same change.
 
 ## Don'ts
 

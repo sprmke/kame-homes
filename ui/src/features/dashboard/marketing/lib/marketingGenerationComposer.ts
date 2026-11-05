@@ -45,6 +45,10 @@ export type AiStudioComposerValues = {
   references: MarketingGenerationReference[];
 };
 
+/**
+ * A saved composer state to re-apply (Retry / Refine). Applied when its `id`
+ * changes, not by object identity, so re-setting the same values still counts.
+ */
 export type AiStudioComposerDraft = {
   id: number;
   values: AiStudioComposerValues;

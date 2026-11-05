@@ -9,7 +9,7 @@ import { WorkflowSpine } from '@/features/guest/marketing/for-hosts/preview/comp
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 /**
- * Ground-up redesign of `/for-hosts`, served at `/for-hosts/preview` for review before it
+ * Ground-up redesign of `/for-hosts`, served at `/for-hosts/v2` for review before it
  * replaces the live route. Font stays Plus Jakarta Sans throughout; the signature is the teal
  * "thread" (hero spine → animated workflow rail → showcase progress) marking what Kame handles
  * on its own. Section ids `features` / `how-it-works` match the marketing nav so this

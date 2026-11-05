@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT_DIR = join(ROOT, 'temp');
 const OUT_FILE = join(OUT_DIR, 'mock-listings-seed.sql');
-const ORG_ID = '405ea07f-cc21-4bcc-b540-28729be79f0d'; // Kame Homes — local dev org
+const ORG_ID = '405ea07f-cc21-4bcc-b540-28729be79f0d'; // Kame Space — local dev org
 const DOCKER_CONTAINER = 'supabase_db_guest-form-management';
 
 // ─── Seeded RNG (mulberry32) — deterministic across reruns ──────────────────

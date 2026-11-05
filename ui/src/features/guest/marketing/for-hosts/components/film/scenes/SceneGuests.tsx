@@ -132,7 +132,7 @@ export function GuestInboxScene() {
               </div>
               {sent ? (
                 <div
-                  className="bg-primary text-primary-foreground ml-auto max-w-[460px] rounded-2xl rounded-br-md px-4 py-2.5 text-sm"
+                  className="bg-primary-strong text-primary-foreground ml-auto max-w-[460px] rounded-2xl rounded-br-md px-4 py-2.5 text-sm"
                   style={reveal(frame, 150, 12)}
                 >
                   {DRAFT}
@@ -268,7 +268,7 @@ export function AiReceptionistScene() {
                   'max-w-[440px] rounded-2xl px-4 py-3 text-[15px] leading-snug',
                   line.who === 'guest'
                     ? 'bg-card text-foreground border-border border'
-                    : 'bg-primary text-primary-foreground ml-auto'
+                    : 'bg-primary-strong text-primary-foreground ml-auto'
                 )}
                 style={reveal(frame, line.at, 12)}
               >
@@ -456,7 +456,7 @@ export function TemplatesScene() {
                 Check-in starts at {preview ? '2:00 PM' : token('{{checkInTime}}')}.
               </p>
               <p>Your stay guide has the Wi-Fi password, parking, and house rules.</p>
-              <span className="bg-primary text-primary-foreground inline-flex rounded-lg px-4 py-2 text-sm font-semibold">
+              <span className="bg-primary-strong text-primary-foreground inline-flex rounded-lg px-4 py-2 text-sm font-semibold">
                 Open stay guide
               </span>
             </div>

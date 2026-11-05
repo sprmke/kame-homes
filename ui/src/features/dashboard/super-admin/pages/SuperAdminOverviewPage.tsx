@@ -7,10 +7,12 @@ import { SuperAdminGrowthChart } from '@/features/dashboard/super-admin/componen
 import { SuperAdminOverviewKpis } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminOverviewKpis';
 import { SuperAdminPlanMixDonut } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminPlanMixDonut';
 import { SuperAdminRecentActivity } from '@/features/dashboard/super-admin/components/super-admin-overview/SuperAdminRecentActivity';
+import { useFeatureAvailabilityAdmin } from '@/features/dashboard/super-admin/hooks/useFeatureAvailabilityAdmin';
 import {
   useSuperAdminOverview,
   type SuperAdminOverviewRange,
 } from '@/features/dashboard/super-admin/hooks/useSuperAdminOverview';
+import { countFeaturesOff } from '@/features/dashboard/super-admin/lib/featureAvailabilityAdmin';
 
 import { SuperAdminOverviewBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { SegmentedControl } from '@/components/ui/sliding-tabs';
@@ -24,6 +26,8 @@ const RANGE_LABELS: Record<SuperAdminOverviewRange, string> = {
 export function SuperAdminOverviewPage() {
   const [range, setRange] = useState<SuperAdminOverviewRange>('30d');
   const { data, isLoading, error } = useSuperAdminOverview(range);
+  const { data: featureAvailability } = useFeatureAvailabilityAdmin();
+  const featuresOff = featureAvailability ? countFeaturesOff(featureAvailability.resolved) : 0;
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -47,14 +51,18 @@ export function SuperAdminOverviewPage() {
       />
 
       {isLoading && !data ? (
-        <SuperAdminOverviewBodySkeleton metricCount={9} />
+        <SuperAdminOverviewBodySkeleton metricCount={12} />
       ) : error ? (
         <p className="text-destructive text-sm">
           {error instanceof Error ? error.message : 'Could not load the platform overview.'}
         </p>
       ) : data ? (
         <div className="space-y-3 sm:space-y-4">
-          <SuperAdminOverviewKpis kpis={data.kpis} />
+          <SuperAdminOverviewKpis
+            kpis={data.kpis}
+            orgsWithoutLivePlan={data.attention.unassignedSubscriptions}
+            featuresOff={featuresOff}
+          />
 
           <div className="grid min-w-0 items-stretch gap-3 sm:gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">

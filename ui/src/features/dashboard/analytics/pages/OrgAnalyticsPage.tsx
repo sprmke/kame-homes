@@ -32,6 +32,8 @@ import { OrgAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
 import { Button } from '@/components/ui/button';
 import { useIsBelowMd } from '@/hooks/useMediaQuery';
 import { detectPresetFromRange, fromIsoDate } from '@/lib/date/navigation';
+import { useRef } from 'react';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export function OrgAnalyticsPage() {
   const { orgSlug = '' } = useParams<{ orgSlug: string }>();
@@ -53,6 +55,13 @@ export function OrgAnalyticsPage() {
       replace: true,
     });
   }, [searchParams, setSearchParams]);
+
+  const reportedViewRef = useRef(false);
+  useEffect(() => {
+    if (reportedViewRef.current) return;
+    reportedViewRef.current = true;
+    captureAppEvent('analytics_module_viewed', { report: 'overview', range: 'org_portfolio' });
+  }, []);
 
   const patchPeriod = useCallback(
     (next: { from: string | null; to: string | null }) => {
@@ -137,6 +146,7 @@ export function OrgAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
+      subtitle="Track revenue, occupancy, and bookings across every listing."
       titleId="org-analytics-heading"
       heroTrailing={heroActions}
       overlap={overlapControls}

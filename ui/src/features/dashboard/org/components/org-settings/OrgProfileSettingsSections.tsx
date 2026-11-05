@@ -10,12 +10,12 @@ import {
 import { OrgSettingsImageField } from '@/features/dashboard/org/components/org-settings/OrgSettingsImageField';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { type OrgSettingsFieldSource } from '@/features/dashboard/org/hooks/useOrgSettings';
+import { absoluteGuestPath, guestHostPath } from '@/features/dashboard/org/lib/guestPublicPaths';
 import type { OrgSettingsDraft } from '@/features/dashboard/org/lib/orgSettingsForm';
 import {
   ORG_DESCRIPTION_MAX_LENGTH,
   ORG_TAGLINE_MAX_LENGTH,
 } from '@/features/dashboard/org/lib/orgSettingsValidation';
-import { absoluteGuestPath, guestHostPath } from '@/features/dashboard/org/lib/guestPublicPaths';
 
 import { AvailabilityCheckInput } from '@/components/AvailabilityCheckInput';
 import { ReadonlySlugField } from '@/components/forms/ReadonlySlugField';

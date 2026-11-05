@@ -10,7 +10,7 @@ import {
   useNotificationsList,
 } from '@/features/dashboard/notifications/hooks/useNotifications';
 import {
-  notificationsHubActivityHash,
+  notificationsHubViewQuery,
   useNotificationsHubPath,
 } from '@/features/dashboard/notifications/lib/notificationsPaths';
 import { useNotificationsOrgScope } from '@/features/dashboard/notifications/lib/notificationsScope';
@@ -83,7 +83,7 @@ export function NotificationBell({
   /** Soft attention while unread and the panel is closed — avoid motion while reading. */
   const attentionActive = hasUnread && !open;
   const hasMoreOnServer = Boolean(data?.pages[0]?.nextCursor);
-  const viewAllPath = hubPath ? `${hubPath}${notificationsHubActivityHash()}` : null;
+  const viewAllPath = hubPath ? `${hubPath}${notificationsHubViewQuery('activity')}` : null;
   const ariaLabel = hasUnread ? `Notifications, ${unreadCount} unread` : 'Notifications';
 
   const bellIconClassName = cn(
@@ -124,7 +124,7 @@ export function NotificationBell({
           <ListRowsSkeleton rows={5} />
         </div>
       ) : isError ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 sm:py-12 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center sm:py-12">
           <p className="text-muted-foreground text-sm">Could not load notifications.</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
             Try again

@@ -64,12 +64,6 @@ for side in cursor claude; do
     if [[ "$side" == "claude" && "$name" == "README.md" ]]; then
       continue
     fi
-    # Allow-listed: .claude/skills/verify/ is a real dir with no
-    # .agent/skills counterpart and no .cursor/skills mirror.
-    if [[ "$side" == "claude" && "$name" == "verify" ]]; then
-      [[ -d "$entry" && ! -L "$entry" ]] || fail "$entry expected to be a real directory (allow-listed exception)"
-      continue
-    fi
 
     # skills.sh CLI installs live under .agents/skills/ (plural), not .agent/skills/.
     if [[ -L "$entry" ]]; then

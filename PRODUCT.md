@@ -14,7 +14,7 @@ Guests use a separate public surface (forms, calendar, stay guide); they are not
 
 ## Product Purpose
 
-Kame Homes helps hosts run short-term rentals end-to-end: guest intake, booking workflow, Google sync, finance, maintenance reminders, inbox, and marketing — scoped per org and property.
+Kame Space helps hosts run short-term rentals end-to-end: guest intake, booking workflow, Google sync, finance, maintenance reminders, inbox, and marketing — scoped per org and property.
 
 Success for the property dashboard: a host can see **what needs action**, **period performance**, and **money/calendar context** in one scan, then deep-link into the right module.
 
@@ -39,7 +39,7 @@ Multi-tenant property + parking ops with a real booking status machine (document
 
 ## Brand Commitments
 
-- Product name: **Kame Homes** (guest-form lineage).
+- Product name: **Kame Space** (guest-form lineage).
 - Brand accent: hospitality teal per `DESIGN.md`.
 - Lucide icons only.
 

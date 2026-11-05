@@ -22,6 +22,7 @@ Route: `/admin/approvals`
 | Org review dialog           | Done     | Done       | Done | Host docs only; read-only listing rollup                                                  |
 | Listing verification dialog | Done     | Done       | Done | Approve / Request changes / Reject per listing tier                                       |
 | External review dialog      | Done     | Done       | Done | Approve / Reject pending property external reviews; shows stay photos (no feedback pills) |
+| Reported two-way reviews    | —        | Done       | Done | Type = Reviews also lists `review_reports`; uphold removes the review                     |
 
 ---
 
@@ -31,7 +32,7 @@ Platform super-admins review **host verification** (org scope), **listing verifi
 
 - **Org rows:** organizations where host `baseStatus ≠ none` or `enhancedStatus ≠ none`.
 - **Listing rows:** one row per property or parking where listing `baseStatus ≠ none` or `recommendedStatus ≠ none` (scope split — listing docs live on the listing, not the org).
-- **Review rows:** flattened from `app_settings.external_reviews`.
+- **Review rows:** flattened from `app_settings.external_reviews`, plus **reported** two-way reviews from `review_reports` (uphold removes the published review; reject keeps it).
 
 Default filters: **Type** = All types, **Status** = In review.
 
@@ -50,7 +51,7 @@ The platform team uses this page to approve host identity documents, **request c
 **Common host questions**
 
 - Q: Who reviews my onboarding documents?
-  A: The Kame Homes platform team. You’ll see “In review” until they approve, request changes, or decline.
+  A: The Kame Space platform team. You’ll see “In review” until they approve, request changes, or decline.
 - Q: What if changes are requested?
   A: When you sign in you’ll see a **Changes requested** popup you can’t close. Fix or replace the docs listed, then tap **Resubmit**.
 - Q: What if my verification was declined?

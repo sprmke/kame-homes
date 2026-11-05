@@ -27,7 +27,7 @@ export const questionEnglish: QuestionCopy = {
     'A Messenger thread',
     'My camera roll',
     'A Drive folder somewhere',
-    'Matched to the booking in Kame Homes',
+    'Matched to the booking in Kame Space',
   ],
   comment: 'Comment a letter',
 };

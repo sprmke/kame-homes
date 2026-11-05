@@ -1,56 +1,50 @@
-name: CD Prod (mt-prod — gated until release)
+name: CD Deploy (Supabase)
 
-# INACTIVE until Phase B (prod release):
-#   1. Create MULTI_TENANT_PROD Supabase + legacy data migration
-#   2. Merge develop → main; kame-homes Production branch = main
-#   3. GitHub Environment `production` secrets → mt-prod ref
-#   4. Set repository variable CUTOVER_ENABLED=true
-# See docs/workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md § Phase B
+# The single backend deploy pipeline.
+#
+# There is one Supabase project (`fwor…`, "Kame Space") serving both `develop` and the
+# production app, so there is nothing for a second pipeline to deploy to. `cd-dev.yml`,
+# `cd-preprod.yml` and the old gated `cd-prod.yml` all pointed at the same ref and each
+# duplicated a quality gate; they are gone.
+#
+# Trigger: push to `develop`, or run manually.
+# UI deploys separately — Vercel Preview for `develop`, Vercel Production at release.
 
 on:
+  push:
+    branches:
+      - develop
+    # Supabase-only workflow — skip when a push touches only docs/UI (Vercel deploys UI).
+    paths:
+      - '.github/workflows/cd-prod.yml'
+      - 'scripts/deploy/**'
+      # The deploy path sources the linked-project classifier and other helpers from here, so
+      # a change to deploy tooling must run the pipeline that depends on it.
+      - 'scripts/dev/**'
+      - 'supabase/**'
   workflow_dispatch:
     inputs:
-      acknowledge:
-        description: 'Type CUTover to acknowledge production Supabase deploy'
-        required: true
-        type: string
+      include_all:
+        description: 'Pass --include-all to db push (migration repair)'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
 
 jobs:
-  gate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cutover gate
-        env:
-          CUTOVER_ENABLED: ${{ vars.CUTOVER_ENABLED }}
-          ACK: ${{ github.event.inputs.acknowledge }}
-        run: |
-          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
-            echo "Production deploys must run from main."
-            exit 1
-          fi
-          if [[ "${CUTOVER_ENABLED:-}" != "true" ]]; then
-            echo "Cutover not enabled."
-            echo "Set repository variable CUTOVER_ENABLED=true only after Phase B (mt-prod release)."
-            echo "See docs/workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md § Phase B."
-            exit 1
-          fi
-          if [[ "$ACK" != "CUTover" ]]; then
-            echo "Workflow input acknowledge must be exactly: CUTover"
-            exit 1
-          fi
-          echo "Cutover gate passed. Target validation runs inside the protected production environment."
-
   quality:
-    needs: gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
@@ -60,7 +54,7 @@ jobs:
       - name: Install Playwright Chromium
         run: bun x playwright install chromium --with-deps
 
-      - name: Production quality gate
+      - name: Quality gate
         run: ./scripts/dev/ci-quality-gate.sh --skip-install
 
   deploy:
@@ -68,16 +62,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Link production project
+      - name: Link project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
@@ -92,27 +86,33 @@ jobs:
         run: ./scripts/dev/bunx --bun supabase@latest db diff --linked > pre-deploy-schema-diff.sql
 
       - name: Upload schema diff
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pre-deploy-schema-diff-${{ github.sha }}
           path: pre-deploy-schema-diff.sql
           retention-days: 30
 
-      - name: Deploy Supabase (MULTI_TENANT_PROD)
+      - name: Deploy Supabase
         env:
           CI: '1'
           DEPLOY_CONFIRM: prod
+          INCLUDE_ALL: ${{ github.event.inputs.include_all }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
-          MULTI_TENANT_DEV_PROJECT_REF: ${{ secrets.MULTI_TENANT_DEV_PROJECT_REF }}
           PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
-        run: ./scripts/deploy/ci-deploy.sh prod
+        run: |
+          # Strict migration order by default: this project holds the live booking dataset.
+          # `--include-all` is available from the manual dispatch input for migration repair.
+          if [[ "${INCLUDE_ALL:-}" == "true" ]]; then
+            ./scripts/deploy/ci-deploy.sh prod -- --include-all
+          else
+            ./scripts/deploy/ci-deploy.sh prod
+          fi
 
       - name: Upload pre-deploy backup
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pre-deploy-backup-${{ github.sha }}
           path: backups/prod/
@@ -123,7 +123,11 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          LEGACY_PROD_PROJECT_REF: ${{ secrets.LEGACY_PROD_PROJECT_REF }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMOKE_PROPERTY_SLUG: ${{ vars.SMOKE_PROPERTY_SLUG }}
         run: ./scripts/deploy/ci-smoke.sh prod
+
+      - name: Verify migration parity
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: ./scripts/deploy/check-migration-drift.sh

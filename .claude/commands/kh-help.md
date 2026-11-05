@@ -1,6 +1,6 @@
 # kh-help
 
-Show the **Kame Homes teammate commands** (`/kh-*`) and when to use each. For new QA / testers / junior devs.
+Show the **Kame Space teammate commands** (`/kh-*`) and when to use each. The same commands exist as `/ks-*` (for example `/ks-help`); both work. For new QA / testers / junior devs.
 
 ## Reply with this cheat sheet
 
@@ -10,7 +10,7 @@ Show the **Kame Homes teammate commands** (`/kh-*`) and when to use each. For ne
 | **/kh-create-new-ticket** | File a bug/feature ticket or **sub-issue** (uses the template) |
 | **/kh-start-work**        | Pick up #N: update `develop`, create a branch                  |
 | **/kh-pull-new-changes**  | Get the latest code from `develop`                             |
-| **/kh-start-app**         | Run the app (default: UI → `dev.kamehomes.space` backend)      |
+| **/kh-start-app**         | Run the app (default: UI → `kamespace.com` backend)            |
 | **/kh-check-before-pr**   | Run CI quality checks before review                            |
 | **/kh-submit-for-review** | Push your branch and open a **PR into `develop`**              |
 
@@ -24,7 +24,7 @@ Show the **Kame Homes teammate commands** (`/kh-*`) and when to use each. For ne
 ## Important defaults
 
 - Day-to-day branch: **`develop`** (multi-tenant). Avoid **`main`** unless someone asks for legacy prod work.
-- Tickets live on GitHub: **`sprmke/kame-homes`**.
+- Tickets live on GitHub: **`sprmke/kame-space`**.
 - Route behavior docs: `docs/guides/routes/README.md`.
 - Never put passwords or API keys in tickets or chat.
 

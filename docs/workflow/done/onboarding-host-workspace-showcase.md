@@ -1,8 +1,8 @@
 ---
 title: 'Onboarding & host auth — workspace showcase sidebar'
-status: active
+status: done
 tags: [workflow, done, onboarding, auth, marketing]
-updated: 2026-08-27
+updated: 2026-11-04
 stage: done
 kind: reference
 ---

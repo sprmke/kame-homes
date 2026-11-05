@@ -14,6 +14,7 @@ import {
   buildPropertyJsonLd,
   buildRobotsTxt,
   DEFAULT_DESCRIPTION,
+  DEFAULT_INDEXABLE_HOSTS,
   injectMetaIntoHtml,
   isCrawlerUserAgent,
   matchListingDetailPath,
@@ -28,6 +29,8 @@ export type SeoMiddlewareDeps = {
   siteName: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Hosts allowed in robots.txt; others get `Disallow: /`. Defaults to the production hosts. */
+  indexableHosts?: readonly string[];
 };
 
 const DEFAULT_TIMEOUT_MS = 2_500;
@@ -157,7 +160,13 @@ export async function handleSeoRequest(
     const url = new URL(request.url);
 
     if (url.pathname === '/robots.txt') {
-      return new Response(buildRobotsTxt(url.origin), {
+      // Production hosts are always indexable; `SEO_INDEXABLE_HOSTS` can only add.
+      // A stale Vercel env (e.g. one that predates the kamespace rebrand) must never
+      // de-index the live domain.
+      const indexableHosts = deps.indexableHosts?.length
+        ? [...new Set([...DEFAULT_INDEXABLE_HOSTS, ...deps.indexableHosts])]
+        : undefined;
+      return new Response(buildRobotsTxt(url.origin, indexableHosts), {
         headers: {
           'content-type': 'text/plain; charset=utf-8',
           'cache-control': 'public, max-age=3600, s-maxage=86400',

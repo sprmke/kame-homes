@@ -108,4 +108,4 @@ No code exists yet — this is the decision + implementation plan. When picked u
 
 ## Unblocks
 
-- [`../in-progress/parking-property-parity.md`](../in-progress/parking-property-parity.md) — parking routes temporarily skip property-plan gates for Telegram Chat enable and the AI dashboard assistant. Closing that plan requires **org-scoped** entitlement resolution (parking is not on `property_subscriptions` today). When implementing portfolio/org billing here, extend Phase 2 or a follow-up slice so parking vertical checks org entitlements — do not leave interim ungating in `useFeatureGate` / edge handlers permanently.
+- [`../in-progress/parking-property-parity.md`](../for-testing/parking-property-parity.md) — parking routes temporarily skip property-plan gates for Telegram Chat enable and the AI dashboard assistant. Closing that plan requires **org-scoped** entitlement resolution (parking is not on `property_subscriptions` today). When implementing portfolio/org billing here, extend Phase 2 or a follow-up slice so parking vertical checks org entitlements — do not leave interim ungating in `useFeatureGate` / edge handlers permanently.

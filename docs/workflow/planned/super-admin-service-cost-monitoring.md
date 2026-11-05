@@ -15,6 +15,10 @@ profitable**: every metered call is attributed and budgeted, every guest-initiat
 action is capped server-side, and the app **degrades to a cheaper path before it overspends**
 instead of producing a surprise invoice.
 
+**Mount point:** the cost console ships as a section of the System health module at
+`/admin/health/costs` (see [`../in-progress/super-admin-system-health.md`](../in-progress/super-admin-system-health.md)
+Phase 6). Add it to `HEALTH_SECTIONS` in `ui/.../super-admin/lib/systemHealth/healthSections.ts`.
+
 ## Non-negotiables (the cost contract)
 
 1. **Attribution** — every metered external call (email, AI token, voice minute, map load,
@@ -582,9 +586,9 @@ Vercel, Meta Graph API.
 **Checked, nothing to meter:** Supabase image transformations (not used — client-side
 `browser-image-compression` + custom optimizer); Telegram Bot API (free); Cloudflare
 Turnstile (free); Web Push / VAPID (free, self-served); pg_cron / pg_net (Supabase compute,
-covered under edge). Supabase Auth OTP / magic-link email: free on the built-in mailer;
-**counts under Resend** if custom SMTP is ever wired — add an `email_class: transactional`
-meter there when that happens.
+covered under edge). Supabase Auth OTP / magic-link email now sends through custom
+SMTP (Resend, wired 2026-11-05), so it **counts under Resend**; add an
+`email_class: transactional` meter when email metering is implemented.
 
 **Confirmed absent from the codebase:** Twilio / any SMS, SendGrid / Mailgun, Cloudinary /
 imgix, Mapbox, Algolia, Sentry, Datadog / LogRocket, OpenAI / Anthropic, ElevenLabs /

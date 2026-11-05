@@ -51,7 +51,9 @@ This page is the catalog of every rental you operate under the organization. Sum
 - Q: How do I send a guest to book a specific unit?
   A: Open the property’s actions menu and choose **Copy guest link** or **Guest calendar**. Both point guests to that property’s public booking entry.
 - Q: How do I copy settings from one property to another?
-  A: On **Properties**, tap **Copy settings** in the header, or open a property’s ⋯ menu and choose **Copy settings**. Pick the source property, choose which groups to copy (listing, pricing, templates, notifications, and more), select one or more other properties, review the preview, then confirm. Name, address, and tower/unit stay on each target. Bookings, guests, payment methods, team members, and calendar date blocks are never copied. If a target’s plan or your permissions don’t allow a group, that group is skipped for that property and listed in the review.
+  A: On **Properties**, tap **Copy settings** in the header, or open a property's ⋯ menu and choose **Copy settings**. Pick the source property, choose which groups to copy (listing, pricing, templates, notifications, and more), select one or more other properties, review the preview, then confirm. Name, address, and tower/unit stay on each target. Bookings, guests, payment methods, team members, and calendar date blocks are never copied. If a target's plan or your permissions don't allow a group, that group is skipped for that property and listed in the review.
+- Q: Does archiving or deleting a property remove its bookings?
+  A: Archive keeps every booking and all history, and only hides the property from active use. Delete permanently removes an empty property and is blocked when any booking exists, so use Archive for a unit with past stays.
 
 ---
 

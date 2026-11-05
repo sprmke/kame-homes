@@ -21,7 +21,7 @@ export function readGuestBookingAccessToken(bookingId: string): string | null {
   }
 }
 
-function guestEdgeGetUrl(apiUrl: string, functionName: string, bookingId: string): string {
+export function guestEdgeGetUrl(apiUrl: string, functionName: string, bookingId: string): string {
   const id = bookingId.trim();
   const params = new URLSearchParams({ bookingId: id });
   const access = readGuestBookingAccessToken(id);

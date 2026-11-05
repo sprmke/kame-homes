@@ -10,9 +10,11 @@ import {
   requireHttpMethod,
 } from './httpResponse.ts';
 import { corsHeaders } from './cors.ts';
-import { capturePostHogException } from './posthog.ts';
+import { captureSentryException } from './sentry.ts';
+import { sendCronCheckIn, type CronMonitorConfig } from './sentryCron.ts';
 import { getPlatformSettingsSnapshot } from './platformSettingsCache.ts';
 import { checkRateLimit, identityFromRequest, isIdentityBlocked } from './rateLimit.ts';
+import { recordJobHeartbeat } from './systemHealth/jobHeartbeat.ts';
 
 /**
  * Default per-user authenticated-wrapper limit — production-readiness doc 23
@@ -43,7 +45,7 @@ async function enforceOrLogRateCheck(
 
   try {
     if (await isIdentityBlocked(identity)) {
-      console.warn(`[rateLimit:blocked] ${logPrefix} — identity ${identity} is on the block list`);
+      console.warn(`[rateLimit:blocked] ${logPrefix} - identity ${identity} is on the block list`);
       return jsonError(req, 'Access temporarily restricted. Contact support.', 403);
     }
 
@@ -58,14 +60,14 @@ async function enforceOrLogRateCheck(
 
     if (!settings.authenticatedRateLimitEnforce) {
       console.warn(
-        `[rateLimit:log-only] ${logPrefix} would have been limited — user ${userId}, ` +
+        `[rateLimit:log-only] ${logPrefix} would have been limited - user ${userId}, ` +
           `${decision.count}/${decision.limit} in ${DEFAULT_AUTHENTICATED_WRAPPER_WINDOW_SEC}s`
       );
       return null;
     }
 
     console.warn(
-      `[rateLimit:enforced] ${logPrefix} blocked — user ${userId}, ` +
+      `[rateLimit:enforced] ${logPrefix} blocked - user ${userId}, ` +
         `${decision.count}/${decision.limit} in ${DEFAULT_AUTHENTICATED_WRAPPER_WINDOW_SEC}s`
     );
     // Built directly (not via `jsonError`) so `rateLimited` / `retryAfterSec` and
@@ -101,13 +103,17 @@ export function serveAdmin(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    // Verified outside the try so the catch can name the user. A JWT failure leaves it
+    // unknown, which is correct: there is no one to attribute it to.
+    let userId: string | undefined;
     try {
       const admin = await verifyAdminJwt(req);
+      userId = admin.id;
       const limited = await enforceOrLogRateCheck(req, logPrefix, admin.id);
       if (limited) return limited;
       return await handler(req, admin);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -120,11 +126,13 @@ export function serveSuperAdmin(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    let userId: string | undefined;
     try {
       const user = await verifySuperAdminJwt(req);
+      userId = user.id;
       return await handler(req, user);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -137,13 +145,15 @@ export function serveAuthenticated(
   serve(async (req) => {
     const options = handleOptions(req);
     if (options) return options;
+    let userId: string | undefined;
     try {
       const user = await verifyAuthenticatedUser(req);
+      userId = user.id;
       const limited = await enforceOrLogRateCheck(req, logPrefix, user.id);
       if (limited) return limited;
       return await handler(req, user);
     } catch (error) {
-      return handleEdgeError(req, error, logPrefix);
+      return handleEdgeError(req, error, logPrefix, 'Unauthorized', { userId });
     }
   });
 }
@@ -163,7 +173,12 @@ export function servePublic(logPrefix: string, handler: (req: Request) => Promis
 export function serveCronPost(
   logPrefix: string,
   verifySecret: (req: Request) => boolean,
-  run: () => Promise<Record<string, unknown>>
+  run: () => Promise<Record<string, unknown>>,
+  /**
+   * Optional Sentry monitor. Free tier allows exactly one (plan D13), so this is passed by
+   * `sd-refund-cron` only; every other job is covered by the systemHealth jobs registry.
+   */
+  cron?: CronMonitorConfig
 ): void {
   serve(async (req) => {
     const options = handleOptions(req);
@@ -173,13 +188,56 @@ export function serveCronPost(
       if (!verifySecret(req)) {
         return jsonError(req, 'Unauthorized', 401);
       }
-      const result = await run();
+      if (cron) await sendCronCheckIn(cron, 'in_progress');
+      const startedAt = Date.now();
+      let result: Record<string, unknown>;
+      try {
+        result = await run();
+      } catch (error) {
+        // Record the failed run before the outer handler logs it, so the health page sees
+        // consecutive failures instead of a stalled "no runs yet" row.
+        await recordJobHeartbeat(logPrefix, { ok: false, startedAt, error });
+        throw error;
+      }
+      await recordJobHeartbeat(logPrefix, { ok: true, startedAt });
+      if (cron) await sendCronCheckIn(cron, 'ok', { durationMs: Date.now() - startedAt });
       console.log(`[${logPrefix}]`, JSON.stringify(result));
       return jsonResponse(req, { success: true, ...result });
     } catch (error) {
       console.error(`${logPrefix}:`, error);
-      await capturePostHogException(error, { logPrefix: `cron:${logPrefix}`, request: req });
+      // A scheduled job that fails silently is the worst failure mode in the system:
+      // nobody is watching the endpoint, so the run just does not happen. The `cron`
+      // tag is what lets an alert rule target scheduled work specifically.
+      await captureSentryException(error, {
+        logPrefix: `cron:${logPrefix}`,
+        requestId: req.headers.get('x-request-id') ?? undefined,
+        url: req.url,
+        method: req.method,
+        traceHeader: req.headers.get('sentry-trace'),
+        tags: { cron: logPrefix },
+        fingerprint: ['cron', logPrefix],
+        extra: { result: 'check the cron run log for the last successful pass' },
+      });
+      if (cron) await sendCronCheckIn(cron, 'error', { durationMs: 0 });
       return jsonError(req, (error as Error).message);
     }
   });
+}
+
+/**
+ * Wraps a raw `serve()` handler that cannot use a `serve*` wrapper (multipart bodies, a
+ * non-JSON response, a provider callback). Same capture as the wrappers, so a raw function
+ * is not a hole in the error path.
+ */
+export function withEdgeErrorCapture(
+  logPrefix: string,
+  handler: (req: Request) => Promise<Response>
+): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
+    try {
+      return await handler(req);
+    } catch (error) {
+      return handleEdgeError(req, error, logPrefix);
+    }
+  };
 }

@@ -23,6 +23,7 @@ import {
 } from '../_shared/httpResponse.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('reject-listing-authorization', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -84,6 +85,14 @@ serveAuthenticated('reject-listing-authorization', async (req) => {
   }
 
   const listing = await saveListingAuthorization(supabase, context, state);
+
+  await capturePostHogEvent('listing_authorization_resolved', {
+    logPrefix: 'reject-listing-authorization',
+    request: req,
+    distinctId: context.user.id,
+    groups: { organization: context.org.id },
+    properties: { outcome: kind === 'rejected' ? 'rejected' : 'needs_info' },
+  });
 
   return jsonSuccess(req, serializeListingAuthorization(context, state, listing));
 });

@@ -20,7 +20,7 @@ async function openSettingsAndEdit(page: Page) {
     timeout: 20_000,
   });
   await page.locator('#section-branding').scrollIntoViewIfNeeded();
-  await page.locator('#instagram-url').fill('https://instagram.com/kamehomes');
+  await page.locator('#instagram-url').fill('https://instagram.com/samplestays');
 }
 
 test.describe('@ci unsaved changes guard', () => {
@@ -45,7 +45,7 @@ test.describe('@ci unsaved changes guard', () => {
 
     await dialog.getByRole('button', { name: 'Keep editing' }).click();
     await expect(dialog).toHaveCount(0);
-    await expect(page.locator('#instagram-url')).toHaveValue('https://instagram.com/kamehomes');
+    await expect(page.locator('#instagram-url')).toHaveValue('https://instagram.com/samplestays');
     await expect(page).toHaveURL(SETTINGS_URL);
 
     await page.goBack();
@@ -82,6 +82,19 @@ test.describe('@ci unsaved changes guard', () => {
     await page.goBack();
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(page).not.toHaveURL(SETTINGS_URL);
+  });
+
+  test('refresh shortcut prompts with the app dialog', async ({ page }) => {
+    await openSettingsAndEdit(page);
+
+    await page.keyboard.press('ControlOrMeta+r');
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog.getByText('Save your changes?')).toBeVisible();
+    await expect(page).toHaveURL(SETTINGS_URL);
+
+    await dialog.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('#instagram-url')).toHaveValue('https://instagram.com/samplestays');
   });
 
   test('tab close / refresh with unsaved edits is flagged via beforeunload', async ({ page }) => {

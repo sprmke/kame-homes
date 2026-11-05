@@ -56,6 +56,10 @@ Organization **Team** is where the owner invites co-admins who can help run ever
   A: Hosts sign in with Google. The invite email must match the Google account the person will use to accept.
 - Q: Can a teammate invite someone else?
   A: Yes, if their org Team permissions allow invites. They still cannot remove the owner.
+- Q: How many team seats does my plan include?
+  A: Free includes the owner only. Starter includes 3 seats, Pro 5, Business 10, and Managed is unlimited. Org team seats are shared across every property in the organization.
+- Q: How do I limit a teammate to specific properties or parkings?
+  A: In their invite or member details, choose **Choose listings** instead of **All listings**, then pick the properties and parkings they can open.
 
 ---
 

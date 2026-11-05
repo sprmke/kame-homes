@@ -11,10 +11,18 @@ type Row = { label: string; count: number; to: string };
 
 export function SuperAdminAttentionPanel({
   attention,
+  healthIssues = 0,
 }: {
   attention: SuperAdminOverview['attention'];
+  /** Error + warning checks from System health. */
+  healthIssues?: number;
 }) {
   const rows: Row[] = [
+    {
+      label: 'System health issues',
+      count: healthIssues,
+      to: superAdminPaths.health,
+    },
     {
       label: 'Approvals in review',
       count: attention.pendingApprovals,

@@ -577,7 +577,7 @@ export function ListingMapView({
                           'border-border bg-background text-foreground -translate-x-1/2 -translate-y-full cursor-pointer',
                           'rounded-full border px-2.5 py-1.5 text-sm font-semibold tabular-nums shadow-md',
                           'focus-visible:ring-primary transition-colors focus-visible:outline-none focus-visible:ring-2',
-                          active && 'bg-primary text-primary-foreground border-primary'
+                          active && 'bg-primary-strong text-primary-foreground border-primary'
                         )}
                       >
                         {formatMapPinLabel(single.price, single.name)}
@@ -588,7 +588,7 @@ export function ListingMapView({
                         onClick={() => openCluster(pin)}
                         aria-label={`${pin.markers.length} ${nounPlural} here`}
                         className={cn(
-                          'bg-primary text-primary-foreground border-primary/60 cursor-pointer',
+                          'bg-primary-strong text-primary-foreground border-primary/60 cursor-pointer',
                           'flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center',
                           'rounded-full border text-sm font-bold tabular-nums shadow-md',
                           'focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-2'

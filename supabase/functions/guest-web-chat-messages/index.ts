@@ -1,8 +1,12 @@
 /**
  * guest-web-chat-messages — List, send, edit, or mark read in a guest web chat thread.
  * Auth: signed-in guest who owns the thread.
+ *
+ * Wrapped in `withIdempotency` so a text message queued by the offline outbox
+ * (PWA v2) lands at most once when the guest reconnects.
  */
 
+import { withIdempotency } from '../_shared/idempotency.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -14,7 +18,9 @@ import {
   unsendGuestWebMessage,
 } from '../_shared/webGuestChatService.ts';
 
-serveAuthenticated('guest-web-chat-messages', async (req, user) => {
+serveAuthenticated(
+  'guest-web-chat-messages',
+  withIdempotency(async (req, user) => {
   const url = new URL(req.url);
   const conversationId = url.searchParams.get('conversation_id')?.trim();
 
@@ -38,7 +44,7 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
 
   if (req.method === 'POST') {
     // Durable per-user write rate limit — sends fan out to Resend + Telegram.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const limited = await rateLimitGate(req, {
       scope: 'guest-web-chat-messages',
       identity: identityFromRequest(req, user),
@@ -99,11 +105,11 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
       return jsonError(req, 'conversationId and text or attachments required', 400);
     }
     try {
-      await sendGuestWebMessage(user, id, text, {
+      const sent = await sendGuestWebMessage(user, id, text, {
         replyToMessageId: replyToMessageId || undefined,
         attachments,
       });
-      return jsonSuccess(req, { sent: true });
+      return jsonSuccess(req, { sent: true, assistantWillReply: sent.assistantWillReply });
     } catch (e) {
       const message = (e as Error).message;
       if (message === 'Conversation not found') return jsonError(req, message, 404);
@@ -147,4 +153,5 @@ serveAuthenticated('guest-web-chat-messages', async (req, user) => {
   }
 
   return jsonError(req, 'Method not allowed', 405);
-});
+  })
+);

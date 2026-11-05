@@ -2,28 +2,28 @@
 title: 'AI mode (full-page assistant) — operator guide'
 status: active
 tags: [guides, routes, ai, assistant]
-updated: 2026-10-17
+updated: 2026-10-20
 ---
 
 # AI mode (full-page assistant) — operator guide
 
 Route: every `/org/:orgSlug/…`, `/org/:orgSlug/property/:propertySlug/…` and `/org/:orgSlug/parking/:parkingSlug/…` page, in **AI** mode. Query params: `?chat=<conversationId>`, `?canvas=off`, `?mode=ai|advanced` (one-shot).
 
-> **Status:** Documented. Plan and decisions: [`workflow/in-progress/ai-chat-mode.md`](../../../workflow/in-progress/ai-chat-mode.md).
+> **Status:** Documented. Plan and decisions: [`workflow/done/ai-chat-mode.md`](../../../workflow/done/ai-chat-mode.md).
 
 ## Progress overview
 
-| Section                     | E2E save | Validation | Docs | Notes                                                    |
-| --------------------------- | -------- | ---------- | ---- | -------------------------------------------------------- |
-| Mode toggle + preference    | Done     | Done       | Done | Server + local cache; `?mode=`; Cmd/Ctrl+J               |
-| Rail (chats, scope)         | Partial  | Done       | Done | Rename / pin / archive / delete / search; list is mocked |
-| Chat column + composer      | Done     | Done       | Done | Shared with the Advanced sheet                           |
-| Briefing home               | Done     | —          | Done | Read-only cards                                          |
-| Page canvas                 | Done     | —          | Done | Resize, close, Full page                                 |
-| Open handoffs (`open_page`) | Done     | Done       | Done | Allowlisted screens, permission re-checked               |
-| Feedback                    | Done     | Done       | Done | Thumbs up / down per reply                               |
-| Phone / tablet              | Done     | —          | Done | Single bottom layer; canvas full screen with Back        |
-| Slash commands + @mentions  | Done     | Done       | Done | `/` actions and prompts, `@` pins context                |
+| Section                     | E2E save | Validation | Docs | Notes                                                               |
+| --------------------------- | -------- | ---------- | ---- | ------------------------------------------------------------------- |
+| Mode toggle + preference    | Done     | Done       | Done | Server + local cache; `?mode=`; Cmd/Ctrl+J                          |
+| Rail (chats, scope)         | Partial  | Done       | Done | Rename / pin / archive / delete / search; list is mocked            |
+| Chat column + composer      | Done     | Done       | Done | Shared with the Advanced sheet                                      |
+| Briefing home               | Done     | —          | Done | Full AI screen only: up to 6 cards (4 below `sm`) + Since yesterday |
+| Page canvas                 | Done     | —          | Done | Resize, Chat only, Split View, Advanced                             |
+| Open handoffs (`open_page`) | Done     | Done       | Done | Allowlisted screens; notifications / connect Facebook always Open   |
+| Feedback                    | Done     | Done       | Done | Thumbs up / down per reply                                          |
+| Phone / tablet              | Done     | —          | Done | Single bottom layer; canvas full screen with Back                   |
+| Slash commands + @mentions  | Done     | Done       | Done | `/` actions and prompts, `@` pins context                           |
 
 ---
 
@@ -50,7 +50,9 @@ AI mode turns the dashboard into a chat workspace. Ask questions or ask for chan
 - Q: Will I lose my chat or my page when I switch?
   A: No. The same conversation, your unsent message and the page you had open carry over in both directions.
 - Q: What are the cards on the empty chat screen?
-  A: They show what needs attention today, like bookings waiting for review or check-ins. Tap one to ask the assistant about it.
+  A: They show what needs attention today: bookings, guest messages waiting for a reply, overdue maintenance, and similar counts. Tap one to ask the assistant about it. A "Since yesterday" line appears when bookings, messages, or completed stays changed.
+- Q: Do I see those cards in the small chat panel too?
+  A: No. An empty panel shows starter questions and actions. The cards are on the full AI screen.
 - Q: Can the assistant do everything for me?
   A: It can answer questions and make most everyday changes after you confirm. Some things always happen on their own screen, like connecting Facebook, paying for a plan, editing designs, or deleting a property. For those it gives you an **Open** button that takes you straight there.
 - Q: How do I find an old conversation?
@@ -60,17 +62,47 @@ AI mode turns the dashboard into a chat workspace. Ask questions or ask for chan
 - Q: What do the thumbs do?
   A: They tell us whether an answer helped, so we can improve the assistant. Tap the same thumb again to remove it.
 - Q: What are the / and @ shortcuts?
-  A: Type / in the message box for quick commands like /today or /review. Type @ to attach a booking, listing or other item so the assistant knows what you mean.
+  A: Type / in the message box for quick commands like /today or /review. Type @ to attach a booking, listing, review, theme or other item so the assistant knows what you mean.
+- Q: Can I pin a review or a theme?
+  A: Yes. On Reviews, tap Pin a review. On Marketing, pin a template or a theme. You can also search for them with @.
+- Q: Can the assistant show me what a template says?
+  A: Yes. Pin the template with @ and ask what it says, or ask for it by name. The assistant answers with the template copy in chat instead of only opening the Templates page. Email templates stay out of chat.
 - Q: Can I open a booking from a list the assistant shows?
   A: Yes. Tap any row in the table, or a booking card, to open that booking.
 - Q: Why do some words show as bold or in a box?
   A: The assistant highlights key words, like a status or a count. Copy gives you plain text without the formatting.
 - Q: Why does a step say it failed?
   A: Some checks only work in certain places, like a finance check that needs one listing. Hover or tap the ? next to the step to see why. The answer still uses what the other checks found.
+- Q: What does Continue with the rest do?
+  A: The assistant already answered with what it found. Tap the chip to have it keep going from there.
+- Q: Why do extra chips appear after a change?
+  A: After you confirm a change, the Confirm card stays with Done and chips offer the next step, such as sending the guest email or showing the stay journey.
+- Q: I asked for two changes at once and got one card with a checklist. What is that?
+  A: That is a plan. The assistant found more than one change to make. Untick anything you don't want, then tap Approve selected. Each step shows Done, Failed, or Skipped once it finishes; a step can depend on an earlier one, so it's skipped if that one fails.
+- Q: How do I mark a maintenance reminder done?
+  A: Ask to mark it done. Confirm shows the reminder name. Delete is only when you ask to remove it.
+- Q: Which holidays have no rate?
+  A: Ask which holidays have no rate rule. You get a table of upcoming holidays that still need one.
+- Q: How many AI messages do I have left?
+  A: Ask that in chat. You get today's remaining count.
+- Q: How do I remove someone from the team?
+  A: Ask to remove them by name. Confirm first. They lose access as soon as you confirm.
+- Q: Who changed the price yesterday?
+  A: Ask that. You get a timeline. If nothing changed, you get a short empty line.
+- Q: What happened to this booking?
+  A: Open or ask about the stay first. Then ask what happened. You get a timeline of status changes.
+- Q: How do I open a guest thread?
+  A: Ask to open the thread with their name. Then reply from the chips.
+- Q: How does last quarter compare?
+  A: Ask for net profit last quarter vs the one before. You get a comparison.
+- Q: How much did I make this month?
+  A: Ask that. You get this month's net profit plus income and expenses.
+- Q: What if nobody is checking out this weekend?
+  A: You get a short empty line plus chips to look at next week or open the calendar.
 - Q: Can I make the page wider?
-  A: Yes. Drag the thin handle between the chat and the page. Close the page with the X, or bring it back with **Split View**.
+  A: Yes. Drag the thin handle between the chat and the page. Hide the page with **Chat only**, or bring it back with **Split View**.
 
-This section is written for an AI assistant to quote directly to hosts — no code, no DB column names, no internal endpoint names.
+This section is written for an AI assistant to quote directly to hosts - no code, no DB column names, no internal endpoint names.
 
 ---
 
@@ -83,24 +115,24 @@ This section is written for an AI assistant to quote directly to hosts — no co
 
 ### Save path
 
-1. Toggle / Cmd+J / `?mode=` → `PATCH user-ui-preferences { dashboardMode }` (fire and forget) + localStorage.
+1. Toggle / Cmd+J / `?mode=` → `PATCH user-ui-preferences { dashboardMode }` (fire and forget) + localStorage. Auth hydration (`userId` null → signed-in id) keeps that in-session choice so a slower GET cannot overwrite `?mode=ai`.
 2. The layout switches inside a View Transition (framer fallback, 150ms fade with reduced motion). Entering AI adds `?canvas=off` so the chat shows first (full width); use **Split View** or a rail page link to open the canvas.
 
 ### Gating
 
-Hidden when the kill switch, the org assistant opt-in, the per-property disable list, `assistant:view`, or the platform AI mode switch blocks it; never on `/admin/*`. Plan-blocked (`aiDashboardAssistant`) shows a lock that opens the upgrade modal. A saved `ai` silently falls back to Advanced whenever AI mode is not usable. While access loads, the cached mode is kept (no flash).
+Hidden when the kill switch, the org assistant opt-in, the per-property disable list, `assistant:view`, or the platform AI mode switch blocks it; never on `/admin/*`. Plan-blocked (`aiDashboardAssistant`) shows a lock that opens the upgrade modal. Send and **New chat** do not open that modal while access is still loading, or when the member simply lacks `assistant:view`. A saved `ai` silently falls back to Advanced whenever AI mode is not usable. While access loads, the cached mode is kept (no flash) and the composer stays disabled until the gate resolves. Feature flags come from **`property-entitlements`**, which any property member can read (not `settings:view`).
 
 ---
 
 ## Rail (desktop) / chats drawer (phone, tablet)
 
-Scope switcher on top. A fixed 64px icon column holds the notifications bell, then the sidebar page icons (**Pages** nav: opens the page in the canvas and keeps the chat; current page highlighted while the canvas is open). When expanded, a chats panel sits beside it: a primary **New chat** button above search, then the chat list (Pinned, Today, Yesterday, Earlier; server search; Load more). While the panel is collapsed, **New chat** stays as an icon in that column. The footer is the same as Advanced mode: **AI mode** switch above the plan row, then the account menu. The daily usage count is not shown in the rail. Expand/collapse uses the same edge chevron as Advanced mode (hides the chats panel, not the icon column; saved per viewer). Below a 1236px screen the rail stays collapsed while a page is open, and that chevron is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet), with a primary **New chat** button in the sheet header.
+The rail is the same sidebar shell as Advanced mode (same 280px / 72px width, same scope header and footer): a mode switch swaps only the middle section (page nav ↔ chats), so the scope switcher, plan row, **AI mode** switch, theme toggle, and account row never move, and the switch thumb slides in place. Scope switcher on top. A fixed 72px icon column holds the sidebar page icons (**Pages** nav: opens the page in the canvas and keeps the chat; current page highlighted while the canvas is open). When expanded, a chats panel sits beside it: a primary **New chat** button above search, then the chat list (Pinned, Today, Yesterday, Earlier; server search; Load more). While the panel is collapsed, **New chat** is an icon at the top of the icon column and **Chats** (history) is an icon at the bottom; **Chats** opens the same list in a left sheet. Notifications use the same floating bell as Advanced mode on `lg+` (bottom-right); below `lg` the mobile top bar keeps a bell icon because AI mode hides the bottom tab bar. The footer is the same as Advanced mode: **AI mode** switch above the plan row, then the account menu. The daily usage count is not shown in the rail. Expand/collapse uses the same edge chevron and the same saved preference as Advanced mode (collapsing in one mode keeps it collapsed in the other; in AI mode it hides the chats panel, not the icon column). Below a 1216px screen the rail stays collapsed while a page is open, and that chevron is hidden until the page closes. Row menu: Rename (inline, 80 chars), Pin / Unpin, Archive (also unpins), Delete (confirm). Below `lg` the list opens as a bottom sheet (phone) or left drawer (tablet), with a primary **New chat** button in the sheet header.
 
 ---
 
 ## Chat column + composer
 
-Same thread and composer as the Advanced sheet (one shared session). Assistant turns render unboxed at up to 760px; hover row: Copy, Regenerate (last turn), thumbs. User messages: pencil to edit and resend. Composer: Enter sends, Shift+Enter newline, Up arrow edits the last message, Esc stops a reply, 1–8 lines. Offline banner disables sending but keeps the draft. Type `/` for commands (`/new`, `/review`, `/today`, `/balance`, `/finance`, `/maintenance`, `/inbox`, `/mode` when the switch is usable, `/help`); `@` lists bookings, listings and other items to pin as context. After an error, **Retry** re-runs the turn. Stopping before the reply is saved puts the text back in the box.
+Same thread and composer as the Advanced sheet (one shared session). Assistant turns render unboxed at up to 760px; hover row: Copy, Regenerate (last turn), thumbs. User messages: pencil to edit and resend. Answers lead with a short line, then one data block (chart, calendar, table, KPI, cards). Follow-up chips are 2–4 verbs-first next steps (never a re-pick of the stay or thread you just chose). If a turn runs out of steps, the assistant answers with what it already found and offers **Continue with the rest**. Tables over 8 rows offer **Show N more** and **Copy as CSV**; wide charts and calendars fill the bubble on the phone. Composer: Enter sends, Shift+Enter newline, Up arrow edits the last message, Esc stops a reply, 1–8 lines. Offline banner disables sending but keeps the draft. Type `/` for commands (`/new`, `/review`, `/today`, `/balance`, `/finance`, `/maintenance`, `/inbox`, `/mode` when the switch is usable, `/help`); `@` lists bookings, listings and other items to pin as context. **Templates** is one of those modules: stay-guide and custom property templates are pinnable (email templates are not), the assistant receives the template copy as untrusted context, and the pinned chip offers **Preview template** with the same full-screen/modal renderer as Guest Inbox. Asking what a template says is answered from that copy. Without a pin, the assistant calls **`get_property_template_content`** (list, then read by key or name) instead of replying with the generic "Which listing or dates should I use?" fallback or only opening the Templates page. After an error, **Retry** re-runs the turn. Stopping before the reply is saved puts the text back in the box.
 
 ### AI is off
 
@@ -119,13 +151,13 @@ Hosts cannot lift a platform block, so it never shows the card or a link. The ca
 
 ## Briefing home (empty thread)
 
-Greeting plus up to 6 cards from the same numbers as the dashboard (pending review, awaiting documents, check-ins, check-outs, SD refunds, unpaid balances) and 4 starter chips. Tapping a card sends its question. Refreshes every minute.
+Greeting plus up to 6 cards from the same numbers as the dashboard (pending review, awaiting documents, check-ins, check-outs, SD refunds, unpaid balances) and 4 starter chips. Below `sm` (640px) the home shows 4 cards so the chips stay on screen. Tapping a card sends its question. Refreshes every minute. The Advanced sheet does not show these cards. An empty thread there is starter questions and actions.
 
 ---
 
 ## Page canvas
 
-The current route renders in a card beside the chat (desktop), resizable with the gutter or arrow keys (560px to 60vw, keeping the chat at least 360px; default 55vw capped at 900px, saved per viewer). Below a 1236px screen the left rail stays collapsed while a page is open so both fit; closing the page brings it back. Header: page title, **Full page** (switches to Advanced mode on the same page), close (X / Esc). Closing goes to the scope root with `?canvas=off`; **Split View** reopens it. Below `lg` the canvas covers the screen with **Back**. The page stays mounted when switching modes. The pane sets `data-canvas-size` (`medium` < 760px) so wide `lg:` / `xl:` grids collapse to 2 columns and Settings / Templates drop their side nav; page and card headers wrap their actions below the title. Booking detail lays out by its own width (CSS container on `[data-booking-detail-page]`, independent of `data-canvas-size`): below 56rem it stacks Progress under the full-width details card, wider panes show both side by side. The Marketing **Generate** tab works the same way: composer and results stack below 56rem and sit side by side above it.
+The current route renders in a card beside the chat (desktop), resizable with the gutter or arrow keys (560px to 60vw, keeping the chat at least 360px; default 55vw capped at 900px, saved per viewer). Below a 1216px screen the left rail stays collapsed while a page is open so both fit; closing the page brings it back. Desktop layout controls sit in a fixed toolbar above the chat and canvas split, outside the page card: one control toggles **Split View** / **Chat only** in the same spot (split open vs chat-only); **Advanced** sits beside it and leaves AI mode. Esc still closes the canvas on desktop. Below `lg` the canvas covers the screen with **Back** only (no duplicate page title in the chrome). **Chat only** goes to the scope root with `?canvas=off`; **Split View** reopens the canvas. The page stays mounted when switching modes. The pane sets `data-canvas-size` (`medium` < 760px) so wide `lg:` / `xl:` grids collapse to 2 columns and Settings / Templates drop their side nav; page and card headers wrap their actions below the title. Booking detail lays out by its own width (CSS container on `[data-booking-detail-page]`, independent of `data-canvas-size`): below 56rem it stacks Progress under the full-width details card, wider panes show both side by side. The Marketing **Generate** tab works the same way: composer and results stack below 56rem and sit side by side above it.
 
 ---
 
@@ -155,18 +187,18 @@ Reply text renders markdown instead of showing the symbols: bold, italic, strike
 
 ## Implementation map
 
-| Concern        | Path                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Layout         | `ui/src/features/dashboard/bookings/components/AdminLayout.tsx`                                                                                                                                                                                                                                                                                                                                                             |
-| Mode           | `ui/src/features/dashboard/ai-assistant/components/DashboardModeProvider.tsx`, `DashboardModeToggle.tsx`, `lib/dashboardMode.ts`, `lib/modeTransition.ts`                                                                                                                                                                                                                                                                   |
-| Session        | `ui/src/features/dashboard/ai-assistant/components/AiAssistantSessionProvider.tsx`, `lib/aiAssistantSessionContext.ts`, `hooks/useAiAssistantChat.ts`                                                                                                                                                                                                                                                                       |
-| AI mode chrome | `ui/src/features/dashboard/ai-assistant/components/full-page/AiModeChrome.tsx`, `BriefingHome.tsx`                                                                                                                                                                                                                                                                                                                          |
-| Canvas         | `ui/src/features/dashboard/ai-assistant/hooks/useCanvasResize.ts`, `lib/canvasWidth.ts`, `lib/assistantScope.ts`                                                                                                                                                                                                                                                                                                            |
-| Shared chat    | `ChatThread.tsx`, `SessionChatComposer.tsx`, `AssistantStatusNotices.tsx`, `AssistantAiOffCard.tsx`, `ConversationHistoryList.tsx`, `blocks/OpenPageBlock.tsx`, `blocks/DataTableBlock.tsx` (row links; server match in `_shared/dashboardAssistantBlocks.ts`)                                                                                                                                                              |
-| AI off         | `lib/assistantAiOff.ts`, `lib/assistantStream.ts#aiBlockerFromError`, `_shared/aiUsageService.ts#resolveAiFeatureBlocker` / `aiDisabledScope`                                                                                                                                                                                                                                                                               |
-| Edge functions | `supabase/functions/user-ui-preferences`, `dashboard-assistant-briefing`, `dashboard-assistant-feedback`, `dashboard-assistant-conversations`, `dashboard-assistant-chat`                                                                                                                                                                                                                                                   |
-| Shared (edge)  | `_shared/dashboardAssistantRoutes.ts`, `_shared/dashboardAssistantNavigationTools.ts`, `_shared/dashboardAssistantParity.ts`, `_shared/dashboardStatsScope.ts`                                                                                                                                                                                                                                                              |
-| Tests          | `ui/e2e/features/assistant/assistantAiMode.spec.ts`, `lib/assistantSurfaceParity.test.ts`, `supabase/functions/tests/assistantParityManifest.test.ts`, `tests/aiChatModeLocal.integration_test.ts`, `_shared/dashboardAssistantBlocks_test.ts` (table row targets), `ui/src/lib/chat/inlineMarkdown.test.ts` + `parseChatRichBlocks.test.ts` (markdown), `_shared/assistantToolFailureReason_test.ts` (failed step reasons) |
+| Concern        | Path                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Layout         | `ui/src/features/dashboard/bookings/components/AdminLayout.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Mode           | `ui/src/features/dashboard/ai-assistant/components/DashboardModeProvider.tsx`, `DashboardModeToggle.tsx`, `lib/dashboardMode.ts`, `lib/modeTransition.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Session        | `ui/src/features/dashboard/ai-assistant/components/AiAssistantSessionProvider.tsx`, `lib/aiAssistantSessionContext.ts`, `hooks/useAiAssistantChat.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| AI mode chrome | `ui/src/features/dashboard/ai-assistant/components/full-page/AiModeChrome.tsx`, `BriefingHome.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Canvas         | `ui/src/features/dashboard/ai-assistant/hooks/useCanvasResize.ts`, `lib/canvasWidth.ts`, `lib/assistantScope.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Shared chat    | `ChatThread.tsx`, `SessionChatComposer.tsx`, `AssistantStatusNotices.tsx`, `AssistantAiOffCard.tsx`, `ConversationHistoryList.tsx`, `blocks/OpenPageBlock.tsx`, `blocks/DataTableBlock.tsx` (row links; server match in `_shared/dashboardAssistantBlocks.ts`)                                                                                                                                                                                                                                                                                                                                                                                             |
+| AI off         | `lib/assistantAiOff.ts`, `lib/assistantStream.ts#aiBlockerFromError`, `_shared/aiUsageService.ts#resolveAiFeatureBlocker` / `aiDisabledScope`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Edge functions | `supabase/functions/user-ui-preferences`, `dashboard-assistant-briefing`, `dashboard-assistant-feedback`, `dashboard-assistant-conversations`, `dashboard-assistant-chat`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Shared (edge)  | `_shared/dashboardAssistantRoutes.ts`, `_shared/dashboardAssistantNavigationTools.ts`, `_shared/dashboardAssistantParity.ts`, `_shared/dashboardStatsScope.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Tests          | `ui/e2e/features/assistant/assistantAiMode.spec.ts`, `lib/assistantSurfaceParity.test.ts`, `supabase/functions/tests/assistantParityManifest.test.ts`, `tests/aiChatModeLocal.integration_test.ts`, `_shared/dashboardAssistantBlocks_test.ts` (table row targets), `ui/src/lib/chat/inlineMarkdown.test.ts` + `parseChatRichBlocks.test.ts` (markdown), `_shared/assistantToolFailureReason_test.ts` (failed step reasons). Conversation QA loop: `bun run seed:ai-qa` + `bun run qa:ai` (screenshots gitignored; ledger `docs/workflow/qa/ai-conversations/`). Composer `data-testid="assistant-composer"`; turn card `data-testid="assistant-message"`. |
 
 ---
 
@@ -175,6 +207,7 @@ Reply text renders markdown instead of showing the symbols: bold, italic, strike
 - [`architecture/ai-dashboard-assistant.md`](../../../architecture/ai-dashboard-assistant.md) §9
 - [`PROJECT.md`](../../../PROJECT.md) § AI Dashboard Assistant
 - [`testing/ai-dashboard-assistant-manual.md`](../../testing/ai-dashboard-assistant-manual.md) § AI mode
+- [`qa/ai-conversations/README.md`](../../../workflow/qa/ai-conversations/README.md) — screenshot QA loop (corpus H-01…H-68)
 
 ## Pending / follow-ups
 

@@ -22,4 +22,8 @@ describe('superAdminPaths', () => {
   it('is defined', () => {
     expect(superAdminPaths).toBeDefined();
   });
+
+  it('featureAvailability path', () => {
+    expect(superAdminPaths.featureAvailability).toBe('/admin/feature-availability');
+  });
 });

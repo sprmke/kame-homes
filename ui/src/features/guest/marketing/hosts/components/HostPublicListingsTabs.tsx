@@ -45,7 +45,7 @@ export function HostPublicListingsTabs({ active, homesCount, parkingsCount, onCh
             className={cn(
               'min-h-[44px] shrink-0 rounded-full px-4 text-sm font-medium transition-[color,background-color,box-shadow]',
               selected
-                ? 'bg-primary text-primary-foreground shadow-sm'
+                ? 'bg-primary-strong text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >

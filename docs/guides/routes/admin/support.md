@@ -13,11 +13,11 @@ Route: `/admin/support` (+ `/admin/support/faqs`)
 
 ## Progress overview
 
-| Section              | E2E save | Validation | Docs | Notes                                                                                      |
-| -------------------- | -------- | ---------- | ---- | ------------------------------------------------------------------------------------------ |
-| Ticket list          | Done     | N/A        | Done | Search + filters; table/card toggle (grid on mobile)                                       |
-| Ticket detail dialog | Done     | Done       | Done | Reply thread + status/priority; inbox-style composer                                       |
-| FAQ editor           | Done     | Done       | Done | First-class nav + overview item; add/edit/reorder/publish/delete; URL-persisted pagination |
+| Section              | E2E save | Validation | Docs | Notes                                                                                               |
+| -------------------- | -------- | ---------- | ---- | --------------------------------------------------------------------------------------------------- |
+| Ticket list          | Done     | N/A        | Done | Search + filters; table/card toggle (grid on mobile)                                                |
+| Ticket detail dialog | Done     | Done       | Done | Reply thread + status/priority; inbox-style composer                                                |
+| FAQ editor           | Done     | Done       | Done | First-class nav + overview item; manual CRUD, synced rows read-only, publish toggle; URL pagination |
 
 ---
 
@@ -31,7 +31,7 @@ Platform super-admins triage every support ticket across all organizations **and
 
 ## Host-facing knowledge
 
-_(Platform operator, not a host — this page isn't visible to hosts.)_
+_(Platform operator, not a host. This page is not visible to hosts.)_
 
 The platform team reviews every ticket hosts file through their Help & Support page here, replies, and closes them out. Replying to a host sends them an email with a link back to the ticket.
 
@@ -42,7 +42,7 @@ The platform team reviews every ticket hosts file through their Help & Support p
 - Q: Does replying change the ticket status?
   A: An "Open" ticket automatically moves to "In progress" once you reply. You can also set status and priority manually from the same panel.
 - Q: How do I add or edit an FAQ?
-  A: Open FAQs from the Super Admin sidebar or overview. Add, edit, reorder (drag the handle to reorder within a category), publish/unpublish, or delete from there.
+  A: Open FAQs from the Super Admin sidebar or overview. Add, edit, reorder (drag the handle to reorder within a category), publish/unpublish, or delete from there. Rows marked **Synced** come from `docs/guides/support/faqs.md`; edit those in the doc and let the sync update them. Manual rows stay fully editable.
 
 ---
 
@@ -88,7 +88,7 @@ Admin reply email links to the host Help & Support ticket URL or `/account/ticke
 
 ## FAQ editor (`/admin/support/faqs`)
 
-First-class Platform nav item and overview card (label **FAQs**). Category-grouped rows, each with a drag handle (`@dnd-kit`) instead of up/down arrows. Every category renders its own `DndContext` + `SortableContext`, so a row can only be reordered within its own category — dropping outside that category's list is a no-op. On drop, the new order is applied to local state immediately (no wait for the network), then the row's `sort_order` values are reassigned to match the target position and persisted via `update-help-center-faq` calls for only the rows whose position actually changed; the local override is cleared once the refetched list confirms the same order, so a slow request never causes a visible snap-back. As before, this only reorders within the currently loaded page. Publish toggle is a `Switch` bound directly to `is_published`. Delete asks for confirmation via `AlertDialog`. Add/edit opens a shared dialog form (category — free text with a datalist of existing categories, question, answer).
+First-class Platform nav item and overview card (label **FAQs**). Each row shows an **origin** label: **Synced** rows come from `docs/guides/support/faqs.md` and are read-only for category, question, and answer (only publish is editable); **Manual** rows keep full CRUD. Drag reordering is disabled on synced rows because the sync owns their order. Category-grouped rows, each with a drag handle (`@dnd-kit`) on manual rows instead of up/down arrows. Every category renders its own `DndContext` + `SortableContext`, so a row can only be reordered within its own category — dropping outside that category's list is a no-op. On drop, the new order is applied to local state immediately (no wait for the network), then the row's `sort_order` values are reassigned to match the target position and persisted via `update-help-center-faq` calls for only the rows whose position actually changed; the local override is cleared once the refetched list confirms the same order, so a slow request never causes a visible snap-back. As before, this only reorders within the currently loaded page. Publish toggle is a `Switch` bound directly to `is_published`. Delete asks for confirmation via `AlertDialog`. Add/edit opens a shared dialog form (category — free text with a datalist of existing categories, question, answer).
 
 **Pagination:** standard admin-list pagination (same pattern as the bookings list) — `page`/`limit` persisted in the URL (`?page=`, `?limit=`), default page size 31 (`ADMIN_DEFAULT_PAGE_SIZE`). `GET list-help-center-faqs-admin` accepts `page`/`limit`, orders by category then `sort_order`, and paginates via `.range()` + `{ count: 'exact' }` (no full-table fetch), returning `{ faqs, total, page, limit }`. Pagination controls are hidden until there is more than one page; the per-page select (`AdminListPerPageSelect`) resets to page 1 on change. Because pagination is applied after the category/sort_order ordering, a category can in principle split across pages once FAQ counts exceed one page. This page has no search/status/category filter UI today — everything above the per-page select is display-only grouping of the current page's rows.
 
@@ -135,7 +135,7 @@ First-class Platform nav item and overview card (label **FAQs**). Category-group
 - [Route index](../README.md)
 - [Property Help & Support](../org/property/help-support.md) (host-facing counterpart)
 - [`docs/PROJECT.md`](../../PROJECT.md)
-- [`docs/workflow/in-progress/help-support-center.md`](../../workflow/in-progress/help-support-center.md)
+- [`docs/workflow/in-progress/help-support-center.md`](../../../workflow/for-testing/help-support-center.md)
 
 ## Pending / follow-ups
 

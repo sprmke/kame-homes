@@ -18,6 +18,7 @@ import { GetVerifiedSidebarCta } from '@/features/dashboard/org/components/verif
 import { OrgPlanSidebarEntry } from '@/features/dashboard/plans/components/OrgPlanSidebarEntry';
 
 import { scrollAdminViewToTop } from '@/components/navigation/ScrollToTop';
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import {
   BottomSheet,
@@ -81,7 +82,7 @@ export function AdminMoreSheet({
     <BottomSheet open={open} onOpenChange={onOpenChange}>
       {/*
         `layout="split"`: BottomSheetContent measures nav + footer content and sets a
-        definite `height` that shrinks to fit (capped 640px / 92dvh) — see
+        definite `height` that shrinks to fit (capped 640px / 92dvh) - see
         bottom-sheet.tsx for why pure CSS (max-height alone) can't do this on iOS
         Safari. Only the nav list scrolls once content exceeds the cap; theme/mode +
         profile + sign-out stay pinned.
@@ -123,7 +124,7 @@ export function AdminMoreSheet({
                 className={cn(
                   'flex min-h-[44px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium leading-snug transition-colors',
                   active
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary-strong text-primary-foreground'
                     : 'text-foreground hover:bg-muted/60 active:bg-muted'
                 )}
               >
@@ -141,11 +142,22 @@ export function AdminMoreSheet({
 
         <div className="bg-card shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
           {!superAdmin ? (
-            <div className="border-border/60 border-t py-1.5">
-              <DashboardModeToggle className="hover:bg-muted/60 h-auto min-h-11 gap-3" />
-              <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
-            </div>
+            <>
+              <div className="pb-2.5 pt-2 empty:hidden">
+                <OrgPlanSidebarEntry variant="more" onNavigateToPlans={() => onOpenChange(false)} />
+              </div>
+              <div className="border-border/60 border-t py-1.5 empty:hidden">
+                <DashboardModeToggle className="hover:bg-muted/60 h-auto min-h-11 gap-3" />
+              </div>
+            </>
           ) : null}
+
+          <div className="border-border/60 border-t py-1.5">
+            <InstallAppEntry
+              variant="menu-item"
+              className="hover:bg-muted/60 text-foreground h-auto min-h-11 w-full justify-start gap-3 px-2 text-sm font-medium"
+            />
+          </div>
 
           <div className="border-border/60 flex items-center gap-2 border-t py-2.5">
             <ThemeToggle

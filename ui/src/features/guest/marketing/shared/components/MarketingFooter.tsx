@@ -16,6 +16,7 @@ import {
   marketingSocialLinks,
 } from '@/features/guest/marketing/shared/lib/marketingSiteLinks';
 
+import { InstallAppEntry } from '@/components/pwa/InstallAppEntry';
 import { PLATFORM_CONTACT_EMAIL, platformCopyrightLine } from '@/lib/platformBranding';
 
 const footerLinks = {
@@ -86,7 +87,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Explore</h4>
+            <h2 className="mb-4 font-semibold">Explore</h2>
             <ul className="space-y-3">
               {footerLinks.explore.map((link) => (
                 <li key={link.href}>
@@ -99,7 +100,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Company</h4>
+            <h2 className="mb-4 font-semibold">Company</h2>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
@@ -112,7 +113,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">For Hosts</h4>
+            <h2 className="mb-4 font-semibold">For Hosts</h2>
             <ul className="space-y-3">
               {footerLinks.hosts.map((link) => (
                 <li key={link.href}>
@@ -129,7 +130,7 @@ export function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 font-semibold">Legal</h4>
+            <h2 className="mb-4 font-semibold">Legal</h2>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
@@ -146,7 +147,10 @@ export function MarketingFooter() {
       <div className="border-border border-t">
         <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <p className="text-muted-foreground text-sm">{platformCopyrightLine()}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-muted-foreground text-sm">{platformCopyrightLine()}</p>
+              <InstallAppEntry />
+            </div>
             <div className="flex items-center gap-4">
               {marketingSocialLinks.map((social) => {
                 const Icon = socialIcons[social.label];

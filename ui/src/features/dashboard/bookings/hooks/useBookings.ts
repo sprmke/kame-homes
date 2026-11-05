@@ -244,7 +244,7 @@ export function useBookings(
         }
 
         rows = rows.filter((r) =>
-          matchesDefaultBookingsListVisibility(r, query.showCompletedBookings)
+          matchesDefaultBookingsListVisibility(r, query.showCompletedBookings, query.status)
         );
 
         rows.sort((a, b) => compareBookingsForListSort(a, b, query.sort, today));

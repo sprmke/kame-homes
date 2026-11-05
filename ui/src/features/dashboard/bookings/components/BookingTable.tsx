@@ -73,7 +73,7 @@ export function BookingTable({
 
   if (isLoading) {
     if (!showLoadingSkeleton) return null;
-    return <BookingsTableSkeleton />;
+    return <BookingsTableSkeleton showProperty={showProperty} />;
   }
 
   if (rows.length === 0) {
@@ -163,6 +163,11 @@ function BookingTableRow({
           status={row.status}
           parkingBroadcastExpiresAt={row.parking_broadcast_expires_at}
         />
+        {row.cancellation_requested_at ? (
+          <span className="mt-1 inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+            Cancellation requested
+          </span>
+        ) : null}
       </td>
 
       {showProperty ? (
@@ -197,7 +202,7 @@ function BookingTableRow({
         <span className={adminTableBodyText.secondary}>{pax}</span>
       </td>
 
-      {/* Flags — bigger, more legible icons */}
+      {/* Flags - bigger, more legible icons */}
       <td className={cn('hidden sm:table-cell', adminTableCell.body)}>
         <AdminTableFlagsCell
           need_parking={row.need_parking}
@@ -218,7 +223,7 @@ function BookingTableRow({
         </span>
       </td>
 
-      {/* Action — chevron only, click is handled by the whole row */}
+      {/* Action - chevron only, click is handled by the whole row */}
       <td className={adminTableCell.action}>
         <AdminTableRowAffordance />
       </td>

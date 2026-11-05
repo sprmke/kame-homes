@@ -7,7 +7,7 @@ updated: 2026-08-17
 
 # Contract expiry lifecycle — step-by-step manual testing
 
-Manual E2E for **sublessee / Auth Rep contract end** (notices, grace, consideration, lock, Super Admin grant/deny). Issue: GitHub [#120](https://github.com/sprmke/kame-homes/issues/120).
+Manual E2E for **sublessee / Auth Rep contract end** (notices, grace, consideration, lock, Super Admin grant/deny). Issue: GitHub [#120](https://github.com/sprmke/kame-space/issues/120).
 
 **Implementation plan:** [`docs/workflow/done/unit-handoff-phase-b.md`](../../workflow/done/unit-handoff-phase-b.md)  
 **Depends on:** ACTIVE tower+unit uniqueness already working.  
@@ -418,4 +418,4 @@ Blockers / notes:
 ____
 ```
 
-When all boxes pass, move the plan with the workflow helper to `docs/workflow/done/` and ship [#120](https://github.com/sprmke/kame-homes/issues/120) per `github-issues` skill.
+When all boxes pass, move the plan with the workflow helper to `docs/workflow/done/` and ship [#120](https://github.com/sprmke/kame-space/issues/120) per `github-issues` skill.

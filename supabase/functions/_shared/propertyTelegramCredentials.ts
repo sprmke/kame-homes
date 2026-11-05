@@ -299,6 +299,10 @@ export async function sendPropertyTelegramMessage(
   text: string,
   scope?: TelegramAssetScopeRef | string | null
 ): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
   const creds = await resolvePropertyTelegramCredentials(channel, scope);
   if (!creds.ok) {
     if (creds.code === 'missing_token' || creds.code === 'missing_chat_id') {

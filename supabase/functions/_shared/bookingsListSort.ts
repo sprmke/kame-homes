@@ -1,6 +1,9 @@
 /**
  * Shared list sort for admin `list-bookings`.
- * Keep in sync with `ui/src/features/dashboard/bookings/lib/bookingsListSort.ts`.
+ * Keep in sync with `ui/src/features/dashboard/bookings/lib/bookingsListSort.ts`
+ * and the SQL mirror in `supabase/migrations/20261318171000_list_bookings_page_rpc.sql`
+ * (`list_bookings_page`). The RPC is the production path; this module is the
+ * fallback and the source of the expected order.
  */
 
 export type BookingsListSort =
@@ -37,15 +40,23 @@ export function checkInDateToIso(dateStr: string | null | undefined): string {
   return dateStr;
 }
 
-const CANCELLED_STATUSES = new Set(['CANCELLED']);
-
-/** Default `/bookings` list visibility when **Show completed bookings** is off. */
+/**
+ * Default `/bookings` list visibility when **Show completed bookings** is off.
+ *
+ * - **CANCELLED** stays hidden unless the status filter explicitly includes it
+ *   (History stage / Filters → Cancelled).
+ * - **COMPLETED** stays hidden unless `showCompletedBookings` is on (calendar /
+ *   kanban) or the status filter explicitly includes it (History / Filters → Done).
+ */
 export function matchesDefaultBookingsListVisibility(
   row: { status: string },
-  showCompletedBookings = false
+  showCompletedBookings = false,
+  statusFilter: readonly string[] = []
 ): boolean {
-  if (CANCELLED_STATUSES.has(row.status)) return false;
-  if (!showCompletedBookings && row.status === 'COMPLETED') return false;
+  if (row.status === 'CANCELLED') return statusFilter.includes('CANCELLED');
+  if (row.status === 'COMPLETED') {
+    return showCompletedBookings || statusFilter.includes('COMPLETED');
+  }
   return true;
 }
 

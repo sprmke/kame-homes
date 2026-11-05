@@ -42,12 +42,14 @@ export function PropertyLocation({
     if (latitude != null && longitude != null) {
       window.open(
         `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
-        '_blank'
+        '_blank',
+        'noopener,noreferrer'
       );
     } else {
       window.open(
         `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`,
-        '_blank'
+        '_blank',
+        'noopener,noreferrer'
       );
     }
   };

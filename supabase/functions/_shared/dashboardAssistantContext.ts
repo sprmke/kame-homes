@@ -343,7 +343,7 @@ export async function buildHostSafeGroundingFacts(
 
 export function hostSafeGroundingFactsToPrompt(facts: HostSafeGroundingFacts): string {
   const lines = [
-    `Today's date: ${facts.today} (Asia/Manila) — use this to resolve relative dates like "this weekend" or "next month".`,
+    `Today's date: ${facts.today} (Asia/Manila) - use this to resolve relative dates like "this weekend" or "next month".`,
     `You are talking to: ${facts.requester.name}.`,
     `Organization: ${facts.org?.name ?? 'Unknown'} (${facts.org?.slug ?? ''})`,
     `Properties: ${facts.properties.map((p) => `${p.name} (${p.status}, ${p.type})`).join(', ') || 'none'}`,
@@ -356,7 +356,7 @@ export function hostSafeGroundingFactsToPrompt(facts: HostSafeGroundingFacts): s
         ? 'current property only'
         : `sum across ${facts.finance.propertyCount} properties`;
     lines.push(
-      `Finance this calendar month (${facts.finance.period.from} → ${facts.finance.period.to}, ${scopeNote}; same Net Profit as the Finance page): income ${facts.finance.display.totalIncome}, expenses ${facts.finance.display.totalExpenses}, net profit ${facts.finance.display.netProfit}. For a fresh breakdown call get_finance_summary — use netProfit/display, never invent a "Grand Net" figure.`
+      `Finance this calendar month (${facts.finance.period.from} → ${facts.finance.period.to}, ${scopeNote}; same Net Profit as the Finance page): income ${facts.finance.display.totalIncome}, expenses ${facts.finance.display.totalExpenses}, net profit ${facts.finance.display.netProfit}. For a fresh breakdown call get_finance_summary - use netProfit/display, never invent a "Grand Net" figure.`
     );
   } else {
     lines.push(

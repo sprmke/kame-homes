@@ -2,6 +2,7 @@
  * Finance operating Telegram due-date reminders.
  */
 
+import { isTelegramFeatureUnavailableError } from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -322,11 +323,11 @@ function buildFinanceReminderPlaceholders(
   return {
     label: String(row.label ?? ''),
     amount: formatMoney(Number(row.amount ?? 0)),
-    category: String(row.category ?? '—'),
+    category: String(row.category ?? '-'),
     due_date: formatDisplayDate(due),
     occurred_on: formatDisplayDate(String(row.occurred_on).slice(0, 10)),
     days_until_due: String(Math.max(0, daysUntil)),
-    notes: String(row.notes ?? '').trim() || '—',
+    notes: String(row.notes ?? '').trim() || '-',
     kind: String(row.kind ?? ''),
   };
 }
@@ -543,7 +544,9 @@ export async function runFinanceDueReminders(options?: {
     const messageScope = options.parkingId ? { parkingId: options.parkingId } : options.propertyId;
     const result = await sendFinanceTelegramMessage(message, messageScope);
     if (!result.ok) {
-      errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      if (!isTelegramFeatureUnavailableError(result.error)) {
+        errors.push(`${lineItemId}: ${result.error ?? 'send failed'}`);
+      }
       continue;
     }
 

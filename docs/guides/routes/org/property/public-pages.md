@@ -2,7 +2,7 @@
 title: 'Public Pages'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-27
+updated: 2026-11-05
 ---
 
 # Public Pages
@@ -21,7 +21,9 @@ Legacy URL `/custom-pages` redirects here.
 | ------------------ | -------- | ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Module access      | —        | Free+      | Documented | Gallery + editor open on every plan; save gated by `publicPagesAutosave` (Pro+)                                         |
 | Design your pages  | —        | —          | Documented | Showcase + Stay Guide + Property; Edit + last-edited from page configs                                                  |
-| Other guest pages  | —        | —          | Documented | Six operational URLs; Copy / Open only                                                                                  |
+| Share links        | —        | —          | Documented | Calendar, Form, Find parking; copy works with no booking                                                                |
+| Booking links      | —        | —          | Documented | Messages, SD Refund, Guest Review; copy needs stay dates or an eligible booking                                         |
+| Copy links menu    | —        | —          | Documented | Page header menu (hero icon on phone, button on desktop) copies every Share link                                        |
 | Stay Guide editor  | —        | explore    | Documented | 6-template engine (shared w/ Showcase): Template / Sections / Style + Content (WYSIWYG/images); live preview; save Pro+ |
 | Showcase editor    | explore  | Pro save   | Documented | Same explore-open + save gate as Stay Guide; live URL → `propertyShowcase`                                              |
 | Page Editor chrome | —        | —          | Documented | Fixed 480px sidebar; viewport + undo/redo in editor dock (phone) / unlabeled bar (`lg+`); no Preview strip              |
@@ -29,7 +31,7 @@ Legacy URL `/custom-pages` redirects here.
 
 ## Purpose
 
-Directory of this property's **guest-facing public pages**, grouped into **Design your pages** (editable) and **Other guest pages** (open/copy only). **Stay Guide** and **Property** cards include **Edit** → Page Editor. **Stay Guide now shares the Showcase 6-template engine** — `custom_pages.template_key` holds one of the 6 `showcase-*` keys, and the editor has the same Template / Sections / Style controls as Showcase (see [[stay-guide|Stay Guide guide]]). Chapter **content** (rich text + section images) still stays on **[[templates|Property templates]]**.
+Directory of this property's **guest-facing public pages**, grouped into **Design your pages** (editable), **Share links** (work with no booking), and **Booking links** (need a valid stay or stay dates). **Stay Guide** and **Property** cards include **Edit** → Page Editor. **Stay Guide now shares the Showcase 6-template engine** — `custom_pages.template_key` holds one of the 6 `showcase-*` keys, and the editor has the same Template / Sections / Style controls as Showcase (see [[stay-guide|Stay Guide guide]]). Chapter **content** (rich text + section images) still stays on **[[templates|Property templates]]**.
 
 Template choice and page config are bulk-copyable via org **Properties → Copy settings** (showcase stays unpublished on the target).
 
@@ -39,26 +41,30 @@ Template choice and page config are bulk-copyable via org **Properties → Copy 
 
 ## Host-facing knowledge
 
-Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property — use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). Below that, **Other guest pages** covers calendar, booking form, messages, SD refund, guest review, and **Find parking** (stay-scoped marketplace entry) — use **Copy link** or **Open page**. Stay guide, SD refund, guest review, and find-parking links are **per booking** — guests get them by email or from the booking workflow; copy on those cards is the URL pattern or host preview.
+Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property - use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). **Share links** covers calendar, booking form, and **Find parking** - these work with no booking, so **Copy link** copies straight away. **Booking links** covers messages, SD refund, and guest review - **Copy link** opens a picker: stay dates for messages, or a list of stays from check-out onward for SD refund and guest review. The **Copy links** menu at the top right copies any Share link in one tap.
 
 **Common host questions**
 
 - Q: What's the difference between View Property on the dashboard and Public Pages?
   A: **View Property** on the dashboard jumps straight to your listing. **Public Pages** lists every guest page.
 - Q: What is Showcase?
-  A: A shareable one-page landing link with animated templates. Separate from the marketing listing. Growth plan and above.
+  A: A shareable one-page landing link with animated templates. Separate from the marketing listing. Pro and above.
 - Q: Why does the Showcase guest link ask me to upgrade?
-  A: The live Showcase page needs Pro or above. You can still open **Edit** on Free to explore the editor — saving and the public link unlock on Pro.
+  A: The live Showcase page needs Pro or above. You can still open **Edit** on Free to explore the editor - saving and the public link unlock on Pro.
 - Q: Why doesn't the SD refund or find-parking copy link work for guests?
-  A: Those URLs need a **booking ID**. Guests receive the full link by email; hosts copy the link from a booking in the workflow panel.
+  A: **Find parking** now copies a plain marketplace link, so it works for any guest. **SD refund** and **Guest Review** still need a specific stay: choose **Copy link**, then pick the stay from the list. Only stays from check-out onward appear.
+- Q: How do I copy a calendar link with dates already picked?
+  A: On the **Calendar** card choose **Copy link**, select the check-in and check-out dates, then **Copy link**. The guest opens the calendar with that range selected. **Without dates** copies the plain calendar link.
+- Q: What does the Copy links menu at the top do?
+  A: It copies any **Share link** (calendar, form, find parking) right away. Links that need a booking or stay dates stay on their cards so you can pick the stay first.
 - Q: Can I change how the stay guide or listing looks?
-  A: Open **Public Pages → Design your pages → Stay Guide or Property → Edit**. For Stay Guide: pick a template, reorder/hide sections, set palette/type/motion, and edit each chapter's text + photo — the same controls as Showcase. For Property: manage photos, brand color, and listing content (also editable in **Property Settings** — same saved data).
+  A: Open **Public Pages → Design your pages → Stay Guide or Property → Edit**. For Stay Guide: pick a template, reorder/hide sections, set palette/type/motion, and edit each chapter's text + photo - the same controls as Showcase. For Property: manage photos, brand color, and listing content (also editable in **Property Settings** - same saved data).
 - Q: How do I get a shareable link for the stay guide?
   A: There isn't one link you can reuse. Each guest gets their own personal link automatically once their booking reaches ready-for-check-in. The Stay Guide card here is a preview for you.
 - Q: Where do I edit the actual text (house rules, check-in steps)?
   A: **Public Pages → Stay Guide → Edit → Content**, or **Templates** for the same body copy. Section photos upload only in the Stay Guide Page Editor.
 - Q: Is there a Save button in the page editor?
-  A: On **Pro and above**, no — changes save automatically. You'll see **Unsaved**, then **Saved**, in the top-right of the editor. On **Free / Starter**, autosave isn't included, so a **Save** button appears once you have unsaved changes — clicking it (or **Save & leave** in the leave dialog) opens the upgrade prompt for Pro instead of saving. You can still **Discard changes** and leave, or stay and keep editing locally until you upgrade.
+  A: On **Pro and above**, no - changes save automatically. You'll see **Unsaved**, then **Saved**, in the top-right of the editor. On **Free / Starter**, autosave isn't included, so a **Save** button appears once you have unsaved changes - clicking it (or **Save & leave** in the leave dialog) opens the upgrade prompt for Pro instead of saving. You can still **Discard changes** and leave, or stay and keep editing locally until you upgrade.
 - Q: Can I preview how the page looks on a phone?
   A: Yes. Use the desktop and phone icons. On a phone they’re in the bar above the bottom tabs, next to **Edit content**.
 - Q: Where do I change Stay Guide text and section photos?
@@ -66,16 +72,21 @@ Public Pages lists every guest URL for this property. At the top, **Design your 
 
 ## UI
 
-Two sections:
+Three sections:
 
 1. **Design your pages** — Showcase + Stay Guide + Property (registry order). Larger cards; primary **Edit**; Copy / Open as icon buttons. Grid: 1 column on phone, 2 from `sm`, **3 from `lg`** (Showcase, Stay Guide, Property in one row on desktop).
-2. **Other guest pages** — Calendar, Form, Messages, SD Refund, Guest Review, Pay Parking. Compact cards with **Copy link** / **Open page**. Same grid as above: 1 / 2 (`sm`) / **3 (`lg`)**.
+2. **Share links** — Calendar, Form, Find parking. Compact cards with **Copy link** / **Open page**. Copy works with no booking; calendar asks for an optional stay date range so the guest lands on those dates. Find parking copies the plain `/parkings` marketplace link.
+3. **Booking links** — Messages, SD Refund, Guest Review. **Copy link** opens a picker instead of copying right away:
+   - **Messages** — pick a check-in / check-out range; the copied link keeps both dates.
+   - **SD Refund / Guest Review** — list of eligible stays (READY_FOR_CHECKOUT, PENDING_SD_REFUND, COMPLETED) with a **Copy** button per stay. Empty state when no stay qualifies.
 
-Each card lazy-loads a **scaled live iframe** at **1280px desktop width** (`?embed=1`). Booking-scoped pages render host embed previews when `embed=1` without a booking id. Page subtitle: "Every guest URL for this listing." Registry field `editable` on `propertyGuestPublicPages` drives grouping (no hardcoded IDs in the page).
+Page header **Copy links** menu: icon-only in the mobile hero, outline button on desktop. Lists the Share links only and copies on select. Same grid as above: 1 / 2 (`sm`) / **3 (`lg`)**.
+
+Each card lazy-loads a **scaled live iframe** at **1280px desktop width** (`?embed=1`). Booking-scoped pages render host embed previews when `embed=1` without a booking id. Page subtitle: "Every guest URL for this listing." Registry fields `group` (`design` | `share` | `booking`) and `copyPicker` (`stay-dates` | `sd-refund` | `guest-review`) drive grouping and copy behavior (no hardcoded IDs in the page).
 
 ### Page Editor (`/public-pages/:pageId/edit`)
 
-Opened from **Design your pages → Edit**. While config and preview load, the shell is a skeleton of the editor: header, full-width canvas, and bottom dock on phone; header, 480px controls column, and canvas from `lg`. Keeps the **Public Pages** page title and subtitle (`AdminMobilePage`), then a bordered editor shell (same height pattern as Marketing Studio). On phone/tablet (`max-lg`) the shell fills the admin main column (`useAdminLayoutFillMain`), the **controls sidebar becomes a bottom sheet** (`MarketingEditorSidebar mobileVariant="sheet"`, opened from an **Edit content** dock button via `MarketingEditorMobileToolbar`), and the preview goes full-width with **no Preview strip** — desktop/mobile viewport and undo/redo sit in that same editor dock (same pattern as Marketing Studio zoom/history). Desktop (`lg+`) keeps the fixed 480px sidebar and an unlabeled chrome bar (history + viewport; padded to clear the sidebar collapse control). The editor dock floats **above** the app bottom tab bar (which stays visible for navigation); the preview reserves clearance for both via `marketingEditorScrollClearanceClassName`.
+Opened from **Design your pages → Edit**. While config and preview load, the shell is a skeleton of the editor: header, full-width canvas, and bottom dock on phone; header, 480px controls column, and canvas from `lg`. The **Property** editor keeps the **Public Pages** page title and subtitle (`AdminMobilePage`); **Showcase** and **Stay Guide** use their own page titles with short subtitles. Below that, a bordered editor shell (same height pattern as Marketing Studio). On phone/tablet (`max-lg`) the shell fills the admin main column (`useAdminLayoutFillMain`), the **controls sidebar becomes a bottom sheet** (`MarketingEditorSidebar mobileVariant="sheet"`, opened from an **Edit content** dock button via `MarketingEditorMobileToolbar`), and the preview goes full-width with **no Preview strip** — desktop/mobile viewport and undo/redo sit in that same editor dock (same pattern as Marketing Studio zoom/history). Desktop (`lg+`) keeps the fixed 480px sidebar and an unlabeled chrome bar (history + viewport; padded to clear the sidebar collapse control). The editor dock floats **above** the app bottom tab bar (which stays visible for navigation); the preview reserves clearance for both via `marketingEditorScrollClearanceClassName`.
 
 | Chrome             | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -85,17 +96,17 @@ Opened from **Design your pages → Edit**. While config and preview load, the s
 | Save               | **Pro+**: debounced autosave (no Save button needed) — Stay Guide and Property use the same entitlement gate as Showcase (`publicPagesAutosave` from property entitlements). **Below Pro**: autosave stays off; a primary **Save** button (and leave-dialog **Save & leave**) opens the upgrade modal instead of calling the API. The **Edit - {page}** header title shows a solid `TierBadge` when not entitled. Layout → `public-page-configs`; Stay Guide body + section images → `property-templates-settings`; listing content/brand/socials → property/`app_settings`. **Brand color** includes a **From photos** swatch (property only; enabled after gallery images exist). Status merges all pending surfaces. Leaving the editor (Back, tab close/refresh) with unsaved changes on either plan prompts **Save & leave** / **Discard changes** rather than losing the edit silently.                                                                                                                                                                                        |
 | Stay Guide Content | Merged **Sections** block: drag + visibility per chapter, nested WYSIWYG/image cards. Live preview updates as you type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-| Item         | Path                                                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Property     | `/properties/:propertySlug`                                                                                      |
-| Showcase     | `/properties/:propertySlug/showcase`                                                                             |
-| Calendar     | `…/calendar`                                                                                                     |
-| Form         | `…/form`                                                                                                         |
-| Messages     | `…/messages?checkInDate=<today>&checkOutDate=<tomorrow>` (preview adds `embed=1` in iframe only)                 |
-| Stay Guide   | `…/stay-guide?preview=1&property_id=` (admin preview)                                                            |
-| SD Refund    | `…/sd-form` (guest link adds `?bookingId=`; open from dashboard uses `embed=1`)                                  |
-| Guest Review | `…/guest-review` (guest link adds `?bookingId=`; open uses `embed=1`)                                            |
-| Pay Parking  | `…/parking/preview` + `embed=1` for preview; copy uses `…/parking/` prefix; guest link is `…/parking/:bookingId` |
+| Item         | Path                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| Property     | `/properties/:propertySlug`                                                                              |
+| Showcase     | `/properties/:propertySlug/showcase`                                                                     |
+| Calendar     | `…/calendar` (copy may add `?checkInDate=&checkOutDate=`)                                                |
+| Form         | `…/form`                                                                                                 |
+| Messages     | `…/messages?checkInDate=<iso>&checkOutDate=<iso>` (copy uses the picked range; thumbnail adds `embed=1`) |
+| Stay Guide   | `…/stay-guide?preview=1&property_id=` (admin preview)                                                    |
+| SD Refund    | `…/sd-form` (copy adds `?bookingId=`; open from dashboard uses `embed=1`)                                |
+| Guest Review | `…/guest-review` (copy adds `?bookingId=`; open uses `embed=1`)                                          |
+| Find parking | `/parkings` (plain marketplace link; per-booking stay links are built from a booking)                    |
 
 ## Data model
 
@@ -134,10 +145,13 @@ Rows are **lazily created on first read**. Showcase `template_key` ∈ `showcase
 | Route         | `ui/src/features/dashboard/custom-pages/routes/index.tsx` (`public-pages`, `public-pages/:pageId/edit`, redirect from `custom-pages`)                                                     |
 | Page          | `ui/src/features/dashboard/custom-pages/pages/CustomPagesPage.tsx`                                                                                                                        |
 | Editor        | `ui/src/features/dashboard/page-editor/` (Stay Guide + Property Landing + Showcase editors + shell + preview chrome + `components/shared/`)                                               |
-| Card          | `ui/src/features/dashboard/custom-pages/components/PublicPageCard.tsx` (`variant` editable \| static; optional `locked`)                                                                  |
+| Card          | `ui/src/features/dashboard/custom-pages/components/PublicPageCard.tsx` (`variant` editable \| static; optional `locked`; `onCopy` opens a picker)                                         |
+| Copy menu     | `ui/src/features/dashboard/custom-pages/components/CopyLinksMenu.tsx` (mobile hero sheet / desktop dropdown)                                                                              |
+| Booking copy  | `ui/src/features/dashboard/custom-pages/components/BookingLinkPickerModal.tsx` (+ `bookings/lib/guestShareLinkEligibility.ts` status rules)                                               |
+| Dates copy    | `ui/src/features/dashboard/custom-pages/components/StayDatesLinkModal.tsx` (range picker → calendar / messages link)                                                                      |
 | Live preview  | `ui/src/features/dashboard/custom-pages/components/PublicPageLivePreview.tsx`                                                                                                             |
 | Static mock   | `ui/src/features/dashboard/custom-pages/components/PublicPagePreview.tsx` (Messages + iframe fallback)                                                                                    |
-| Guest URLs    | `ui/src/features/dashboard/property/lib/propertyGuestPublicPages.ts` (`editable` metadata)                                                                                                |
+| Guest URLs    | `ui/src/features/dashboard/property/lib/propertyGuestPublicPages.ts` (`group` + `copyPicker` metadata)                                                                                    |
 | Hook          | `ui/src/features/dashboard/custom-pages/hooks/useCustomPages.ts`                                                                                                                          |
 | Settings API  | `supabase/functions/custom-pages-settings/index.ts`                                                                                                                                       |
 | Config API    | `supabase/functions/public-page-configs/index.ts`                                                                                                                                         |
@@ -164,9 +178,10 @@ See **[[stay-guide|Guest stay guide (token-gated brochure)]]** for the `stay-gui
 
 | Layer  | Path / spec                                                                                                                  | Manual                                        |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Unit   | `ui/src/features/dashboard/bookings/lib/guestShareLinkEligibility.test.ts` (SD refund / review status rules)                 | —                                             |
 | Unit   | `buildPropertyGuestPublicPages` registry helpers when pure                                                                   | —                                             |
 | E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` gallery shell load (`@ci`)                                         | Editor save, showcase live URL, autosave gate |
 | E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "free host sees upgrade badge before editing listing page" (`@ci`) | `TierBadge` visible before any edit on Free   |
-| Manual | [`custom-pages-module-manual.md`](../../testing/custom-pages-module-manual.md)                                               | Full editor + publish                         |
+| Manual | [`custom-pages-module-manual.md`](../../testing/custom-pages-module-manual.md)                                               | Copy links menu, date picker, booking picker  |
 
 ---

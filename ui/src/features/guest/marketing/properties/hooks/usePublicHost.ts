@@ -42,6 +42,20 @@ export type PublicHostProfile = {
     weekdayNightlyRate: number;
     recommendedBadge: boolean;
   }>;
+  reviewSummary?: {
+    count: number;
+    avgOverall: number | null;
+  };
+  recentReviews?: Array<{
+    id: string;
+    propertySlug: string;
+    propertyName: string;
+    guestName: string;
+    starRating: number;
+    reviewText: string | null;
+    responseText: string | null;
+    publishedAt: string | null;
+  }>;
 };
 
 export const PUBLIC_HOST_QUERY_KEY = ['public-host'] as const;

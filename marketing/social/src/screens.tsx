@@ -10,7 +10,7 @@ import { c } from './theme';
 const tab: CSSProperties = { fontVariantNumeric: 'tabular-nums' };
 
 /* ------------------------------------------------------------------ *
- * Lock screen with Kame Homes notifications
+ * Lock screen with Kame Space notifications
  * ------------------------------------------------------------------ */
 
 export const overnight = [

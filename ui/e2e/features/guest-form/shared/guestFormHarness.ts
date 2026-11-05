@@ -38,7 +38,7 @@ export async function installGuestFormMocks(page: Page, options: GuestFormMockOp
       body: {
         success: true,
         data: {
-          gcashName: 'Kame Homes',
+          gcashName: 'Sample Stays',
           gcashNumber: '09170000000',
           gcashQrImageUrl: '',
           paymentProvider: 'gcash',
@@ -58,10 +58,10 @@ export async function installGuestFormMocks(page: Page, options: GuestFormMockOp
           maxAdults: 4,
           maxChildren: 2,
           propertyName: 'Solea Mactan',
-          propertyEyebrow: 'Kame Homes PH',
+          propertyEyebrow: 'Sample Stays PH',
           propertyCoverImageUrl: null,
           residenceName: 'Solea Residences',
-          organizationName: 'Kame Homes PH',
+          organizationName: 'Sample Stays PH',
           defaultParkingRateGuest: 400,
           petFee: 300,
         },

@@ -2,6 +2,7 @@ import { ChatBlockRenderer } from '@/features/dashboard/ai-assistant/components/
 import type {
   ChatBlock,
   ConfirmActionResponse,
+  ConfirmPlanResponse,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import { canvasBlockTitle } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
 
@@ -12,6 +13,11 @@ type Props = {
   block: ChatBlock;
   onClose: () => void;
   onResolveAction: (actionId: string, confirm: boolean) => Promise<ConfirmActionResponse | null>;
+  onResolvePlan: (
+    planId: string,
+    confirm: boolean,
+    selectedStepIds?: string[]
+  ) => Promise<ConfirmPlanResponse | null>;
   onRunQuickAction?: (action: { label: string; prompt: string }) => void;
   quickActionsDisabled?: boolean;
   className?: string;
@@ -21,6 +27,7 @@ export function ChatCanvasOverlay({
   block,
   onClose,
   onResolveAction,
+  onResolvePlan,
   onRunQuickAction,
   quickActionsDisabled,
   className,
@@ -47,6 +54,7 @@ export function ChatCanvasOverlay({
         <ChatBlockRenderer
           blocks={[block]}
           onResolveAction={onResolveAction}
+          onResolvePlan={onResolvePlan}
           onRunQuickAction={onRunQuickAction}
           quickActionsDisabled={quickActionsDisabled}
           variant="canvas"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent, type ReactElement } from 'react';
 
 import { Loader2, Plug, RefreshCw, Unplug } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { TierBadgeAnchor } from '@/features/dashboard/plans/components/TierBadge
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate';
 
+import { FeatureAvailabilityButton } from '@/components/feature-availability/FeatureAvailabilityButton';
 import { Button } from '@/components/ui/button';
 import {
   ResponsiveModal,
@@ -20,6 +21,8 @@ import {
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toastFeatureUnavailable } from '@/lib/featureAvailability/featureUnavailableError';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { cn } from '@/lib/utils';
 
 function InboxChannelsTabSkeleton() {
@@ -177,11 +180,16 @@ export function InboxChannelsTab({
   const { canUse: canUseMetaChatChannel, isLoading: metaChatChannelLoading } =
     useFeatureGate('metaChatChannel');
   const { open: openUpgradeModal } = useUpgradeModal();
+  const metaConnectAvailability = useFeatureAvailability('inbox.meta.connect');
 
   const handleConnect = () => {
     if (statusLoading) return;
     if (statusError) {
       toast.error('Could not load channels. Refresh and try again.');
+      return;
+    }
+    if (!metaConnectAvailability.available) {
+      toastFeatureUnavailable(metaConnectAvailability.message);
       return;
     }
     if (!canUseMetaChatChannel) {
@@ -194,6 +202,26 @@ export function InboxChannelsTab({
   const confirmDisconnect = () => {
     onDisconnectMeta();
     setDisconnectOpen(false);
+  };
+
+  type MetaChannelButton = ReactElement<{
+    className?: string;
+    disabled?: boolean;
+    onClick?: (e: MouseEvent) => void;
+  }>;
+
+  const wrapMetaChannelAction = (button: MetaChannelButton) => {
+    if (!metaConnectAvailability.available) {
+      return (
+        <FeatureAvailabilityButton featureKey="inbox.meta.connect">
+          {button}
+        </FeatureAvailabilityButton>
+      );
+    }
+    if (!canUseMetaChatChannel) {
+      return <TierBadgeAnchor feature="metaChatChannel">{button}</TierBadgeAnchor>;
+    }
+    return button;
   };
 
   const showConnect = canManage && metaState === 'disconnected';
@@ -231,8 +259,8 @@ export function InboxChannelsTab({
 
             {canManage && (
               <div className="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
-                {showConnect && (
-                  <TierBadgeAnchor feature="metaChatChannel">
+                {showConnect &&
+                  wrapMetaChannelAction(
                     <Button
                       type="button"
                       size="sm"
@@ -250,10 +278,9 @@ export function InboxChannelsTab({
                         </>
                       )}
                     </Button>
-                  </TierBadgeAnchor>
-                )}
-                {showReconnect && (
-                  <TierBadgeAnchor feature="metaChatChannel">
+                  )}
+                {showReconnect &&
+                  wrapMetaChannelAction(
                     <Button
                       type="button"
                       size="sm"
@@ -271,46 +298,47 @@ export function InboxChannelsTab({
                         </>
                       )}
                     </Button>
-                  </TierBadgeAnchor>
-                )}
-                {showFixConnection && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-9 min-h-[44px] gap-1.5 px-3 sm:min-h-9"
-                    disabled={resubscribing}
-                    onClick={onResubscribeMeta}
-                  >
-                    {resubscribing ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                    ) : (
-                      <>
-                        <RefreshCw className="size-4" aria-hidden />
-                        Fix connection
-                      </>
-                    )}
-                  </Button>
-                )}
-                {showDisconnect && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="soft-destructive"
-                    className="h-9 min-h-[44px] gap-1.5 px-3 sm:min-h-9"
-                    disabled={disconnecting}
-                    onClick={() => setDisconnectOpen(true)}
-                  >
-                    {disconnecting ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                    ) : (
-                      <>
-                        <Unplug className="size-4" aria-hidden />
-                        Disconnect
-                      </>
-                    )}
-                  </Button>
-                )}
+                  )}
+                {showFixConnection &&
+                  wrapMetaChannelAction(
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-9 min-h-[44px] gap-1.5 px-3 sm:min-h-9"
+                      disabled={resubscribing}
+                      onClick={onResubscribeMeta}
+                    >
+                      {resubscribing ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <>
+                          <RefreshCw className="size-4" aria-hidden />
+                          Fix connection
+                        </>
+                      )}
+                    </Button>
+                  )}
+                {showDisconnect &&
+                  wrapMetaChannelAction(
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="soft-destructive"
+                      className="h-9 min-h-[44px] gap-1.5 px-3 sm:min-h-9"
+                      disabled={disconnecting}
+                      onClick={() => setDisconnectOpen(true)}
+                    >
+                      {disconnecting ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <>
+                          <Unplug className="size-4" aria-hidden />
+                          Disconnect
+                        </>
+                      )}
+                    </Button>
+                  )}
               </div>
             )}
           </div>

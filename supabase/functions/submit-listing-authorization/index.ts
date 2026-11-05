@@ -32,6 +32,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('submit-listing-authorization', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -113,6 +114,14 @@ serveAuthenticated('submit-listing-authorization', async (req) => {
 
   const supabase = createServiceClient();
   const listing = await saveListingAuthorization(supabase, context, state);
+
+  await capturePostHogEvent('listing_authorization_submitted', {
+    logPrefix: 'submit-listing-authorization',
+    request: req,
+    distinctId: context.user.id,
+    groups: { organization: context.org.id },
+    properties: { listing_kind: listingKind },
+  });
 
   return jsonSuccess(req, serializeListingAuthorization(context, state, listing));
 });

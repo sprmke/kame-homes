@@ -35,6 +35,7 @@ import {
   parseAction,
   parseMarketingDraftDates,
   gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
   telegramUnknownAction,
@@ -46,7 +47,7 @@ import {
   telegramCredentialsDto,
 } from '../_shared/telegramCredentialsPatch.ts';
 
-serveAuthenticated('telegram-marketing-settings', async (req) => {
+serveAuthenticated('telegram-marketing-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req, 'marketing');
   const scope = telegramDbScope(asset);
 
@@ -65,6 +66,8 @@ serveAuthenticated('telegram-marketing-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
     if (gateResponse) return gateResponse;
@@ -154,6 +157,8 @@ serveAuthenticated('telegram-marketing-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     await ensureTelegramAssetSettings(asset);
     const body = await readJsonBody(req);
     const action = parseAction(body).trim();

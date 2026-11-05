@@ -29,18 +29,20 @@ Quick replies and Automation are managed directly on the **parking** Guest Inbox
 
 ## Host-facing knowledge
 
-Parking **Guest Inbox** is for website chat with parking guests; Facebook and Instagram messaging is not available here. Guests can start a thread from **Contact Host** on your public parking page; messages show in this inbox and can trigger **Chat** Telegram alerts when configured. You can set up **Quick replies** and **Automation** from Manage — they apply to this parking listing only.
+Parking **Guest Inbox** is for website chat with parking guests; Facebook and Instagram messaging is not available here. Guests can start a thread from **Contact Host** on your public parking page; messages show in this inbox and can trigger **Chat** Telegram alerts when configured. You can set up **Quick replies** and **Automation** from Manage - they apply to this parking listing only.
 
 **Common host questions**
 
 - Q: Can I connect Facebook or Instagram to this parking inbox?
-  A: No — Meta messaging is only available for property inboxes. Parking Guest Inbox is web-chat only.
+  A: No. Meta messaging is only available for property inboxes. Parking Guest Inbox is web-chat only.
 - Q: Why is the message list empty?
   A: No guest has started a web chat for this slot yet. Share your public parking link and ensure **Contact Host** is visible on the listing.
 - Q: Where do I edit canned replies or turn on auto-reply for parking?
   A: Open this parking's Guest Inbox → **Manage** → Quick replies or Automation. These settings are specific to this parking listing.
 - Q: Are the quick replies the same as my property's?
-  A: No — parking quick replies are a separate list pre-seeded with parking-relevant answers (rates, vehicle details, entry/exit, payment, etc.), independent of any property's quick replies.
+  A: No. Parking quick replies are a separate list pre-seeded with parking-relevant answers (rates, vehicle details, entry/exit, payment, etc.), independent of any property's quick replies.
+- Q: Do quick reply changes apply to every parking slot?
+  A: No. Quick replies and automation are stored for this parking listing only. Other slots keep their own setup.
 
 ---
 
@@ -65,14 +67,15 @@ Parking **Guest Inbox** is for website chat with parking guests; Facebook and In
 
 ## Implementation map
 
-| Area                    | Path                                                                   |
-| ----------------------- | ---------------------------------------------------------------------- |
-| Page                    | `ui/src/features/dashboard/inbox/pages/ParkingInboxPage.tsx`           |
-| Shell                   | `ui/src/features/dashboard/inbox/pages/InboxPage.tsx`                  |
-| Manage menu/modals      | `ui/src/features/dashboard/inbox/components/InboxManageModals.tsx`     |
-| Scope                   | `supabase/functions/_shared/metaInboxScope.ts`, `inboxAccess.ts`       |
-| Default quick replies   | `supabase/functions/_shared/inboxDefaultQuickReplies.ts`               |
-| Templates/settings CRUD | `supabase/functions/social-inbox-templates/`, `social-inbox-settings/` |
+| Area                    | Path                                                                     |
+| ----------------------- | ------------------------------------------------------------------------ |
+| Page                    | `ui/src/features/dashboard/inbox/pages/ParkingInboxPage.tsx`             |
+| Loading                 | `ParkingInboxRouteSkeleton` → `InboxPageSkeleton` (`AdminSkeletons.tsx`) |
+| Shell                   | `ui/src/features/dashboard/inbox/pages/InboxPage.tsx`                    |
+| Manage menu/modals      | `ui/src/features/dashboard/inbox/components/InboxManageModals.tsx`       |
+| Scope                   | `supabase/functions/_shared/metaInboxScope.ts`, `inboxAccess.ts`         |
+| Default quick replies   | `supabase/functions/_shared/inboxDefaultQuickReplies.ts`                 |
+| Templates/settings CRUD | `supabase/functions/social-inbox-templates/`, `social-inbox-settings/`   |
 
 ---
 

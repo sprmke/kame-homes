@@ -1,12 +1,14 @@
 import { useOfflineSyncStore } from '@/features/dashboard/offline/store/offlineSyncStore';
 
-import { outboxClear } from '@/lib/pwa/outbox';
+import { clearAllFormDrafts } from '@/hooks/useOfflineFormDraft';
+import { outboxClear, releaseOutboxConnection } from '@/lib/pwa/outbox';
+import { cancelOutboxDrain } from '@/lib/pwa/syncEngine';
 import { clearAllPersistedQueryCaches } from '@/lib/pwa/queryPersister';
 
-import { CACHE_PREFIX, OUTBOX_DB_NAME } from '@/pwa/shared';
+import { CACHE_PREFIX, DRAFTS_DB_NAME, OUTBOX_DB_NAME } from '@/pwa/shared';
 
 /** IndexedDB databases the PWA owns — best-effort delete after the store-level clear. */
-const OWNED_IDB = [OUTBOX_DB_NAME, `${CACHE_PREFIX}query-cache`];
+const OWNED_IDB = [OUTBOX_DB_NAME, `${CACHE_PREFIX}query-cache`, DRAFTS_DB_NAME];
 
 async function deleteAppCaches(): Promise<void> {
   if (typeof caches === 'undefined') return;
@@ -26,7 +28,8 @@ async function deleteAppCaches(): Promise<void> {
  * reload.
  */
 async function clearOwnedIdb(): Promise<void> {
-  await Promise.allSettled([clearAllPersistedQueryCaches(), outboxClear()]);
+  await Promise.allSettled([clearAllPersistedQueryCaches(), outboxClear(), clearAllFormDrafts()]);
+  await releaseOutboxConnection();
   if (typeof indexedDB === 'undefined') return;
   await Promise.allSettled(
     OWNED_IDB.map(
@@ -64,6 +67,7 @@ async function unsubscribeLocalPush(): Promise<void> {
  */
 export async function purgeOfflineState(): Promise<void> {
   try {
+    cancelOutboxDrain();
     useOfflineSyncStore.getState().reset();
   } catch {
     // ignore

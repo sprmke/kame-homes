@@ -37,7 +37,7 @@ export const mockDevelopments: Development[] = [
     established: 2019,
     totalUnits: 1400,
     propertyIds: [
-      'property-kame-home',
+      'property-sample-stay',
       'azure-studio-1',
       'azure-1br',
       'azure-2br',

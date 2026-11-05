@@ -232,7 +232,7 @@ export function PricingCalendarGrid({
         {/* Pointer-drag selection is desktop only; touch uses the per-cell two-tap
             handleTouchSelect, so the mouse* commit handlers must not run below lg
             (synthetic mouse events on tap would commit a single-tap range early).
-            No tip banner below lg — it shifts the grid; armed cells use a thick border. */}
+            No tip banner below lg - it shifts the grid; armed cells use a thick border. */}
         <div
           className="select-none"
           onMouseUp={isBelowLg ? undefined : onSelectionEnd}

@@ -9,9 +9,11 @@ type Props = {
   title: string;
   children: ReactNode;
   defaultOpen?: boolean;
+  /** Fired on the first expand, so a help view is counted when it is actually read. */
+  onFirstOpen?: () => void;
 };
 
-export function HelpDisclosure({ title, children, defaultOpen = false }: Props) {
+export function HelpDisclosure({ title, children, defaultOpen = false, onFirstOpen }: Props) {
   const ref = React.useRef<HTMLDetailsElement>(null);
 
   React.useEffect(() => {
@@ -19,7 +21,13 @@ export function HelpDisclosure({ title, children, defaultOpen = false }: Props) 
   }, [defaultOpen]);
 
   return (
-    <details ref={ref} className="border-border/70 group border-b last:border-b-0">
+    <details
+      ref={ref}
+      className="border-border/70 group border-b last:border-b-0"
+      onToggle={(event) => {
+        if (event.currentTarget.open) onFirstOpen?.();
+      }}
+    >
       <summary
         className={cn(
           'text-foreground flex min-h-12 cursor-pointer list-none items-start justify-between gap-4 py-4 text-[15px] font-medium leading-snug sm:py-5 sm:text-base',

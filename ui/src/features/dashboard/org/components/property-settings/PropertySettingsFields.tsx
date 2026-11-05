@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { AlertCircle } from 'lucide-react';
 
 import { FieldLabel, RequiredMark } from '@/components/forms/FieldLabel';
+import { Button } from '@/components/ui/button';
 import { Input, type InputProps } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +75,36 @@ export function PropertySettingsSectionAlert({
 export function SectionNavIssueDot({ className }: { className?: string }) {
   return (
     <span className={cn('bg-destructive size-2 shrink-0 rounded-full', className)} aria-hidden />
+  );
+}
+
+type SettingsManageButtonProps = Omit<ComponentProps<typeof Button>, 'children'> & {
+  /** When true, appends * (matches section nav attention dot). */
+  needsAttention?: boolean;
+};
+
+export function SettingsManageButton({
+  needsAttention = false,
+  className,
+  variant = 'outline',
+  size = 'sm',
+  ...props
+}: SettingsManageButtonProps) {
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      className={cn('settings-action shrink-0', className)}
+      aria-label={needsAttention ? 'Manage, action needed' : 'Manage'}
+      {...props}
+    >
+      Manage
+      {needsAttention ? (
+        <span className="text-destructive" aria-hidden>
+          *
+        </span>
+      ) : null}
+    </Button>
   );
 }
 

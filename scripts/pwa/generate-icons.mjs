@@ -1,123 +1,212 @@
 #!/usr/bin/env node
 /**
- * PWA icon generator — deterministic, checked-in output.
+ * Brand + PWA asset generator — deterministic, checked-in output.
  *
- * Source of truth: ui/public/favicon/web-app-manifest-512x512.png (full-bleed brand mark).
- * Produces the icon set the web app manifest + notification badge reference:
+ * Source of truth: the vector marks in `ui/public/brand/`:
  *
- *   ui/public/icons/pwa-192.png              any-purpose, 192×192
- *   ui/public/icons/pwa-512.png              any-purpose, 512×512
- *   ui/public/icons/pwa-maskable-192.png     maskable, brand-gradient safe zone
- *   ui/public/icons/pwa-maskable-512.png     maskable, brand-gradient safe zone
- *   ui/public/icons/apple-touch-icon.png     180×180, opaque (iOS home screen)
- *   ui/public/icons/notification-badge.png   96×96 monochrome silhouette (Android status bar)
+ *   kame-space-mark.svg        rounded square tile + white K (favicon, logo, Google)
+ *   kame-space-tile.svg        full-bleed square tile + white K (maskable, Apple, manifest)
+ *   kame-space-mark-mono.svg   white K silhouette (monochrome + notification badge)
  *
- * Re-run after changing the source mark:  node scripts/pwa/generate-icons.mjs
+ * Produces every raster the app references:
+ *
+ *   ui/public/icons/pwa-192.png / pwa-512.png        any-purpose mark
+ *   ui/public/icons/pwa-maskable-192.png / -512.png  full-bleed tile
+ *   ui/public/icons/apple-touch-icon.png             180×180 full-bleed tile
+ *   ui/public/icons/notification-badge.png           96×96 monochrome K
+ *   ui/public/icons/monochrome-512.png               512×512 monochrome K
+ *   ui/public/icons/shortcut-*.png                   96×96 shortcut glyphs
+ *   ui/public/favicon/favicon-96x96.png              mark
+ *   ui/public/favicon/favicon.ico                    16/32/48 ICO
+ *   ui/public/favicon/favicon.svg                    copy of the rounded mark
+ *   ui/public/favicon/apple-touch-icon.png           180×180 full-bleed tile
+ *   ui/public/favicon/web-app-manifest-192x192.png   mark
+ *   ui/public/favicon/web-app-manifest-512x512.png   full-bleed tile
+ *   ui/public/images/logo.png                        512×512 mark (emails, org fallback)
+ *   ui/public/brand/kame-space-mark-120.png          Google OAuth branding upload
+ *   ui/public/brand/kame-space-mark-512.png          mark
+ *   ui/public/splash/splash-<w>x<h>-<theme>.png      iOS launch screens
+ *
+ * Re-run after changing a mark:  node scripts/pwa/generate-icons.mjs
  * `sharp` is a root devDependency; this never runs in the browser bundle or CI build.
  */
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const SRC = path.join(repoRoot, 'ui/public/favicon/web-app-manifest-512x512.png');
-const OUT_DIR = path.join(repoRoot, 'ui/public/icons');
+const BRAND_DIR = path.join(repoRoot, 'ui/public/brand');
+const MARK_SRC = path.join(BRAND_DIR, 'kame-space-mark.svg');
+const TILE_SRC = path.join(BRAND_DIR, 'kame-space-tile.svg');
+const MONO_SRC = path.join(BRAND_DIR, 'kame-space-mark-mono.svg');
+// Brand token --primary (hsl(168 65% 40%)) for solid backgrounds around the mark.
+const BRAND_BG = { r: 0x24, g: 0xa8, b: 0x8e, alpha: 1 };
 
-// Solid brand background for padded (maskable / Apple) icons — sampled from the
-// source mark's dominant tone. Solid (not gradient) so there is no seam where the
-// scaled-down source mark sits on top of it.
-const BRAND_BG = { r: 0xe7, g: 0xc9, b: 0x8d, alpha: 1 };
+async function render(source, size, background = { r: 0, g: 0, b: 0, alpha: 0 }) {
+  const svg = await readFile(source);
+  return sharp(svg, { density: 144 })
+    .resize(size, size, { fit: 'contain', background })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
 
-/** Solid brand-background square as a PNG buffer. */
+/** Full-bleed square: used where the launcher/OS applies its own mask. */
+async function tile(size) {
+  return render(TILE_SRC, size);
+}
+
+async function mark(size) {
+  return render(MARK_SRC, size);
+}
+
+/** Solid brand square as a PNG buffer (shortcut glyphs). */
 function brandSquare(size) {
   return sharp({
     create: { width: size, height: size, channels: 4, background: BRAND_BG },
   }).png();
 }
 
-async function anyIcon(size) {
-  return sharp(SRC).resize(size, size, { fit: 'cover' }).png({ compressionLevel: 9 }).toBuffer();
+/**
+ * iOS launch screens (`apple-touch-startup-image`). Without these iOS paints a
+ * blank white window on launch, including in dark mode (P1-11). Each is a solid
+ * background with the rounded mark centred, which compresses to a small PNG.
+ */
+const SPLASH_SIZES = [
+  [1320, 2868], // iPhone 16 Pro Max
+  [1206, 2622], // iPhone 16 Pro
+  [1290, 2796], // iPhone 16 Plus / 15 Plus
+  [1179, 2556], // iPhone 16 / 15 / 14 Pro
+  [1170, 2532], // iPhone 14 / 13 / 12
+  [1125, 2436], // iPhone 13 mini
+  [750, 1334], // iPhone SE
+  [1640, 2360], // iPad Air 10.9"
+  [1668, 2388], // iPad Pro 11"
+  [2048, 2732], // iPad Pro 12.9"
+];
+
+const SPLASH_THEMES = [
+  { name: 'light', bg: '#f5f6f8' },
+  { name: 'dark', bg: '#121212' },
+];
+
+async function splashScreen(width, height, theme) {
+  const size = Math.round(Math.min(width, height) * 0.28);
+  const logo = await mark(size);
+  return sharp({
+    create: { width, height, channels: 4, background: theme.bg },
+  })
+    .composite([{ input: logo, gravity: 'center' }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
 }
 
 /**
- * Maskable: the mark scaled into the inner 80% (Android/iOS mask can crop up to
- * the outer ~10% on each edge, plus corner rounding), on the brand gradient.
+ * Shortcut glyphs: a simple white mark on the brand background so the long-press
+ * menu is distinguishable, without shipping a second icon set.
  */
-async function maskableIcon(size) {
-  // Mark at 66% on a solid brand square: comfortably inside the maskable safe
-  // circle (radius 40% from centre) on every launcher shape, no seam.
-  const inner = Math.round(size * 0.66);
-  const mark = await sharp(SRC)
-    .resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .toBuffer();
-  return (await brandSquare(size))
-    .composite([{ input: mark, gravity: 'center' }])
-    .png({ compressionLevel: 9 })
-    .toBuffer();
+async function shortcutIcon(size, kind) {
+  const glyph = {
+    bookings:
+      '<rect x="30" y="42" width="36" height="34" rx="5"/><rect x="38" y="34" width="20" height="8" rx="4"/>',
+    inbox:
+      '<rect x="28" y="46" width="40" height="28" rx="7"/><path d="M30 50l18 13 18-13" stroke="none"/>',
+    checkins:
+      '<path d="M40 62l10 10 22-24" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>',
+  }[kind];
+  const svg = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 96 96">` +
+      `<rect width="96" height="96" rx="20" fill="#24A88E"/>` +
+      `<g fill="#ffffff" stroke="#ffffff">${glyph}</g></svg>`
+  );
+  return sharp(svg).png({ compressionLevel: 9 }).toBuffer();
 }
 
-async function appleTouchIcon() {
-  // iOS ignores transparency and applies its own rounded mask — ship an opaque 180².
-  const mark = await sharp(SRC)
-    .resize(140, 140, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .toBuffer();
-  return (await brandSquare(180))
-    .composite([{ input: mark, gravity: 'center' }])
-    .png({ compressionLevel: 9 })
-    .toBuffer();
+/** Build an ICO from PNG buffers (PNG-compressed entries are widely supported). */
+function icoFromPngs(entries) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(entries.length, 4);
+
+  let offset = 6 + 16 * entries.length;
+  const directory = entries.map(({ size, buf }) => {
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(size >= 256 ? 0 : size, 0);
+    entry.writeUInt8(size >= 256 ? 0 : size, 1);
+    entry.writeUInt8(0, 2);
+    entry.writeUInt8(0, 3);
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(buf.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    offset += buf.length;
+    return entry;
+  });
+
+  return Buffer.concat([header, ...directory, ...entries.map((e) => e.buf)]);
 }
 
-/**
- * Notification badge (Android): a flat white silhouette on transparency. Derive
- * alpha from the mark's luminance so the bold outlines read as the shape.
- */
-async function notificationBadge() {
-  const size = 96;
-  const { data, info } = await sharp(SRC)
-    .resize(size, size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const out = Buffer.alloc(size * size * 4);
-  for (let i = 0; i < size * size; i += 1) {
-    const r = data[i * info.channels];
-    const g = data[i * info.channels + 1];
-    const b = data[i * info.channels + 2];
-    const a = info.channels === 4 ? data[i * info.channels + 3] : 255;
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    // Opaque white only on the mark's bold dark linework — the tan/sage fills
-    // (lum ~190-205) must stay transparent or the badge is a solid blob.
-    const shape = a > 40 && lum < 110 ? 255 : 0;
-    out[i * 4] = 255;
-    out[i * 4 + 1] = 255;
-    out[i * 4 + 2] = 255;
-    out[i * 4 + 3] = shape;
-  }
-  return sharp(out, { raw: { width: size, height: size, channels: 4 } })
-    .png({ compressionLevel: 9 })
-    .toBuffer();
+async function writeTo(dest, buf) {
+  await mkdir(path.dirname(dest), { recursive: true });
+  await writeFile(dest, buf);
+  console.log(`  wrote ${path.relative(repoRoot, dest)} (${buf.length} bytes)`);
 }
 
 async function main() {
-  await mkdir(OUT_DIR, { recursive: true });
-  const jobs = [
-    ['pwa-192.png', await anyIcon(192)],
-    ['pwa-512.png', await anyIcon(512)],
-    ['pwa-maskable-192.png', await maskableIcon(192)],
-    ['pwa-maskable-512.png', await maskableIcon(512)],
-    ['apple-touch-icon.png', await appleTouchIcon()],
-    ['notification-badge.png', await notificationBadge()],
-  ];
-  for (const [name, buf] of jobs) {
-    const dest = path.join(OUT_DIR, name);
+  const icons = path.join(repoRoot, 'ui/public/icons');
+  const favicon = path.join(repoRoot, 'ui/public/favicon');
+  const images = path.join(repoRoot, 'ui/public/images');
+  const splashDir = path.join(repoRoot, 'ui/public/splash');
+
+  await writeTo(path.join(icons, 'pwa-192.png'), await mark(192));
+  await writeTo(path.join(icons, 'pwa-512.png'), await mark(512));
+  await writeTo(path.join(icons, 'pwa-maskable-192.png'), await tile(192));
+  await writeTo(path.join(icons, 'pwa-maskable-512.png'), await tile(512));
+  await writeTo(path.join(icons, 'apple-touch-icon.png'), await tile(180));
+  await writeTo(
+    path.join(icons, 'notification-badge.png'),
+    await render(MONO_SRC, 96)
+  );
+  await writeTo(path.join(icons, 'monochrome-512.png'), await render(MONO_SRC, 512));
+  await writeTo(path.join(icons, 'shortcut-bookings.png'), await shortcutIcon(96, 'bookings'));
+  await writeTo(path.join(icons, 'shortcut-inbox.png'), await shortcutIcon(96, 'inbox'));
+  await writeTo(path.join(icons, 'shortcut-checkins.png'), await shortcutIcon(96, 'checkins'));
+
+  await writeTo(path.join(favicon, 'favicon-96x96.png'), await mark(96));
+  await writeTo(path.join(favicon, 'apple-touch-icon.png'), await tile(180));
+  await writeTo(path.join(favicon, 'web-app-manifest-192x192.png'), await mark(192));
+  await writeTo(path.join(favicon, 'web-app-manifest-512x512.png'), await tile(512));
+  await writeTo(
+    path.join(favicon, 'favicon.svg'),
+    await readFile(MARK_SRC)
+  );
+
+  const icoEntries = [];
+  for (const size of [16, 32, 48]) {
     // eslint-disable-next-line no-await-in-loop
-    await sharp(buf).toFile(dest);
-    console.log(`  wrote ${path.relative(repoRoot, dest)} (${buf.length} bytes)`);
+    icoEntries.push({ size, buf: await mark(size) });
   }
-  console.log('PWA icons generated.');
+  await writeTo(path.join(favicon, 'favicon.ico'), icoFromPngs(icoEntries));
+
+  await writeTo(path.join(images, 'logo.png'), await mark(512));
+  await writeTo(path.join(BRAND_DIR, 'kame-space-mark-120.png'), await mark(120));
+  await writeTo(path.join(BRAND_DIR, 'kame-space-mark-512.png'), await mark(512));
+
+  for (const [width, height] of SPLASH_SIZES) {
+    for (const theme of SPLASH_THEMES) {
+      // eslint-disable-next-line no-await-in-loop
+      const buf = await splashScreen(width, height, theme);
+      // eslint-disable-next-line no-await-in-loop
+      await writeTo(
+        path.join(splashDir, `splash-${width}x${height}-${theme.name}.png`),
+        buf
+      );
+    }
+  }
+
+  console.log('Brand assets generated.');
 }
 
 main().catch((err) => {

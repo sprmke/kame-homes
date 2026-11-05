@@ -1,4 +1,93 @@
 import type { AssistantAiBlocker } from '@/features/dashboard/ai-assistant/lib/assistantAiOff';
+
+export type ChartPoint = { x: string; y: number; label?: string };
+export type ChartBlock = {
+  type: 'chart';
+  title: string;
+  kind: 'bar' | 'line' | 'area' | 'pie' | 'donut';
+  series: Array<{ name: string; points: ChartPoint[] }>;
+  unit?: 'php' | 'pct' | 'count';
+  xLabel?: string;
+  yLabel?: string;
+  tableAlt: { columns: string[]; rows: Array<Record<string, string | number>> };
+  hydrated?: true;
+};
+export type CalendarDayState = 'booked' | 'blocked' | 'available' | 'checkin' | 'checkout';
+export type CalendarBlock = {
+  type: 'calendar';
+  title: string;
+  month: string;
+  days: Array<{ date: string; state: CalendarDayState; rate?: string; label?: string }>;
+  legend: Array<{ state: string; label: string }>;
+  range?: { start: string; end: string };
+  hydrated?: true;
+};
+export type TimelineBlock = {
+  type: 'timeline';
+  title: string;
+  items: Array<{
+    at: string;
+    label: string;
+    detail?: string;
+    status?: string;
+    actor?: string;
+    href?: string;
+  }>;
+  hydrated?: true;
+};
+export type EntityCardBlock = {
+  type: 'entity_card';
+  entityType:
+    | 'property'
+    | 'parking'
+    | 'team_member'
+    | 'maintenance_item'
+    | 'inbox_thread'
+    | 'support_ticket'
+    | 'marketing_template'
+    | 'guest';
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl?: string;
+  badge?: { label: string; tone: string };
+  facts: Array<{ label: string; value: string }>;
+  actions?: Array<{ label: string; prompt?: string; routeKey?: string }>;
+  hydrated?: true;
+};
+export type CarouselBlock = {
+  type: 'carousel';
+  title: string;
+  items: EntityCardBlock[];
+  hydrated?: true;
+};
+export type KpiBlock = {
+  type: 'kpi';
+  label: string;
+  value: string;
+  delta?: { value: string; direction: 'up' | 'down' | 'flat'; label?: string };
+  sparkline?: number[];
+  hydrated?: true;
+};
+export type ComparisonBlock = {
+  type: 'comparison';
+  title: string;
+  columns: [string, string];
+  rows: Array<{ label: string; before: string; after: string; changed: boolean }>;
+  hydrated?: true;
+};
+export type ChecklistBlock = {
+  type: 'checklist';
+  title: string;
+  items: Array<{ id: string; label: string; done: boolean; prompt?: string }>;
+  hydrated?: true;
+};
+export type CalloutBlock = {
+  type: 'callout';
+  tone: 'info' | 'warning' | 'success';
+  text: string;
+  href?: string;
+};
 import type { AttachedContextItem } from '@/features/dashboard/ai-assistant/lib/attachedContext';
 import { scopedOrgFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
@@ -10,11 +99,44 @@ export type ActionConfirmationBlock = {
   riskTier: 'tier1_auto' | 'tier2_confirmed';
   summary: string;
   details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
   status: 'proposed' | 'confirmed' | 'executed' | 'denied' | 'expired';
   isExternalSend?: boolean;
   errorMessage?: string;
   /** Server-built outcome line after Confirm (e.g. "Applied to 42 nights."). */
   resultNote?: string;
+};
+
+/** One step inside an ActionPlanBlock — Phase 3 plan-card approval. */
+export type ActionPlanStep = {
+  stepId: string;
+  stepIndex: number;
+  toolName: string;
+  riskTier: 'tier1_auto' | 'tier2_confirmed';
+  summary: string;
+  details: Array<{ label: string; value: string }>;
+  diff?: ComparisonBlock;
+  /** step_index values this step reads a result from — skipped if any of those failed. */
+  dependsOn: number[];
+  /** Host tick state; pre-ticked true, including plan-joined low-risk steps. */
+  selected: boolean;
+  status: 'proposed' | 'confirmed' | 'executed' | 'failed' | 'denied' | 'expired' | 'skipped';
+  isExternalSend?: boolean;
+  errorMessage?: string;
+};
+
+export type ActionPlanBlock = {
+  type: 'action_plan';
+  planId: string;
+  status:
+    | 'proposed'
+    | 'approved'
+    | 'running'
+    | 'completed'
+    | 'partially_failed'
+    | 'cancelled'
+    | 'expired';
+  steps: ActionPlanStep[];
 };
 
 export type ActivityPhase = 'understanding' | 'tool' | 'synthesizing' | 'safety';
@@ -131,6 +253,10 @@ export type ChatBlock =
       rows: Array<Record<string, string | number>>;
       /** Aligned with `rows`; set by the server for rows that map to a booking. */
       rowTargets?: Array<{ bookingId: string; propertyId?: string; parkingId?: string } | null>;
+      sortable?: boolean;
+      pageSize?: number;
+      phoneColumns?: string[];
+      downloadable?: boolean;
     }
   | { type: 'link_list'; title: string; links: Array<{ label: string; href: string }> }
   | {
@@ -147,7 +273,17 @@ export type ChatBlock =
   | DiagramBlock
   | MapBlock
   | DynamicFormBlock
-  | ActionConfirmationBlock;
+  | ActionConfirmationBlock
+  | ActionPlanBlock
+  | ChartBlock
+  | CalendarBlock
+  | TimelineBlock
+  | EntityCardBlock
+  | CarouselBlock
+  | KpiBlock
+  | ComparisonBlock
+  | ChecklistBlock
+  | CalloutBlock;
 
 export type ChatAttachmentMeta = {
   name: string;
@@ -175,6 +311,23 @@ export type ConfirmActionResponse = {
   data?: unknown;
   alreadyResolved?: boolean;
   resultNote?: string | null;
+  /** Persisted message blocks after confirm, including follow-through chips. */
+  blocks?: ChatBlock[];
+};
+
+export type ConfirmPlanResponse = {
+  status: 'completed' | 'partially_failed' | 'cancelled' | 'proposed' | 'running';
+  steps?: Array<{
+    id: string;
+    toolName: string;
+    stepIndex: number;
+    status: 'proposed' | 'confirmed' | 'executed' | 'failed' | 'denied' | 'expired';
+    ok: boolean;
+    error?: string;
+  }>;
+  alreadyResolved?: boolean;
+  text?: string;
+  blocks?: ChatBlock[];
 };
 
 export type AiDashboardAssistantUsageSummary = {
@@ -206,6 +359,10 @@ export type AiDashboardAssistantOrgSettings = {
 export type AiDashboardAssistantGlobalSettings = {
   enabled: boolean;
   aiModeEnabled: boolean;
+  /** Phase 6 kill switches — platform-wide defaults; an org can override (no UI yet). */
+  agenticModeEnabled: boolean;
+  planApprovalEnabled: boolean;
+  guestActionsEnabled: boolean;
   updatedBy: string | null;
   updatedAt: string;
 };
@@ -264,6 +421,18 @@ export function confirmAssistantAction(input: {
   });
 }
 
+export function confirmAssistantPlan(input: {
+  planId: string;
+  confirm: boolean;
+  /** Omit to run every step as proposed (the plan's own `selected: true` default). */
+  selectedStepIds?: string[];
+}): Promise<ConfirmPlanResponse> {
+  return callAiAssistantFn<ConfirmPlanResponse>(`${baseUrl()}/dashboard-assistant-confirm`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export function fetchAiDashboardAssistantSettings(
   orgSlug: string | null,
   orgId: string | null,
@@ -302,6 +471,9 @@ export function fetchAiDashboardAssistantGlobalSettings(): Promise<AiDashboardAs
 export function updateAiDashboardAssistantGlobalSettings(patch: {
   enabled?: boolean;
   aiModeEnabled?: boolean;
+  agenticModeEnabled?: boolean;
+  planApprovalEnabled?: boolean;
+  guestActionsEnabled?: boolean;
 }): Promise<AiDashboardAssistantGlobalSettings> {
   return callAiAssistantFn<AiDashboardAssistantGlobalSettings>(
     `${baseUrl()}/dashboard-assistant-global-settings`,
@@ -401,11 +573,21 @@ export type AssistantBriefingCard = {
   href: string;
 };
 
+export type AssistantBriefingDelta = {
+  newBookings: number;
+  newMessages: number;
+  completedStays: number;
+};
+
 export function fetchAssistantBriefing(
   orgSlug: string | null,
   orgId: string | null,
   scope: { propertyId?: string | null; parkingId?: string | null }
-): Promise<{ cards: AssistantBriefingCard[]; manilaDate: string | null }> {
+): Promise<{
+  cards: AssistantBriefingCard[];
+  manilaDate: string | null;
+  sinceYesterday: AssistantBriefingDelta | null;
+}> {
   const url = new URL(scopedOrgFunctionsUrl('dashboard-assistant-briefing', orgSlug, orgId));
   if (scope.propertyId) url.searchParams.set('property_id', scope.propertyId);
   else if (scope.parkingId) url.searchParams.set('parking_id', scope.parkingId);

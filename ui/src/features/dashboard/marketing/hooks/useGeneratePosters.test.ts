@@ -14,7 +14,7 @@ vi.mock('@/features/dashboard/org/lib/adminApiScope', () => ({
 }));
 
 const FACTS = buildPosterFacts({
-  propertyName: 'Kame Home',
+  propertyName: 'Sample Stay',
   property: {
     amenities: ['WiFi', 'Swimming Pool'],
     residenceName: 'Azure North',

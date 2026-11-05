@@ -172,6 +172,7 @@ export function OrgPropertyImageCarousel({ images, name, className, onSurfaceCli
         )}
         onClick={() => onSurfaceClick?.()}
         role={onSurfaceClick ? 'button' : undefined}
+        aria-label={onSurfaceClick ? `Open ${name}` : undefined}
         tabIndex={onSurfaceClick ? 0 : undefined}
         onKeyDown={
           onSurfaceClick

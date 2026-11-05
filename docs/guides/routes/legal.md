@@ -16,18 +16,35 @@ Routes: `/terms` · `/privacy` · `/cookies` · `/about` · `/contact` · `/supp
 | Section          | E2E save | Validation | Docs       | Notes                                                                                          |
 | ---------------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
 | Terms of Service | —        | —          | Documented | Grounded in booking workflow + PH law                                                          |
-| Privacy Policy   | —        | —          | Documented | Guest/host PII + named processors                                                              |
-| Cookie Policy    | —        | —          | Documented | Auth/session + prefs; PostHog when enabled; no ad pixels                                       |
+| Privacy Policy   | —        | —          | Documented | Guest/host PII + named processors (PostHog analytics, Sentry errors)                           |
+| Cookie Policy    | —        | —          | Documented | Auth/session + prefs; PostHog analytics when enabled; Sentry errors; no ad pixels              |
 | About            | —        | —          | Documented | Product capabilities; no fabricated history                                                    |
 | Contact          | Yes      | Yes        | Documented | Explore guest auth + ticket modal; guest Tickets under `/account/tickets`                      |
 | Support          | —        | —          | Documented | Guest + host FAQ                                                                               |
 | Mobile shell     | —        | —          | Documented | `MarketingLayoutShell` bottom tabs — see [index-landing.md](./index-landing.md) § Mobile shell |
 
+### Vendors named on the legal pages
+
+| Vendor   | What it does                  | What it never receives                                      |
+| -------- | ----------------------------- | ----------------------------------------------------------- |
+| Supabase | Auth, database, storage, edge | n/a                                                         |
+| PostHog  | Product analytics and funnels | Error reports, guest email, message bodies, tokens          |
+| Sentry   | Error monitoring              | Names, emails, phone numbers, message content, IP addresses |
+| Resend   | Transactional email           | n/a                                                         |
+
+PostHog no longer records errors; Sentry does not record product analytics. Both scrub the
+same deny list (`ui/src/lib/telemetry/scrub.ts`). Ship copy changes here **before** turning
+on production keys.
+
 ---
 
 ## Overview
 
-Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Homes**; guest fallback **hello@kamehomes.com**.
+Footer links from **`MarketingFooter`** (desktop, `lg+`); on phone the footer is hidden and the same links, contact details, socials and copyright live in the bottom-nav **More** sheet (`MarketingMoreSheet`), both fed by `marketingSiteLinks.ts`. Phone and social icons come from `VITE_PLATFORM_CONTACT_PHONE` / `VITE_PLATFORM_SOCIAL_*` and are hidden when unset. Legal pages use **`LegalSimplePage`** (shared **`MarketingPublicPageHero`** with About / Contact / Support). Operating brand: **Kame Space**; guest fallback **kameworks.tech@gmail.com**.
+
+Privacy and Terms disclose the rename once: **"Kame Space was previously called Kame Homes"**, plus a last-updated line. The sentence comes from `platformFormerNameNote()` in `ui/src/lib/platformBranding.ts`, so the current name stays env-driven.
+
+Site-wide `Organization` structured data is injected at bootstrap by `ui/src/lib/seo/organizationJsonLd.ts` (not inline in `index.html`, which the CSP guard forbids). It carries `name: Kame Space`, `alternateName: Kame Homes` and the request origin, and the brand smoke test asserts it.
 
 Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host Resources were removed from the footer (no backing content).
 
@@ -35,7 +52,7 @@ Footer **Pricing** points to **`/for-hosts/pricing`**. Careers, Blog, and Host R
 
 ## Host-facing knowledge
 
-These public pages explain the company, how to reach support, common guest/host questions, and the legal rules for using Kame Homes. Guests and hosts see the same pages; there is nothing to configure in the dashboard.
+These public pages explain the company, how to reach support, common guest/host questions, and the legal rules for using Kame Space. Guests and hosts see the same pages; there is nothing to configure in the dashboard.
 
 **Common host questions**
 
@@ -46,7 +63,11 @@ These public pages explain the company, how to reach support, common guest/host 
 - Q: Are my verification documents covered by the privacy policy?
   A: Yes. The policy describes host verification uploads and how they're stored privately.
 - Q: Where do guests go for help?
-  A: Support (`/support`) for FAQs, or Contact (`/contact`) — signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email hello@kamehomes.com.
+  A: Support (`/support`) for FAQs, or Contact (`/contact`). Signed-in explore guests open a ticket (same form as Help & Support); stay questions can also email kameworks.tech@gmail.com.
+- Q: Does the public Support page show the same answers as Help & Support in the dashboard?
+  A: The public page shows published answers for guests and hosts. Signed-in hosts get the full Help & Support area, with guides, search, and tickets for their listings.
+- Q: Can someone contact us without creating an account?
+  A: Yes. They can email us or use the Contact page. Filing a ticket needs a sign-in so we can reply in the same thread.
 
 ---
 
@@ -55,6 +76,7 @@ These public pages explain the company, how to reach support, common guest/host 
 - All routes render inside **`MarketingLayoutShell`** (nav + footer).
 - Shared hero band: **`MarketingPublicPageHero`** (centered eyebrow / title / description by default) + body via **`MarketingPublicPageContent`**. Company pages reuse **`MarketingPublicSectionHeading`**, **`MarketingPublicIconCard`**, **`MarketingPublicCallout`**, and **`MarketingPublicFaqList`** for consistent spacing and typography. Legal / Support / Pricing use **`narrow`** on both hero and content so title and body share one **centered** reading column (`mx-auto max-w-3xl`). Legal pages use **`LegalSimplePage`** (divided sections, left hero blob).
 - Content is hard-coded in page components; no CMS.
+- **Support** (`/support`) — reads published FAQs from **`list-public-support-faqs`** and splits them into **Guests** (`guest` + `public`) and **Hosts** (`host` + `public`), eight per section with a **Show all** toggle. While the request is loading it shows layout-matched skeleton rows; on error or an empty response it falls back to the trimmed static arrays so the page never renders empty. Content source: `docs/guides/support/faqs.md`.
 - **Contact** (`/contact`) — four ticket categories (**Broken**, **Idea**, **Question**, **Business**) matching Help & Support. Clicking a category runs **`requireGuestAuth`** → **`GuestAuthModal`** (same as Reserve / Contact host on listings), then opens the same **`NewTicketModal`**. OAuth return uses `?category=` (+ optional `?subject=`). Deep links: Managed plan from **`/for-hosts/pricing`**. After submit → **`/account/tickets/:ticketId`**. Org-scoped host tickets remain under dashboard Help & Support. Guests also see Support + mailto fallback below the categories.
 - Privacy states that Gemini processes live microphone audio, the platform does not store raw
   audio, unverified captions default to 30-day retention (configurable from 1 to 90 days), and the

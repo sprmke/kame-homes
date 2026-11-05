@@ -1,0 +1,124 @@
+{
+  "get_finance_summary_month": {
+    "toolName": "get_finance_summary",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "period": { "from": "2026-10-01", "to": "2026-10-31", "basis": "check_in" },
+      "totalIncome": 48500,
+      "totalExpenses": 12300,
+      "netProfit": 36200,
+      "pendingPayments": 7000,
+      "display": {
+        "totalIncome": "₱48,500",
+        "totalExpenses": "₱12,300",
+        "netProfit": "₱36,200",
+        "pendingPayments": "₱7,000"
+      },
+      "explanation": "Net profit = total income − total expenses for this property and period (same as the Finance page).",
+      "stays": {
+        "count": 9,
+        "completedCount": 6,
+        "hostNetCompleted": 31000,
+        "projectedNetPipeline": 17500
+      },
+      "operating": {
+        "manualIncome": 0,
+        "manualExpenses": 12300,
+        "byCategory": [
+          { "category": "cleaning", "label": "Cleaning", "amount": 6000 },
+          { "category": "utilities", "label": "Utilities", "amount": 4300 },
+          { "category": "supplies", "label": "Supplies", "amount": 2000 }
+        ]
+      }
+    }
+  },
+  "get_finance_trend_6mo": {
+    "toolName": "get_finance_trend",
+    "data": {
+      "propertyId": "p-azure-1204",
+      "propertyName": "Azure North 1204",
+      "months": [
+        {
+          "month": "2026-05",
+          "label": "May",
+          "income": 31000,
+          "expenses": 9800,
+          "netProfit": 21200
+        },
+        {
+          "month": "2026-06",
+          "label": "Jun",
+          "income": 28400,
+          "expenses": 10100,
+          "netProfit": 18300
+        },
+        {
+          "month": "2026-07",
+          "label": "Jul",
+          "income": 36900,
+          "expenses": 11200,
+          "netProfit": 25700
+        },
+        {
+          "month": "2026-08",
+          "label": "Aug",
+          "income": 41200,
+          "expenses": 11800,
+          "netProfit": 29400
+        },
+        {
+          "month": "2026-09",
+          "label": "Sep",
+          "income": 39800,
+          "expenses": 12000,
+          "netProfit": 27800
+        },
+        {
+          "month": "2026-10",
+          "label": "Oct",
+          "income": 48500,
+          "expenses": 12300,
+          "netProfit": 36200
+        }
+      ],
+      "display": {
+        "totalIncome": "₱225,800",
+        "totalExpenses": "₱67,200",
+        "netProfit": "₱158,600"
+      }
+    }
+  },
+  "get_org_portfolio_analytics": {
+    "toolName": "get_org_portfolio_analytics",
+    "data": {
+      "period": { "from": "2026-01-01", "to": "2026-10-19" },
+      "totals": {
+        "grossRevenue": 612400,
+        "grossRevenueDisplay": "₱612,400",
+        "occupancyRatePct": 71,
+        "reservations": 84
+      },
+      "listings": [
+        {
+          "propertyId": "p-azure-1204",
+          "hostLabel": "Azure North 1204",
+          "name": "Azure North 1204",
+          "grossRevenue": 348200,
+          "grossRevenueDisplay": "₱348,200",
+          "occupancyRatePct": 78,
+          "reservations": 49
+        },
+        {
+          "propertyId": "p-shore-2b",
+          "hostLabel": "Shore Residences 2B",
+          "name": "Shore Residences 2B",
+          "grossRevenue": 264200,
+          "grossRevenueDisplay": "₱264,200",
+          "occupancyRatePct": 64,
+          "reservations": 35
+        }
+      ]
+    }
+  }
+}

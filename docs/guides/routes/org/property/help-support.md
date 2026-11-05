@@ -15,16 +15,21 @@ Announcements moved to dedicated sidebar route: [Announcements](./announcements.
 
 ## Progress overview
 
-| Section | E2E | Validation | Docs | Notes                                                    |
-| ------- | --- | ---------- | ---- | -------------------------------------------------------- |
-| FAQs    | Yes | N/A        | Yes  | Default view; up to eight property-scoped published FAQs |
-| Guides  | Yes | N/A        | Yes  | Topic tiles, then articles for the chosen topic          |
-| Tickets | Yes | Yes        | Yes  | Fill-height inbox: 400px list, docked composer           |
-| Ask AI  | Yes | N/A        | Yes  | Opens the existing assistant panel, no new UI            |
+| Section | E2E | Validation | Docs | Notes                                                       |
+| ------- | --- | ---------- | ---- | ----------------------------------------------------------- |
+| FAQs    | Yes | N/A        | Yes  | Up to ten common property FAQs + search and category browse |
+| Guides  | Yes | N/A        | Yes  | Topic tiles, then articles for the chosen topic             |
+| Tickets | Yes | Yes        | Yes  | Fill-height inbox: 400px list, docked composer              |
+| Ask AI  | Yes | N/A        | Yes  | Opens the existing assistant panel, no new UI               |
+| App     | No  | N/A        | Yes  | App version, Check for updates, Install app entry           |
 
 ## Overview
 
-Property team members open Help & Support to find answers, chat with the AI assistant, and contact the Kame Homes team. FAQs, Guides, and Tickets stay under the same Help & Support title. Four clickable summary cards (same style as Finance and Bookings) stay at the top, with Ask AI last; FAQs, Guides, and Tickets swap the content below. Platform and development **Announcements** live on the dedicated [Announcements](./announcements.md) sidebar item. Visible to **every** non–plan-limited property team member (same baseline as the Help nav item). Route guard (`RequirePropertyPermission`) does **not** require `bookings:view` — plan-limited members still hit the plan gate.
+Property team members open Help & Support to find answers, chat with the AI assistant, and contact the Kame Space team. FAQs, Guides, and Tickets stay under the same Help & Support title. Four clickable summary cards (same style as Finance and Bookings) stay at the top, with Ask AI last; FAQs, Guides, and Tickets swap the content below. Platform and development **Announcements** live on the dedicated [Announcements](./announcements.md) sidebar item. Visible to **every** non–plan-limited property team member (same baseline as the Help nav item). Route guard (`RequirePropertyPermission`) does **not** require `bookings:view` — plan-limited members still hit the plan gate.
+
+## App card
+
+Below the FAQ accordion, `AppInfoCard` (`ui/src/components/pwa/AppInfoCard.tsx`) shows the running build (`VITE_APP_VERSION`), a **Check for updates** action (`checkForPwaUpdate()` — throttled by the update controller), and the **Install app** entry (`InstallAppEntry`), which is hidden when the app is already installed. Support can use the version string to confirm which deploy a host is on.
 
 ## Host-facing knowledge
 
@@ -39,9 +44,9 @@ This is where you go if you're stuck, found something broken, or want to ask us 
 - Q: How do I know when someone replies to my ticket?
   A: You'll get an email. You can also open Tickets any time to see the latest status and read the conversation.
 - Q: Can I reply after my ticket is closed?
-  A: Closed tickets can't take new messages until you tap **Reopen ticket**. Resolved tickets still accept replies — that moves the ticket back to In progress.
+  A: Closed tickets can't take new messages until you tap **Reopen ticket**. Resolved tickets still accept replies - that moves the ticket back to In progress.
 - Q: Can I attach a video?
-  A: Yes. Tickets about something broken can include up to 3 files — images up to 10 MB (compressed automatically before upload) or short videos up to 50 MB. Trim or compress a longer clip first; videos aren't re-encoded for you.
+  A: Yes. Tickets about something broken can include up to 3 files - images up to 10 MB (compressed automatically before upload) or short videos up to 50 MB. Trim or compress a longer clip first; videos aren't re-encoded for you.
 - Q: What's the difference between Ask AI and a ticket?
   A: Ask AI answers questions about your bookings and data right away. A ticket goes to our support team. Use a ticket when something is broken, you have an idea, or the assistant can't help.
 - Q: What's the difference between FAQs and Guides?
@@ -49,13 +54,13 @@ This is where you go if you're stuck, found something broken, or want to ask us 
 - Q: Do I need a specific role to see Help & Support?
   A: No. Every team member can see it, the same as the Dashboard.
 - Q: Why do these FAQs differ from the organization Help page?
-  A: Each Help & Support page shows common answers for that level — organization, this property, or a parking listing.
+  A: Each Help & Support page shows common answers for that level - organization, this property, or a parking listing.
 
 ## FAQs
 
 ### Sections
 
-Persistent **Help & Support** title and subtitle. Four clickable summary cards stay at the top: **FAQs**, **Guides**, **Tickets**, **Ask AI**. On desktop (`xl+`) they sit in one four-column row; below that they wrap as two columns (centered). The selected card uses a primary inset ring and tint. A centered title and one-line description sit under the cards for the active module. FAQs is selected on the default route. Content is up to eight published FAQs scoped to this **property** mount — one from each of bookings, property settings, property team, notifications, guest communication, finance, maintenance, and AI Assistant (in that order). Matched via category plus `source_route_guide_path` under `org/property/…` for team/finance. Org portfolio and parking-slot FAQs are omitted. No search. Guides and Tickets swap only the content below the cards. Clicking the already-selected Guides or Tickets card returns to FAQs. Accordion items are exclusive (one open at a time) with comfortable spacing.
+Persistent **Help & Support** title and subtitle. Four clickable summary cards stay at the top: **FAQs**, **Guides**, **Tickets**, **Ask AI**. On desktop (`xl+`) they sit in one four-column row; below that they wrap as two columns (centered). The selected card uses a primary inset ring and tint. A centered title and one-line description sit under the cards for the active module. FAQs is selected on the default route. The default view shows up to ten common FAQs scoped to this **property** mount, then a category list. A search field covers every host FAQ on this mount, and opening a category shows its full set, newest-first by order. Guest-only categories are excluded. Matched via category plus `source_route_guide_path` under `org/property/…` for team, finance, and activity. Org portfolio and parking-slot FAQs are omitted from this mount. Guides and Tickets swap only the content below the cards. Clicking the already-selected Guides or Tickets card returns to FAQs. Accordion items are exclusive (one open at a time) with comfortable spacing.
 
 ### Behavior / edge cases
 
@@ -65,7 +70,7 @@ Ask AI does not navigate. It calls `openAiAssistant()`, which opens the existing
 
 ### Sections
 
-Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded.
+Topic tiles first (Organization, Property, Parking, Guest pages), each with a centered title and a short description. No search on the tile grid. Opening a topic shows a larger centered title, the topic description, Back on the same row, then search for that topic’s articles. Article titles strip internal suffixes such as "operator guide" and URL paths, and any em dash left in a guide title becomes " - " so no article title renders one. Articles are the Host-facing knowledge Q&A sections from every route guide (this one included), synced by `scripts/sync-ai-knowledge-base.ts` into `ai_dashboard_assistant_knowledge_base`. Super-admin-only guides (`docs/guides/routes/admin/**`) are excluded. The curated FAQ layer comes from `docs/guides/support/faqs.md`; synced rows are read-only in the super-admin editor, while manual rows stay editable.
 
 ## Tickets
 
@@ -154,7 +159,7 @@ Empty and load-error states stay inside the list pane under **My Tickets** (icon
 - [Parking Help & Support](../parking/help-support.md)
 - [Super-admin ticket management](../../admin/support.md)
 - [`docs/PROJECT.md`](../../../PROJECT.md)
-- [`docs/workflow/in-progress/help-support-center.md`](../../../workflow/in-progress/help-support-center.md)
+- [`docs/workflow/in-progress/help-support-center.md`](../../../../workflow/for-testing/help-support-center.md)
 
 ## Pending / follow-ups
 

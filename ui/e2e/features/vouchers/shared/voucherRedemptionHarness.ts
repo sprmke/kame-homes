@@ -235,7 +235,7 @@ function guestPaymentInfoPayload() {
     checkOutTime: '12:00',
     cleaningBufferMinutes: 60,
     residenceName: 'Solea Mactan',
-    organizationName: 'Kame Homes PH',
+    organizationName: 'Sample Stays PH',
     propertyName: 'Solea Mactan',
     propertyEyebrow: 'Solea Mactan',
     propertyCoverImageUrl: null,

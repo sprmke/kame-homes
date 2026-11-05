@@ -3,7 +3,7 @@ import type { AnalyticsAppTrack, AnalyticsEnvironment } from '@/lib/posthog/type
 export function detectAnalyticsEnvironment(): AnalyticsEnvironment {
   if (import.meta.env.DEV) return 'local';
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
-  if (host.includes('dev.kamehomes.space') || host.includes('vercel.app')) return 'preview';
+  if (host.includes('dev.kamespace.com') || host.includes('vercel.app')) return 'preview';
   return 'production';
 }
 

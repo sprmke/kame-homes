@@ -67,9 +67,9 @@ function prefersReducedMotion(): boolean {
 }
 
 const secondaryButtonClass =
-  'border-border text-foreground hover:bg-muted/50 min-h-[44px] flex-1 rounded-xl border px-3 text-sm font-semibold transition-colors disabled:opacity-50';
+  'border-border text-foreground hover:bg-muted/50 inline-flex h-11 min-h-11 flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold transition-colors disabled:opacity-50';
 const primaryButtonClass =
-  'bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] flex-1 rounded-xl px-3 text-sm font-semibold transition-colors';
+  'bg-primary-strong text-primary-foreground hover:bg-primary/90 inline-flex h-11 min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-sm font-semibold transition-colors';
 const roundButtonClass =
   'flex size-12 min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors disabled:opacity-50';
 
@@ -154,6 +154,15 @@ export function VoiceSessionPanel({ propertySlug, onClose, className }: Props) {
   useEffect(() => {
     captureAppEvent('voice_entry_shown', { disclosure_required: !hasConsent });
   }, [hasConsent]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as Window & { __aiQaVoiceSend?: (text: string) => boolean };
+    w.__aiQaVoiceSend = (text) => session.sendText(text);
+    return () => {
+      delete w.__aiQaVoiceSend;
+    };
+  }, [session.sendText]);
 
   const handleCloseRef = useRef(handleClose);
   handleCloseRef.current = handleClose;
@@ -296,7 +305,7 @@ export function VoiceSessionPanel({ propertySlug, onClose, className }: Props) {
                   className={cn(
                     'voice-fade-up w-fit max-w-[min(100%,28rem)] rounded-2xl px-3 py-2 text-left text-sm leading-snug',
                     guest
-                      ? 'bg-primary text-primary-foreground self-end'
+                      ? 'bg-primary-strong text-primary-foreground self-end'
                       : 'border-border/60 bg-card text-foreground self-start border'
                   )}
                 >

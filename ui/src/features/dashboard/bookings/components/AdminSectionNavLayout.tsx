@@ -240,6 +240,12 @@ function createSectionNavStore(
       syncActiveFromScroll();
     });
     resizeObserver.observe(container);
+    /*
+     * The scrollport keeps its size while the cards inside it grow (async
+     * settings loads), so observing only the container leaves the first sync
+     * running against a half-laid-out page and the wrong row highlighted.
+     */
+    for (const child of container.children) resizeObserver.observe(child);
 
     detachScroll = () => {
       container.removeEventListener('scroll', onScroll);
@@ -371,7 +377,7 @@ const SectionNavList = React.memo(function SectionNavList({ className }: { class
         aria-label="Page sections"
       >
         {bounds ? (
-          <SlidingActivePill bounds={bounds} className="bg-primary rounded-lg shadow-sm" />
+          <SlidingActivePill bounds={bounds} className="bg-primary-strong rounded-lg shadow-sm" />
         ) : null}
         {sectionGroups.map((group, groupIndex) => (
           <React.Fragment key={group.label}>
@@ -399,7 +405,7 @@ const SectionNavList = React.memo(function SectionNavList({ className }: { class
       aria-label="Page sections"
     >
       {bounds ? (
-        <SlidingActivePill bounds={bounds} className="bg-primary rounded-lg shadow-sm" />
+        <SlidingActivePill bounds={bounds} className="bg-primary-strong rounded-lg shadow-sm" />
       ) : null}
       {sections.map((section) => (
         <SectionNavButton
@@ -454,7 +460,9 @@ export function AdminSectionNavLayout({
       <SectionNavGroupsContext.Provider value={sectionGroups ?? null}>
         <div className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', className)}>
           {header ? (
-            <div className="bg-background relative z-20 hidden shrink-0 lg:block">{header}</div>
+            <div className="bg-background relative z-20 hidden shrink-0 lg:block lg:pb-5">
+              {header}
+            </div>
           ) : null}
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row lg:gap-8 xl:gap-10">

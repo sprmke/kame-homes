@@ -7,6 +7,7 @@ import { createServiceClient } from './orgAuth.ts';
 import { PROPERTY_MEDIA_BUCKET } from './propertyMedia.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -87,6 +88,7 @@ export async function applyParkingCoverFromBytes(
   if (!ALLOWED_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, WebP, or GIF');
   }
+  assertUploadMatchesBytes(input.bytes, mime, ALLOWED_MIME);
 
   const file = new File([input.bytes], input.fileName || 'cover.jpg', { type: mime });
   assertWithinUploadLimit(file, 'image');

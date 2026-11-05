@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 /** Loading shape for one Setup Guide step. Mirrors that step's form, not the settings page nav. */
 export function SetupGuideStepSkeleton({ kind }: { kind?: SetupGuideStepKind }) {
   return (
-    <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading setup step">
+    <div role="status" className="flex flex-col gap-3" aria-busy="true" aria-label="Loading setup step">
       {renderStepSkeleton(kind)}
     </div>
   );

@@ -127,13 +127,16 @@ export function ContactHostSheet({
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useGuestChatMessages(conversationId);
 
-  const hostLabel = host.ownerName.trim() || 'Host';
-  const hostAvatar = host.ownerAvatarUrl || host.organizationLogoUrl || null;
+  const hostLabel = host.organizationName.trim() || 'Host';
+  const hostAvatar = host.organizationLogoUrl || host.ownerAvatarUrl || null;
 
   const displayCheckInDate = checkInDate || resumeCheckInDate;
   const displayCheckOutDate = checkOutDate || resumeCheckOutDate;
@@ -435,6 +438,9 @@ export function ContactHostSheet({
                 inquiryCheckOut={displayCheckOutDate || undefined}
                 stayGuideUrl={stayGuideUrl}
                 tripPath={tripPath}
+                assistantTyping={assistantTyping}
+                aiFeedback={aiFeedback}
+                onAiFeedback={(messageId, rating) => void submitAiFeedback(messageId, rating)}
               />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">

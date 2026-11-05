@@ -139,7 +139,7 @@ export function CalendarDemo() {
             >
               <span className="text-muted-foreground text-[9px] font-bold">{date}</span>
               {isBooked ? (
-                <span className="bg-primary absolute inset-x-1 bottom-1 rounded px-1 text-[8px] font-bold text-white">
+                <span className="bg-primary-strong absolute inset-x-1 bottom-1 rounded px-1 text-[8px] font-bold text-white">
                   Booked
                 </span>
               ) : isBlocked ? (
@@ -165,7 +165,7 @@ export function CalendarDemo() {
           <span className="text-foreground font-semibold">Airbnb synced</span> 2 min ago · in and
           out
         </p>
-        <span className="bg-primary inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white">
+        <span className="bg-primary-strong inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white">
           Save rate
         </span>
       </div>
@@ -203,11 +203,11 @@ export function InboxDemo() {
             <Sparkles className="h-3 w-3" aria-hidden /> AI suggested reply
           </p>
           <p className="text-foreground mt-1.5 text-[11px] leading-relaxed">
-            Yes — Nov 12–15 is open. Parking is included for one vehicle, and I can send the booking
+            Yes - Nov 12–15 is open. Parking is included for one vehicle, and I can send the booking
             link now if you would like to hold it.
           </p>
           <div className="mt-2 flex gap-1.5">
-            <span className="bg-primary inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="bg-primary-strong inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold text-white">
               <Send className="h-3 w-3" aria-hidden /> Send
             </span>
             <span className="border-border text-muted-foreground rounded-md border px-2.5 py-1 text-[11px] font-semibold">
@@ -298,7 +298,7 @@ export function MarketingDemo() {
         <p className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
           <Sparkles className="text-primary h-3 w-3" aria-hidden /> Styled with AI
         </p>
-        <span className="bg-primary inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white">
+        <span className="bg-primary-strong inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-white">
           <Megaphone className="h-3 w-3" aria-hidden /> Publish
         </span>
       </div>

@@ -82,3 +82,5 @@ Use **`docs/guides/_template.md`**. Every documented page should include:
 - [ ] Implementation map paths exist in repo
 - [ ] `docs/guides/routes/README.md` updated if new route
 - [ ] `docs/PROJECT.md` updated if API/env/architecture changed (per `documentation-maintenance.mdc`)
+- [ ] Curated FAQ reviewed in `docs/guides/support/faqs.md` for cross-cutting answers
+- [ ] Support-content sync re-run, or noted that CI runs it on `develop`

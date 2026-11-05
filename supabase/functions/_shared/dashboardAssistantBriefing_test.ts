@@ -26,6 +26,15 @@ Deno.test('buildBriefingCards orders by severity and keeps source order within a
   );
 });
 
+Deno.test('buildBriefingCards uses prompts for inbox and occupancy cards', () => {
+  const cards = buildBriefingCards([
+    item('inbox-pending', 'critical', 4),
+    item('low-occupancy', 'warning', 32),
+  ]);
+  assertEquals(cards[0].prompt, 'Which guest messages are waiting for a reply?');
+  assertEquals(cards[1].prompt, 'Why is occupancy low next month and what can I do?');
+});
+
 Deno.test('buildBriefingCards drops zero counts, caps the list and falls back on prompts', () => {
   const many = Array.from({ length: 9 }, (_, i) => item(`custom-${i}`, 'info'));
   const cards = buildBriefingCards([item('pending-review', 'critical', 0), ...many]);

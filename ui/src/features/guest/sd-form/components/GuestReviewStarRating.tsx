@@ -11,6 +11,8 @@ export interface GuestReviewStarRatingProps {
   /** Compact picker for dense admin forms (default: guest-facing large stars). */
   size?: 'guest' | 'compact';
   className?: string;
+  /** Override the radiogroup's accessible name (default: "Star rating"). */
+  ariaLabel?: string;
 }
 
 export function GuestReviewStarRating({
@@ -19,6 +21,7 @@ export function GuestReviewStarRating({
   disabled = false,
   size = 'guest',
   className,
+  ariaLabel = 'Star rating',
 }: GuestReviewStarRatingProps) {
   const [hoverRating, setHoverRating] = useState(0);
   const displayRating = hoverRating || value;
@@ -47,7 +50,7 @@ export function GuestReviewStarRating({
       <div
         className={cn('flex items-center', isGuest ? 'justify-center gap-0.5 sm:gap-1' : 'gap-0')}
         role="radiogroup"
-        aria-label="Star rating"
+        aria-label={ariaLabel}
       >
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = star <= displayRating;
@@ -69,7 +72,13 @@ export function GuestReviewStarRating({
               )}
               onMouseEnter={() => !disabled && setHoverRating(star)}
               onMouseLeave={() => setHoverRating(0)}
-              onFocus={() => !disabled && setHoverRating(star)}
+              // Preview on keyboard focus only. A sheet's auto-focus after a tap would
+              // otherwise light the first star as if a 1-star rating were chosen.
+              onFocus={(event) => {
+                if (!disabled && event.currentTarget.matches(':focus-visible')) {
+                  setHoverRating(star);
+                }
+              }}
               onBlur={() => setHoverRating(0)}
               onClick={() => onChange(star)}
             >

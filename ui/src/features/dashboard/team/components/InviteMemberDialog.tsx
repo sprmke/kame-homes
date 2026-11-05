@@ -108,7 +108,7 @@ export function InviteMemberDialog({
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="user@gmail.com"
+              placeholder={FORM_PLACEHOLDERS.email}
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
               className={cn('h-10', emailInvalid && 'border-destructive')}
@@ -150,7 +150,7 @@ export function InviteMemberDialog({
                 handleRoleSelectChange(value, onRoleChange, onAddCustomRole)
               }
             >
-              <SelectTrigger id="invite-role" className="h-10">
+              <SelectTrigger id="invite-role" aria-label="Role" className="h-10">
                 <SelectValue>{getRoleLabelForScope(scope, roleId, customRoles)}</SelectValue>
               </SelectTrigger>
               <SelectContent>

@@ -12,7 +12,9 @@ type MarketingAiGenerateStepperProps = {
 
 export function marketingAiGenerateStepCopy(
   stepIndex: MarketingAiGenerateStepIndex,
-  contentType: 'calendar' | 'design' | 'video'
+  contentType: 'calendar' | 'design' | 'video',
+  /** Inside a theme, colors, type and background are not chosen here. */
+  themed = false
 ): { title: string; description: string } {
   if (stepIndex === 0) {
     if (contentType === 'calendar') {
@@ -33,10 +35,18 @@ export function marketingAiGenerateStepCopy(
     };
   }
   if (stepIndex === 1) {
-    return {
-      title: 'Look',
-      description: 'Pick a template or describe the visual style.',
-    };
+    return themed
+      ? { title: 'Look', description: 'Your theme sets the colors and fonts. Add a mood if you like.' }
+      : { title: 'Look', description: 'Pick a template or describe the visual style.' };
+  }
+  if (themed) {
+    if (contentType === 'calendar') {
+      return { title: 'Settings', description: 'Pick a layout and what shows on the calendar.' };
+    }
+    if (contentType === 'design') {
+      return { title: 'Settings', description: 'Pick a layout.' };
+    }
+    return { title: 'Settings', description: 'Set duration and motion style.' };
   }
   if (contentType === 'calendar') {
     return {

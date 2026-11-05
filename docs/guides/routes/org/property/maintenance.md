@@ -58,6 +58,10 @@ This page helps you track upkeep for your property: cleaning schedules, applianc
   A: Yes, use the status filter to show only pending or completed reminders, then sort by date to see what's due soonest.
 - Q: What does the calendar view show?
   A: It lays out your maintenance reminders on a monthly calendar so you can spot busy weeks at a glance.
+- Q: Can a maintenance reminder repeat on a schedule?
+  A: Yes. When you add or edit a reminder, set it as a recurring series. One-off tasks and completed history stay separate.
+- Q: Is exporting a maintenance report included on my plan?
+  A: Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
 
 ---
 
@@ -98,6 +102,7 @@ Legacy stored `maintenance:edit` expands to all reminder + export leaves.
 | Concern                | Path                                                                                                                                                                    |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                   | `ui/src/features/dashboard/maintenance/pages/MaintenancePage.tsx`                                                                                                       |
+| Loading skeleton       | `MaintenancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — KPIs, toolbar, then reminders table (desktop) / cards (phone) or calendar from `?view=`                     |
 | Summary cards          | `ui/src/features/dashboard/maintenance/components/MaintenanceSummaryCards.tsx`                                                                                          |
 | Toolbar                | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersToolbar.tsx`                                                                                      |
 | Export menu + PDF      | `ui/src/features/dashboard/maintenance/components/MaintenanceExportMenu.tsx`, `ui/src/features/dashboard/maintenance/lib/exportPdf.ts`, shared PDF layout `@/lib/pdf/*` |
@@ -110,6 +115,12 @@ Legacy stored `maintenance:edit` expands to all reminder + export leaves.
 ## Reminder activity history
 
 The **Edit reminder** modal (`MaintenanceRemindersTab`) uses a stepper (`MaintenanceItemForm`: Details → Reminders → Preview). Footer: **Back** (left after step 1) · **Cancel** + **Next** / **Save** (right). Embeds `<EntityActivityHistory targetType="maintenance_item" targetId={editing.id} />` on the **Preview** step — the recent `maintenance.task_created` / `_updated` events for that item (`list-activity-log`). Read-only; only shown when editing an existing reminder.
+
+---
+
+## Guest-reported issues
+
+The guest AI receptionist (web/Meta auto-reply, host Suggest) can file a reminder on the guest's behalf with the `report_maintenance_issue` tool when a signed-in guest reports something broken during their own active stay. Requires the `aiChatAutoReply` plan feature and is rate-limited to 3 reports a day per guest. Filed rows use `category: 'Guest reported'`, `created_by: 'guest_ai'`, and the guest's own description in `notes` — same table and UI as a host-added reminder, no schema or UI change. The host gets a `maintenance_guest_reported` notification and an `inbox.ai_handoff`-style activity-log row. Source: `_shared/guestReceptionistTools.ts`.
 
 ---
 

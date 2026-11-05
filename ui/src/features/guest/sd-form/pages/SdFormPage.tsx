@@ -38,12 +38,7 @@ import {
   type SdBank,
 } from '@/features/guest/sd-form/lib/sdFormSchema';
 import { SD_FORM_STEPS } from '@/features/guest/sd-form/lib/sdFormSteps';
-import {
-  findVoucher,
-  formatVoucherDiscountMaxLabel,
-  prizesToVouchers,
-  type Voucher,
-} from '@/features/guest/sd-form/lib/voucher';
+import { findVoucher, prizesToVouchers, type Voucher } from '@/features/guest/sd-form/lib/voucher';
 import { normalizeVoucherRevealStyle } from '@/features/guest/sd-form/lib/voucherRevealStyle';
 import { GuestTripBackLink } from '@/features/guest/trip/components/GuestTripBackLink';
 
@@ -98,7 +93,7 @@ export function SdFormPage() {
   const [accountNumber, setAccountNumber] = useState('');
 
   // Invisible anti-spam — a widget per protected action (Turnstile `action`
-  // must match the server `scope`). Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // must match the server `scope`). Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const claimAntiSpam = useAntiSpamSubmit({ action: 'claim-sd-voucher' });
   const submitAntiSpam = useAntiSpamSubmit({ action: 'submit-sd-form' });
 
@@ -133,7 +128,8 @@ export function SdFormPage() {
       setStep2Phase('voucher');
       return;
     }
-    if (!query.data.guest_review_submitted) return;
+    // Unpublished drafts stay on step 1 so the guest can edit until publish.
+    if (!query.data.guest_review_submitted || query.data.can_edit_review !== false) return;
     if (query.data.awaiting_balance_settlement) {
       setStep(2);
       setStep2Phase('wait_balance');
@@ -271,7 +267,12 @@ export function SdFormPage() {
   }
 
   if (query.isLoading) {
-    return <SdFormPageSkeleton title={SD_FORM_BRAND_TITLE} />;
+    return (
+      <SdFormPageSkeleton
+        title={SD_FORM_BRAND_TITLE}
+        stepTitles={SD_FORM_STEPS.map((step) => step.title)}
+      />
+    );
   }
 
   if (query.isError || !query.data) {
@@ -325,6 +326,18 @@ export function SdFormPage() {
     );
   }
 
+  const advanceFromStep1 = () => {
+    if (data.awaiting_balance_settlement) {
+      setStep(2);
+      setStep2Phase('wait_balance');
+    } else if (data.vouchers_enabled !== false) {
+      setStep(2);
+      setStep2Phase('voucher');
+    } else {
+      setStep(3);
+    }
+  };
+
   const showGreeting = step === 1;
 
   const stepperActive: 1 | 2 | 3 = step === 1 ? 1 : step === 2 ? 2 : 3;
@@ -349,15 +362,7 @@ export function SdFormPage() {
           </h1>
           <div className="text-muted-foreground space-y-3 text-base leading-relaxed">
             <p>{formatGuestStayThanks(guestBrand.organizationName)}</p>
-            <p>
-              Before your SD refund, leave a quick review and share favorite moments from your stay.
-            </p>
-          </div>
-          <div className="to-primary/5 dark:to-primary/10 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-amber-50/50 px-4 py-3.5 dark:border-amber-500/25 dark:from-amber-500/10 dark:via-amber-500/5">
-            <p className="text-sm font-semibold leading-snug text-amber-950 dark:text-amber-100">
-              Review us for a chance to win {formatVoucherDiscountMaxLabel()} or a FREE stay on your
-              next booking!
-            </p>
+            <p>How was your stay? You can skip this and still get your refund.</p>
           </div>
         </header>
       )}
@@ -367,17 +372,10 @@ export function SdFormPage() {
           <SdFormReviewSection
             bookingId={bookingId}
             awaitingBalanceSettlement={Boolean(data.awaiting_balance_settlement)}
-            onReviewSubmitted={() => {
-              if (data.awaiting_balance_settlement) {
-                setStep(2);
-                setStep2Phase('wait_balance');
-              } else if (data.vouchers_enabled !== false) {
-                setStep(2);
-                setStep2Phase('voucher');
-              } else {
-                setStep(3);
-              }
-            }}
+            reviewDraft={data.review_draft}
+            canEdit={data.can_edit_review !== false}
+            onSkip={advanceFromStep1}
+            onReviewSubmitted={advanceFromStep1}
           />
         </div>
       )}
@@ -388,7 +386,7 @@ export function SdFormPage() {
           <div className="space-y-2">
             <p className="text-foreground text-sm font-semibold">Almost there</p>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              We emailed check-out details. Recording your balance—this page updates when your
+              We emailed check-out details. Recording your balance-this page updates when your
               surprise bonus opens.
             </p>
           </div>
@@ -694,7 +692,7 @@ function StepTwo({
                   ? 'border-destructive ring-destructive/30 ring-1'
                   : 'border-input'
               )}
-              placeholder={FORM_PLACEHOLDERS.phone}
+              placeholder={FORM_PLACEHOLDERS.bankAccountNumber}
               inputMode="numeric"
               autoComplete="off"
               aria-invalid={showOtherBankFieldError('accountNumber')}

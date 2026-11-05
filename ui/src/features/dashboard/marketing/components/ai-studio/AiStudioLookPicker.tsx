@@ -59,7 +59,7 @@ export function AiStudioLookPicker({ value, onChange, disabled }: Props) {
                 'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 selected
-                  ? 'border-primary bg-primary text-primary-foreground'
+                  ? 'border-primary bg-primary-strong text-primary-foreground'
                   : 'border-border/80 bg-background text-foreground hover:bg-muted/60'
               )}
             >

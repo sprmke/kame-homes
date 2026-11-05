@@ -2,7 +2,7 @@
 title: 'Properties (guest marketing) — operator guide'
 status: active
 tags: [guides, routes, properties]
-updated: 2026-08-21
+updated: 2026-11-05
 ---
 
 # Properties (guest marketing) — operator guide
@@ -87,11 +87,12 @@ This is where guests browse homes, open a listing, save favorites, contact the h
 **`HostPublicPage`** — guest-facing org brochure (distinct from the signed-in dashboard at **`/org/:orgSlug`**).
 
 - Loads org branding, tagline, description, and social links via **`get-public-host`** (batched pricing reads; missing settings rows fall back to platform defaults)
+- Published review rollup: org average (or **New** until 3 ratings) plus up to six recent guest reviews with the listing name and host response. Unpublished reviews and private notes are omitted.
 - Grids of **ACTIVE** properties and **ACTIVE** parkings when the org has either
 - When the org has **both** homes and parkings, **`HostPublicListingsTabs`** (pill tabs + counts, same pattern as `/search`) switches between the two listing types — one grid at a time instead of stacked sections. Tab row: tabs left, inline pagination right. When only one type exists, a single section header + grid (no tabs).
 - Each grid paginates client-side to **four visible rows** (`HOST_LISTING_MAX_ROWS` in `hostListingGrid.ts`) — page size = column count × 4, derived from the live grid width via `useHostListingPageSize`. Changing tab or page scrolls the listings panel back into view.
-- Org name on **`ListingHostCard`** (property + parking detail) links here
-- **Verified** badge when enhanced verification is approved (see [onboarding.md](./onboarding.md))
+- Hero shows the organization name once, with the **Recommended** badge beside it when the org is approved (see [onboarding.md](./onboarding.md)). It does not repeat "Recommended host", and it does not add a "Hosted by" line from the team display name.
+- **`ListingHostCard`** on property and parking detail says **Hosted by {organization name}**. The name links here. The same **Recommended** badge sits on that line. There is no second org line and no team display name.
 
 ---
 
@@ -143,18 +144,20 @@ Gap analysis (ratings, nearby POIs, etc.): **[[public-property-catalog|Public pr
 
 **Responsive layout** — listing chrome uses **CSS container queries** (`@container` / `@5xl:` ≈ 1024px content width), not only viewport `lg:` / `md:`. Below that width: single column, hero gallery, 2-col stats, floating **Reserve** bar. At `@5xl+`: `BookingCard` sidebar + collage gallery. Page Editor preview frames (mobile ≤420px or a narrow desktop pane) therefore match real phone/tablet layouts even when the host browser is wide.
 
+**Loading** — `PropertyDetailPageSkeleton` (also the marketing route fallback for `/properties/:propertySlug`) uses the same shell, gallery height, and section spacing as the loaded page. The overview placeholder is a title with the type pill beside it, a stats card, a host card, and a check-in/out card with the cancellation note on the right (stacked inside the card on a narrow column). The booking column appears at `@5xl`. Below `lg`, the reserve dock claims the same bottom bar as the loaded page.
+
 **Mobile Reserve bar (2026-09-10)** — real end-user usage claims the shared bottom band via `ContextualActionBar` (the same floating pill dock as the marketing bottom tab bar; auto-hides it while open). The Page Editor's simulated mobile-frame preview keeps a literal `sticky` bar instead — a real `fixed` bar would escape the preview iframe and dock to the actual browser viewport.
 
-| Section     | Component                                                                | Data                                                                                                                                                                                                |
-| ----------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Gallery     | `PropertyGallery`                                                        | API media URLs or mock images                                                                                                                                                                       |
-| Overview    | `PropertyOverview`                                                       | API profile; **`ListingPlaceMeta`** (development link → `/developments/:slug` from the API `development` field, tower · floor, geo); host card; cancellation highlight; ratings mock-only           |
-| Amenities   | `PropertyAmenities`                                                      | Resolved amenity labels; preview grid + modal for full list                                                                                                                                         |
-| Location    | `PropertyLocation` + `PropertyMapEmbed`                                  | Google/OSM iframe when pinned; decorative fallback if no pin                                                                                                                                        |
-| Rules       | `PropertyRules`                                                          | House rules preview (6) + modal; cancellation live; safety mock-only                                                                                                                                |
-| Reviews     | `PropertyReviews`                                                        | Merged Kame guest + approved external reviews (newest first); source badges; feedback tags on Kame reviews only; photos + lightbox; **See more** modal. No category bars, search, or helpful votes. |
-| Booking     | `BookingCard` + `GuestBookingFormModal`                                  | API pricing; Reserve → in-page `GuestForm` modal                                                                                                                                                    |
-| Similar     | `SimilarProperties`                                                      | live `list-public-properties` (same development/type/city); hidden when empty                                                                                                                       |
+| Section     | Component                                                                | Data                                                                                                                                                                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gallery     | `PropertyGallery`                                                        | API media URLs or mock images                                                                                                                                                                                                                                             |
+| Overview    | `PropertyOverview`                                                       | API profile; property type sits beside the title; **`ListingPlaceMeta`** (development link → `/developments/:slug` from the API `development` field, tower · floor, geo); host card; cancellation highlight inside the check-in/out card; ratings mock-only               |
+| Amenities   | `PropertyAmenities`                                                      | Resolved amenity labels; preview grid + modal for full list                                                                                                                                                                                                               |
+| Location    | `PropertyLocation` + `PropertyMapEmbed`                                  | Google/OSM iframe when pinned; decorative fallback if no pin                                                                                                                                                                                                              |
+| Rules       | `PropertyRules`                                                          | House rules preview (6) + modal; cancellation live with the full tier timeline; safety mock-only                                                                                                                                                                          |
+| Reviews     | `PropertyReviews`                                                        | Headline from merged Kame + approved external avg/count ("New" until 3 ratings). Kame category averages when ≥ 3 categorized Kame reviews. Sort Newest/Highest/Lowest (bottom sheet). Host responses under published Kame reviews. Source badges, tags, photos, See more. |
+| Booking     | `BookingCard` + `GuestBookingFormModal`                                  | API pricing; Reserve → in-page `GuestForm` modal                                                                                                                                                                                                                          |
+| Similar     | `SimilarProperties`                                                      | live `list-public-properties` (same development/type/city); hidden when empty                                                                                                                                                                                             |
 | Parking CTA | Marketplace **`/parkings`** browse or linked slot detail when configured |
 
 ---

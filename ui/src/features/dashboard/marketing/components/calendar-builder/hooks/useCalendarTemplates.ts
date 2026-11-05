@@ -5,6 +5,9 @@ import { toast } from 'sonner';
 
 import { useMarketingTemplates } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
 import { readCalendarSourcePreset } from '@/features/dashboard/marketing/lib/calendarAutosave';
+import { themedSavedCalendarStyles } from '@/features/dashboard/marketing/lib/theme/calendarThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
+import { templatesInTheme } from '@/features/dashboard/marketing/lib/theme/marketingThemeItems';
 import { usePropertyIdParam, scopedFunctionsUrl } from '@/features/dashboard/org/lib/adminApiScope';
 import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 
@@ -20,27 +23,53 @@ export interface SavedCalendarTemplate {
   thumbnailDataUrl?: string;
   aiGenerated?: boolean;
   aiGenerationId?: string | null;
+  /** Paths set by hand in Advanced (kept when the theme changes). */
+  lockedPaths: string[];
 }
 
-export function useCalendarTemplates(_propertySlug: string) {
+export type CalendarTemplatesThemeScope = {
+  key: string;
+  tokens: MarketingThemeTokens;
+  propertyPhotoUrl?: string;
+};
+
+/**
+ * Saved calendars for one theme. `apiTemplates` is scoped to the theme (so
+ * autosave lookups and format siblings never cross themes) and `savedTemplates`
+ * holds styles already re-expressed in the theme's current tokens.
+ */
+export function useCalendarTemplates(theme: CalendarTemplatesThemeScope | null) {
   const propertyId = usePropertyIdParam();
   const queryClient = useQueryClient();
-  const { data: apiTemplates = [] } = useMarketingTemplates('calendar');
+  const { data: allCalendarTemplates } = useMarketingTemplates('calendar');
+  const themeKey = theme?.key ?? null;
+  const themeTokens = theme?.tokens ?? null;
+  const themePhoto = theme?.propertyPhotoUrl;
+
+  const apiTemplates = useMemo(() => {
+    const rows = allCalendarTemplates ?? [];
+    return themeKey ? templatesInTheme(rows, themeKey) : rows;
+  }, [allCalendarTemplates, themeKey]);
 
   const savedTemplates = useMemo((): SavedCalendarTemplate[] => {
     const rows: SavedCalendarTemplate[] = [];
     for (const row of apiTemplates) {
-      const styles = row.designJson?.styles;
-      if (!styles || typeof styles !== 'object') continue;
+      const rawStyles = row.designJson?.styles;
+      if (!rawStyles || typeof rawStyles !== 'object') continue;
+      const themed = themeTokens
+        ? themedSavedCalendarStyles(row.designJson, rawStyles as CalendarStyles, themeTokens, themePhoto)
+        : { styles: rawStyles as CalendarStyles, rethemed: false, lockedPaths: [] };
       rows.push({
         id: row.id,
         name: row.name,
-        styles: styles as CalendarStyles,
+        styles: themed.styles,
+        lockedPaths: themed.lockedPaths,
         sourcePresetId: readCalendarSourcePreset(row.designJson),
         aspectPreset: row.aspectPreset,
         createdAt: row.updatedAt,
+        // A stored thumbnail shows the old theme; re-render instead.
         thumbnailDataUrl:
-          typeof row.designJson?.thumbnailDataUrl === 'string'
+          !themed.rethemed && typeof row.designJson?.thumbnailDataUrl === 'string'
             ? row.designJson.thumbnailDataUrl
             : undefined,
         aiGenerated: row.designJson?.aiGenerated === true,
@@ -49,7 +78,7 @@ export function useCalendarTemplates(_propertySlug: string) {
       });
     }
     return rows;
-  }, [apiTemplates]);
+  }, [apiTemplates, themeTokens, themePhoto]);
 
   const deleteTemplate = useCallback(
     async (id: string): Promise<boolean> => {

@@ -1,8 +1,8 @@
 ---
 title: 'AI Dashboard Assistant — Feature List'
-status: v1 + v2 + attachment parity shipped
+status: done
 tags: [workflow, done, ai, reference]
-updated: 2026-09-02
+updated: 2026-11-04
 stage: done
 ---
 

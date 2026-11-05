@@ -10,21 +10,21 @@ alwaysApply: false
 
 # Tech stack (GFM)
 
-| Layer        | Technology                                                            |
-| ------------ | --------------------------------------------------------------------- |
-| Runtime / PM | **Bun** — `bun install`, `bun run …`                                  |
-| UI           | **Vite** + **React 18** + **TypeScript**                              |
-| Routing      | **React Router 6** — `ui/src/routes/index.tsx` + feature `routes/`    |
-| Styling      | **Tailwind 3** + shadcn-style primitives (`ui/src/components/ui/`)    |
-| Forms        | **React Hook Form** + **Zod**                                         |
-| Server state | **TanStack Query v5** — feature `hooks/`                              |
-| Toasts       | **Sonner**                                                            |
-| Icons        | **Lucide**                                                            |
-| Backend      | **Supabase Edge Functions** (Deno) — no Node API, no tRPC, no Drizzle |
-| DB           | Supabase Postgres — SQL migrations in `supabase/migrations/`          |
-| Auth         | Supabase Auth (Google OAuth for admin)                                |
-| Storage      | Supabase Storage                                                      |
-| Email        | Resend from edge (`_shared/emailService.ts`)                          |
+| Layer        | Technology                                                                              |
+| ------------ | --------------------------------------------------------------------------------------- |
+| Runtime / PM | **Bun** — `bun install`, `bun run …`                                                    |
+| UI           | **Vite** + **React 18** + **TypeScript**                                                |
+| Routing      | **React Router 7** (`react-router-dom`) — `ui/src/routes/index.tsx` + feature `routes/` |
+| Styling      | **Tailwind 3** + shadcn-style primitives (`ui/src/components/ui/`)                      |
+| Forms        | **React Hook Form** + **Zod**                                                           |
+| Server state | **TanStack Query v5** — feature `hooks/`                                                |
+| Toasts       | **Sonner**                                                                              |
+| Icons        | **Lucide**                                                                              |
+| Backend      | **Supabase Edge Functions** (Deno) — no Node API, no tRPC, no Drizzle                   |
+| DB           | Supabase Postgres — SQL migrations in `supabase/migrations/`                            |
+| Auth         | Supabase Auth (Google OAuth for admin)                                                  |
+| Storage      | Supabase Storage                                                                        |
+| Email        | Resend from edge (`_shared/emailService.ts`)                                            |
 
 ## Commands
 

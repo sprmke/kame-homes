@@ -24,7 +24,7 @@ const FEATURE = 'marketing_template' as const;
 
 export const POSTER_DIRECTOR_PROMPT = definePrompt({
   id: 'marketing_template_poster',
-  version: '2026-09-28.2',
+  version: '2026-10-20.1',
 });
 
 export const POSTER_ARCHETYPES = [
@@ -195,7 +195,46 @@ export type GeneratePosterSpecsInput = {
   /** Already allow-listed and fetched (see loadPosterPhotos). Index = photoIndexes. */
   photos: PosterPhotoInput[];
   count: number;
+  /**
+   * AI Studio refinement: the post the host is looking at plus what to change. The
+   * model returns one variant that applies the change and keeps the rest.
+   */
+  revise?: { spec: Record<string, unknown>; instruction: string } | null;
+  /** AI Studio example: the layout the host picked; one variant uses it and comes first. */
+  preferredArchetype?: PosterArchetype | null;
 };
+
+export type PosterArchetype = (typeof POSTER_ARCHETYPES)[number];
+
+/** A known archetype id, or null. Unknown values are dropped, never a 400. */
+export function readPreferredArchetype(value: unknown): PosterArchetype | null {
+  return typeof value === 'string' && (POSTER_ARCHETYPES as readonly string[]).includes(value)
+    ? (value as PosterArchetype)
+    : null;
+}
+
+/** Director instruction for the picked layout (new batches only, not refinements). */
+export function preferredArchetypeLine(input: GeneratePosterSpecsInput): string | null {
+  if (input.revise || !input.preferredArchetype) return null;
+  return `Variant 1 must use the "${input.preferredArchetype}" archetype (the host picked this layout). The others use different archetypes.`;
+}
+
+/** Moves the first variant in the picked archetype to the front; order otherwise unchanged. */
+export function preferArchetypeFirst<T extends Record<string, unknown>>(
+  variants: T[],
+  archetype: PosterArchetype | null | undefined
+): T[] {
+  if (!archetype) return variants;
+  const index = variants.findIndex((variant) => variant.archetype === archetype);
+  if (index <= 0) return variants;
+  return [variants[index]!, ...variants.slice(0, index), ...variants.slice(index + 1)];
+}
+
+/** Fields of the current post the model needs to revise it (no coordinates exist). */
+export function revisableSpec(spec: Record<string, unknown>): Record<string, unknown> {
+  const pick = ['archetype', 'fontPairing', 'palette', 'copy', 'features', 'photoIndexes', 'label'];
+  return Object.fromEntries(pick.filter((key) => key in spec).map((key) => [key, spec[key]]));
+}
 
 function words(value: string): string[] {
   return value
@@ -281,13 +320,27 @@ function buildUserParts(input: GeneratePosterSpecsInput): LlmPart[] {
     {
       text: [
         `Goal: ${input.goal}`,
-        `Variants to return: ${input.count}`,
+        `Variants to return: ${input.revise ? 1 : input.count}`,
+        preferredArchetypeLine(input),
         wrapUntrusted('property_facts', factLines.join('\n'), 1_500),
         input.prompt
           ? `Host request:\n${wrapUntrusted('host_prompt', input.prompt, 500)}`
           : 'Host request: none, choose the strongest angle for the goal.',
+        ...(input.revise
+          ? [
+              `Current post (revise this one):\n${wrapUntrusted(
+                'current_post',
+                JSON.stringify(revisableSpec(input.revise.spec)),
+                6_000
+              )}`,
+              `Change request:\n${wrapUntrusted('change_request', input.revise.instruction, 300)}`,
+              'Return exactly 1 variant: the current post with the change applied. Keep the archetype, font pairing, palette, photos and every copy line the change does not touch. Same grounding rules: no invented amenities, prices or times.',
+            ]
+          : []),
         `Photos attached: ${input.photos.length} (photo 0 is the first image below).`,
-      ].join('\n\n'),
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
     },
   ];
   input.photos.forEach((photo, index) => {
@@ -317,9 +370,12 @@ export async function directPosterSpecs(
     // Images make every request unique, so there is no response cache.
     billing,
   });
-  return result.data.variants
-    .slice(0, input.count)
-    .map((variant) => sanitizeVariant(variant, input));
+  return preferArchetypeFirst(
+    result.data.variants
+      .slice(0, input.revise ? 1 : input.count)
+      .map((variant) => sanitizeVariant(variant, input)),
+    input.revise ? null : input.preferredArchetype
+  );
 }
 
 export async function generatePosterSpecs(

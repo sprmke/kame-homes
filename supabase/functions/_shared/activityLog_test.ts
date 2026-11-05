@@ -23,7 +23,7 @@ import {
 
 const ORG = '00000000-0000-0000-0000-0000000000aa';
 
-Deno.test('truncateIp — /24 for v4, /48 for v6, null for junk', () => {
+Deno.test('truncateIp - /24 for v4, /48 for v6, null for junk', () => {
   assertEquals(truncateIp('203.0.113.42'), '203.0.113.0/24');
   assertEquals(truncateIp('203.0.113.42, 70.1.2.3'), '203.0.113.0/24');
   assertEquals(truncateIp('2001:0db8:85a3:0000:0000:8a2e:0370:7334'), '2001:0db8:85a3::/48');
@@ -32,7 +32,7 @@ Deno.test('truncateIp — /24 for v4, /48 for v6, null for junk', () => {
   assertEquals(truncateIp(null), null);
 });
 
-Deno.test('redactValue — drops secret-ish keys, masks PII', () => {
+Deno.test('redactValue - drops secret-ish keys, masks PII', () => {
   assertEquals(redactValue('api_key', 'sk_live_abc123'), '[redacted]');
   assertEquals(redactValue('otp_code', '448291'), '[redacted]');
   assertEquals(redactValue('webhook_signature', 'whsec_x'), '[redacted]');
@@ -43,7 +43,7 @@ Deno.test('redactValue — drops secret-ish keys, masks PII', () => {
 });
 
 Deno.test(
-  'diffRecord — catches petType (compareFormData does not), redacts, honors include',
+  'diffRecord - catches petType (compareFormData does not), redacts, honors include',
   () => {
     const before = { petType: 'cat', notes: 'x', password: 'a' };
     const after = { petType: 'dog', notes: 'x', password: 'b' };
@@ -67,7 +67,7 @@ Deno.test(
   }
 );
 
-Deno.test('extractRequestContext — pulls IP prefix / UA / request id from headers', () => {
+Deno.test('extractRequestContext - pulls IP prefix / UA / request id from headers', () => {
   const req = new Request('https://x.test/', {
     headers: {
       'cf-connecting-ip': '198.51.100.23',
@@ -84,7 +84,7 @@ Deno.test('extractRequestContext — pulls IP prefix / UA / request id from head
   assertEquals(none.ipPrefix, null);
 });
 
-Deno.test('buildActorContext — maps access kind → actor type, masks guest identity', () => {
+Deno.test('buildActorContext - maps access kind → actor type, masks guest identity', () => {
   const owner = buildActorContext('dashboard', {
     orgAccess: {
       user: { id: 'u1', email: 'owner@host.com' },
@@ -123,7 +123,7 @@ Deno.test('buildActorContext — maps access kind → actor type, masks guest id
   assertEquals(cron.displayName, 'sd-refund-cron');
 });
 
-Deno.test('buildActivityRow — catalog defaults, rendered summary, scope inference', () => {
+Deno.test('buildActivityRow - catalog defaults, rendered summary, scope inference', () => {
   const row = buildActivityRow({
     action: 'booking.cancelled',
     organizationId: ORG,
@@ -146,7 +146,7 @@ Deno.test('buildActivityRow — catalog defaults, rendered summary, scope infere
   assertStringIncludes(String(row.summary), 'Booking #1042');
 });
 
-Deno.test('buildActivityRow — severity override + changes cap flag', () => {
+Deno.test('buildActivityRow - severity override + changes cap flag', () => {
   const bigChanges = Array.from({ length: 400 }, (_, i) => ({
     field: `field_${i}`,
     from: 'x'.repeat(60),
@@ -215,7 +215,7 @@ Deno.test('marketing generation actions are catalogued', () => {
 });
 
 Deno.test(
-  'logActivity / logActivityBatch — never throw when the client cannot be built',
+  'logActivity / logActivityBatch - never throw when the client cannot be built',
   async () => {
     const input: LogActivityInput = {
       action: 'system.cron_run',
@@ -230,3 +230,78 @@ Deno.test(
     await logActivityBatch([input, input]);
   }
 );
+
+Deno.test('marketing design summaries name the action and count bulk deletes', () => {
+  const ctx = (
+    metadata: Record<string, unknown>,
+    targetLabel: string | null = 'Weekday promo'
+  ) => ({
+    actorName: 'Alex',
+    targetLabel,
+    metadata,
+    changeCount: 0,
+  });
+  const saved = ACTIVITY_ACTION_CATALOG['marketing.template_saved'];
+  assertEquals(
+    saved.summary(ctx({ operation: 'create', kind: 'design' })),
+    'Alex saved the marketing design Weekday promo'
+  );
+  assertEquals(
+    saved.summary(ctx({ operation: 'duplicate', kind: 'design' })),
+    'Alex copied the marketing design Weekday promo'
+  );
+  assertEquals(
+    saved.summary(ctx({ operation: 'save_as_template', kind: 'template' })),
+    'Alex saved the marketing template Weekday promo'
+  );
+  const deleted = ACTIVITY_ACTION_CATALOG['marketing.template_deleted'];
+  assertEquals(deleted.summary(ctx({ count: 3 }, null)), 'Alex deleted 3 marketing designs');
+  assertEquals(
+    deleted.summary(ctx({ count: 1 })),
+    'Alex deleted the marketing design Weekday promo'
+  );
+  const restored = ACTIVITY_ACTION_CATALOG['marketing.template_restored'];
+  assertEquals(restored.summary(ctx({ count: 2 }, null)), 'Alex restored 2 marketing designs');
+});
+
+Deno.test('booking detail activity summaries name email kind, asset, and receipt count', () => {
+  const ctx = (metadata: Record<string, unknown>, targetLabel: string | null = 'Maria Santos') => ({
+    actorName: 'Alex',
+    targetLabel,
+    metadata,
+    changeCount: 0,
+  });
+  const email = ACTIVITY_ACTION_CATALOG['booking.workflow_email_sent'];
+  assertStringIncludes(
+    email.summary(ctx({ email_kind_label: 'GAF request email' })),
+    'GAF request email'
+  );
+  const upload = ACTIVITY_ACTION_CATALOG['booking.document_uploaded'];
+  assertStringIncludes(upload.summary(ctx({ asset_label: 'Approved GAF' })), 'Approved GAF');
+  const receipts = ACTIVITY_ACTION_CATALOG['booking.receipt_validated'];
+  assertEquals(receipts.summary(ctx({ count: 2 })), 'Alex validated 2 receipts for Maria Santos');
+  assertEquals(ACTIVITY_ACTION_CATALOG['booking.trip_link_issued'].severity, 'notice');
+});
+
+Deno.test('AI Studio conversation summaries name the creation and count bulk actions', () => {
+  const ctx = (
+    metadata: Record<string, unknown>,
+    targetLabel: string | null = 'Sunset balcony'
+  ) => ({
+    actorName: 'Alex',
+    targetLabel,
+    metadata,
+    changeCount: 0,
+  });
+  const deleted = ACTIVITY_ACTION_CATALOG['marketing.ai_session_deleted'];
+  assertEquals(
+    deleted.summary(ctx({ count: 1 })),
+    'Alex deleted the AI Studio creation Sunset balcony'
+  );
+  assertEquals(
+    deleted.summary(ctx({ count: 3, permanent: true }, null)),
+    'Alex permanently deleted 3 AI Studio creations'
+  );
+  const restored = ACTIVITY_ACTION_CATALOG['marketing.ai_session_restored'];
+  assertEquals(restored.summary(ctx({ count: 2 }, null)), 'Alex restored 2 AI Studio creations');
+});

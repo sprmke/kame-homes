@@ -14,6 +14,7 @@ export type OrgPermissionCatalog = readonly PermissionCatalogNode[];
 const MODULE_ORDER = [
   'dashboard',
   'bookings',
+  'reviews',
   'properties',
   'parkings',
   'settings',
@@ -26,6 +27,7 @@ const MODULE_ORDER = [
 const MODULE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   bookings: 'Bookings',
+  reviews: 'Reviews',
   properties: 'Properties',
   parkings: 'Parkings',
   settings: 'Settings',
@@ -52,6 +54,7 @@ const ORG_PLAN_FEATURES: Partial<Record<string, PlanFeatureKey>> = {
 const ORG_CHIP_LABELS: Record<string, string> = {
   'org.dashboard:view': 'Open page',
   'org.bookings:view': 'Open page',
+  'org.reviews:view': 'Open page',
   'org.properties:view': 'Open page',
   'org.properties:create': 'Add',
   'org.properties:manage': 'Manage',

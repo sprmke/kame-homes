@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import { ChatDeliveryTicks } from '@/components/chat/ChatDeliveryTicks';
 import { ChatHighlightedText } from '@/components/chat/ChatHighlightedText';
@@ -30,6 +30,12 @@ type Props = {
   actions?: ReactNode;
   /** When set, a tapped calendar link card opens the availability modal instead of navigating. */
   onCalendarLinkClick?: (href: string) => void;
+  feedback?: {
+    rating: 1 | -1 | 0;
+    onRate: (rating: 1 | -1) => void;
+  };
+  /** `card` drops the chat bubble padding/background so children fill the bubble. */
+  variant?: 'bubble' | 'card';
 };
 
 export function ChatMessageBubble({
@@ -48,16 +54,21 @@ export function ChatMessageBubble({
   children,
   actions,
   onCalendarLinkClick,
+  feedback,
+  variant = 'bubble',
 }: Props) {
   const timeLabel = formatChatBubbleTime(sentAt);
   const trimmed = bodyText?.trim() || '-';
   const bubbleClass = cn(
-    'max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
-    unsent
-      ? 'bg-muted/45 text-muted-foreground border-border/50 border italic'
-      : outbound
-        ? 'bg-primary text-primary-foreground'
-        : 'border-border/60 bg-background text-foreground border shadow-sm',
+    variant === 'card'
+      ? 'border-border/60 bg-card text-foreground max-w-[min(100%,28rem)] overflow-hidden rounded-2xl border shadow-sm'
+      : 'max-w-[min(100%,28rem)] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
+    variant === 'bubble' &&
+      (unsent
+        ? 'bg-muted/45 text-muted-foreground border-border/50 border italic'
+        : outbound
+          ? 'bg-primary-strong text-primary-foreground'
+          : 'border-border/60 bg-background text-foreground border shadow-sm'),
     deliveryStatus === 'failed' && outbound && !unsent && 'opacity-80'
   );
 
@@ -105,6 +116,34 @@ export function ChatMessageBubble({
               <Sparkles className="size-3" aria-hidden />
               Automated
             </span>
+          ) : null}
+          {feedback ? (
+            <div className="mt-1.5 hidden items-center gap-0.5 lg:flex">
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex size-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full',
+                  feedback.rating === 1 ? 'text-foreground' : 'text-muted-foreground'
+                )}
+                aria-label="Helpful"
+                aria-pressed={feedback.rating === 1}
+                onClick={() => feedback.onRate(1)}
+              >
+                <ThumbsUp className="size-3.5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex size-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-full',
+                  feedback.rating === -1 ? 'text-foreground' : 'text-muted-foreground'
+                )}
+                aria-label="Not helpful"
+                aria-pressed={feedback.rating === -1}
+                onClick={() => feedback.onRate(-1)}
+              >
+                <ThumbsDown className="size-3.5" aria-hidden />
+              </button>
+            </div>
           ) : null}
         </div>
         {actions}

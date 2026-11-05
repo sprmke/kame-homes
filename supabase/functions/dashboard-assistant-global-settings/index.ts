@@ -24,15 +24,27 @@ serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
 
   if (req.method === 'PATCH') {
     const body = await readJsonBody(req);
-    if (body.enabled !== undefined && typeof body.enabled !== 'boolean') {
-      return jsonError(req, 'enabled must be a boolean when provided', 400);
-    }
-    if (body.aiModeEnabled !== undefined && typeof body.aiModeEnabled !== 'boolean') {
-      return jsonError(req, 'aiModeEnabled must be a boolean when provided', 400);
+    const boolFields = [
+      'enabled',
+      'aiModeEnabled',
+      'agenticModeEnabled',
+      'planApprovalEnabled',
+      'guestActionsEnabled',
+    ] as const;
+    for (const field of boolFields) {
+      if (body[field] !== undefined && typeof body[field] !== 'boolean') {
+        return jsonError(req, `${field} must be a boolean when provided`, 400);
+      }
     }
     const settings = await setDashboardAssistantGlobalSettings({
       enabled: typeof body.enabled === 'boolean' ? body.enabled : undefined,
       aiModeEnabled: typeof body.aiModeEnabled === 'boolean' ? body.aiModeEnabled : undefined,
+      agenticModeEnabled:
+        typeof body.agenticModeEnabled === 'boolean' ? body.agenticModeEnabled : undefined,
+      planApprovalEnabled:
+        typeof body.planApprovalEnabled === 'boolean' ? body.planApprovalEnabled : undefined,
+      guestActionsEnabled:
+        typeof body.guestActionsEnabled === 'boolean' ? body.guestActionsEnabled : undefined,
       updatedBy: user.id,
     });
     await logSuperAdminAction(user, {
@@ -40,7 +52,13 @@ serveSuperAdmin('dashboard-assistant-global-settings', async (req, user) => {
       targetType: 'platform',
       targetId: 'dashboard_assistant_global_settings',
       summary: 'Updated dashboard assistant kill switch',
-      metadata: { enabled: settings.enabled, aiModeEnabled: settings.aiModeEnabled },
+      metadata: {
+        enabled: settings.enabled,
+        aiModeEnabled: settings.aiModeEnabled,
+        agenticModeEnabled: settings.agenticModeEnabled,
+        planApprovalEnabled: settings.planApprovalEnabled,
+        guestActionsEnabled: settings.guestActionsEnabled,
+      },
     });
     return jsonSuccess(req, settings);
   }

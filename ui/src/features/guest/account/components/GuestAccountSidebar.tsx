@@ -71,7 +71,7 @@ export function GuestAccountSidebar({ pathname, onNavigate, className }: GuestAc
         aria-label="Account menu"
       >
         {bounds ? (
-          <SlidingActivePill bounds={bounds} className="bg-primary rounded-xl shadow-sm" />
+          <SlidingActivePill bounds={bounds} className="bg-primary-strong rounded-xl shadow-sm" />
         ) : null}
         {GUEST_ACCOUNT_NAV_ITEMS.map((item) => {
           const active = item.href === activeNavHref;

@@ -2,7 +2,11 @@
  * ical-export — public, token-guarded outbound calendar feed for OTAs to import.
  * Plan: docs/workflow/done/airbnb-calendar-sync.md §8 / §10
  *
- *   GET /functions/v1/ical-export?property=<slug>&token=<t>[&as=<provider>]
+ *   GET /functions/v1/ical-export/calendar.ics?property=<slug>&token=<t>[&as=<provider>]
+ *   GET /functions/v1/ical-export?property=<slug>&token=<t>[&as=<provider>]   (legacy; still works)
+ *
+ * The `/calendar.ics` path is required for Airbnb import: Airbnb rejects URLs whose path does
+ * not end in `.ics`. Query params after `.ics` are fine (same pattern as Airbnb's own export).
  *
  * Returns `text/calendar` listing this property's busy nights (direct bookings + manual owner
  * blocks) as opaque `Booked` / `Blocked` events — ZERO guest PII. `as` sets the "exclude this
@@ -10,6 +14,10 @@
  *
  * Any failure (bad/rotated token, unknown property, disabled feed) returns an identical 404 —
  * no enumeration.
+ *
+ * Feature availability: no gate on this endpoint (export feeds keep serving while
+ * `pricing.channel_sync` is off). See docs/workflow/done/feature-availability-controls.md
+ * Phase 5.4.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -19,7 +27,7 @@ import type { CalendarFeedProvider } from '../_shared/calendarSyncService.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { readPropertySlugFromUrl, resolvePropertyIdBySlug } from '../_shared/propertyScope.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
 
 const PROVIDERS: readonly CalendarFeedProvider[] = ['airbnb', 'booking_com', 'vrbo', 'other'];
@@ -147,7 +155,14 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error('[ical-export] error:', err);
-    await capturePostHogException(err, { logPrefix: 'ical-export', request: req });
+    // Reported even though the response is a deliberate 404: the 404 hides internals from
+    // the caller, and hiding it from Sentry too would make a broken feed invisible.
+    await captureSentryException(err, {
+      logPrefix: 'ical-export',
+      url: req.url,
+      method: req.method,
+      fingerprint: ['ical-export', 'handler'],
+    });
     // Still a 404 — never leak internals on this public endpoint.
     return notFound(req);
   }

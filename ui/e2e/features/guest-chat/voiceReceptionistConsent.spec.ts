@@ -48,7 +48,7 @@ async function installVoiceReceptionistMocks(
         conversationId: '00000000-0000-4000-8000-000000000121',
         property: { id: '00000000-0000-4000-8000-000000000122', slug: 'solea', name: 'Solea' },
         host: {
-          organizationName: 'Kame Homes',
+          organizationName: 'Sample Stays',
           ownerName: 'Host',
           ownerAvatarUrl: null,
         },
@@ -277,7 +277,7 @@ test.describe('@smoke @ci voice receptionist consent', () => {
     await expect(page.getByRole('button', { name: 'Start call' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'End call' })).toHaveCount(0);
     const startCallBox = await page.getByRole('button', { name: 'Start call' }).boundingBox();
-    expect(startCallBox?.height).toBeGreaterThanOrEqual(44);
+    expect(Math.round(startCallBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth)
     );

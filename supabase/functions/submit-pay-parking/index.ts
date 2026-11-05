@@ -10,12 +10,13 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { isBookingStatus, isPostPendingDocumentsStatus } from '../_shared/statusMachine.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { logGuestActivity } from '../_shared/guestActivity.ts';
+import { authorizeGuestBookingAccess, guestBookingAccessTokenFromRequest } from '../_shared/guestBookingAccessToken.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 
 type SubmitBody = {
   bookingId?: string;
@@ -56,7 +57,7 @@ serve(async (req) => {
     const body = (await req.json().catch(() => null)) as SubmitBody | null;
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, (body ?? {}) as Record<string, unknown>, {
       scope: 'submit-pay-parking',
       rateLimit: { limit: 15, windowSec: 60 },
@@ -72,7 +73,20 @@ serve(async (req) => {
     const existing = await DatabaseService.getBookingById(bookingId);
     if (!existing) throw new Error('Booking not found');
     if (existing.status === 'CANCELLED') {
-      throw new Error('This booking was cancelled — parking cannot be added');
+      throw new Error('This booking was cancelled - parking cannot be added');
+    }
+
+    const accessToken = guestBookingAccessTokenFromRequest(req, body);
+    const accessCheck = await authorizeGuestBookingAccess({
+      bookingIdFromPath: bookingId,
+      accessTokenFromQuery: accessToken,
+      bookingCreatedAt: (existing as Record<string, unknown>).created_at as string | null,
+    });
+    if (!accessCheck.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: accessCheck.message }),
+        { status: accessCheck.status, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
+      );
     }
 
     const parkingRateGuest = resolveParkingRateGuest(existing as Record<string, unknown>);
@@ -122,7 +136,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('[submit-pay-parking]', error);
-    await capturePostHogException(error, { logPrefix: 'submit-pay-parking', request: req });
+    await captureFaultIfServerError(req, error, 'submit-pay-parking');
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

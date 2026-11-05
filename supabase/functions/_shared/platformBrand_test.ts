@@ -7,7 +7,7 @@ import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 
 import { DEFAULT_PLATFORM_APP_NAME, resolvePlatformAppName } from './platformBrand.ts';
 
-Deno.test('resolvePlatformAppName defaults to Kame Homes when unset or blank', () => {
+Deno.test('resolvePlatformAppName defaults to Kame Space when unset or blank', () => {
   assertEquals(resolvePlatformAppName(undefined), DEFAULT_PLATFORM_APP_NAME);
   assertEquals(resolvePlatformAppName(null), DEFAULT_PLATFORM_APP_NAME);
   assertEquals(resolvePlatformAppName(''), DEFAULT_PLATFORM_APP_NAME);
@@ -18,6 +18,21 @@ Deno.test('resolvePlatformAppName replaces the retired Stays placeholder', () =>
   assertEquals(resolvePlatformAppName('Stays'), DEFAULT_PLATFORM_APP_NAME);
   assertEquals(resolvePlatformAppName('stays'), DEFAULT_PLATFORM_APP_NAME);
   assertEquals(resolvePlatformAppName(' STAYS '), DEFAULT_PLATFORM_APP_NAME);
+});
+
+Deno.test('resolvePlatformAppName replaces every form of the retired Kame Homes label', () => {
+  for (const retired of [
+    'Kame Homes',
+    'Kame Home',
+    'kame-homes',
+    'kame-home',
+    'KameHomes',
+    'KameHome',
+    'KAME_HOMES',
+    'kame_homes',
+  ]) {
+    assertEquals(resolvePlatformAppName(retired), DEFAULT_PLATFORM_APP_NAME, retired);
+  }
 });
 
 Deno.test('resolvePlatformAppName keeps a configured operator name', () => {

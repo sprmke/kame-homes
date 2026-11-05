@@ -49,6 +49,22 @@ export type PublicHostSocialLinksDto = {
   tiktokUrl: string | null;
 };
 
+export type PublicHostReviewSummaryDto = {
+  count: number;
+  avgOverall: number | null;
+};
+
+export type PublicHostReviewDto = {
+  id: string;
+  propertySlug: string;
+  propertyName: string;
+  guestName: string;
+  starRating: number;
+  reviewText: string | null;
+  responseText: string | null;
+  publishedAt: string | null;
+};
+
 export type PublicHostProfileDto = {
   slug: string;
   name: string;
@@ -65,6 +81,8 @@ export type PublicHostProfileDto = {
   socialLinks: PublicHostSocialLinksDto;
   properties: PublicHostPropertyCardDto[];
   parkings: PublicHostParkingCardDto[];
+  reviewSummary: PublicHostReviewSummaryDto;
+  recentReviews: PublicHostReviewDto[];
 };
 
 type OrganizationRow = {
@@ -187,31 +205,48 @@ export async function loadPublicHostByOrgSlug(
   if (orgError || !orgRow) return null;
 
   const org = orgRow as OrganizationRow;
-  const [orgSettingsResolved, ownerProfile, ownerMemberResult, propertiesResult, parkingsResult] =
-    await Promise.all([
-      resolveOrgSettings(org.id),
-      loadAuthUserProfile(supabase, org.owner_id),
-      supabase
-        .from('organization_members')
-        .select('display_name')
-        .eq('organization_id', org.id)
-        .eq('user_id', org.owner_id)
-        .maybeSingle(),
-      supabase
-        .from('properties')
-        .select('id, slug, name, type, status, settings')
-        .eq('organization_id', org.id)
-        .eq('status', 'ACTIVE')
-        .order('name'),
-      supabase
-        .from('parkings')
-        .select(
-          'id, slug, name, parking_type, residence_name, tower, level, slot_label, status, settings'
-        )
-        .eq('organization_id', org.id)
-        .eq('status', 'ACTIVE')
-        .order('name'),
-    ]);
+  const [
+    orgSettingsResolved,
+    ownerProfile,
+    ownerMemberResult,
+    propertiesResult,
+    parkingsResult,
+    reviewsResult,
+    summaryResult,
+  ] = await Promise.all([
+    resolveOrgSettings(org.id),
+    loadAuthUserProfile(supabase, org.owner_id),
+    supabase
+      .from('organization_members')
+      .select('display_name')
+      .eq('organization_id', org.id)
+      .eq('user_id', org.owner_id)
+      .maybeSingle(),
+    supabase
+      .from('properties')
+      .select('id, slug, name, type, status, settings')
+      .eq('organization_id', org.id)
+      .eq('status', 'ACTIVE')
+      .order('name'),
+    supabase
+      .from('parkings')
+      .select(
+        'id, slug, name, parking_type, residence_name, tower, level, slot_label, status, settings'
+      )
+      .eq('organization_id', org.id)
+      .eq('status', 'ACTIVE')
+      .order('name'),
+    supabase
+      .from('guest_reviews')
+      .select(
+        'id, property_id, star_rating, review_text, guest_display_name, response_text, published_at'
+      )
+      .eq('organization_id', org.id)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(6),
+    supabase.rpc('org_review_summary', { p_organization_id: org.id }),
+  ]);
 
   const orgLogoUrl = orgSettingsResolved.emailLogoUrl.trim() || org.logo_url?.trim() || null;
   const orgSettings =
@@ -257,6 +292,29 @@ export async function loadPublicHostByOrgSlug(
     } satisfies PublicHostPropertyCardDto;
   });
 
+  const propertyNameById = new Map(
+    propertyRows.map((row) => [row.id, { slug: row.slug, name: row.name }])
+  );
+  const rpcSummary =
+    (summaryResult.data as { count?: number; avgOverall?: number | null } | null) ?? null;
+  const reviewSummary: PublicHostReviewSummaryDto = {
+    count: typeof rpcSummary?.count === 'number' ? rpcSummary.count : 0,
+    avgOverall: typeof rpcSummary?.avgOverall === 'number' ? rpcSummary.avgOverall : null,
+  };
+  const recentReviews: PublicHostReviewDto[] = (reviewsResult.data ?? []).map((row) => {
+    const property = propertyNameById.get(row.property_id as string);
+    return {
+      id: row.id as string,
+      propertySlug: property?.slug ?? '',
+      propertyName: property?.name ?? 'Property',
+      guestName: (row.guest_display_name as string | null)?.trim() || 'Guest',
+      starRating: Number(row.star_rating) || 0,
+      reviewText: (row.review_text as string | null) ?? null,
+      responseText: (row.response_text as string | null) ?? null,
+      publishedAt: (row.published_at as string | null) ?? null,
+    };
+  });
+
   const parkings = parkingRows.map((row) => {
     const settings =
       row.settings && typeof row.settings === 'object' && !Array.isArray(row.settings)
@@ -295,5 +353,7 @@ export async function loadPublicHostByOrgSlug(
     },
     properties,
     parkings,
+    reviewSummary,
+    recentReviews,
   };
 }

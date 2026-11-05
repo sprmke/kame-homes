@@ -6,8 +6,7 @@
 import { renderBrandedEmailShell } from './brandedEmailShell.ts';
 import { PLATFORM_BRAND_NAME } from './platformBrand.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
-
-const RESEND_API = 'https://api.resend.com/emails';
+import { sendResendEmail } from './sendResendEmail.ts';
 
 const BODY_P = 'margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;';
 const BODY_MUTED = 'margin:0;font-size:13px;line-height:1.5;color:#6b7280;';
@@ -45,23 +44,11 @@ export async function sendSuperAdminStepUpEmail(opts: {
     brandColor: null,
   });
 
-  const res = await fetch(RESEND_API, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [to],
-      subject: 'Super admin verification code',
-      html,
-    }),
+  await sendResendEmail({
+    from: fromEmail,
+    to: [to],
+    subject: 'Super admin verification code',
+    html,
+    errorLabel: 'email',
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error('[superAdminStepUpEmail] send failed', res.status, body.slice(0, 200));
-    throw new Error('Could not send verification email');
-  }
 }

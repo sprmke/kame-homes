@@ -1,12 +1,12 @@
 ---
 stage: done
 title: 'Listing contract renewal modal — design'
-status: approved
-updated: 2026-08-19
+status: done
+updated: 2026-11-04
 tags: [verification, listing-authorization, contract-lifecycle, ux]
 related:
-  - docs/workflow/in-progress/listing-contract-renewal-modal.md
-  - docs/workflow/in-progress/verification-scope-split.md
+  - docs/workflow/for-testing/listing-contract-renewal-modal.md
+  - docs/workflow/for-testing/verification-scope-split.md
 ---
 
 # Listing contract renewal modal — design
@@ -119,4 +119,4 @@ flowchart TD
 
 ## Implementation plan
 
-See [`../in-progress/listing-contract-renewal-modal.md`](../in-progress/listing-contract-renewal-modal.md).
+See [`../for-testing/listing-contract-renewal-modal.md`](../for-testing/listing-contract-renewal-modal.md).

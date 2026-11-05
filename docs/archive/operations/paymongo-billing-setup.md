@@ -33,12 +33,12 @@ Plan: [`docs/workflow/done/paymongo-subscription-billing.md`](../../workflow/don
 
 ## Env vars
 
-| Variable                       | Where                                | Purpose                                                                                                                   |
-| ------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `PAYMONGO_SECRET_KEY`          | Edge secrets / `supabase/.env.local` | Basic auth for Checkout Sessions + Payment Links API                                                                      |
-| `PAYMONGO_WEBHOOK_SECRET`      | Edge secrets / `supabase/.env.local` | HMAC verify `Paymongo-Signature` header                                                                                   |
-| `PUBLIC_GUEST_APP_ORIGIN`      | Edge secrets / `supabase/.env.local` | Hosted Checkout `success_url` / `cancel_url` base (e.g. `http://localhost:5173` local, `https://dev.kamehomes.space` dev) |
-| `PLATFORM_BILLING_CRON_SECRET` | Edge secrets (optional)              | Auth header for hosted **`platform-billing-cron`**                                                                        |
+| Variable                       | Where                                | Purpose                                                                                                                    |
+| ------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `PAYMONGO_SECRET_KEY`          | Edge secrets / `supabase/.env.local` | Basic auth for Checkout Sessions + Payment Links API                                                                       |
+| `PAYMONGO_WEBHOOK_SECRET`      | Edge secrets / `supabase/.env.local` | HMAC verify `Paymongo-Signature` header                                                                                    |
+| `PUBLIC_GUEST_APP_ORIGIN`      | Edge secrets / `supabase/.env.local` | Hosted Checkout `success_url` / `cancel_url` base (e.g. `http://localhost:5173` local, `https://kamespace.com` production) |
+| `PLATFORM_BILLING_CRON_SECRET` | Edge secrets (optional)              | Auth header for hosted **`platform-billing-cron`**                                                                         |
 
 See also [`docs/architecture/validation-and-env.md`](../../architecture/validation-and-env.md).
 

@@ -19,7 +19,7 @@ export function useGuestAuthActions() {
           shouldCreateUser: true,
           // Ignored by GoTrue unless [auth.captcha] is enabled; always sent so the
           // server can enforce it without a client change. Anti-spam plan:
-          // docs/workflow/for-testing/captcha-anti-spam-hardening.md
+          // docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
           ...(captchaToken ? { captchaToken } : {}),
         },
       });

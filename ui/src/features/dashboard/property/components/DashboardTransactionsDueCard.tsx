@@ -107,7 +107,7 @@ export function DashboardTransactionsDueCard({
         )}
       >
         {isLoading ? (
-          <div
+          <div role="status"
             className="min-h-0 flex-1 space-y-2"
             aria-busy="true"
             aria-label="Loading transactions"

@@ -19,6 +19,15 @@ import {
 import { platformDailyCostUsdCap } from '../_shared/aiUsageService.ts';
 import { mapEvalRunRow } from '../_shared/assistantEvalSummary.ts';
 import {
+  summarizeAssistantLatency,
+  type AssistantLatencyRow,
+} from '../_shared/assistantLatencySummary.ts';
+import {
+  summarizeAssistantTurnTelemetry,
+  type PlanOutcomeRow,
+  type TurnTelemetryRow,
+} from '../_shared/assistantTurnTelemetrySummary.ts';
+import {
   summarizeAssistantFeedback,
   type AssistantFeedbackRow,
 } from '../_shared/assistantFeedbackSummary.ts';
@@ -69,6 +78,9 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     feedbackUpRes,
     feedbackDownRes,
     evalRunsRes,
+    assistantLatencyRes,
+    assistantTurnTelemetryRes,
+    assistantPlanOutcomesRes,
   ] = await Promise.all([
     supabase.rpc('super_admin_ai_usage_daily', { p_since: dailySince }),
     supabase.rpc('super_admin_ai_usage_features', { p_since: sinceIso }),
@@ -110,6 +122,9 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
       )
       .order('created_at', { ascending: false })
       .limit(10),
+    supabase.rpc('super_admin_assistant_latency', { p_since: sinceIso }),
+    supabase.rpc('super_admin_assistant_turn_telemetry', { p_since: sinceIso }),
+    supabase.rpc('super_admin_assistant_plan_outcomes', { p_since: sinceIso }),
   ]);
 
   const firstError =
@@ -259,6 +274,18 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     feedbackRows,
     (orgId) => orgById.get(orgId)?.name ?? null
   );
+  const guestFeedbackQuery = await supabase
+    .from('guest_chat_ai_feedback')
+    .select('rating, reason, created_at, organization_id')
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  const guestChatFeedback = guestFeedbackQuery.error
+    ? { up: 0, down: 0, positivePct: null, recentNegative: [] }
+    : summarizeAssistantFeedback(
+        (guestFeedbackQuery.data ?? []) as AssistantFeedbackRow[],
+        (orgId) => orgById.get(orgId)?.name ?? null
+      );
   if (feedbackUpRes.count != null && feedbackDownRes.count != null) {
     const up = feedbackUpRes.count;
     const down = feedbackDownRes.count;
@@ -294,7 +321,21 @@ serveSuperAdmin('super-admin-ai-usage', async (req) => {
     planUsage,
     marketingGenerations,
     assistantFeedback: feedback,
+    guestChatFeedback,
     // Best-effort: eval history is optional and must not break the cost console.
     assistantEvalRuns: evalRunsRes.error ? [] : (evalRunsRes.data ?? []).map(mapEvalRunRow),
+    assistantLatency: summarizeAssistantLatency(
+      assistantLatencyRes.error ? [] : ((assistantLatencyRes.data ?? []) as AssistantLatencyRow[])
+    ),
+    // Best-effort, like assistantLatency above: Phase 7 telemetry is observability, never
+    // allowed to break the cost console if either rollup errors.
+    assistantTurnTelemetry: summarizeAssistantTurnTelemetry(
+      assistantTurnTelemetryRes.error
+        ? []
+        : ((assistantTurnTelemetryRes.data ?? []) as TurnTelemetryRow[]),
+      assistantPlanOutcomesRes.error
+        ? []
+        : ((assistantPlanOutcomesRes.data ?? []) as PlanOutcomeRow[])
+    ),
   });
 });

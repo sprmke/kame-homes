@@ -26,7 +26,7 @@ Also applied on `supabase db reset` via `supabase/seed.sql`. Marketing mocks (`m
 | ------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | **`azure`**   | Developments ≥3, Properties ≥3, Parkings ≥3 → **See all** on each group | Click **See all** on Properties → `/search?where=azure&type=properties&focus=properties` |
 | **`monaco`**  | Properties + Parkings (tower/slot names)                                | Entity click deep-links; See all when ≥3                                                 |
-| **`kame`**    | Properties → Kame Home (often single-category)                          | Category heading still shown on `/search`                                                |
+| **`kame`**    | Properties → Kame Space (often single-category)                         | Category heading still shown on `/search`                                                |
 | **`condo`**   | Concept expansion                                                       | Properties-heavy results                                                                 |
 | **`nearby`**  | Single “Uses your location” chip                                        | Not a multi-category See all case                                                        |
 
@@ -42,7 +42,7 @@ Also applied on `supabase db reset` via `supabase/seed.sql`. Marketing mocks (`m
 | 4   | Concept: Condo             | `where=Condo` returns CONDO-type / condo-related listings with **Properties**                                                          |
 | 5   | Concept: Beach             | `where=Beaches` returns coastal / beach-term related inventory when present                                                            |
 | 6   | Concept: Parking           | Prefers parking inventory                                                                                                              |
-| 7   | Literal specific           | `where=kame` → Kame Home under **Properties N**                                                                                        |
+| 7   | Literal specific           | `where=kame` → Kame Space under **Properties N**                                                                                       |
 | 8   | Expanded fallback          | Odd phrasing with a concept token + 0 literal hits soft-expands once                                                                   |
 | 9   | Category headings          | Single-category results still show Properties / Developments / Parkings                                                                |
 | 10  | Typeahead Nearby           | Typing “nearby” shows “Uses your location” chip                                                                                        |
@@ -129,7 +129,7 @@ If local DB has no beach inventory, empty is OK — confirm `meta.intent` is `co
 
 | Query                              | Expect                                             |
 | ---------------------------------- | -------------------------------------------------- |
-| `kame`                             | Kame Home under **Properties** with count          |
+| `kame`                             | Kame Space under **Properties** with count         |
 | `Makati`                           | City / listing contains matches; not forced Nearby |
 | `Azure`                            | Development / residence matches                    |
 | Rare typo-only with zero inventory | Empty; no hallucinated AI results (v1)             |

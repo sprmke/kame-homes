@@ -11,6 +11,7 @@ import type {
   OrgTeamMember,
 } from '@/features/dashboard/team/types/orgTeam';
 
+import { InfoHint } from '@/components/help/InfoHint';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -48,6 +49,7 @@ export function OrgTeamStatsCards({ members, invitations, customRoles }: Props) 
       title: role.name,
       value: String(countByTemplateRole(role.id, members, invitations, customRoles)),
       icon: Shield,
+      hint: `Members and pending invites with the ${role.name} role.`,
     })),
     {
       title: 'Pending Invites',
@@ -71,6 +73,11 @@ export function OrgTeamStatsCards({ members, invitations, customRoles }: Props) 
           value={card.value}
           icon={card.icon}
           valueClassName={'valueClassName' in card ? card.valueClassName : undefined}
+          titleAdornment={
+            'hint' in card && card.hint ? (
+              <InfoHint label={card.title} text={card.hint} variant="metric" />
+            ) : undefined
+          }
         />
       ))}
     </div>

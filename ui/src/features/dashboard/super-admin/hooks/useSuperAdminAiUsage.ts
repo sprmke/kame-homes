@@ -56,6 +56,12 @@ export type SuperAdminAiUsage = {
     unbilledCompleted: number;
   };
   /** Thumbs on AI assistant replies in the range (absent on older deploys). */
+  guestChatFeedback?: {
+    up: number;
+    down: number;
+    positivePct: number | null;
+    recentNegative: Array<{ reason: string | null; createdAt: string; orgName: string | null }>;
+  };
   assistantFeedback?: {
     up: number;
     down: number;
@@ -64,6 +70,57 @@ export type SuperAdminAiUsage = {
   };
   /** Latest assistant golden eval runs, newest first (`eval:ai --suite assistant --record`). */
   assistantEvalRuns?: AssistantEvalRun[];
+  /** Assistant turn latency in the range (absent on older deploys). */
+  assistantLatency?: AssistantLatency;
+  /** Phase 7 telemetry: rounds/credits per turn, plan size + approval outcome, completion-check
+   * misses, step-failure rate (absent on older deploys). */
+  assistantTurnTelemetry?: AssistantTurnTelemetry;
+};
+
+export type AssistantLatencyBucket = {
+  key: string;
+  turns: number;
+  p50Ms: number | null;
+  p95Ms: number | null;
+  modelP50Ms: number | null;
+  toolsP50Ms: number | null;
+  synthP50Ms: number | null;
+  guardP50Ms: number | null;
+};
+
+/** Mirror of `supabase/functions/_shared/assistantLatencySummary.ts#AssistantLatencySummary`. */
+export type AssistantLatency = {
+  turns: number;
+  byModule: AssistantLatencyBucket[];
+  byGuardMode: AssistantLatencyBucket[];
+};
+
+export type AssistantPlanOutcomeBucket = {
+  status: string;
+  plans: number;
+  pct: number;
+  totalSteps: number;
+  failedSteps: number;
+};
+
+/** Mirror of `supabase/functions/_shared/assistantTurnTelemetrySummary.ts#AssistantTurnTelemetry`. */
+export type AssistantTurnTelemetry = {
+  turns: number;
+  avgRounds: number | null;
+  p50Rounds: number | null;
+  p95Rounds: number | null;
+  turnsWithPlan: number;
+  avgPlanSize: number | null;
+  completionMissTurns: number;
+  completionMissRatePct: number | null;
+  avgCredits: number | null;
+  p50Credits: number | null;
+  p95Credits: number | null;
+  planOutcomes: AssistantPlanOutcomeBucket[];
+  totalPlans: number;
+  approvalRatePct: number | null;
+  cancelledRatePct: number | null;
+  stepFailureRatePct: number | null;
 };
 
 export type SuperAdminAiPlanUsage = {

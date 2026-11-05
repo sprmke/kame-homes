@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
 
-import { resolveOrgDisplayName } from '@/features/guest/form/lib/guestFormBranding';
 import { guestHostPath } from '@/features/guest/lib/guestPublicPaths';
 import { ListingRecommendedBadge } from '@/features/guest/marketing/shared/components/ListingRecommendedBadge';
 import { MarketingImage as Image } from '@/features/guest/marketing/shared/components/MarketingImage';
@@ -27,10 +26,8 @@ type Props = {
 };
 
 export function ListingHostCard({ host, motionDelay = 0.2, className, onContactHost }: Props) {
-  const hostLabel = host.ownerName.trim() || 'Host';
-  const rawOrg = host.organizationName.trim();
-  const orgLabel = resolveOrgDisplayName(rawOrg, 'Host');
-  const hostAvatar = host.ownerAvatarUrl || host.organizationLogoUrl || null;
+  const orgName = host.organizationName.trim() || 'Host';
+  const hostAvatar = host.organizationLogoUrl || host.ownerAvatarUrl || null;
   const orgHref = host.organizationSlug ? guestHostPath(host.organizationSlug) : null;
 
   return (
@@ -47,14 +44,14 @@ export function ListingHostCard({ host, motionDelay = 0.2, className, onContactH
         {hostAvatar ? (
           <Image
             src={hostAvatar}
-            alt={hostLabel}
+            alt={orgName}
             width={48}
             height={48}
             className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-base font-bold text-white sm:text-lg">
-            {hostLabel.charAt(0)}
+            {orgName.charAt(0)}
           </div>
         )}
         {host.isSuperhost ? (
@@ -66,26 +63,18 @@ export function ListingHostCard({ host, motionDelay = 0.2, className, onContactH
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-            Hosted by {hostLabel}
+          <p className="text-foreground min-w-0 truncate text-sm font-semibold sm:text-base">
+            Hosted by{' '}
+            {orgHref ? (
+              <Link to={orgHref} className="underline-offset-2 hover:underline">
+                {orgName}
+              </Link>
+            ) : (
+              orgName
+            )}
           </p>
           {host.verifiedBadge ? <ListingRecommendedBadge /> : null}
         </div>
-        {host.verifiedBadge ? (
-          <p className="text-muted-foreground text-[11px] leading-tight sm:text-xs">
-            Recommended host
-          </p>
-        ) : null}
-        {orgHref ? (
-          <Link
-            to={orgHref}
-            className="text-primary truncate text-xs underline-offset-2 hover:underline sm:text-sm"
-          >
-            {orgLabel}
-          </Link>
-        ) : (
-          <p className="text-muted-foreground truncate text-xs sm:text-sm">{orgLabel}</p>
-        )}
       </div>
 
       <button

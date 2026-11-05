@@ -1,5 +1,5 @@
 import {
-  validateGuestFormCheckOutAfterCheckIn,
+  validateGuestFormCheckOutNotBeforeCheckIn,
   validateGuestFormFormatFields,
 } from './guestFormSubmitValidation.ts';
 import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
@@ -28,8 +28,8 @@ Deno.test('validateGuestFormFormatFields accepts valid payload', () => {
   assertEquals(validateGuestFormFormatFields(form), { ok: true });
 });
 
-Deno.test('validateGuestFormCheckOutAfterCheckIn rejects same-day or inverted stays', () => {
-  assertEquals(validateGuestFormCheckOutAfterCheckIn('2026-01-10', '2026-01-10').ok, false);
-  assertEquals(validateGuestFormCheckOutAfterCheckIn('2026-01-12', '2026-01-10').ok, false);
-  assertEquals(validateGuestFormCheckOutAfterCheckIn('2026-01-10', '2026-01-12').ok, true);
+Deno.test('check-out may equal check-in but never come before it', () => {
+  assertEquals(validateGuestFormCheckOutNotBeforeCheckIn('2026-01-10', '2026-01-10'), { ok: true });
+  assertEquals(validateGuestFormCheckOutNotBeforeCheckIn('2026-01-10', '2026-01-12'), { ok: true });
+  assertEquals(validateGuestFormCheckOutNotBeforeCheckIn('2026-01-12', '2026-01-10').ok, false);
 });

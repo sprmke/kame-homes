@@ -38,6 +38,17 @@ Unless the user asks for copy or it is **really needed**, add **no** new text.
 4. Read the `minimal-ui-copy` skill for patterns and examples.
 5. When text _is_ required, follow **`human-copy`** (plain, short, no AI tells / em dashes).
 
+## Sanctioned help patterns (dashboard)
+
+The dashboard contextual-help system (see [`docs/architecture/contextual-help.md`](../../docs/architecture/contextual-help.md)) is an explicit exception. These are allowed, and future agents must not delete them as "helper text":
+
+- `InfoHint` — one `?` / `i` next to a field, stat card, or section title. Copy lives in the feature's `*HelpCopy.ts`, max 200 chars.
+- `HowItWorksButton` + `HowItWorksDialog` — feature intro behind a header icon, 3 to 4 steps plus one tip.
+- `IntroCard` — one dismissible first-visit sentence.
+- `NoticeCallout` — a static note only where the context changes the decision (Support "Broken", Smart Pricing autopilot warning).
+
+Still banned: always-visible helper paragraphs, `CardDescription` essays, and a hint on every obvious field. Do not put a hint inside a `<label>`, tab pill, select trigger, or a card that is itself a link or button.
+
 ## Conflicts
 
 - `accessibility` still requires labels for inputs and icon buttons — keep those **short**.

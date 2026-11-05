@@ -12,13 +12,14 @@ import { loadResolvedBrandColorByPropertyId } from './propertyBranding.ts';
 import { resolveAmenityLabels } from './publicPropertyAmenities.ts';
 import { resolvePublicHouseRules, type PublicHouseRuleDto } from './publicPropertyHouseRules.ts';
 import {
+  cancellationPolicyHash,
   readCancellationPolicyFromSettings,
+  readCancellationPolicyVersionId,
   resolveCancellationPolicyDisplay,
   type ResolvedCancellationPolicyDisplay,
-} from './propertyCancellationPolicy.ts';
+} from './cancellationPolicy.ts';
 import { resolvePropertyIdBySlug } from './propertyScope.ts';
 import {
-  averageGuestReviewRating,
   listPublicGuestReviews,
   sortPublicGuestReviewsNewestFirst,
   type PublicGuestReviewDto,
@@ -91,6 +92,8 @@ export type PublicPropertyDetailDto = {
   pricing: PublicPropertyPricingDto;
   houseRules: PublicHouseRuleDto[];
   cancellationPolicy: ResolvedCancellationPolicyDisplay;
+  cancellationPolicyVersionId: string | null;
+  cancellationPolicyHash: string;
   host: {
     unitName: string;
     organizationName: string;
@@ -103,6 +106,14 @@ export type PublicPropertyDetailDto = {
   rating: number | null;
   reviewCount: number;
   guestReviews: PublicGuestReviewDto[];
+  /** Kame published summary (categories, distribution). Headline avg/count still merge externals. */
+  reviewSummary: {
+    count: number;
+    avgOverall: number | null;
+    distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+    categoryAvgs: Record<string, number | null>;
+    categorySample: number;
+  } | null;
   isSuperhost: boolean;
   /** Host-wide Recommended badge (org Tier 2). */
   verifiedBadge: boolean;
@@ -344,8 +355,11 @@ export async function loadPublicPropertyById(
     guestReviews,
     appSettings,
     appSettingsRowResult,
+    sectionConfig,
+    development,
+    reviewSummaryResult,
   ] = await Promise.all([
-    loadPropertyPricing(propertyId),
+    loadPropertyPricing(propertyId, { ensureSettings: false }),
     loadResolvedBrandColorByPropertyId(propertyId),
     supabase
       .from('organizations')
@@ -360,17 +374,44 @@ export async function loadPublicPropertyById(
       .select('external_reviews')
       .eq('property_id', propertyId)
       .maybeSingle(),
+    getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
+    resolvePublicDevelopmentLink(row.residence_name),
+    supabase.rpc('property_review_summary', { p_property_id: propertyId }),
   ]);
 
   const externalReviews = listApprovedPublicExternalReviews(
     appSettingsRowResult.data?.external_reviews
   );
   const mergedReviews = sortPublicGuestReviewsNewestFirst([...guestReviews, ...externalReviews]);
-  const reviewRating = averageGuestReviewRating(mergedReviews);
 
-  const contact = await loadGuestFacingContactInfo(propertyId, appSettings);
+  // Gap fix: rating/count must reflect every published review, not just the
+  // first page fetched for display (listPublicGuestReviews is capped at 20).
+  const kameSummary = reviewSummaryResult.data as {
+    count?: number;
+    avgOverall?: number | null;
+  } | null;
+  const kameCount = kameSummary?.count ?? guestReviews.length;
+  const kameAvg = kameSummary?.avgOverall ?? null;
+  const externalCount = externalReviews.length;
+  const externalAvg =
+    externalCount > 0
+      ? externalReviews.reduce((acc, r) => acc + r.rating, 0) / externalCount
+      : null;
+  const totalReviewCount = kameCount + externalCount;
+  const reviewRating =
+    totalReviewCount > 0
+      ? Math.round(
+          (((kameAvg ?? 0) * kameCount + (externalAvg ?? 0) * externalCount) / totalReviewCount) *
+            10
+        ) / 10
+      : null;
 
   const org = orgResult.data as (OrganizationRow & { settings?: unknown }) | null;
+  const [contact, ownerAuthProfile] = await Promise.all([
+    loadGuestFacingContactInfo(propertyId, appSettings),
+    org?.owner_id ? loadAuthUserProfile(supabase, org.owner_id) : Promise.resolve(null),
+  ]);
+
   const orgSettings =
     org?.settings && typeof org.settings === 'object' && !Array.isArray(org.settings)
       ? (org.settings as Record<string, unknown>)
@@ -383,9 +424,11 @@ export async function loadPublicPropertyById(
   const organizationName = org?.name?.trim() || contact.contactName || 'Host';
   const orgLogoUrl = orgSettingsResolved.emailLogoUrl.trim() || org?.logo_url?.trim() || null;
   const unitName = resolvePublicUnitName(row);
-  const ownerProfile = org?.owner_id
-    ? await loadAuthUserProfile(supabase, org.owner_id)
-    : { name: organizationName, email: '', avatarUrl: orgLogoUrl };
+  const ownerProfile = ownerAuthProfile ?? {
+    name: organizationName,
+    email: '',
+    avatarUrl: orgLogoUrl,
+  };
   const hostDisplayName = contact.contactName || ownerProfile.name || organizationName;
 
   const checkInRaw = readString(settings, 'checkInTime') || '14:00';
@@ -400,14 +443,10 @@ export async function loadPublicPropertyById(
     checkInTime,
     checkOutTime
   );
-  const cancellationPolicy = resolveCancellationPolicyDisplay(
-    readCancellationPolicyFromSettings(settings)
-  );
-  const [sectionConfig, development] = await Promise.all([
-    getPublicPageConfigOrDefault(propertyId, 'property_landing') as Promise<PropertyLandingConfig>,
-    resolvePublicDevelopmentLink(row.residence_name),
-  ]);
-
+  const policy = readCancellationPolicyFromSettings(settings);
+  const cancellationPolicy = resolveCancellationPolicyDisplay(policy);
+  const cancellationPolicyVersionId = readCancellationPolicyVersionId(settings);
+  const policyHash = cancellationPolicyHash(policy);
   return {
     id: row.id,
     slug: row.slug,
@@ -452,6 +491,8 @@ export async function loadPublicPropertyById(
     },
     houseRules,
     cancellationPolicy,
+    cancellationPolicyVersionId,
+    cancellationPolicyHash: policyHash,
     host: {
       unitName,
       organizationName,
@@ -462,8 +503,39 @@ export async function loadPublicPropertyById(
       brandColor,
     },
     rating: reviewRating,
-    reviewCount: mergedReviews.length,
+    reviewCount: totalReviewCount,
     guestReviews: mergedReviews,
+    reviewSummary: {
+      count: kameCount,
+      avgOverall: kameAvg,
+      distribution: {
+        '1':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['1']
+          ) || 0,
+        '2':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['2']
+          ) || 0,
+        '3':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['3']
+          ) || 0,
+        '4':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['4']
+          ) || 0,
+        '5':
+          Number(
+            (kameSummary as { distribution?: Record<string, number> } | null)?.distribution?.['5']
+          ) || 0,
+      },
+      categoryAvgs:
+        (kameSummary as { categoryAvgs?: Record<string, number | null> } | null)?.categoryAvgs ??
+        {},
+      categorySample:
+        Number((kameSummary as { categorySample?: number } | null)?.categorySample) || 0,
+    },
     isSuperhost,
     verifiedBadge,
     recommendedBadge,

@@ -23,7 +23,7 @@ export function MarketingCategoryChip({ label, selected, onClick, menuItems, cla
         className={cn(
           'flex min-h-[36px] w-full min-w-0 items-center justify-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
           selected
-            ? 'bg-primary text-primary-foreground shadow-sm'
+            ? 'bg-primary-strong text-primary-foreground shadow-sm'
             : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
         )}
       >

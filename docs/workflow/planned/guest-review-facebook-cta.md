@@ -74,6 +74,8 @@ change required for the core feature (Phase 5 soft signal is optional).
 4. No new Deno test needed (pass-through field); optionally extend an existing
    `get-sd-form` / `get-guest-review` fixture if one asserts the payload shape.
 
+Two-way reviews (2026-10-19): the guest write UI remains `SdFormReviewSection` (shared by SD stepper and `/guest-review`). Wire this CTA after that review step is submitted or skipped (`GuestReviewPage` / `SdFormPage` "Done" / next-phase), not a separate `GuestReviewFlow` module.
+
 ## Phase 2 — Shared `GuestReviewFacebookCta` component
 
 New file: `ui/src/features/guest/sd-form/components/GuestReviewFacebookCta.tsx`

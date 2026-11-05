@@ -136,7 +136,7 @@ export const SearchSegment = forwardRef<HTMLButtonElement, SearchSegmentProps>(
         <button
           ref={ref}
           type="button"
-          aria-label={label}
+          aria-label={`${label}: ${display}`}
           onClick={() => onActivate(field)}
           className={cn(
             'relative z-[1] flex min-w-0 flex-1 basis-0 items-center justify-center truncate rounded-full px-2 py-2 text-center text-xs',

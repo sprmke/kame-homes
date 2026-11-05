@@ -18,6 +18,8 @@ import {
 import { AiGenerationOutcomesCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AiGenerationOutcomesCard';
 import { AiPlanUsageCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AiPlanUsageCard';
 import { AssistantEvalRunsCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantEvalRunsCard';
+import { AssistantLatencyCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantLatencyCard';
+import { AssistantTurnTelemetryCard } from '@/features/dashboard/super-admin/components/super-admin-ai/AssistantTurnTelemetryCard';
 import {
   useSuperAdminAiUsage,
   type SuperAdminAiUsageRange,
@@ -355,6 +357,18 @@ export function AiUsageTab() {
             )}
           </div>
 
+          {data.guestChatFeedback ? (
+            <section className="surface-card min-w-0 p-3 sm:p-4" aria-label="Guest chat feedback">
+              <AdminSurfaceCardHeader
+                title="Guest chat"
+                description={
+                  data.guestChatFeedback.positivePct == null
+                    ? 'No ratings yet'
+                    : `${data.guestChatFeedback.positivePct}% helpful · ${data.guestChatFeedback.up} up · ${data.guestChatFeedback.down} down`
+                }
+              />
+            </section>
+          ) : null}
           {data.assistantFeedback ? (
             <section className="surface-card min-w-0 p-3 sm:p-4" aria-label="Assistant feedback">
               <AdminSurfaceCardHeader
@@ -390,6 +404,12 @@ export function AiUsageTab() {
                 </ul>
               ) : null}
             </section>
+          ) : null}
+
+          {data.assistantLatency ? <AssistantLatencyCard latency={data.assistantLatency} /> : null}
+
+          {data.assistantTurnTelemetry ? (
+            <AssistantTurnTelemetryCard telemetry={data.assistantTurnTelemetry} />
           ) : null}
 
           {data.assistantEvalRuns ? <AssistantEvalRunsCard runs={data.assistantEvalRuns} /> : null}

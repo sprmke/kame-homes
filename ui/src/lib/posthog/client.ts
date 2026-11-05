@@ -1,6 +1,7 @@
 import posthog from 'posthog-js';
 
 import { shouldAutocapture } from '@/lib/posthog/analyticsMode';
+import { postHogBeforeSend } from '@/lib/posthog/beforeSend';
 import {
   detectAnalyticsEnvironment,
   detectAppTrack,
@@ -41,11 +42,15 @@ if (isPostHogEnabled) {
       maskTextSelector: '[data-ph-mask], input, textarea',
     },
     ...(supabaseFunctionsHost ? { tracing_headers: [supabaseFunctionsHost] } : {}),
-    capture_exceptions: {
-      capture_unhandled_errors: true,
-      capture_unhandled_rejections: true,
-      capture_console_errors: false,
-    },
+    // Guest URLs carry capability tokens; an unsanitized `$current_url` would hand PostHog
+    // a working link to someone's booking.
+    before_send: postHogBeforeSend,
+    // PostHog is analytics only. Sentry owns every error, and having both capture the same
+    // exception produced two histories that disagreed about the same incident.
+    capture_exceptions: false,
+    // Web vitals and network timing belong to Sentry tracing; two sources would be two
+    // versions of the truth.
+    capture_performance: false,
     loaded: (ph) => {
       ph.register({
         environment: detectAnalyticsEnvironment(),

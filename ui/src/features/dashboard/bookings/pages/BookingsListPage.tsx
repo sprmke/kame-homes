@@ -13,7 +13,6 @@ import { BookingDateRangeFilter } from '@/features/dashboard/bookings/components
 import { BookingFilters } from '@/features/dashboard/bookings/components/BookingFilters';
 import { BookingKanban } from '@/features/dashboard/bookings/components/BookingKanban';
 import { BookingsSummaryCards } from '@/features/dashboard/bookings/components/BookingsSummaryCards';
-import { BookingsStageSummarySkeleton } from '@/components/skeletons/BookingsExtrasSkeleton';
 import { BookingTable } from '@/features/dashboard/bookings/components/BookingTable';
 import type { BookingView } from '@/features/dashboard/bookings/components/BookingViewToggle';
 import {
@@ -52,8 +51,12 @@ import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPer
 import { FloatingPanel, FloatingToolbar } from '@/components/mobile/FloatingPanel';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
+import { PullToRefreshIndicator } from '@/components/pwa/PullToRefreshIndicator';
+import { StaleDataLabel } from '@/components/pwa/StaleDataLabel';
+import { BookingsStageSummarySkeleton } from '@/components/skeletons/BookingsExtrasSkeleton';
 import { Button } from '@/components/ui/button';
 import { useIsBelowLg, useIsBelowMd } from '@/hooks/useMediaQuery';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { fromIsoDate } from '@/lib/date/navigation';
 import { buildPageItems, normalizeAdminPageLimit } from '@/lib/table/pagination';
 
@@ -256,8 +259,17 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
       initialFromDate && initialToDate ? { from: initialFromDate, to: initialToDate } : null,
   });
 
-  const { data, isLoading, isFetching, error } = useBookings(listQuery, { scope });
-  const { data: summaryData, isLoading: isSummaryLoading } = useBookings(summaryQuery, { scope });
+  const { data, isLoading, isFetching, dataUpdatedAt, error, refetch } = useBookings(listQuery, {
+    scope,
+  });
+  const pullToRefresh = usePullToRefresh({
+    onRefresh: () => Promise.all([refetch(), refetchSummary()]),
+  });
+  const {
+    data: summaryData,
+    isLoading: isSummaryLoading,
+    refetch: refetchSummary,
+  } = useBookings(summaryQuery, { scope });
   // Resolved document requirements (§4.5) for the kanban view only — property-scoped,
   // disabled automatically when `usePropertyIdParam()` has no property (org scope).
   const { data: appSettings } = useAppSettings();
@@ -394,6 +406,8 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
     [patch]
   );
 
+  const dateLabelPending = isLoading && !data && !query.from && !query.to;
+
   const bookingActions =
     scope === 'org' ? undefined : (
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
@@ -402,6 +416,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           isActive={Boolean(query.from || query.to)}
           onClear={handleClearDate}
           fullWidth={isMobileLayout}
+          labelPending={dateLabelPending}
         />
         {canImport ? (
           <TierBadgeAnchor feature="bookingImport">
@@ -465,12 +480,17 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           isActive={Boolean(query.from || query.to)}
           onClear={handleClearDate}
           fullWidth
+          labelPending={dateLabelPending}
         />
       </FloatingToolbar>
     ) : undefined;
 
   return (
     <>
+      <PullToRefreshIndicator
+        pullDistance={pullToRefresh.pullDistance}
+        refreshing={pullToRefresh.refreshing}
+      />
       <AdminMobilePage
         title="Bookings"
         subtitle={bookingsSubtitle}
@@ -486,6 +506,8 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
         ) : (
           <BookingsSummaryCards counts={stageCounts} activeStage={stage} onStageChange={setStage} />
         )}
+
+        <StaleDataLabel updatedAt={dataUpdatedAt} className="px-1" />
 
         <FloatingToolbar>
           <BookingFilters
@@ -552,7 +574,7 @@ export function BookingsListPage({ scope = 'property' }: BookingsListPageProps) 
           </FloatingPanel>
         ) : null}
 
-        {/* Pagination — hidden in calendar view (range already filters scope) */}
+        {/* Pagination - hidden in calendar view (range already filters scope) */}
         {showPagination ? (
           <AdminListPagination
             ariaLabel="Bookings pagination"

@@ -1,6 +1,35 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+function ProfileFieldSkeleton({
+  label,
+  textarea = false,
+  embedded = false,
+}: {
+  label: string;
+  textarea?: boolean;
+  embedded?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium leading-none">{label}</p>
+      <Skeleton
+        className={cn(
+          'w-full rounded-md',
+          textarea ? (embedded ? 'h-[88px]' : 'h-[120px]') : 'h-10'
+        )}
+      />
+    </div>
+  );
+}
+
+const PROFILE_FIELDS = [
+  { label: 'Display name' },
+  { label: 'Bio', textarea: true },
+  { label: 'Phone' },
+  { label: 'Location' },
+];
+
 export function GuestProfileFormSkeleton({
   embedded = false,
   className,
@@ -10,13 +39,23 @@ export function GuestProfileFormSkeleton({
 } = {}) {
   if (embedded) {
     return (
-      <div className={cn('space-y-4', className)} aria-busy="true" aria-label="Loading profile">
+      <div
+        role="status"
+        className={cn('space-y-4', className)}
+        aria-busy="true"
+        aria-label="Loading profile"
+      >
         <div className="flex justify-center px-1 pb-1 pt-2">
           <Skeleton className="size-24 rounded-full sm:size-28" />
         </div>
         <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className={cn('h-10 w-full rounded-md', i === 2 && 'h-[88px]')} />
+          {PROFILE_FIELDS.map((field) => (
+            <ProfileFieldSkeleton
+              key={field.label}
+              label={field.label}
+              textarea={field.textarea}
+              embedded
+            />
           ))}
         </div>
       </div>
@@ -25,18 +64,16 @@ export function GuestProfileFormSkeleton({
 
   return (
     <div
+      role="status"
       className={cn('grid grid-cols-1 gap-6 sm:grid-cols-[auto,1fr] sm:gap-8', className)}
       aria-busy="true"
       aria-label="Loading profile"
     >
       <Skeleton className="mx-auto size-28 shrink-0 rounded-full sm:mx-0 sm:size-32" />
       <div className="space-y-3">
-        <Skeleton className="h-10 w-full rounded-md" />
-        <Skeleton className="h-[120px] w-full rounded-md" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Skeleton className="h-10 w-full rounded-md" />
-          <Skeleton className="h-10 w-full rounded-md" />
-        </div>
+        {PROFILE_FIELDS.map((field) => (
+          <ProfileFieldSkeleton key={field.label} label={field.label} textarea={field.textarea} />
+        ))}
       </div>
     </div>
   );
@@ -57,9 +94,20 @@ export function GuestVoucherRowSkeleton() {
   );
 }
 
+export function GuestReviewsPageSkeleton() {
+  return (
+    <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading reviews">
+      <Skeleton className="h-11 w-full rounded-lg" />
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-28 w-full rounded-2xl" />
+    </div>
+  );
+}
+
 export function GuestVouchersPageSkeleton({ rows = 4 }: { rows?: number } = {}) {
   return (
     <div
+      role="status"
       className="grid grid-cols-1 gap-2 sm:grid-cols-2"
       aria-busy="true"
       aria-label="Loading vouchers"

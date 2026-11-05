@@ -7,7 +7,7 @@ updated: 2026-09-11
 
 # Cost / abuse / security — dev verification
 
-Parent plan: [`cost-abuse-security-production-readiness.md`](../../workflow/for-testing/cost-abuse-security-production-readiness.md).
+Parent plan: [`cost-abuse-security-production-readiness.md`](../../workflow/in-progress/production-readiness/audits/cost-abuse-security-production-readiness.md).
 
 Run **after** `bun run deploy:supabase:dev` (migrations + functions on hosted dev).
 
@@ -60,4 +60,4 @@ Use this checklist after automated scripts pass:
 
 ## Operator items (still manual)
 
-Keys, billing alerts, Turnstile, Maps referrer lock, GitHub branch protection: [`cost-abuse-security-pending-from-user.md`](../../workflow/in-progress/cost-abuse-security-pending-from-user.md).
+Keys, billing alerts, Turnstile, Maps referrer lock, GitHub branch protection: [`cost-abuse-security-pending-from-user.md`](../../workflow/in-progress/production-readiness/operator/cost-abuse-security-pending-from-user.md).

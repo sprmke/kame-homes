@@ -53,7 +53,7 @@ DECLARE
       'active', true,
       'startsAt', null,
       'endsAt', null,
-      'linkUrl', 'https://kamehomes.space/help-support/announcements',
+      'linkUrl', 'https://kamespace.com/help-support/announcements',
       'linkLabel', 'Learn more',
       'updatedAt', v_now_iso
     ),

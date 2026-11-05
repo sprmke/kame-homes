@@ -38,6 +38,7 @@ import { OtherInfoPanel } from '@/features/dashboard/bookings/components/booking
 import { ParkingPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/ParkingPanel';
 import { PetsPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/PetsPanel';
 import { PricingSummaryPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/PricingSummaryPanel';
+import { BookingCancellationCard } from '@/features/dashboard/bookings/components/booking-detail/panels/BookingCancellationCard';
 import { StayDetailsPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/StayDetailsPanel';
 import {
   BookingDetailShell,
@@ -82,6 +83,10 @@ import {
   BOOKING_EDIT_TAB_PERMISSION,
   hasPropertyPermission,
 } from '@/features/dashboard/team/lib/propertyPermissions';
+
+import { GuestReputationCard } from '@/features/reviews/components/GuestReputationCard';
+import { ReviewGuestCard } from '@/features/reviews/components/ReviewGuestCard';
+import { useGuestReputation } from '@/features/reviews/hooks/useGuestReputation';
 
 import { MobileBrandHero } from '@/components/mobile/MobileBrandHero';
 import { BookingDetailPageSkeleton } from '@/components/skeletons/AdminSkeletons';
@@ -134,9 +139,13 @@ export function BookingDetailPage() {
     propertyAccess?.permissions,
     BOOKING_EDIT_TAB_PERMISSION.pets
   );
+  const canReviewGuest = hasPropertyPermission(propertyAccess?.permissions, 'reviews.guests:edit');
+  const { data: guestReputation, isLoading: guestReputationLoading } =
+    useGuestReputation(bookingId);
   const [editMode, setEditMode] = useState(false);
   const [editInitialTab, setEditInitialTab] = useState<BookingEditTabId | undefined>(undefined);
-  const { previewAsset, previewLoading, handlePreview, closePreview } = useBookingAssetPreview();
+  const { previewAsset, previewLoading, handlePreview, closePreview } =
+    useBookingAssetPreview(bookingId);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [viewTab, setViewTab] = useState<BookingViewTab>('overview');
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
@@ -419,7 +428,7 @@ export function BookingDetailPage() {
 
   return (
     <>
-      {/* Phone-only brand hero band — matches the rest of the dashboard shell.
+      {/* Phone-only brand hero band - matches the rest of the dashboard shell.
        * Tablet/desktop keep the existing layout + `AdminLayout` topbar untouched. */}
       <MobileBrandHero
         ref={heroRef}
@@ -530,17 +539,33 @@ export function BookingDetailPage() {
                       {viewTab === 'overview' && (
                         <div className="space-y-4">
                           <StayDetailsPanel booking={booking} />
+                          <BookingCancellationCard
+                            booking={booking as unknown as Record<string, unknown>}
+                            checkInTime={
+                              String(
+                                (property.settings as Record<string, unknown> | undefined)
+                                  ?.checkInTime ?? '14:00'
+                              ) || '14:00'
+                            }
+                            currentPolicyVersionId={
+                              String(
+                                (property.settings as Record<string, unknown> | undefined)
+                                  ?.cancellationPolicyVersionId ?? ''
+                              ) || null
+                            }
+                            canEdit={canMutateWorkflow}
+                          />
+                          <GuestReputationCard
+                            payload={guestReputation}
+                            isLoading={guestReputationLoading}
+                          />
+                          <ReviewGuestCard
+                            bookingId={booking.id}
+                            guestName={guestName || 'guest'}
+                            payload={guestReputation}
+                            canEdit={canReviewGuest}
+                          />
                           <OtherInfoPanel booking={booking} />
-                          <BookingMetaCard
-                            booking={booking}
-                            onCopyBookingId={() => void copyBookingIdToClipboard()}
-                          />
-                          <BookingAiAssistantAuditCard bookingId={booking.id} />
-                          <EntityActivityHistory
-                            targetType="booking"
-                            targetId={booking.id}
-                            className="bg-card rounded-xl border p-4"
-                          />
                         </div>
                       )}
                       {viewTab === 'guests' && (
@@ -557,6 +582,20 @@ export function BookingDetailPage() {
                       )}
                       {viewTab === 'files' && (
                         <DocumentsPanel booking={booking} onPreview={handlePreview} />
+                      )}
+                      {viewTab === 'activity' && (
+                        <div className="space-y-4">
+                          <BookingMetaCard
+                            booking={booking}
+                            onCopyBookingId={() => void copyBookingIdToClipboard()}
+                          />
+                          <BookingAiAssistantAuditCard bookingId={booking.id} />
+                          <EntityActivityHistory
+                            targetType="booking"
+                            targetId={booking.id}
+                            className="bg-card rounded-xl border p-4"
+                          />
+                        </div>
                       )}
                     </BookingDetailShellBody>
                   </BookingDetailShell>

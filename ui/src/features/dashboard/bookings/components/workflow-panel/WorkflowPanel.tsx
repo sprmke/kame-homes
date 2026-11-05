@@ -75,6 +75,7 @@ import {
 import { useUpdateBooking } from '@/features/dashboard/bookings/hooks/useUpdateBooking';
 import { useWorkflowActions } from '@/features/dashboard/bookings/hooks/useWorkflowActions';
 import { useWorkflowSubFormDrafts } from '@/features/dashboard/bookings/hooks/useWorkflowSubFormDrafts';
+import { CancelBookingSheet } from '@/features/dashboard/bookings/components/workflow-panel/CancelBookingSheet';
 import { offerAiVerdictOverride } from '@/features/dashboard/bookings/lib/aiVerdictOverride';
 import { resolveBookingPropertySlug } from '@/features/dashboard/bookings/lib/bookingListNavigation';
 import { shouldWarnPastBookingStayForProceed } from '@/features/dashboard/bookings/lib/bookingPastPipelineManila';
@@ -113,7 +114,6 @@ import {
 } from '@/features/dashboard/bookings/lib/workflowActionButtonStyles';
 import { buildWorkflowStageDeck } from '@/features/dashboard/bookings/lib/workflowStageDeck';
 import {
-  workflowCancelEffectLines,
   workflowTransitionEffectLines,
   workflowTransitionEmailEffects,
   workflowWouldEmailOnPaidPlan,
@@ -211,7 +211,7 @@ function WorkflowPanelInner({
   const documentRequirements =
     appSettings?.resolvedDocumentRequirements ?? DEFAULT_DOCUMENT_REQUIREMENTS;
 
-  const [automationHelpOpen, setAutomationHelpOpen] = useState(true);
+  const [automationHelpOpen, setAutomationHelpOpen] = useState(false);
   const { allowed: automatedBookingFlowAllowed, isLoading: entitlementsLoading } =
     useFeatureGate('automatedBookingFlow');
   // Assume paid until entitlements land: paying hosts never flash Free-plan copy, and the
@@ -417,7 +417,9 @@ function WorkflowPanelInner({
   });
 
   useEffect(() => {
-    if (!liveProgressAutosave || !subFormDrafts.progressDirty) return;
+    // After a quiet failure, stop retrying — Save reappears via liveAutosaveFailed.
+    // Retries on isPending flip would spam toasts (e.g. validation errors).
+    if (!liveProgressAutosave || liveAutosaveFailed || !subFormDrafts.progressDirty) return;
     if (!isEditableWorkflowProgressContent(workflowActions.viewedContent)) return;
     if (updateMut.isPending || transitionMut.isPending || cancelMut.isPending) return;
 
@@ -427,6 +429,7 @@ function WorkflowPanelInner({
     return () => window.clearTimeout(timer);
   }, [
     liveProgressAutosave,
+    liveAutosaveFailed,
     subFormDrafts.progressDirty,
     subFormDrafts.pricingValues,
     subFormDrafts.parkingValues,
@@ -751,15 +754,15 @@ function WorkflowPanelInner({
     }
   }
 
-  async function handleCancel() {
-    setCancelConfirm(false);
+  async function handleCancel(input: Parameters<typeof cancelMut.mutateAsync>[0]) {
     try {
-      await cancelMut.mutateAsync({ bookingId: booking.id });
+      await cancelMut.mutateAsync(input);
       captureAppEvent('booking_workflow_cta_clicked', {
         previous_status: status,
         outcome: 'cancel_success',
       });
       toast.success('Booking cancelled');
+      setCancelConfirm(false);
     } catch (err: any) {
       toast.error(friendlyToastError(err, 'Could not cancel booking'));
     }
@@ -827,6 +830,8 @@ function WorkflowPanelInner({
           persistPartialDrafts={persistPartialDrafts}
           activePendingDocSubStatus={workflowActions.activePendingDocSubStatus}
           documentRequirements={documentRequirements}
+          canUploadDocs={canMutate && !workflowActions.contentReadOnly}
+          onUploadApprovalDoc={setDocApprovalModalSub}
           pricingValues={subFormDrafts.pricingValues}
           onPricingChange={subFormDrafts.setPricingValues}
           propertyPricingLoaded={propertyPricingLoaded}
@@ -877,6 +882,8 @@ function WorkflowPanelInner({
               persistPartialDrafts={persistPartialDrafts}
               activePendingDocSubStatus={workflowActions.activePendingDocSubStatus}
               documentRequirements={documentRequirements}
+              canUploadDocs={canMutate && !workflowActions.contentReadOnly}
+              onUploadApprovalDoc={setDocApprovalModalSub}
               pricingValues={subFormDrafts.pricingValues}
               onPricingChange={subFormDrafts.setPricingValues}
               propertyPricingLoaded={propertyPricingLoaded}
@@ -1106,15 +1113,18 @@ function WorkflowPanelInner({
         : null}
 
       {cancelConfirm && (
-        <WorkflowConfirmModal
-          title="Cancel Booking"
-          secondaryLabel="Keep booking"
-          description="This cannot be undone."
-          effectLines={workflowCancelEffectLines()}
+        <CancelBookingSheet
+          open={cancelConfirm}
+          onOpenChange={setCancelConfirm}
+          booking={booking as unknown as Record<string, unknown>}
+          checkInTime={
+            String(
+              (orgContext?.property?.settings as Record<string, unknown> | undefined)?.checkInTime ??
+                '14:00'
+            ) || '14:00'
+          }
+          isPending={cancelMut.isPending}
           onConfirm={handleCancel}
-          onCancel={() => setCancelConfirm(false)}
-          isLoading={cancelMut.isPending}
-          destructive
         />
       )}
 

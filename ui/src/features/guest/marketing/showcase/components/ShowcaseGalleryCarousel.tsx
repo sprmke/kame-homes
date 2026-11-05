@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { GalleryLightbox } from '@/features/guest/marketing/shared/components/GalleryLightbox';
 import { useShowcaseTheme } from '@/features/guest/marketing/showcase/components/ShowcaseThemeProvider';
+import { useShowcaseEmbla } from '@/features/guest/marketing/showcase/hooks/useShowcaseEmbla';
 import type { ShowcaseVariant } from '@/features/guest/marketing/showcase/lib/showcaseThemeTokens';
 
 import { cn } from '@/lib/utils';
@@ -90,7 +90,7 @@ export function ShowcaseGalleryCarousel({
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
+  const [emblaRef, emblaApi] = useShowcaseEmbla({
     align: 'start',
     loop: images.length > 1,
     skipSnaps: false,

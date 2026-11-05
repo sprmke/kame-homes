@@ -15,6 +15,7 @@ import type { BookingWorkflowEmailKind } from '@/features/dashboard/bookings/lib
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import {
   notifyAutomationSkippedByHost,
+  notifyEmailsFailed,
   notifyAutomationSkippedByPlan,
 } from '@/features/dashboard/bookings/lib/workflowPlanSkip';
 import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -106,6 +107,7 @@ type TransitionResult = {
   booking: BookingRow;
   sideEffects?: {
     emails?: string[];
+    emailsFailed?: string[];
     automationSkippedByPlan?: string[];
     automationSkippedByHost?: string[];
   };
@@ -185,6 +187,7 @@ export function useTransitionBooking() {
         variables.bookingId
       );
       notifyAutomationSkippedByHost(data?.sideEffects?.automationSkippedByHost ?? []);
+      notifyEmailsFailed(data?.sideEffects?.emailsFailed ?? []);
       if (data?.booking) {
         qc.setQueryData(bookingDetailQueryKey(variables.bookingId, propertyId), data.booking);
       }
@@ -197,12 +200,22 @@ export function useTransitionBooking() {
 /**
  * Mutation hook for cancelling a booking (calls cancel-booking function).
  */
+export type CancelBookingInput = {
+  bookingId: string;
+  initiator?: 'guest' | 'host';
+  reasonCode?: string;
+  reasonNote?: string;
+  refundOverridePhp?: number | null;
+  overrideNote?: string;
+  notifyGuest?: boolean;
+};
+
 export function useCancelBooking() {
   const qc = useQueryClient();
   const propertyId = usePropertyIdParam();
 
   return useMutation({
-    mutationFn: async ({ bookingId }: { bookingId: string }) => {
+    mutationFn: async (input: CancelBookingInput) => {
       const jwt = await getAdminJwt();
 
       const res = await fetch(scopedFunctionsUrl('/cancel-booking', propertyId), {
@@ -211,7 +224,16 @@ export function useCancelBooking() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${jwt}`,
         },
-        body: JSON.stringify({ bookingId, confirm: true }),
+        body: JSON.stringify({
+          bookingId: input.bookingId,
+          confirm: true,
+          initiator: input.initiator ?? 'host',
+          reasonCode: input.reasonCode ?? 'other',
+          reasonNote: input.reasonNote ?? '',
+          refundOverridePhp: input.refundOverridePhp ?? null,
+          overrideNote: input.overrideNote ?? '',
+          notifyGuest: input.notifyGuest !== false,
+        }),
       });
 
       const json = await res.json();
@@ -496,5 +518,73 @@ export function useIssueBookingDocumentShareToken(bookingId?: string) {
       );
       await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
     },
+  });
+}
+
+// ─── Cancellation requests + refunds ────────────────────────────────────────
+
+async function postAdminFunction(
+  path: string,
+  body: Record<string, unknown>,
+  propertyId: string | null
+) {
+  const jwt = await getAdminJwt();
+  const res = await fetch(scopedFunctionsUrl(path, propertyId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    throw new Error(json.error ?? `HTTP ${res.status}`);
+  }
+  return json;
+}
+
+function useInvalidateBookingCancellation(bookingId: string) {
+  const qc = useQueryClient();
+  const propertyId = usePropertyIdParam();
+  return async () => {
+    await qc.invalidateQueries({ queryKey: BOOKING_QUERY_KEY(bookingId) });
+    await qc.invalidateQueries({ queryKey: ['booking-cancellation', bookingId] });
+    await invalidateBookingsListForProperty(qc, propertyId);
+  };
+}
+
+export function useRespondCancellationRequest(bookingId: string) {
+  const propertyId = usePropertyIdParam();
+  const invalidate = useInvalidateBookingCancellation(bookingId);
+  return useMutation({
+    mutationFn: async (input: {
+      requestId: string;
+      action: 'approve' | 'decline';
+      hostMessage?: string;
+      refundOverridePhp?: number | null;
+      overrideNote?: string;
+    }) =>
+      postAdminFunction(
+        '/respond-cancellation-request',
+        { bookingId, ...input },
+        propertyId
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRecordBookingRefund(bookingId: string) {
+  const propertyId = usePropertyIdParam();
+  const invalidate = useInvalidateBookingCancellation(bookingId);
+  return useMutation({
+    mutationFn: async (input: {
+      action: 'mark_sent' | 'update' | 'goodwill';
+      amountPhp?: number;
+      amountPaidPhp?: number;
+      proofUrl?: string;
+      notes?: string;
+    }) => postAdminFunction('/record-booking-refund', { bookingId, ...input }, propertyId),
+    onSuccess: invalidate,
   });
 }

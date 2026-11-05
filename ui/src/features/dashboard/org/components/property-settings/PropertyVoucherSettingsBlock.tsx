@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { Minus, Plus } from 'lucide-react';
 
+import { SettingsManageButton } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 import { VoucherRevealStylePicker } from '@/features/dashboard/org/components/property-settings/VoucherRevealStylePicker';
 import type { PropertyVoucherPrize } from '@/features/dashboard/org/lib/propertyVoucherSettings';
 import {
@@ -72,6 +73,7 @@ export function PropertyVoucherSettingsBlock({
   onPrizesChange,
   onRevealStyleChange,
   onInteract,
+  manageNeedsAttention = false,
 }: {
   enabled: boolean;
   prizes: PropertyVoucherPrize[];
@@ -81,6 +83,7 @@ export function PropertyVoucherSettingsBlock({
   onPrizesChange: (prizes: PropertyVoucherPrize[]) => void;
   onRevealStyleChange: (style: VoucherRevealStyle) => void;
   onInteract?: () => void;
+  manageNeedsAttention?: boolean;
 }) {
   const [manageOpen, setManageOpen] = useState(false);
   const [previewBase, setPreviewBase] = useState<PreviewBase>('weekday');
@@ -162,16 +165,11 @@ export function PropertyVoucherSettingsBlock({
           Next-stay vouchers
           <span className="text-muted-foreground font-normal"> · {summary}</span>
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="settings-action"
+        <SettingsManageButton
           disabled={disabled}
+          needsAttention={manageNeedsAttention}
           onClick={() => setManageOpen(true)}
-        >
-          Manage
-        </Button>
+        />
       </div>
 
       <ResponsiveModal open={manageOpen} onOpenChange={setManageOpen}>

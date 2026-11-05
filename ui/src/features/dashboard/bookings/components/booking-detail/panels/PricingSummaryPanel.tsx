@@ -137,6 +137,8 @@ export function PricingSummaryPanel({
               <DocPreview
                 label="Downpayment receipt"
                 url={booking.payment_receipt_url!.trim()}
+                bookingId={booking.id}
+                propertyId={booking.property_id ?? null}
                 onPreview={onPreview}
                 receiptAiVerdict={booking.dp_receipt_ai_verdict}
                 receiptAiLoading={receiptAiPreviewLoading(
@@ -150,6 +152,8 @@ export function PricingSummaryPanel({
               <DocPreview
                 label="Payment balance receipt"
                 url={booking.guest_balance_payment_receipt_url!.trim()}
+                bookingId={booking.id}
+                propertyId={booking.property_id ?? null}
                 onPreview={onPreview}
                 receiptAiVerdict={booking.balance_receipt_ai_verdict}
                 receiptAiLoading={receiptAiPreviewLoading(
@@ -173,6 +177,8 @@ export function PricingSummaryPanel({
           <DocPreview
             label="SD refund receipt"
             url={booking.sd_refund_receipt_url}
+            bookingId={booking.id}
+            propertyId={booking.property_id ?? null}
             onPreview={onPreview}
             receiptAiVerdict={booking.sd_refund_receipt_ai_verdict}
             receiptAiLoading={receiptAiPreviewLoading(

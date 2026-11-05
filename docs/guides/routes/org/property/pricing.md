@@ -56,8 +56,8 @@ dates that should not be available to guests.
   A: No. Booked nights show the guest stay, not a list price. Open the stay to see the
   booking amount; change pricing on the booking itself if needed.
 - Q: Why do some days have no price?
-  A: Booked nights hide the list price and show the guest stay instead. Open nights —
-  including past ones — still show the nightly amount.
+  A: Booked nights hide the list price and show the guest stay instead. Open nights -
+  including past ones - still show the nightly amount.
 - Q: Can I close dates without creating a booking?
   A: Yes. Select future available nights and choose Block. Guests cannot select or submit
   those nights.
@@ -99,6 +99,8 @@ dates that should not be available to guests.
 
 **Channel sync** button in the Pricing page header (desktop outline button aligned with the title; mobile hero icon). Below Pro, a corner **Pro** pill signals the plan gate. Opens a **`ResponsiveModal`** (`ChannelSyncDialog`) with two tabs — **From Airbnb** and **To Airbnb**. While settings load, the body is a skeleton of that tab bar, feed rows, and connect button. Product scope is **Airbnb only** (Booking.com / VRBO / Other remain in the DB schema for future work; `calendar-sync-settings` `addFeed` rejects non-Airbnb providers). Plan feature **`calendarSync`** (Pro / `growth` and above) — modal is **preview-open** below Pro (full UI browsable); **Connect** (Pro pill on the button) and turning on **Share with Airbnb** (Pro pill beside the label) open the upgrade modal. Server enforces the feature on writes (`calendar-sync-settings` PATCH, `calendar-sync-cron`).
 
+**Feature availability (super-admin):** Keys `pricing.channel_sync` (modal panel) and `pricing.channel_sync.import` (feeds, Sync now, cron). **`ical-export` is never gated** so Airbnb keeps receiving booking blocks. Header button stays enabled and opens the dialog with the reason panel when the parent is off (maintenance panel wins over a settings load error).
+
 ### From Airbnb (import)
 
 - **Empty (editable):** connect form is shown immediately (no extra click). URL is **required**; validates on change as an Airbnb export link (`https://` / `webcal://`, Airbnb host, `/calendar/ical/` path). Invalid → inline error; **Connect** stays disabled until valid. Below Pro, a valid URL + Connect opens the upgrade modal.
@@ -115,25 +117,29 @@ dates that should not be available to guests.
 ### To Airbnb (export)
 
 - Modal width ~**36rem** (was ~28rem) for room for help + long URLs.
-- **Share with Airbnb** switch (+ **?** help) — **off by default** (opt-in). Enables the token-guarded iCal URL (`?as=airbnb`) so Kame bookings + manual blocks appear on Airbnb without echoing Airbnb’s own imports. Turning **on** below Pro opens the upgrade modal; turning **off** is always allowed.
-- **Paste into Airbnb** (+ **?** help: Calendar → Availability → Connect calendars → Import calendar) — one URL + **Copy**.
+- **Share with Airbnb** switch (+ **?** help) — **off by default** (opt-in). Enables the token-guarded iCal URL (`…/ical-export/calendar.ics?property=…&token=…&as=airbnb`, always `https://` on hosted) so Kame bookings + manual blocks appear on Airbnb without echoing Airbnb’s own imports. The path ends in `.ics` because Airbnb rejects import URLs that do not. Turning **on** below Pro opens the upgrade modal; turning **off** is always allowed.
+- **Paste into Airbnb** (+ **?** help: Calendar → Availability → Connect calendars → Import calendar) — one URL + **Copy**. Paste the full link into Airbnb’s “Other website link” field.
 
 ### Conflicts
 
-If Airbnb reports a night that already has a live Kame booking or manual block, the sync records a `conflict_detected` event and raises a `calendar_conflict` notification — it never overwrites the existing Kame reservation.
+If Airbnb reports a night that already has a live Kame booking or manual block, the sync still imports the Airbnb busy night, records one `conflict_detected` audit event per overlap, and raises **one** `calendar_conflict` notification for that sync’s conflict set (not one toast per overlap). Connect / Sync now shows a single warning toast with the conflict count; the matching realtime toast is suppressed briefly so it does not double up. Background cron still surfaces one in-app toast when a new conflict set appears. Detail lives under **Recent activity** and the Notifications bell. Kame never overwrites the existing booking or manual block.
 
 **Host Q&A**
 
 - Q: Where do I connect my Airbnb calendar?
   A: Pricing → **Channel sync** → **From Airbnb** → paste Airbnb’s Export calendar URL. Hover **?** for steps. You need Pro or higher.
 - Q: How do I block Airbnb when someone books here?
-  A: Channel sync → **To Airbnb** → turn on Share with Airbnb → copy the link into Airbnb’s import calendar field.
+  A: Channel sync → **To Airbnb** → turn on Share with Airbnb → copy the link into Airbnb’s import calendar field. The link must end with `.ics` before the `?` (Kame’s copy button already does that). Use HTTPS; do not shorten the URL.
+- Q: Airbnb says something went wrong when I paste our link.
+  A: Re-copy from Channel sync after Share with Airbnb is on. Confirm the address looks like `…/ical-export/calendar.ics?property=…&token=…&as=airbnb`. Older links without `.ics` or that start with `http://` fail Airbnb’s check.
 - Q: Does changing a nightly rate here change Airbnb’s price?
   A: No. Channel Sync shares **availability** only. List prices on this page are for Kame guest booking / admin pricing review.
 - Q: Can I edit or unblock a date that came from Airbnb?
   A: No. Synced nights are read-only on the calendar. They clear when Airbnb drops the date or you remove the feed.
 - Q: Can I sync Booking.com or VRBO?
   A: Not yet — Channel sync is Airbnb-only for now.
+- Q: I got a conflict warning after connecting Airbnb. What do I do?
+  A: Both calendars kept their nights. Open Notifications or Channel sync → Recent activity for the dates, then remove the booking or block on the side that should not have it.
 
 ---
 
@@ -362,16 +368,17 @@ double-booking-safe the moment it syncs in.
 
 ## Implementation map
 
-| UI                                                                             | Server                                                                     |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `ui/src/features/dashboard/pricing/pages/PropertyPricingPage.tsx`              | `supabase/functions/property-pricing/index.ts`                             |
-| `ui/src/features/dashboard/pricing/components/PricingCalendarGrid.tsx`         | `supabase/functions/_shared/propertyPricing.ts`                            |
-| `ui/src/features/dashboard/pricing/components/PricingCalendarBookingModal.tsx` | `supabase/functions/_shared/propertyBlockedDates.ts`                       |
-| `ui/src/features/dashboard/pricing/routes/index.tsx`                           | —                                                                          |
-| `ui/src/features/dashboard/pricing/components/ChannelSyncDialog.tsx`           | `supabase/functions/calendar-sync-settings/index.ts`                       |
-| `ui/src/features/dashboard/pricing/hooks/useCalendarSync.ts`                   | `supabase/functions/calendar-sync-cron/index.ts`                           |
-| `ui/src/features/dashboard/pricing/lib/calendarSyncApi.ts`                     | `supabase/functions/ical-export/index.ts`                                  |
-| —                                                                              | `supabase/functions/_shared/calendarSyncService.ts` / `calendarSyncRun.ts` |
+| UI                                                                             | Server                                                                                                                                                                              |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui/src/features/dashboard/pricing/pages/PropertyPricingPage.tsx`              | `supabase/functions/property-pricing/index.ts`                                                                                                                                      |
+| `ui/src/features/dashboard/pricing/components/PricingCalendarGrid.tsx`         | `supabase/functions/_shared/propertyPricing.ts`                                                                                                                                     |
+| `ui/src/features/dashboard/pricing/components/PricingCalendarBookingModal.tsx` | `supabase/functions/_shared/propertyBlockedDates.ts`                                                                                                                                |
+| `ui/src/features/dashboard/pricing/routes/index.tsx`                           | —                                                                                                                                                                                   |
+| Loading skeleton (`PricingPageBodySkeleton`)                                   | `ui/src/components/skeletons/PricingSkeleton.tsx` — 4 stat cards, the live month's week rows (day + price cells, outside days blank), rates card with 5 fee rows (stacked on phone) |
+| `ui/src/features/dashboard/pricing/components/ChannelSyncDialog.tsx`           | `supabase/functions/calendar-sync-settings/index.ts`                                                                                                                                |
+| `ui/src/features/dashboard/pricing/hooks/useCalendarSync.ts`                   | `supabase/functions/calendar-sync-cron/index.ts`                                                                                                                                    |
+| `ui/src/features/dashboard/pricing/lib/calendarSyncApi.ts`                     | `supabase/functions/ical-export/index.ts`                                                                                                                                           |
+| —                                                                              | `supabase/functions/_shared/calendarSyncService.ts` / `calendarSyncRun.ts`                                                                                                          |
 
 Spanning pill layout reuses `calendarDateUtils` and `CalendarOccupancySpanTrack` from the
 bookings calendar module.

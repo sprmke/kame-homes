@@ -1,6 +1,6 @@
 /**
  * Deno tests for _shared/rateLimit.ts — run with `deno test --allow-env` (not Bun's runner).
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 6)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 6)
  *
  * The counter RPC needs Postgres, so these cover the pure identity helper and the
  * fail-open contract (a broken `bump_rate_limit` must never block a caller).

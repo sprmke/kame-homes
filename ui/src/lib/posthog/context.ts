@@ -59,6 +59,8 @@ export function buildSharedAnalyticsProperties(
   return {
     environment: detectAnalyticsEnvironment(),
     app_track: detectAppTrack(),
+    // Same id Sentry uses, so a product question and an error can be compared per deploy.
+    ...(import.meta.env.VITE_APP_VERSION ? { app_release: import.meta.env.VITE_APP_VERSION } : {}),
     persona,
     surface,
     ...(scope.orgId ? { org_id: scope.orgId } : {}),

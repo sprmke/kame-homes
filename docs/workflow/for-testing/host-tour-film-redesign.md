@@ -1,15 +1,15 @@
 ---
 title: 'Host tour film redesign'
-status: active
+status: for-testing
 tags: [workflow, for-testing, marketing, for-hosts]
-updated: 2026-10-03
+updated: 2026-11-04
 stage: for-testing
 kind: plan
 ---
 
 # Host tour film redesign
 
-Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/for-hosts/preview`, `/for-hosts/login`, `/for-guests/login`, onboarding side panel).
+Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/for-hosts/v2`, `/for-hosts/login`, `/for-guests/login`, onboarding side panel).
 
 ## Why
 
@@ -31,7 +31,7 @@ Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/f
 
 | #   | id               | Caption                      | Narration (plain, short)                                                                         |
 | --- | ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| 0   | intro            | Your rentals, run for you    | Meet Kame Homes. Everything you need to run your rentals, in one place.                          |
+| 0   | intro            | Your rentals, run for you    | Meet Kame Space. Everything you need to run your rentals, in one place.                          |
 | 1   | setup-guide      | Set up in minutes            | Setup takes minutes. A guided checklist walks you through every step.                            |
 | 2   | portfolio        | Every listing, one view      | See all your properties and parking spots together, with revenue and occupancy.                  |
 | 3   | command-center   | Your day at a glance         | Each property gets a simple home page: earnings, your calendar, and what needs you today.        |
@@ -54,7 +54,7 @@ Ground-up rebuild of the narrated Remotion product tour on `/for-hosts` (and `/f
 | 20  | notifications    | Alerts in Telegram           | Get instant Telegram alerts for bookings, messages, and maintenance.                             |
 | 21  | ai-mode          | Just ask                     | Switch to AI mode, ask in plain words, and the right page opens beside the chat.                 |
 | 22  | plans-billing    | Simple pricing               | Simple plans, priced per property, with one bill for your whole organization.                    |
-| 23  | outro            | Start free today             | Kame Homes. Less busywork, more happy guests. Start free today.                                  |
+| 23  | outro            | Start free today             | Kame Space. Less busywork, more happy guests. Start free today.                                  |
 
 Help & Support folds into the outro line-up (it is a support surface, not a selling point); Announcements appear in the org sidebar.
 

@@ -87,7 +87,7 @@ export async function installPayParkingFlowMocks(page: Page, state: PayParkingFl
         await fulfillJson(route, {
           success: true,
           data: {
-            gcashName: 'Kame Homes',
+            gcashName: 'Sample Stays',
             gcashNumber: '09170000000',
             gcashQrImageUrl: '',
             paymentProvider: 'gcash',

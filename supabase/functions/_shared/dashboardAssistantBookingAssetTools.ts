@@ -37,6 +37,13 @@ import {
 import { STATUS_HUMAN_LABEL, type BookingStatus } from './statusMachine.ts';
 import { WorkflowOrchestrator } from './workflowOrchestrator.ts';
 import { buildActorContext } from './activityLog.ts';
+import {
+  bookingTargetLabel,
+  documentUploadedActivityMetadata,
+  logBookingDetailActivityForAssistant,
+  logBookingReceiptValidatedOnUploadForAssistant,
+  workflowEmailActivityMetadata,
+} from './bookingActivityLog.ts';
 import type { AttachedContextItem } from './dashboardAssistantAttachedContext.ts';
 
 /** Minimal tool context — matches `BookingAssetToolContext` without circular imports. */
@@ -292,6 +299,37 @@ export async function executeApplyBookingAttachment(
       logPrefix: '[assistant-apply-booking-attachment]',
     });
 
+    const assistantActor = buildActorContext(
+      'ai_assistant',
+      {
+        assistant: {
+          conversationId: ctx.conversationId ?? 'unknown',
+          userId: ctx.userId,
+          email: ctx.userEmail,
+        },
+      },
+      ctx.req
+    );
+    const targetLabel = bookingTargetLabel(booking);
+    await logBookingDetailActivityForAssistant({
+      action: 'booking.document_uploaded',
+      organizationId: ctx.organizationId,
+      propertyId,
+      bookingId,
+      targetLabel,
+      metadata: documentUploadedActivityMetadata(assetType),
+      actor: assistantActor,
+    });
+    await logBookingReceiptValidatedOnUploadForAssistant({
+      receiptValidation: applied.receiptValidation,
+      assetType,
+      organizationId: ctx.organizationId,
+      propertyId,
+      bookingId,
+      targetLabel,
+      actor: assistantActor,
+    });
+
     const alsoMarkComplete = inputPayload.alsoMarkComplete === true;
     const documentCompletionTarget = str(inputPayload, 'documentCompletionTarget');
     const toStatus = str(inputPayload, 'toStatus');
@@ -436,6 +474,27 @@ export async function executeSendWorkflowEmail(
     });
 
     const result = await sendBookingWorkflowEmail(bookingId, propertyId, kind);
+    const booking = await DatabaseService.getBookingById(bookingId);
+    const assistantActor = buildActorContext(
+      'ai_assistant',
+      {
+        assistant: {
+          conversationId: ctx.conversationId ?? 'unknown',
+          userId: ctx.userId,
+          email: ctx.userEmail,
+        },
+      },
+      ctx.req
+    );
+    await logBookingDetailActivityForAssistant({
+      action: 'booking.workflow_email_sent',
+      organizationId: ctx.organizationId,
+      propertyId,
+      bookingId,
+      targetLabel: booking ? bookingTargetLabel(booking) : null,
+      metadata: workflowEmailActivityMetadata(kind),
+      actor: assistantActor,
+    });
     return {
       ok: true,
       riskTier: 'tier2_confirmed',
@@ -485,7 +544,7 @@ export const APPLY_BOOKING_ATTACHMENT_TOOL_DECLARATION = {
 export const SEND_WORKFLOW_EMAIL_TOOL_DECLARATION = {
   name: 'propose_send_workflow_email',
   description:
-    'Propose sending a booking workflow email the host can already send from Automation Triggers (GAF request, pet request, booking acknowledgement, ready-for-check-in, Check-out Instructions). Always requires Confirm — sends a real email.',
+    'Propose sending a booking workflow email the host can already send from Automation Triggers (GAF request, pet request, booking acknowledgement, ready-for-check-in, Check-out Instructions). Always requires Confirm - sends a real email.',
   parameters: {
     type: 'object',
     properties: {

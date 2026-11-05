@@ -1,9 +1,9 @@
 ---
 stage: for-testing
 title: 'Host Analytics module — performance insights + AI coaching'
-status: in-progress
+status: for-testing
 tags: [planning, planned-modules, analytics, ai, plans, rbac, dashboard]
-updated: 2026-09-15
+updated: 2026-11-04
 ---
 
 # Host Analytics module — performance insights + AI coaching
@@ -237,7 +237,7 @@ bookings. **Role:** operator (host / co-host).
 - **Hospitable Copilot** — conversational AI with access to bookings, reviews, tasks,
   calendar: "ask a simple question, get an actionable insight."
 
-### Adopt for Kame Homes
+### Adopt for Kame Space
 
 - Standard KPI vocabulary: **Occupancy, ADR, RevPAR, Revenue/Net, Booking pace, Pickup,
   Lead time, LOS, Channel mix, Cancellation rate, Rating**. Hosts and any PMS-savvy user
@@ -312,8 +312,8 @@ is_latest`. RLS on, `GRANT ALL … service_role` (edge-gated, like every other t
   on-read the same way as everything else in this module (grouped count over the requested
   range) rather than its own rollup table — consistent with the "no rollup until proven
   necessary" decision below. Pruned after ~180 days (a small follow-up cron, not blocking
-  Phase 2b). Insert path is `servePublic`, unauthenticated, `navigator.sendBeacon` from the
-  client — minimum possible work, never blocks public page render.
+  Phase 2b). Insert path is `servePublic`, unauthenticated, a credential-less `keepalive`
+  fetch from the client — minimum possible work, never blocks public page render.
 
 **Optional later:** `analytics_daily_rollup` (property_id, date, nights_booked,
 nights_available, revenue, reservations_made, page_views) + backfill + incremental cron —
@@ -554,7 +554,8 @@ in an `overflow-x:auto` container, 44px targets (`mobile-responsive`).
       re-renders, insert only; `config.toml` entry (`verify_jwt = false`).
 - [x] Client tracking hook `usePropertyPageViewTracking.ts` on `PropertyDetailPage.tsx` (the
       public guest-facing property route, `ui/src/features/guest/marketing/pages/`) —
-      `navigator.sendBeacon` with a `fetch(keepalive:true)` fallback, session id in
+      `fetch(keepalive: true, credentials: 'omit')` (2026-10-19: `sendBeacon` was dropped
+      because browsers rejected the credentialed CORS response and no rows landed), session id in
       `localStorage`, no PII, never blocks page render, skipped for editor-preview and
       mock/demo-data views (only fires for real `source: 'api'` properties).
 - [x] `_shared/analyticsService.ts`: `buildPublicPageMetrics` — page views/unique visitors

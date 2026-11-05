@@ -18,6 +18,7 @@ export const ORG_ADMIN_ROLE_ID = 'ADMIN' as const;
 export const ORG_PERMISSION_IDS = [
   'org.dashboard:view',
   'org.bookings:view',
+  'org.reviews:view',
   'org.properties:view',
   'org.properties:create',
   'org.properties:manage',
@@ -78,6 +79,7 @@ export const ORG_ROLE_PERMISSIONS: Record<BuiltinOrgRole, OrgPermissionId[]> = {
   ADMIN: [
     'org.dashboard:view',
     'org.bookings:view',
+    'org.reviews:view',
     'org.properties:view',
     'org.properties:manage',
     'org.parkings:view',
@@ -131,8 +133,11 @@ export function allOrgPermissions(): OrgPermissionId[] {
   return [...ORG_PERMISSION_IDS];
 }
 
-export function normalizeOrgPermissionIds(ids: readonly string[]): OrgPermissionId[] {
-  const expanded = expandLegacyOrgPermissionIds(ids);
+export function normalizeOrgPermissionIds(ids: unknown): OrgPermissionId[] {
+  if (!Array.isArray(ids)) return [];
+  const expanded = expandLegacyOrgPermissionIds(
+    ids.filter((item): item is string => typeof item === 'string')
+  );
   return expanded.filter((id): id is OrgPermissionId => ORG_PERMISSION_ID_SET.has(id));
 }
 

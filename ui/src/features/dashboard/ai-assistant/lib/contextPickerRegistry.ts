@@ -22,9 +22,13 @@ export type ContextPickerKey =
   | 'pricing_date'
   | 'inbox_conversation'
   | 'marketing_template'
+  | 'marketing_theme'
+  | 'review'
+  | 'voucher'
   | 'notification_module'
   | 'public_page'
-  | 'ticket';
+  | 'ticket'
+  | 'property_template';
 
 /** Property section ids plus org-only and parking-only sections. */
 export type ContextPickerModuleId =
@@ -66,9 +70,13 @@ export const PICKER_ATTACHED_TYPE: Record<ContextPickerKey, AttachedContextType>
   pricing_date: 'pricing_date',
   inbox_conversation: 'inbox_conversation',
   marketing_template: 'marketing_template',
+  marketing_theme: 'marketing_theme',
+  review: 'review',
+  voucher: 'voucher',
   notification_module: 'notification_module',
   public_page: 'public_page',
   ticket: 'ticket',
+  property_template: 'property_template',
 };
 
 export const ASSISTANT_NOTIFICATION_MODULE_IDS = new Set([
@@ -100,9 +108,13 @@ export const CONTEXT_CATALOG_GROUPS: {
   { type: 'pricing_date', label: 'Pricing' },
   { type: 'inbox_conversation', label: 'Inbox' },
   { type: 'marketing_template', label: 'Marketing' },
+  { type: 'marketing_theme', label: 'Themes' },
+  { type: 'review', label: 'Reviews' },
+  { type: 'voucher', label: 'Vouchers' },
   { type: 'notification_module', label: 'Notifications' },
   { type: 'public_page', label: 'Pages' },
   { type: 'ticket', label: 'Tickets' },
+  { type: 'property_template', label: 'Templates' },
 ];
 
 const PROPERTY_SECTIONS = new Set(Object.keys(PROPERTY_SECTION_VIEW_PERMISSION));
@@ -165,7 +177,7 @@ export const CONTEXT_PICKER_REGISTRY: Record<ContextPickerModuleId, ContextPicke
   },
   marketing: {
     picker: 'marketing_template',
-    entityTypes: ['marketing_template'],
+    entityTypes: ['marketing_template', 'marketing_theme'],
     singular: 'template',
     plural: 'templates',
   },
@@ -176,10 +188,10 @@ export const CONTEXT_PICKER_REGISTRY: Record<ContextPickerModuleId, ContextPicke
     plural: 'modules',
   },
   templates: {
-    picker: 'public_page',
-    entityTypes: ['public_page'],
-    singular: 'page',
-    plural: 'pages',
+    picker: 'property_template',
+    entityTypes: ['property_template'],
+    singular: 'template',
+    plural: 'templates',
   },
   'public-pages': {
     picker: 'public_page',
@@ -210,6 +222,12 @@ export const CONTEXT_PICKER_REGISTRY: Record<ContextPickerModuleId, ContextPicke
     entityTypes: ['inbox_conversation'],
     singular: 'conversation',
     plural: 'conversations',
+  },
+  reviews: {
+    picker: 'review',
+    entityTypes: ['review'],
+    singular: 'review',
+    plural: 'reviews',
   },
   'help-support': {
     picker: 'ticket',

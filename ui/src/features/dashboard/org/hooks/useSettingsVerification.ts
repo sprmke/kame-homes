@@ -10,6 +10,9 @@ import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 
 export type SettingsVerificationScope = 'property' | 'parking';
 
+/** Mirrors edge `SettingsVerificationAction`. */
+export type SettingsVerificationAction = 'payment_settings' | 'property_templates';
+
 type SendOtpResult = {
   challengeId: string;
   ownerEmailMasked: string;
@@ -18,6 +21,8 @@ type SendOtpResult = {
 
 type VerifyOtpResult = {
   verificationToken: string;
+  /** Epoch ms when the verification token expires (payment ~5m; templates sudo ~15m). */
+  expiresAt: number;
 };
 
 function scopedVerificationPath(scope: SettingsVerificationScope, id: string): string {
@@ -30,7 +35,10 @@ function scopedVerificationPath(scope: SettingsVerificationScope, id: string): s
   return `settings-verification?${params.toString()}`;
 }
 
-export function useSettingsVerification(scope: SettingsVerificationScope) {
+export function useSettingsVerification(
+  scope: SettingsVerificationScope,
+  verificationAction: SettingsVerificationAction = 'payment_settings'
+) {
   const propertyId = usePropertyIdParam();
   const parkingId = useParkingIdParam();
   const scopeId = scope === 'property' ? propertyId : parkingId;
@@ -42,11 +50,12 @@ export function useSettingsVerification(scope: SettingsVerificationScope) {
         method: 'POST',
         body: JSON.stringify({
           action: 'send_otp',
+          verificationAction,
           patchFingerprint,
         }),
       });
     },
-    [scope, scopeId]
+    [scope, scopeId, verificationAction]
   );
 
   const verifyOtp = useCallback(

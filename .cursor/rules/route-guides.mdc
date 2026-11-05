@@ -41,6 +41,13 @@ Update the **Progress overview** table when section status changes. Mark guide *
 
 New route → create guide from **`docs/guides/_template.md`**, add row to **`docs/guides/routes/README.md`**.
 
+## Finish checklist
+
+- [ ] Host-facing knowledge present and factually current (5+ Q&A on major module pages, 3+ otherwise)
+- [ ] Cross-cutting answer reviewed in `docs/guides/support/faqs.md` (invoke the `support-content` skill)
+- [ ] `bun run check:support-content` and `bun run check:ai-knowledge-coverage` pass
+- [ ] Sync re-run, or rely on the `develop` workflow (it runs on docs changes)
+
 ## When guides need no change
 
 Typos, internal renames with no behavior change, or pure refactors that don't alter UX/API/validation.

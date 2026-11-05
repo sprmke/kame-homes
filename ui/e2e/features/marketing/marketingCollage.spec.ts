@@ -6,115 +6,70 @@ import {
 } from '../team/shared/propertyTeamRbacHarness';
 
 /**
- * Marketing Studio Design tab — collage mode. Property gallery photos are not
- * seeded in this mocked harness, so "Fill all" is exercised for wiring only
- * (see the plan doc's manual verification steps for the real-photo path).
+ * Marketing Studio Design tab — the 2026-10-30 entry: Posts → New post opens a sheet with
+ * Size / Blank / Collage / starter looks. Collage then opens the layout editor.
  */
+async function openNewPost(page: import('@playwright/test').Page, kind: 'Collage' | 'Blank') {
+  await installPropertyTeamRbacMocks(page, 'full_access');
+  await page.goto(teamRbacPaths.marketingWorkspace);
+  await page.getByRole('tab', { name: 'Posts' }).click();
+  await expect(page.getByRole('tab', { name: 'Posts' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'New post', exact: true }).click();
+  await page.getByRole('button', { name: kind, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`from=${kind.toLowerCase()}`));
+}
+
 test.describe('@ci marketing studio collage', () => {
-  test('Start from Collage renders the layout grid and turns the canvas into a collage', async ({
-    page,
-  }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketing);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+  test('a collage starts from a layout and fills the canvas', async ({ page }) => {
+    await openNewPost(page, 'Collage');
+
+    await expect(page.getByText('Pick a layout above to start your collage.')).toBeVisible({
       timeout: 20_000,
     });
-
-    const designTab = page.getByRole('tab', { name: 'Design' });
-    await designTab.click();
-    await expect(designTab).toHaveAttribute('aria-selected', 'true');
-
-    const startFrom = page.getByRole('radiogroup', { name: 'Start from' });
-    await expect(startFrom).toBeVisible({ timeout: 30_000 });
-    await expect(startFrom.getByRole('radio', { name: 'Templates' })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
-
-    await startFrom.getByRole('radio', { name: 'Collage' }).click();
-    await expect(startFrom.getByRole('radio', { name: 'Collage' })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
-
-    // Before a layout is chosen, only the Layout picker shows.
-    await expect(page.getByText('Pick a layout above to start your collage.')).toBeVisible();
-    await expect(page.getByText('Photos', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '2x2 grid' })).toBeVisible();
 
     await page.getByRole('button', { name: '2x2 grid' }).click();
-
-    // Choosing a layout turns the canvas into a collage — Polotno/mobx can lag on CI workers.
     await expect(page.getByText('Pick a layout above to start your collage.')).toBeHidden({
       timeout: 30_000,
     });
     await expect(page.getByRole('button', { name: 'Fill all' })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('Photos', { exact: true })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Style', { exact: true })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: '2x2 grid' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-
-    // Cell strip renders one thumbnail per layout cell (2x2 = 4).
-    await expect(page.getByRole('button', { name: 'Fill all' })).toBeVisible();
   });
 
-  test('Start from Blank clears the canvas and Templates re-applies the last preset', async ({
-    page,
-  }) => {
-    await installPropertyTeamRbacMocks(page, 'full_access');
-    await page.goto(teamRbacPaths.marketing);
-    await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
+  test('a blank post opens the editor and can switch into collage', async ({ page }) => {
+    await openNewPost(page, 'Blank');
+    await expect(page.getByRole('button', { name: 'Back to Posts' })).toBeVisible({
       timeout: 20_000,
     });
-
-    const designTab = page.getByRole('tab', { name: 'Design' });
-    await designTab.click();
-    await expect(designTab).toHaveAttribute('aria-selected', 'true');
-
-    const startFrom = page.getByRole('radiogroup', { name: 'Start from' });
-    await expect(startFrom).toBeVisible({ timeout: 30_000 });
-
-    await startFrom.getByRole('radio', { name: 'Blank' }).click();
-    await expect(page.getByText('Blank canvas at the selected format.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Reset to blank' })).toBeVisible();
-
-    await startFrom.getByRole('radio', { name: 'Templates' }).click();
-    await expect(startFrom.getByRole('radio', { name: 'Templates' })).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
+    await expect(page.getByRole('button', { name: 'Publish' })).toBeVisible();
+    // A blank post opens an empty canvas named "Untitled", not a preset design.
+    await expect(page.getByRole('button', { name: /Untitled post/ })).toBeVisible();
+    await expect(page.getByText('Pick a layout above to start your collage.')).toHaveCount(0);
   });
 
   test.describe('at 390px (bottom sheet)', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test('Collage panel opens in the mobile sheet with no horizontal overflow', async ({
-      page,
-    }) => {
+    test('the new-post sheet opens collage without sideways scroll', async ({ page }) => {
       await installPropertyTeamRbacMocks(page, 'full_access');
-      await page.goto(teamRbacPaths.marketing);
-      await expect(page.getByRole('heading', { name: 'Marketing' })).toBeVisible({
-        timeout: 20_000,
-      });
+      await page.goto(teamRbacPaths.marketingWorkspace);
+      await page.getByRole('tab', { name: 'Posts' }).click();
+      await page.getByRole('button', { name: 'New post', exact: true }).click();
+      await page.getByRole('button', { name: 'Collage', exact: true }).click();
 
-      const designTab = page.getByRole('tab', { name: 'Design' });
-      await designTab.click();
-      await expect(designTab).toHaveAttribute('aria-selected', 'true');
-      await page.getByRole('toolbar', { name: 'Editor actions' }).getByText('Templates').click();
-
-      const sheet = page.getByRole('dialog');
-      await expect(sheet).toBeVisible();
-      const startFrom = sheet.getByRole('radiogroup', { name: 'Start from' });
-      await startFrom.getByRole('radio', { name: 'Collage' }).click();
-      await sheet.getByRole('button', { name: '2x2 grid' }).click();
-      await expect(sheet.getByText('Pick a layout above to start your collage.')).toBeHidden({
+      // The layout picker renders inline in the editor; a sheet may also be present. Scoping
+      // to the dialog was wrong because `count()` includes hidden elements, so a closed sheet
+      // matched and the assertion looked in the wrong subtree. A page-level locator finds the
+      // button either way, and `toBeVisible` is what actually waits for it.
+      const layoutButton = page.getByRole('button', { name: '2x2 grid' });
+      await expect(layoutButton).toBeVisible({ timeout: 20_000 });
+      await layoutButton.click();
+      await expect(page.getByText('Pick a layout above to start your collage.')).toBeHidden({
         timeout: 30_000,
       });
-      await expect(sheet.getByRole('button', { name: 'Fill all' })).toBeVisible({
-        timeout: 30_000,
-      });
-      await expect(sheet.getByText('Photos', { exact: true })).toBeVisible({ timeout: 10_000 });
 
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);

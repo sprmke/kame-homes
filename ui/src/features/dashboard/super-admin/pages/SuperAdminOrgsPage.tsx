@@ -19,6 +19,7 @@ import {
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
 import { StatCard } from '@/components/shared/StatCard';
+import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -76,7 +77,11 @@ export function SuperAdminOrgsPage() {
       title="Organizations"
       subtitle="Every organization on the platform. Open one to manage its subscription, listings, team, approvals, and support in one place."
       isLoading={isLoading && !data}
-      loadingMetricCount={4}
+      loadingBody={
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Organizations', 'With a plan', 'Properties', 'Parkings']}
+        />
+      }
       error={error}
       errorMessage="Could not load organizations."
     >

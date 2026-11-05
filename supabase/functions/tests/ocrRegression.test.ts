@@ -34,7 +34,6 @@
  */
 
 import { assert } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { decode, Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 
 import {
   validateReceiptFile,
@@ -76,8 +75,9 @@ async function reencodeDocument(
   bytes: Uint8Array,
   mime: string
 ): Promise<{ bytes: Uint8Array; mime: string }> {
+  const imagescript = await import('https://deno.land/x/imagescript@1.3.0/mod.ts');
   const withinCeiling = bytes.byteLength <= DOC_CEILING_BYTES;
-  const img = (await decode(bytes)) as Image;
+  const img = (await imagescript.decode(bytes)) as InstanceType<typeof imagescript.Image>;
   const longEdge = Math.max(img.width, img.height);
   if (longEdge <= DOC_MAX_LONG_EDGE && withinCeiling) {
     return { bytes, mime }; // pass-through — matches the optimizer's skip-guard

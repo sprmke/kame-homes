@@ -11,6 +11,7 @@ import {
   type PDFTextField,
   type PDFImage,
 } from 'https://esm.sh/pdf-lib@1.17.1';
+import { fetchFirstPartyOrPublic, firstPartySupabaseOrigins } from './safeOutboundUrl.ts';
 
 /** Adobe Sign suffix on the signature widget — use this exact name in code. */
 const GAF_PDF_FIELD_UNIT_OWNER_SIGNATURE = 'unitOwnerSignature_es_:signer:signature';
@@ -100,7 +101,8 @@ async function drawSignatureInFormField(
 
   let bytes: Uint8Array;
   try {
-    const res = await fetch(signatureUrl);
+    // SSRF: signature URL is host-configured, so validate host + redirects.
+    const res = await fetchFirstPartyOrPublic(signatureUrl, firstPartySupabaseOrigins(), {}, { maxHops: 3 });
     if (!res.ok) {
       console.warn(`[gafPdfSignature] Failed to fetch signature (${res.status}): ${signatureUrl}`);
       return;

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_PLATFORM_APP_NAME, resolvePlatformAppName } from './platformAppName';
 
 describe('resolvePlatformAppName', () => {
-  it('defaults to Kame Homes when unset or blank', () => {
+  it('defaults to Kame Space when unset or blank', () => {
     expect(resolvePlatformAppName(undefined)).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName(null)).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName('')).toBe(DEFAULT_PLATFORM_APP_NAME);
@@ -14,6 +14,21 @@ describe('resolvePlatformAppName', () => {
     expect(resolvePlatformAppName('Stays')).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName('stays')).toBe(DEFAULT_PLATFORM_APP_NAME);
     expect(resolvePlatformAppName(' STAYS ')).toBe(DEFAULT_PLATFORM_APP_NAME);
+  });
+
+  it('replaces every form of the retired Kame Homes label', () => {
+    for (const retired of [
+      'Kame Homes',
+      'Kame Home',
+      'kame-homes',
+      'kame-home',
+      'KameHomes',
+      'KameHome',
+      'KAME_HOMES',
+      'kame_homes',
+    ]) {
+      expect(resolvePlatformAppName(retired)).toBe(DEFAULT_PLATFORM_APP_NAME);
+    }
   });
 
   it('keeps a configured operator name', () => {

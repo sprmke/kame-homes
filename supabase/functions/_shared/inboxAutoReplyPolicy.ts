@@ -86,3 +86,23 @@ export async function consumeAutoReplyBudget(conversationId: string): Promise<bo
 export function isSendableAutoReply(result: AiSuggestResult): boolean {
   return !result.flagged && result.suggestion.trim().length > 0;
 }
+
+/**
+ * Read-only prediction used by the guest composer: will the AI receptionist answer
+ * this web thread if the guest sends now? Mirrors the first two gates of
+ * `maybeAutoReplyToWebInbound` (settings + entitlement) without consuming the
+ * cooldown or the per-conversation budget, so the typing indicator is honest and
+ * a preview never steals a reply slot.
+ */
+export async function previewWebAssistantWillReply(
+  orgId: string,
+  propertyId: string | null
+): Promise<boolean> {
+  try {
+    const settings = await loadAutoReplySettings(orgId, 'web');
+    if (!settings) return false;
+    return await isAutoReplyEntitled(orgId, propertyId);
+  } catch {
+    return false;
+  }
+}

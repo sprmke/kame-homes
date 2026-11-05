@@ -1,8 +1,5 @@
 export type DesignTemplateFormat =
-  | 'instagram-post'
-  | 'instagram-portrait'
-  | 'instagram-story'
-  | 'facebook-post';
+  'instagram-post' | 'instagram-portrait' | 'instagram-story' | 'facebook-post';
 
 export const DESIGN_FORMAT_DIMENSIONS: Record<
   DesignTemplateFormat,

@@ -16,6 +16,7 @@ import {
 } from '../_shared/httpResponse.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const DEVELOPMENT_TYPES = new Set([
   'CONDOMINIUM',
@@ -25,7 +26,7 @@ const DEVELOPMENT_TYPES = new Set([
   'COMMERCIAL',
 ]);
 
-serveAuthenticated('create-development', async (req) => {
+serveAuthenticated('create-development', async (req, user) => {
   requireHttpMethod(req, 'POST');
   await verifySuperAdminJwt(req);
 
@@ -76,6 +77,13 @@ serveAuthenticated('create-development', async (req) => {
     console.error('[create-development]', error.message);
     throw new Error('Failed to create development');
   }
+
+  await capturePostHogEvent('development_created', {
+    logPrefix: 'create-development',
+    request: req,
+    distinctId: user.id,
+    properties: { type },
+  });
 
   return jsonSuccess(req, {
     development: serializeDevelopment(data as DevelopmentRow),

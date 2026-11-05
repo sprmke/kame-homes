@@ -24,7 +24,7 @@ async function installGuestFormSuccessMocks(page: Page) {
       body: JSON.stringify({
         success: true,
         data: {
-          gcashName: 'Kame Homes',
+          gcashName: 'Sample Stays',
           gcashNumber: '09170000000',
           gcashQrImageUrl: '',
           paymentProvider: 'gcash',
@@ -42,7 +42,7 @@ async function installGuestFormSuccessMocks(page: Page) {
           checkOutTime: '12:00',
           cleaningBufferMinutes: 60,
           residenceName: 'Solea Mactan',
-          organizationName: 'Kame Homes PH',
+          organizationName: 'Sample Stays PH',
         },
       }),
     });

@@ -5,8 +5,14 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { NOTIFICATIONS_KEY } from '@/features/dashboard/notifications/hooks/useNotifications';
 import type { NotificationRealtimeRow } from '@/features/dashboard/notifications/lib/notificationsApi';
 import { showNotificationToast } from '@/features/dashboard/notifications/lib/notificationToast';
+import { shouldShowCalendarConflictRealtimeToast } from '@/features/dashboard/pricing/lib/calendarConflictToastGate';
 
 import { supabase } from '@/lib/supabase/client';
+
+function shouldToastRealtimeRow(row: NotificationRealtimeRow): boolean {
+  if (row.type === 'calendar_conflict') return shouldShowCalendarConflictRealtimeToast();
+  return true;
+}
 
 const REALTIME_INVALIDATE_MS = 400;
 
@@ -22,7 +28,8 @@ function scheduleNotificationsInvalidate(qc: QueryClient) {
 
 /**
  * One realtime channel per org — mount once (NotificationsProvider), never per-page.
- * In-app toast only; OS-level Notification popups stay inbox-chat-only (inboxNotifications.ts).
+ * In-app toast only. OS-level notifications come from the push pipeline
+ * (`push-fanout` → service worker), so a message never produces two banners.
  */
 export function useNotificationsRealtime(
   orgId: string | null,
@@ -47,34 +54,23 @@ export function useNotificationsRealtime(
 
       channel = supabase
         .channel(`notifications-${orgId}`)
+        // One binding for INSERT + UPDATE. Two separate bindings create two
+        // Realtime subscriptions, and every subscription is polled against
+        // Postgres WAL independently. Both handlers did the same work, so this
+        // halves the Realtime query load for notifications.
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `organization_id=eq.${orgId}`,
           },
           (payload) => {
+            if (payload.eventType !== 'INSERT' && payload.eventType !== 'UPDATE') return;
             scheduleNotificationsInvalidate(qc);
             const row = payload.new as NotificationRealtimeRow;
-            showNotificationToast(row, {
-              onView: onNotificationRef.current,
-              isCancelled: () => cancelled,
-            });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'notifications',
-            filter: `organization_id=eq.${orgId}`,
-          },
-          (payload) => {
-            scheduleNotificationsInvalidate(qc);
-            const row = payload.new as NotificationRealtimeRow;
+            if (!shouldToastRealtimeRow(row)) return;
             showNotificationToast(row, {
               onView: onNotificationRef.current,
               isCancelled: () => cancelled,

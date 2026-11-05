@@ -38,6 +38,11 @@ export const ALLOWED_PROPERTY_VIDEO_MIME = new Set([
   'video/mpeg',
 ]);
 
+export const ALLOWED_PROPERTY_MEDIA_MIME: ReadonlySet<string> = new Set([
+  ...ALLOWED_PROPERTY_IMAGE_MIME,
+  ...ALLOWED_PROPERTY_VIDEO_MIME,
+]);
+
 export type PropertyMediaType = 'image' | 'video';
 
 export type PropertyMediaRecord = {

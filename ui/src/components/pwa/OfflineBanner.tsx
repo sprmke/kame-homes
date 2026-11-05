@@ -1,47 +1,103 @@
-import { CloudOff, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
+import { AlertTriangle, CloudOff, RefreshCw, SignalLow, UploadCloud } from 'lucide-react';
+
+import { SyncCenterCard } from '@/features/dashboard/offline/components/SyncCenterCard';
+import { useOfflineSync } from '@/features/dashboard/offline/hooks/useOfflineSync';
+
+import { offlineBannerModel } from '@/components/pwa/offlineBannerModel';
+import { FloatingBottomOverlay } from '@/components/pwa/FloatingBottomOverlay';
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalTitle,
+} from '@/components/ui/responsive-modal';
+import { useConnectivity } from '@/hooks/useConnectivity';
+import { usePwaSurfaceStore } from '@/lib/pwa/pwaSurfaceStore';
 import { cn } from '@/lib/utils';
 
-type OfflineBannerProps = {
-  online: boolean;
-  /** Pending offline-outbox mutations waiting to sync (Phase 4). */
-  pendingCount?: number;
-  /** True while the sync engine is draining the outbox (Phase 4). */
-  syncing?: boolean;
-};
-
 /**
- * Thin top strip shown while the app is offline, or while queued offline changes
- * are still syncing. Hidden entirely when online with nothing pending.
+ * Connectivity strip.
+ *
+ * Deliberately anchored to the *bottom* (above the tab bar / contextual action bar)
+ * rather than the top: in v1 it was `fixed top-0 z-[55]` with no layout offset and
+ * covered page headers and the standalone status-bar area (P1-7). A bottom strip
+ * never covers a header, and `aboveBottomTabBarOverlayClassName()` keeps it clear
+ * of the single bottom nav layer.
+ *
+ * Tapping opens the Sync Center only when a change is queued or failed.
+ * A sync with an empty outbox stays hidden, so the sheet is never an empty close button.
  */
-export function OfflineBanner({ online, pendingCount = 0, syncing = false }: OfflineBannerProps) {
-  const show = !online || pendingCount > 0 || syncing;
-  if (!show) return null;
+export function OfflineBanner() {
+  const { status } = useConnectivity();
+  const { pendingCount, failedCount, syncing } = useOfflineSync();
+  const [syncOpen, setSyncOpen] = useState(false);
+  const claim = usePwaSurfaceStore((s) => s.claim);
+  const release = usePwaSurfaceStore((s) => s.release);
 
-  const label = !online
-    ? pendingCount > 0
-      ? `Offline. ${pendingCount} change${pendingCount === 1 ? '' : 's'} will sync when you reconnect`
-      : 'Offline. Showing your last synced data'
-    : syncing
-      ? `Syncing ${pendingCount || ''} change${pendingCount === 1 ? '' : 's'}…`.replace('  ', ' ')
-      : `${pendingCount} change${pendingCount === 1 ? '' : 's'} waiting to sync`;
+  const banner = offlineBannerModel({ status, pendingCount, failedCount, syncing });
+
+  useEffect(() => {
+    if (!banner.interactive) setSyncOpen(false);
+  }, [banner.interactive]);
+
+  // Claim the floating-surface slot so a lower-priority update prompt waits.
+  useEffect(() => {
+    if (!banner.visible) return;
+    claim('offline');
+    return () => release('offline');
+  }, [banner.visible, claim, release]);
+
+  if (!banner.visible) return null;
+
+  const tone =
+    status === 'offline'
+      ? 'bg-muted text-muted-foreground'
+      : status === 'degraded'
+        ? 'bg-warning/15 text-warning-foreground'
+        : 'bg-primary/10 text-primary';
+
+  const label = banner.label;
+
+  const Icon =
+    status === 'offline'
+      ? CloudOff
+      : status === 'degraded'
+        ? SignalLow
+        : failedCount > 0
+          ? AlertTriangle
+          : syncing
+            ? RefreshCw
+            : UploadCloud;
+
+  const interactive = banner.interactive;
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className={cn(
-        'fixed inset-x-0 top-0 z-[55] flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium',
-        'pt-[calc(0.375rem+env(safe-area-inset-top))]',
-        !online ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
-      )}
-    >
-      {!online ? (
-        <CloudOff className="h-3.5 w-3.5 shrink-0" />
-      ) : (
-        <RefreshCw className={cn('h-3.5 w-3.5 shrink-0', syncing && 'animate-spin')} />
-      )}
-      <span className="truncate">{label}</span>
-    </div>
+    <>
+      <FloatingBottomOverlay>
+        <button
+          type="button"
+          role="status"
+          aria-live="polite"
+          disabled={!interactive}
+          onClick={interactive ? () => setSyncOpen(true) : undefined}
+          className={cn(
+            'border-border pointer-events-auto flex max-w-sm items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-md',
+            tone,
+            !interactive && 'cursor-default'
+          )}
+        >
+          <Icon className={cn('size-3.5 shrink-0', syncing && 'animate-spin')} aria-hidden />
+          <span className="truncate">{label}</span>
+        </button>
+      </FloatingBottomOverlay>
+
+      <ResponsiveModal open={syncOpen && interactive} onOpenChange={setSyncOpen}>
+        <ResponsiveModalContent className="pb-[max(env(safe-area-inset-bottom),1rem)]">
+          <ResponsiveModalTitle className="sr-only">Offline changes</ResponsiveModalTitle>
+          <SyncCenterCard />
+        </ResponsiveModalContent>
+      </ResponsiveModal>
+    </>
   );
 }

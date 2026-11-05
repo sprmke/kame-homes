@@ -16,11 +16,13 @@ import {
 } from '@/features/dashboard/super-admin/hooks/usePlatformSettings';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { SuperAdminSettingsBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 
 export function SuperAdminPlatformSettingsPage() {
   const { data, isLoading, error } = usePlatformSettings();
@@ -103,7 +105,12 @@ export function SuperAdminPlatformSettingsPage() {
       title="Platform settings"
       subtitle="Operational knobs for the whole platform. Changes take effect on the next request that reads them."
       isLoading={isLoading && !data}
-      loadingMetricCount={2}
+      loadingBody={
+        <SuperAdminSettingsBodySkeleton
+          cards={2}
+          titles={['Access', 'Authenticated rate limiting']}
+        />
+      }
       error={error}
       errorMessage="Could not load platform settings."
     >
@@ -185,7 +192,7 @@ export function SuperAdminPlatformSettingsPage() {
               type="email"
               value={supportEmail}
               onChange={(event) => setSupportEmail(event.target.value)}
-              placeholder="support@example.com"
+              placeholder={FORM_PLACEHOLDERS.orgSupportEmail}
             />
           </SuperAdminSettingsRow>
           <SuperAdminSettingsRow stacked label="Terms URL" htmlFor="legal-terms-url">
@@ -209,7 +216,7 @@ export function SuperAdminPlatformSettingsPage() {
 
       <SuperAdminSettingsCard
         title="Authenticated rate limiting"
-        description="Applies to every signed-in dashboard request by default. Off = observe only (console warning); on = the caller gets a 429. Flip off instantly if the limit misfires on real traffic — no deploy needed."
+        description="Applies to every signed-in dashboard request by default. Off = observe only (console warning); on = the caller gets a 429. Flip off instantly if the limit misfires on real traffic - no deploy needed."
         icon={<Gauge className="text-muted-foreground size-4" aria-hidden />}
         headerAction={
           <Button variant="outline" size="sm" className="min-h-[44px]" asChild>
@@ -225,7 +232,7 @@ export function SuperAdminPlatformSettingsPage() {
       >
         <SuperAdminSettingsRow
           label="Enforce (return 429)"
-          description="Off keeps the original log-only rollout — nothing is ever blocked."
+          description="Off keeps the original log-only rollout - nothing is ever blocked."
           htmlFor="auth-rate-limit-enforce"
         >
           <Switch
@@ -240,7 +247,7 @@ export function SuperAdminPlatformSettingsPage() {
           stacked
           label="Limit (requests / 60s per user)"
           htmlFor="auth-rate-limit"
-          description="No measured hosted-traffic baseline exists yet — 300 is a reasoned, deliberately loose starting point. Raise it here if a legitimate workflow (bulk pricing edits, multi-tab polling) trips it."
+          description="No measured hosted-traffic baseline exists yet - 300 is a reasoned, deliberately loose starting point. Raise it here if a legitimate workflow (bulk pricing edits, multi-tab polling) trips it."
         >
           <Input
             id="auth-rate-limit"

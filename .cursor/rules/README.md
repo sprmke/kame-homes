@@ -21,22 +21,25 @@ Keep this list **small**. Heavy domain specs use globs.
 | `route-guides.mdc`              | Page behavior docs must stay in sync                                                |
 | `plans-and-permissions.mdc`     | New features must decide Plans + Team RBAC (or N/A)                                 |
 | `audit-logging.mdc`             | Mutating changes must emit an `activity_log` event (or N/A)                         |
+| `support-content.mdc`           | Route guides, Host-facing knowledge, and curated FAQs must ship with the change     |
 | `unsaved-changes.mdc`           | Editable surfaces with a manual Save must warn before edits are lost (shared guard) |
 | `mobile-native-ui.mdc`          | Always-on gate: native mobile look/feel for any UI change in `ui/src/**`            |
+| `skeleton-loaders.mdc`          | Loading states: real static text/icons; skeleton only async values, rows, media     |
+| `branch-lifecycle.mdc`          | Finished work lands on `develop`: PR, report, merge when green, delete the branch   |
 | `karpathy-guidelines.mdc`       | Think first, simplicity, surgical diffs, verifiable goals (Karpathy-inspired)       |
-| `ponytail.mdc`                  | Lazy senior dev mode — minimal diffs, reuse first (optional Claude plugin)          |
+| `agent-reporting.mdc`           | One summary/report/question format for every model (OpenCode exempt)                |
 
 ## New developer setup (AI tooling)
 
 After `git clone` and `bun install`, run **`bun run setup:ai-tooling`** once — symlinks, ecosystem skills (Taste / Playwright CLI / Impeccable), DESIGN.md catalog, OpenCode command links, Claude local settings template, and sync verification. Rules/commands/agents/hooks load from the repo automatically; no copy from `~/.cursor`, `~/.claude`, or `~/.config/opencode` is required.
 
-| Step | Action                                                                                                                                               |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | **`bun run setup:ai-tooling`** — one-shot project AI tooling setup (re-run after broken symlinks)                                                    |
-| 1    | Open the repo root in **Cursor**, **Claude Code**, or **OpenCode**                                                                                   |
-| 2    | Export **`SUPABASE_ACCESS_TOKEN`** and **`SUPABASE_PROJECT_REF`** in your shell (read-only Supabase MCP)                                             |
-| 3    | Install **`markitdown-mcp`** on `PATH`: `uv tool install markitdown-mcp`                                                                             |
-| 4    | **Claude Code only:** install the **ponytail** plugin once (`/plugin marketplace add DietrichGebert/ponytail`) — team rule is also in `ponytail.mdc` |
+| Step | Action                                                                                                                                                               |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | **`bun run setup:ai-tooling`** — one-shot project AI tooling setup (re-run after broken symlinks)                                                                    |
+| 1    | Open the repo root in **Cursor**, **Claude Code**, or **OpenCode**                                                                                                   |
+| 2    | Export **`SUPABASE_ACCESS_TOKEN`** and **`SUPABASE_PROJECT_REF`** in your shell (read-only Supabase MCP)                                                             |
+| 3    | Install **`markitdown-mcp`** on `PATH`: `uv tool install markitdown-mcp`                                                                                             |
+| 4    | **Codex** uses the same repo. Ecosystem skills in `.agents/skills/` are picked up by Cursor, Codex, and OpenCode. Claude Code gets symlinks under `.claude/skills/`. |
 
 Flags: `bun run setup:ai-tooling -- --skip-agents-skills` · `--skip-playwright-cli` · `--skip-design-md` · `--skip-local-settings` · `--help`
 
@@ -49,11 +52,21 @@ Flags: `bun run setup:ai-tooling -- --skip-agents-skills` · `--skip-playwright-
 
 **Ecosystem packages (project-scoped):**
 
-| Package                                                             | What you get                                                                                       | Setup                          |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------ |
-| [Taste Skill](https://github.com/Leonxlnx/taste-skill)              | `design-taste-frontend`, `redesign-existing-projects`, `stitch-design-taste`, related craft skills | `bun run setup:agents-skills`  |
-| [Playwright CLI](https://github.com/microsoft/playwright-cli)       | skill `playwright-cli` + `bun x playwright-cli` (`@playwright/cli`)                                | `bun run setup:playwright-cli` |
-| [awesome-design-md](https://github.com/VoltAgent/awesome-design-md) | root `DESIGN.md` + `.agents/design-md/*` refs + skill `design-md`                                  | `bun run setup:design-md`      |
+| Package                                                                         | What you get                                                                                                        | Setup                          |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| [Taste Skill](https://github.com/Leonxlnx/taste-skill)                          | `design-taste-frontend`, `redesign-existing-projects`, `stitch-design-taste`, related craft skills                  | `bun run setup:agents-skills`  |
+| [Playwright CLI](https://github.com/microsoft/playwright-cli)                   | skill `playwright-cli` + `bun x playwright-cli` (`@playwright/cli`)                                                 | `bun run setup:playwright-cli` |
+| [awesome-design-md](https://github.com/VoltAgent/awesome-design-md)             | root `DESIGN.md` + `.agents/design-md/*` refs + skill `design-md`                                                   | `bun run setup:design-md`      |
+| [Caveman](https://github.com/JuliusBrussee/caveman)                             | `/caveman` plus review, commit, and refactor helpers. Cloud gateway skills are not installed.                       | `skills-lock.json`             |
+| [Graphify](https://github.com/Graphify-Labs/graphify)                           | `/graphify`. First run installs the `graphifyy` CLI if it is missing.                                               | `skills-lock.json`             |
+| [Ponytail](https://github.com/DietrichGebert/ponytail)                          | `/ponytail` plus review, audit, debt, and gain. On demand. Karpathy stays the always-on rule.                       | `skills-lock.json`             |
+| [Vercel agent-skills](https://github.com/vercel-labs/agent-skills)              | React composition, React best practices, view transitions, web design guidelines.                                   | `skills-lock.json`             |
+| [Anthropic skills](https://github.com/anthropics/skills)                        | pdf, docx, pptx, xlsx, skill-creator, mcp-builder, webapp-testing, doc-coauthoring, claude-api.                     | `skills-lock.json`             |
+| [Matt Pocock skills](https://github.com/mattpocock/skills)                      | Engineering and productivity skills (`tdd`, `triage`, `grill-me`, and the rest).                                    | `skills-lock.json`             |
+| [Superpowers](https://github.com/obra/superpowers)                              | Upstream skills in `.agents/skills/`. Still opt-in. Path overrides stay in `.agent/skills/superpowers`.             | `skills-lock.json`             |
+| [Cloudflare security-audit](https://github.com/cloudflare/security-audit-skill) | Skill `security-audit`: guidance or full six-phase codebase audit with structured reports. On demand before launch. | `skills-lock.json`             |
+
+Already in `.agent/skills/` (leave these in place): `testing`, `ui-ux-pro-max`, `karpathy-guidelines`, `frontend-design`, `brand`, and the repo `superpowers` path override. Karpathy is also the always-on rule.
 
 **Intentionally user-scoped (do not commit):** `~/.claude/settings.json` (model, status line, extra plugins), `~/.config/opencode/opencode.json` (OpenCode providers/models), Cursor built-in `~/.cursor/skills-cursor/*`, marketplace plugins (Notion, Figma, Vercel) unless a task needs them.
 
@@ -103,6 +116,7 @@ Run **`bun run check:ai-tooling-sync`** after changing hooks, commands, agents, 
 | `documentation-maintenance` | Same-change docs writes — Claude Code equivalent of always-on rule    |
 | `plans-and-permissions`     | New features: Plans entitlements + Team RBAC checklist (or N/A)       |
 | `audit-logging`             | Mutating changes emit an `activity_log` event (or mark N/A)           |
+| `support-content`           | Route guide + Host-facing Q&A + curated FAQ sync checklist            |
 | `unsaved-changes-guard`     | Editable surface with a manual Save prompts before edits are lost     |
 | `supabase-stack`            | Postgres, Storage, edge platform                                      |
 | `fix-migration-issues`      | Local `db:migrate` when schema drifts — never default to reset/deploy |
@@ -139,8 +153,10 @@ Run **`bun run check:ai-tooling-sync`** after changing hooks, commands, agents, 
 | `accessibility`               | WCAG deep patterns                                                                               |
 | `minimal-ui-copy`             | Sparse copy                                                                                      |
 | `human-copy`                  | Production-grade strings; no AI tells / em dashes (pairs with always-on `human-copy.mdc`)        |
+| `agent-reporting`             | Summary / report / question format: outcome first, 5 short sections, fixed status words          |
 | `social-creative`             | FB / IG / TikTok creative via Remotion studio; brand + not-AI checklist                          |
 | `route-guides`                | `docs/guides/routes/*`                                                                           |
+| `skeleton-loaders`            | Loading states: static labels render immediately; skeleton only async values / rows / media      |
 | `performance`                 | Vite bundle, query tuning                                                                        |
 | `batch-commit`                | Daily N commits × 5–10 files (not whole tree)                                                    |
 | `self-review`                 | Deep production-readiness module review (`/self-review`) — gaps, edge cases, ship verdict        |

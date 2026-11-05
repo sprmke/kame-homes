@@ -1,4 +1,6 @@
 import type { CampaignPalette } from '@/features/dashboard/marketing/lib/designBrandColors';
+import { themeToCampaignPalette } from '@/features/dashboard/marketing/lib/theme/designThemeAdapter';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import {
   resolveVideoTemplateLayout,
   type VideoCtaChrome,
@@ -318,14 +320,40 @@ export function resolveVideoTemplateLook(templateId: string | undefined): VideoT
   };
 }
 
+/** Template text roles → theme type roles (big type uses display, small caps use label). */
+const VIDEO_ROLE_TO_THEME_ROLE: Record<VideoFontRole, 'display' | 'label' | 'body'> = {
+  title: 'display',
+  promo: 'display',
+  subtitle: 'label',
+  label: 'label',
+  body: 'body',
+  cta: 'body',
+};
+
+export function themeVideoFontPairing(theme: MarketingThemeTokens): VideoFontPairing {
+  const pairing = {} as VideoFontPairing;
+  for (const role of Object.keys(VIDEO_ROLE_TO_THEME_ROLE) as VideoFontRole[]) {
+    pairing[role] = theme.fonts[VIDEO_ROLE_TO_THEME_ROLE[role]];
+  }
+  return pairing;
+}
+
+/**
+ * Colors, fonts and look for a video. With a theme, palette and fonts come from
+ * it (a per-project AI look palette still wins); the template keeps its craft
+ * (scrims, scale, pill and CTA style) either way.
+ */
 export function resolveVideoTypographyContext(
   templateId: string | undefined,
   brandColor?: string,
-  paletteOverride?: CampaignPalette | null
+  paletteOverride?: CampaignPalette | null,
+  theme?: MarketingThemeTokens | null
 ): VideoTypographyContext {
   return {
-    palette: paletteOverride ?? videoTemplatePalette(templateId ?? '', brandColor),
-    fontPairing: resolveVideoFontPairing(templateId),
+    palette:
+      paletteOverride ??
+      (theme ? themeToCampaignPalette(theme) : videoTemplatePalette(templateId ?? '', brandColor)),
+    fontPairing: theme ? themeVideoFontPairing(theme) : resolveVideoFontPairing(templateId),
     look: resolveVideoTemplateLook(templateId),
   };
 }

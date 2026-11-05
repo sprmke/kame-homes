@@ -38,6 +38,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from '../_shared/supabaseJs.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { recordJobHeartbeat } from '../_shared/systemHealth/jobHeartbeat.ts';
 import { resolveAppSettings } from '../_shared/appSettings.ts';
 import {
   resolveScopedPropertyAccess,
@@ -49,7 +50,8 @@ import { checkGuestBalanceSettlement } from '../_shared/totalGuestBalance.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { sendSdRefundFormRequest } from '../_shared/emailService.ts';
 import { propertyAutomationEnabled } from '../_shared/propertyAutomationToggles.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
+import { sendCronCheckIn } from '../_shared/sentryCron.ts';
 import { evaluateSdRefundLeadWindow, parseCheckoutManila } from '../_shared/sdRefundCronLead.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 
@@ -133,6 +135,19 @@ async function parseOptionalBookingId(req: Request): Promise<string | undefined>
   return undefined;
 }
 
+/**
+ * The one Sentry monitor the free tier allows (plan D13). Chosen because a missed SD refund
+ * run leaves a guest waiting for money, and nothing else notices: no request fails.
+ *
+ * Every other scheduled job is covered by `_shared/systemHealth/jobsRegistry.ts`.
+ */
+const CRON_MONITOR = {
+  slug: 'sd-refund-cron',
+  schedule: '*/5 * * * *',
+  timezone: 'Asia/Manila',
+  maxRuntimeMinutes: 10,
+} as const;
+
 // ─── Main handler ──────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -142,9 +157,14 @@ serve(async (req) => {
 
   const runStarted = new Date().toISOString();
   console.log('[sd-refund-cron] Run started at', runStarted);
+  const monitorStartedAt = Date.now();
+  const heartbeatStartedAt = Date.now();
+  let cronRun = false;
+  await sendCronCheckIn(CRON_MONITOR, 'in_progress');
 
   try {
     const scopedBookingId = await parseOptionalBookingId(req);
+    cronRun = !scopedBookingId;
     let scoped = false;
     let adminPropertyId: string | null = null;
 
@@ -202,6 +222,9 @@ serve(async (req) => {
         ? `[sd-refund-cron] No READY_FOR_CHECKIN booking for id=${scopedBookingId}.`
         : '[sd-refund-cron] No READY_FOR_CHECKIN bookings. Nothing to do.';
       console.log(msg);
+      if (cronRun) {
+        await recordJobHeartbeat('sd-refund-cron', { ok: true, startedAt: heartbeatStartedAt });
+      }
       return new Response(
         JSON.stringify({
           success: true,
@@ -349,7 +372,7 @@ serve(async (req) => {
 
       if (suppressStaleEmail) {
         console.log(
-          `[sd-refund-cron] Booking ${bookingId}: check-out older than ${maxCheckoutAgeDays}d — ` +
+          `[sd-refund-cron] Booking ${bookingId}: check-out older than ${maxCheckoutAgeDays}d - ` +
             'transitioning without automated guest email'
         );
       }
@@ -361,7 +384,7 @@ serve(async (req) => {
         `[sd-refund-cron] Transitioning booking ${bookingId} (${booking.guest_facebook_name}) ` +
           `checkout ${checkOutDate} ${checkOutTime} → READY_FOR_CHECKOUT` +
           (!sendEmailOnTransition
-            ? ' (no SD form email on transition — already sent or stale)'
+            ? ' (no SD form email on transition - already sent or stale)'
             : '')
       );
 
@@ -431,6 +454,14 @@ serve(async (req) => {
       JSON.stringify({ scanned: candidates.length, transitioned, skipped })
     );
 
+    // `ok` even when individual bookings failed: the run itself completed, and those
+    // failures are reported individually. Reporting error here would make a partially
+    // failing sweep indistinguishable from a dead scheduler.
+    await sendCronCheckIn(CRON_MONITOR, 'ok', { durationMs: Date.now() - monitorStartedAt });
+    if (cronRun) {
+      await recordJobHeartbeat('sd-refund-cron', { ok: true, startedAt: heartbeatStartedAt });
+    }
+
     return new Response(JSON.stringify(summary), {
       status: 200,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
@@ -439,8 +470,22 @@ serve(async (req) => {
     if (error instanceof Response) {
       return error;
     }
+    if (cronRun) {
+      await recordJobHeartbeat('sd-refund-cron', {
+        ok: false,
+        startedAt: heartbeatStartedAt,
+        error,
+      });
+    }
     console.error('[sd-refund-cron] Fatal error:', error);
-    await capturePostHogException(error, { logPrefix: 'cron:sd-refund-cron', request: req });
+    await captureSentryException(error, {
+      logPrefix: 'cron:sd-refund-cron',
+      url: req.url,
+      method: req.method,
+      tags: { cron: 'sd-refund-cron' },
+      fingerprint: ['cron', 'sd-refund-cron'],
+    });
+    await sendCronCheckIn(CRON_MONITOR, 'error', { durationMs: Date.now() - monitorStartedAt });
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

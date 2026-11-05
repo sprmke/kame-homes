@@ -29,7 +29,8 @@ describe('planIncludedFeatureGroups', () => {
     expect(pro).toContain('Pricing management');
     expect(pro).toContain('Dashboard overview');
     for (const label of starter) {
-      if (label.startsWith('Up to ')) continue;
+      // Value-bearing labels change per tier by design: seat caps and the storage quota.
+      if (label.startsWith('Up to ') || label.includes(' of media storage, ')) continue;
       expect(pro).toContain(label);
     }
   });

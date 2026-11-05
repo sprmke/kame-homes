@@ -2,14 +2,14 @@
 title: 'Architecture overview'
 status: active
 tags: [architecture]
-updated: 2026-09-21
+updated: 2026-11-05
 ---
 
 # Architecture overview
 
-**Start here** for a picture of the whole Kame Homes app. Topic files under [`docs/architecture/`](./) hold depth. Index: [`docs/PROJECT.md`](../PROJECT.md).
+**Start here** for a picture of the whole Kame Space app. Topic files under [`docs/architecture/`](./) hold depth. Index: [`docs/PROJECT.md`](../PROJECT.md).
 
-Kame Homes is a **multi-tenant short-term rental platform**: public listings and guest booking, a host dashboard (property **and** parking as peer verticals), org billing, and a super-admin console. The original product was a Guest Advice Form (GAF) for one unit. That loop still sits at the center. The app around it is much larger.
+Kame Space is a **multi-tenant short-term rental platform**: public listings and guest booking, a host dashboard (property **and** parking as peer verticals), org billing, and a super-admin console. The original product was a Guest Advice Form (GAF) for one unit. That loop still sits at the center. The app around it is much larger.
 
 ---
 
@@ -103,18 +103,20 @@ Routes: [`routing.md`](routing.md). Per-page behavior: [`docs/guides/routes/`](.
 
 ## 3. Tech stack
 
-| Layer           | What we use                                                                                                     |
-| --------------- | --------------------------------------------------------------------------------------------------------------- |
-| Package manager | **Bun** (`bun install`, `bun run …`)                                                                            |
-| UI              | **Vite 4.4**, **React 19** (`ui/package.json`), **TypeScript**, **React Router 6**                              |
-| UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts |
-| PWA             | `vite-plugin-pwa` injectManifest, Workbox, IndexedDB persist + outbox, Web Push. See [`pwa.md`](pwa.md)         |
-| API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                          |
-| Data            | **Postgres** (SQL in `supabase/migrations/`, no ORM), **Storage**, **Auth**, **Realtime**                       |
-| Jobs            | Hosted **`pg_cron`** fires `pg_net.http_post` into cron functions. Not `config.toml` schedule                   |
-| Tests           | Vitest (UI), Deno (`_shared` + handlers), Playwright mocked E2E (`@smoke` / `@ci` / `@live`)                    |
+| Layer           | What we use                                                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Package manager | **Bun** (`bun install`, `bun run …`)                                                                                                      |
+| UI              | **Vite 7** (Vitest 4, Node 20.19+), **React 19** (`ui/package.json`), **TypeScript**, **React Router 7**                                  |
+| UI libraries    | Tailwind 3, Radix / shadcn, React Hook Form + Zod, TanStack Query 5, TanStack Virtual, Sonner, Lucide, Recharts                           |
+| PWA             | `vite-plugin-pwa` injectManifest, tiered precache, launch resolver, IndexedDB persist + drafts + outbox, Web Push. See [`pwa.md`](pwa.md) |
+| API             | **Supabase Edge Functions** (Deno). Wrappers in `_shared/serveEdge.ts`                                                                    |
+| Data            | **Postgres** (SQL in `supabase/migrations/`, no ORM), **Storage**, **Auth**, **Realtime**                                                 |
+| Jobs            | Hosted **`pg_cron`** fires `pg_net.http_post` into cron functions. Not `config.toml` schedule                                             |
+| Tests           | Vitest (UI), Deno (`_shared` + handlers), Playwright mocked E2E (`@smoke` / `@ci` / `@live`)                                              |
 
 Specialized UI: **Polotno** + **Remotion** (Marketing Studio), **Google Maps**, Web Worker image compression, pdf-lib. Phone chrome uses shared primitives (`ResponsiveModal`, `BottomTabBar`, `ContextualActionBar`), not a shrunk desktop layout.
+
+Feedback toasts route through `ui/src/lib/feedback/toastMessages.ts`: raw provider/API copy is sanitized, and an identical error or warning replaces the toast already on screen instead of stacking a duplicate.
 
 **Timezone:** all user-visible times are **Asia/Manila**. Guest date fields in Postgres are often `TEXT` `MM-DD-YYYY`; UI and query params prefer `YYYY-MM-DD`. Normalize with `ui/src/utils/format/dates.ts` and `_shared/utils.ts`.
 
@@ -181,18 +183,21 @@ flowchart TB
 
 Entry: `ui/src/main.tsx` → `App.tsx` → `ui/src/routes/index.tsx` merges `guestRoutes` + `dashboardRoutes`.
 
-| Capability            | What it is                                                                                                            | Gate                                                                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Booking workflow      | GAF / pet / parking docs, emails, SD refund, vouchers                                                                 | `bookings:*` leaves                                                                |
-| Calendar sync         | Two-way iCal (Airbnb / Booking.com / Vrbo)                                                                            | `calendarSync` (Pro+)                                                              |
-| Smart pricing         | AI nightly rates + autopilot cron                                                                                     | `smartPricing`                                                                     |
-| Guest Inbox           | Meta + web chat, AI replies                                                                                           | inbox leaves                                                                       |
-| Marketing Studio      | Polotno, Remotion, Gemini/Veo generate, AI Post posters ([poster studio](./marketing-poster-studio.md)), Meta publish | `marketingStudio` + generate keys                                                  |
-| Finance / Maintenance | Line items, recurrence, Telegram reminders                                                                            | matching leaves                                                                    |
-| Parking marketplace   | Broadcast, claim, PayMongo, endorsement                                                                               | parking RBAC                                                                       |
-| AI assistant          | Dashboard chat + tools (sheet in Advanced mode, full-page AI mode with page canvas), credit wallet                    | org credits + allowlist; `aiDashboardAssistant` plan gate; AI mode platform switch |
-| Host Analytics        | Occupancy / ADR bundle, AI review                                                                                     | view free; `analyticsInsights` on export / AI generate                             |
-| PWA                   | Install, offline read, inbox outbox, Web Push                                                                         | deepest on host dashboard                                                          |
+| Capability            | What it is                                                                                                                                                                                                                                                                                                                                                                       | Gate                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Booking workflow      | GAF / pet / parking docs, emails, SD refund, vouchers                                                                                                                                                                                                                                                                                                                            | `bookings:*` leaves                                                                |
+| Calendar sync         | Two-way iCal (Airbnb / Booking.com / Vrbo)                                                                                                                                                                                                                                                                                                                                       | `calendarSync` (Pro+)                                                              |
+| Review automation     | Auto-review guests after checkout + AI drafts for host reviews and public responses                                                                                                                                                                                                                                                                                              | `reviewAutomation` (Pro+); core reviews ungated                                    |
+| Smart pricing         | AI nightly rates + autopilot cron                                                                                                                                                                                                                                                                                                                                                | `smartPricing`                                                                     |
+| Guest Inbox           | Meta + web chat, AI replies                                                                                                                                                                                                                                                                                                                                                      | inbox leaves                                                                       |
+| Marketing Studio      | Theme-first ([themes](./marketing-themes.md)); AI Studio first (conversations: one card per creation, versions and plain-words refining inside), then Posts / Videos / Calendar each a Library → focus-mode editor (soft delete, 30-day Recently deleted); Polotno, Remotion, Gemini/Veo generate, AI Post posters ([poster studio](./marketing-poster-studio.md)), Meta publish | `marketingStudio` + generate keys                                                  |
+| Finance / Maintenance | Line items, recurrence, Telegram reminders                                                                                                                                                                                                                                                                                                                                       | matching leaves                                                                    |
+| Parking marketplace   | Broadcast, claim, PayMongo, endorsement                                                                                                                                                                                                                                                                                                                                          | parking RBAC                                                                       |
+| AI assistant          | Dashboard chat + tools (sheet in Advanced mode, full-page AI mode with page canvas), credit wallet                                                                                                                                                                                                                                                                               | org credits + allowlist; `aiDashboardAssistant` plan gate; AI mode platform switch |
+| Host Analytics        | Occupancy / ADR bundle, AI review                                                                                                                                                                                                                                                                                                                                                | view free; `analyticsInsights` on export / AI generate                             |
+| PWA                   | Install offer, `/app` launch resolver, tiered precache, offline read + drafts, inbox/notification outbox, Web Push with per-user badge                                                                                                                                                                                                                                           | deepest on host dashboard                                                          |
+
+**Support content is docs-driven.** `docs/guides/routes/**` Host-facing knowledge feeds `ai_dashboard_assistant_knowledge_base` (Help Center Guides + AI assistant). `docs/guides/support/faqs.md` feeds `help_center_faqs` (`origin = 'synced'`), which powers the Help Center FAQs tab, guest `/account/help`, and public `/support` through `list-public-support-faqs`. `bun run sync:support-content` writes both; the `Sync support content` workflow runs it on `develop` for docs changes. `origin = 'manual'` FAQs stay super-admin authored and are never touched by the sync.
 
 **Billing is org-level only** (`org_subscriptions`). A property left out of enrollment resolves to Free. Plans UI: `/org/:orgSlug/plans`. Matrix: [`plans-feature-matrix.md`](plans-feature-matrix.md).
 
@@ -221,6 +226,8 @@ flowchart TD
 | Parking                       | `resolveScopedParkingAccess` (separate catalog)                                  |
 | Super-admin                   | `SUPER_ADMIN_EMAILS`. Mutating `serveSuperAdmin` needs `requireSuperAdminStepUp` |
 
+Super admins can also turn host modules off globally (maintenance / provider issue) from `/admin/feature-availability`; hosts see reason copy and the server returns 503 `FEATURE_UNAVAILABLE`. See [`feature-availability.md`](feature-availability.md).
+
 **Plans vs team:** permission = can you see it; plan = can you use it (`requirePropertyPermissionAndFeature`). Property templates: Full Access / Operations / Read Only. Org team is Owner + Admin only. Parking still uses coarse MANAGER / STAFF / VIEWER.
 
 Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-auth.mdc`.
@@ -231,14 +238,14 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 
 **Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
 
-| Cluster  | Examples                                                                                                                                                      | Access                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations                                                                                               | Edge + membership                         |
-| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews                                                                                                | Scoped RLS on some reads; writes via edge |
-| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                   | Service role                              |
-| Inbox    | `social_*` conversations and messages                                                                                                                         | Service role                              |
-| AI       | credit wallet / ledger, assistant messages + feedback, per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
-| Audit    | `activity_log` (append-only), `notifications`, `push_subscriptions`                                                                                           | Service role                              |
+| Cluster  | Examples                                                                                                                                                                                                           | Access                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Tenancy  | `organizations`, `properties`, `parkings`, members, invitations                                                                                                                                                    | Edge + membership                         |
+| Bookings | `guest_submissions`, blocked dates, calendar feeds, AI reviews                                                                                                                                                     | Scoped RLS on some reads; writes via edge |
+| Money    | `org_subscriptions`, PayMongo ledgers, `finance_line_items`                                                                                                                                                        | Service role                              |
+| Inbox    | `social_*` conversations and messages                                                                                                                                                                              | Service role                              |
+| AI       | credit wallet / ledger, assistant messages + feedback, guest web-chat AI thumbs (`guest_chat_ai_feedback`), per-user `user_ui_preferences` (dashboard mode), assistant golden eval runs, marketing generation jobs | Service role                              |
+| Audit    | `activity_log` (append-only), `notifications`, `notification_preferences`, `push_subscriptions`                                                                                                                    | Service role                              |
 
 Schema: [`data-model.md`](data-model.md).
 
@@ -269,6 +276,8 @@ flowchart LR
 
 Canonical spec: `.cursor/rules/booking-workflow.mdc`. Host walkthrough: [`booking-flow-guide-for-admin.md`](../archive/reference/booking-flow-guide-for-admin.md).
 
+**Cancellation.** Every booking carries an immutable `cancellation_policy_snapshot` captured at booking time. Guests cancel (instant policies) or request to cancel (request-mode / custom / unset policies) from `/properties/:slug/trip`; hosts approve or decline, and can cancel with a reason and a refund preview. The refund is computed from the snapshot in Asia/Manila time, capped at cash actually paid, and tracked in `booking_refunds` until the host marks it sent. Guest and host cancellation emails are orchestrator side effects. Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
+
 ---
 
 ## 9. Integrations and jobs
@@ -284,7 +293,7 @@ flowchart LR
   EF --> PostHog[PostHog events + errors]
   EF --> Maps[Google Maps]
   N[notifications INSERT] --> PN[pg_net]
-  PN --> Push[push-fanout → Web Push]
+  PN --> Push[push-fanout → preferences filter → Web Push]
 ```
 
 | Vendor              | Role                                                                                                                                                                  |
@@ -297,7 +306,7 @@ flowchart LR
 | PostHog             | Product events + exceptions (UI catalog + edge conversions)                                                                                                           |
 | Google Maps         | Listing location pickers and public maps                                                                                                                              |
 
-**Cron examples:** `sd-refund-cron`, `calendar-sync-cron` (30m), `smart-pricing-cron`, `platform-billing-cron`, `expire-parking-broadcasts` (5m), five `telegram-*-cron` jobs, `meta-inbox-webhook-healthcheck`, `superhost-assessment-cron`, `analytics-ai-review-cron`, SQL-only `ai-data-retention-nightly`, `marketing-generation-sweeper` (1m), `activity-log-retention-cron`, `query-cache-sweep-cron`. Hosted only; local has no `pg_cron` unless you install it. Runbook: [`scheduled-jobs-and-testing.md`](../archive/operations/scheduled-jobs-and-testing.md). Detail: [`integrations.md`](integrations.md).
+**Cron examples:** `sd-refund-cron`, `calendar-sync-cron` (30m), `smart-pricing-cron`, `platform-billing-cron`, `expire-parking-broadcasts` (5m), five `telegram-*-cron` jobs, `meta-inbox-webhook-healthcheck`, `superhost-assessment-cron`, `analytics-ai-review-cron`, SQL-only `ai-data-retention-nightly`, `marketing-generation-sweeper` (1m), `activity-log-retention-cron`, `query-cache-sweep-cron`, `review-lifecycle-cron` (hourly). Hosted only; local has no `pg_cron` unless you install it. Runbook: [`scheduled-jobs-and-testing.md`](../archive/operations/scheduled-jobs-and-testing.md). Detail: [`integrations.md`](integrations.md).
 
 ---
 
@@ -305,11 +314,13 @@ flowchart LR
 
 Until multi-tenant cutover, **two parallel stacks** share this git repo. Do not cross-wire. Production Supabase writes need the unlock word **`kamewave`**.
 
-| Track               | Git                  | Vercel                      | Supabase               | URL                   |
-| ------------------- | -------------------- | --------------------------- | ---------------------- | --------------------- |
-| Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production     |
-| Multi-tenant WIP    | `develop`            | `kame-homes` Preview        | `fworvijbrwpyngycotbz` | `dev.kamehomes.space` |
-| mt-prod (deferred)  | `main` after cutover | `kame-homes` Production     | Create at release      | `app.kamehomes.space` |
+| Track               | Git                  | Vercel                      | Supabase               | URL               |
+| ------------------- | -------------------- | --------------------------- | ---------------------- | ----------------- |
+| Live users (legacy) | `main` (hotfixes)    | `guest-form-management-app` | `zfttdwtceyqszyeyhilc` | Legacy production |
+| Multi-tenant WIP    | `develop`            | `kame-space` Preview        | `fworvijbrwpyngycotbz` | `kamespace.com`   |
+| Multi-tenant prod   | `main` after cutover | `kame-space` Production     | `fworvijbrwpyngycotbz` | `kamespace.com`   |
+
+**2026-10-27:** `fworvijbrwpyngycotbz` is both the dev and the production project until a separate dev project is created after launch. The T0 cutover is [here](../archive/operations/legacy-to-mt-prod-migration.md).
 
 **CI:** `.github/workflows/ci.yml` runs five parallel jobs into a required `quality` gate. `cd-dev.yml` adds Playwright `@ci` then deploys `develop`. Local parity: `bun run ci:quality`.
 
@@ -351,7 +362,7 @@ Folder conventions: `.cursor/rules/architecture.mdc`. UI map: [`project-structur
 
 **Nuclear reset:** `bun run stop:supabase:clean` deletes Docker volumes (all local DB data is lost). Then `bun run start:supabase`.
 
-Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need the UI. PWA service worker is **off** under `vite` (it would fight HMR); test with `bun run build` + `preview`, or `VITE_PWA_DEV=true`.
+Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need the UI. PWA service worker is **off** under `vite` (it would fight HMR); test with `bun run build` + `preview`, `bun run test:e2e:pwa`, or `VITE_PWA_DEV=true`.
 
 ---
 
@@ -368,7 +379,9 @@ Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need th
 | Deploy / dual-track           | [`deployment.md`](deployment.md)                         |
 | PWA                           | [`pwa.md`](pwa.md)                                       |
 | Unsaved-changes guard         | [`unsaved-changes.md`](unsaved-changes.md)               |
+| Contextual help               | [`contextual-help.md`](contextual-help.md)               |
 | Plans / entitlements          | [`plans-feature-matrix.md`](plans-feature-matrix.md)     |
+| Feature availability (global) | [`feature-availability.md`](feature-availability.md)     |
 | AI platform (gateway, evals)  | [`ai-platform.md`](ai-platform.md)                       |
 | AI dashboard assistant        | [`ai-dashboard-assistant.md`](ai-dashboard-assistant.md) |
 | Smart pricing                 | [`smart-pricing.md`](smart-pricing.md)                   |

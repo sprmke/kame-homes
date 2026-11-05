@@ -1,3 +1,5 @@
+import { whenMarketingRendersAllowed } from '@/features/dashboard/marketing/lib/marketingRenderGate';
+
 let globalRenderLock: Promise<unknown> = Promise.resolve();
 
 /**
@@ -10,7 +12,9 @@ let globalRenderLock: Promise<unknown> = Promise.resolve();
  * "thumbnails aren't rendering" even though both are technically working.
  */
 export function withGlobalRenderSlot<T>(task: () => Promise<T>): Promise<T> {
-  const run = globalRenderLock.then(task, task);
+  // Never start a heavy render while the host is dragging, typing or playing video.
+  const gated = () => whenMarketingRendersAllowed().then(task);
+  const run = globalRenderLock.then(gated, gated);
   globalRenderLock = run.then(
     () => undefined,
     () => undefined

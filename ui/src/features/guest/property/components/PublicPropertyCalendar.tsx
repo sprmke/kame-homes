@@ -14,7 +14,6 @@ import { usePropertyReserve } from '@/features/guest/marketing/properties/hooks/
 import { GuestStayDateRangeDisplay } from '@/features/guest/property/components/GuestStayDateRangeDisplay';
 
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -310,7 +309,13 @@ export function PublicPropertyCalendar({
           }
 
           if (isLoading) {
-            return <Skeleton key={`loading-${cell.day}`} className={dayCellClass} />;
+            return (
+              <div key={`loading-${cell.day}`} className={cn(dayCellClass, 'bg-muted/30 relative')}>
+                <span className="text-muted-foreground/60 absolute inset-0 flex items-center justify-center text-sm font-medium">
+                  {cell.day}
+                </span>
+              </div>
+            );
           }
 
           const state = getDayState(cell.day);
@@ -338,7 +343,7 @@ export function PublicPropertyCalendar({
                   'text-primary ring-primary cursor-pointer font-bold ring-2',
                 !isCustom &&
                   (state === 'checkIn' || state === 'checkOut') &&
-                  'bg-primary text-primary-foreground cursor-pointer font-semibold shadow-sm',
+                  'bg-primary-strong text-primary-foreground cursor-pointer font-semibold shadow-sm',
                 !isCustom &&
                   state === 'inRange' &&
                   'bg-primary/10 text-primary cursor-pointer rounded-xl',
@@ -409,7 +414,7 @@ export function PublicPropertyCalendar({
                 'min-h-[44px] w-full shrink-0 rounded-full px-5 text-white sm:w-auto sm:self-center',
                 isCustom
                   ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-primary-strong text-primary-foreground hover:bg-primary-strong/90'
               )}
             >
               Book Now

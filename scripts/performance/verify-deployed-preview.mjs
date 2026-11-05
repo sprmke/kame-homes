@@ -5,7 +5,7 @@
  * headers for HTML vs hashed assets.
  *
  * Usage:
- *   PREVIEW_URL=https://dev.kamehomes.space node scripts/performance/verify-deployed-preview.mjs
+ *   PREVIEW_URL=https://<deployment>.vercel.app node scripts/performance/verify-deployed-preview.mjs
  *   bun run verify:deployed-preview
  *
  * Optional:
@@ -25,7 +25,7 @@ function fail(msg) {
 }
 
 if (!previewUrl) {
-  fail('Set PREVIEW_URL (e.g. https://dev.kamehomes.space)');
+  fail('Set PREVIEW_URL (e.g. https://<deployment>.vercel.app)');
 }
 
 async function head(url, headers = {}) {
@@ -72,6 +72,52 @@ if (!enc.includes('br') && !enc.includes('gzip')) {
 }
 assertIncludes(jsBr.headers, 'cache-control', 'immutable', 'hashed JS');
 
+// Every chunk the shell can reach must exist in THIS deployment. A stale tab (or a PWA
+// shell from a previous release) otherwise crashes on a lazy route with
+// "Failed to fetch dynamically imported module"; the chunks it was built with are gone.
+const entrySource = await getText(`${previewUrl}${jsPath}`);
+const assetPaths = new Set();
+for (const m of html.matchAll(/\/assets\/[A-Za-z0-9_.-]+\.(?:js|css)/g)) assetPaths.add(m[0]);
+for (const m of entrySource.matchAll(/["'](?:\.\/)?assets\/[A-Za-z0-9_.-]+\.(?:js|css)["']/g)) {
+  assetPaths.add(`/${m[0].replace(/["']/g, '').replace(/^\.\//, '')}`);
+}
+if (assetPaths.size < 10) {
+  fail(`only ${assetPaths.size} asset references found — build manifest looks wrong`);
+}
+const queue = [...assetPaths];
+const missing = [];
+await Promise.all(
+  Array.from({ length: 8 }, async () => {
+    for (let path = queue.shift(); path; path = queue.shift()) {
+      const res = await head(`${previewUrl}${path}`);
+      if (res.status !== 200) missing.push(`${res.status} ${path}`);
+    }
+  })
+);
+if (missing.length > 0) {
+  fail(
+    `${missing.length}/${assetPaths.size} assets missing from this deployment:\n  ${missing.slice(0, 20).join('\n  ')}`
+  );
+}
+console.log(`verify-deployed-preview: ${assetPaths.size} assets reachable`);
+
+// posthog-js posts to /ingest/i/v0/e/ WITH a trailing slash. When the rewrite misses it the
+// request falls through to index.html and Vercel answers 405, silently dropping every event.
+const ingest = await fetch(`${previewUrl}/ingest/i/v0/e/`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: '{}',
+  redirect: 'follow',
+});
+const ingestType = ingest.headers.get('content-type') ?? '';
+if (ingest.status === 405 || ingest.status === 404 || ingestType.includes('text/html')) {
+  fail(
+    `POST /ingest/i/v0/e/ returned ${ingest.status} (${ingestType || 'no content-type'}) — ` +
+      'the analytics proxy fell through to the SPA; every capture is dropped'
+  );
+}
+console.log(`verify-deployed-preview: analytics proxy OK (${ingest.status})`);
+
 const mapProbe = await head(`${previewUrl}${jsPath}.map`);
 if (mapProbe.status === 200) {
   fail(`${jsPath}.map is publicly reachable (status 200)`);
@@ -116,7 +162,9 @@ const pwaCacheOk =
   pwaCache.includes('must-revalidate') ||
   pwaCache.includes('no-store');
 if (!pwaCacheOk) {
-  fail(`pwa-version.json: expected no-cache, must-revalidate, or no-store, got "${pwaCache || '(missing)'}"`);
+  fail(
+    `pwa-version.json: expected no-cache, must-revalidate, or no-store, got "${pwaCache || '(missing)'}"`
+  );
 }
 let pwaVersion;
 try {

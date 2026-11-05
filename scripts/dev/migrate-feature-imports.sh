@@ -28,7 +28,6 @@ replace_in_tree() {
         -e 's|@/features/dashboard/property/lib/|@/features/dashboard/property/lib/|g' \
         -e 's|@/features/dashboard/property/routes|@/features/dashboard/property/routes|g' \
         -e 's|@/components/branding/KameFormBrandHeader|@/components/branding/KameFormBrandHeader|g' \
-        -e 's|@/components/branding/KameHomesBrandIcon|@/components/branding/KameHomesBrandIcon|g' \
         -e 's|@/components/branding/GoogleMark|@/components/branding/GoogleMark|g' \
         -e 's|@/components/branding/TeamLogoMark|@/components/branding/TeamLogoMark|g' \
         -e 's|@/components/navigation/AdminEntryButton|@/components/navigation/AdminEntryButton|g' \

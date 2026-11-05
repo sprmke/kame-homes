@@ -247,7 +247,7 @@ export function Wordmark({ size = 30, color }: { size?: number; color?: string }
       }}
     >
       <Diamond size={size * 0.62} color={t.mark} />
-      Kame Homes
+      Kame Space
     </div>
   );
 }
@@ -287,7 +287,7 @@ export function Cta({
   );
 }
 
-export const SITE = 'kamehomes.space';
+export const SITE = 'kamespace.com';
 
 /** Display line width in em: Jakarta Bold advances with the -0.045em headline tracking. */
 const lineEm = (l: string) =>

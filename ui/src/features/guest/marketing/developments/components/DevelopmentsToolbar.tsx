@@ -52,7 +52,7 @@ export function DevelopmentsToolbar({
             onClick={onToggleFilters}
             className={cn(
               'hidden h-9 gap-2 lg:inline-flex',
-              filtersOpen && 'border-primary bg-primary/10 text-primary hover:bg-primary/15'
+              filtersOpen && 'border-primary bg-primary/10 text-brand-ink hover:bg-primary/15'
             )}
           >
             <SlidersHorizontal className="h-4 w-4" aria-hidden />

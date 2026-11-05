@@ -8,9 +8,13 @@ export const ATTACHED_CONTEXT_TYPES = [
   'pricing_date',
   'inbox_conversation',
   'marketing_template',
+  'marketing_theme',
+  'review',
+  'voucher',
   'notification_module',
   'public_page',
   'ticket',
+  'property_template',
 ] as const;
 
 export type AttachedContextType = (typeof ATTACHED_CONTEXT_TYPES)[number];

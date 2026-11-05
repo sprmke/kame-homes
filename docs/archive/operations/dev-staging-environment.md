@@ -7,6 +7,8 @@ updated: 2026-08-09
 
 # Dev / staging environment — setup & daily workflows
 
+> **Retired 2026-11-03.** There is no separate hosted dev environment. `fworvijbrwpyngycotbz` serves production on `kamespace.com`, and `dev.kamehomes.space` has been removed from Vercel and the Auth allow list. This document is kept for local setup and historical reference; any command that writes to Supabase is a production action and needs **`kamewave`**.
+
 Use this runbook to stand up a **separate dev Supabase project** (different account from production), wire **`kame-homes`** Vercel to it, and work locally **without the full Docker stack** when you only need UI or edge-function iteration.
 
 ### Dual-track (multi-tenant WIP)

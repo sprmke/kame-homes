@@ -54,7 +54,7 @@ export function ForHostsPage() {
                 transition={{ delay: 0.4 }}
                 className="public-lead text-muted-foreground mx-auto mb-6 max-w-3xl md:mb-9 dark:text-white/70"
               >
-                Bookings, guest messages, finance, marketing, and operations stay connected—so work
+                Bookings, guest messages, finance, marketing, and operations stay connected, so work
                 keeps moving when you step away.
               </motion.p>
 
@@ -66,7 +66,7 @@ export function ForHostsPage() {
               >
                 <Button
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 shadow-primary/30 h-11 rounded-full px-7 text-[15px] font-semibold text-white shadow-lg md:h-12 md:text-base"
+                  className="bg-primary-strong hover:bg-primary/90 shadow-primary/30 h-11 rounded-full px-7 text-[15px] font-semibold text-white shadow-lg md:h-12 md:text-base"
                   asChild
                 >
                   <Link to="/for-hosts/login">

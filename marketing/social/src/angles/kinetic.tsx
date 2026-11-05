@@ -28,10 +28,10 @@ export const manifestoEnglish: ManifestoCopy = {
   kicker: 'What you signed up for',
   chores: ['Receipts.', 'Screenshots.', 'GAF emails.', 'Spreadsheets.'],
   big: 'Guests.',
-  sub: 'Kame Homes handles the rest.',
+  sub: 'Kame Space handles the rest.',
   open: ['You started', 'hosting for', 'the guests.'],
   notFor: 'Not for',
-  close: ['Kame Homes', 'does the admin.'],
+  close: ['Kame Space', 'does the admin.'],
   closeAccent: 1,
   outro: 'You do the hosting.',
 };

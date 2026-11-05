@@ -1,6 +1,6 @@
 /**
  * Shared detection + messaging for anti-spam rejections from edge functions.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 3 / Phase 5)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 3 / Phase 5)
  *
  * Server envelopes:
  *   - CAPTCHA:    400 { success:false, error, captchaFailed:true }

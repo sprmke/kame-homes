@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 
+import { buildPropertyPageViewRequest } from '@/features/guest/marketing/properties/lib/propertyPageViewRequest';
+
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const SESSION_STORAGE_KEY = 'kh_pv_session_id';
@@ -33,7 +35,7 @@ export function usePropertyPageViewTracking(propertyId: string | undefined, enab
   useEffect(() => {
     if (!enabled || !propertyId || !FUNCTIONS_URL || !ANON_KEY) return;
 
-    const payload = JSON.stringify({
+    const [url, init] = buildPropertyPageViewRequest(FUNCTIONS_URL, ANON_KEY, {
       propertyId,
       sessionId: readOrCreateSessionId(),
       referrer: document.referrer || undefined,
@@ -42,32 +44,7 @@ export function usePropertyPageViewTracking(propertyId: string | undefined, enab
       utmCampaign: utmParam('utm_campaign'),
     });
 
-    const url = `${FUNCTIONS_URL}/property-page-view`;
-    // sendBeacon can't set custom headers, so the (public, already client-bundled) anon key
-    // travels as a query param instead of the usual apikey/Authorization headers — Supabase's
-    // Kong gateway accepts either.
-    const beaconUrl = `${url}?apikey=${encodeURIComponent(ANON_KEY)}`;
-
-    try {
-      if (navigator.sendBeacon) {
-        const blob = new Blob([payload], { type: 'application/json' });
-        navigator.sendBeacon(beaconUrl, blob);
-        return;
-      }
-    } catch {
-      // fall through to fetch
-    }
-
-    fetch(url, {
-      method: 'POST',
-      keepalive: true,
-      headers: {
-        'content-type': 'application/json',
-        apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
-      },
-      body: payload,
-    }).catch(() => {
+    fetch(url, init).catch(() => {
       // Best-effort — never surface a tracking failure to the guest.
     });
     // Only fire once per property mount, not on every referrer/param change.

@@ -7,7 +7,7 @@
  * before execution (dashboardAssistantSafetyGuard.ts#assertActionSafeToExecute). It's fully
  * deterministic and DB-free, so this file is what closes the "owner with a foreign propertyId →
  * tier2 (never silently auto-executed)" and "guard re-derivation blocks a stale/mismatched tier"
- * cases from docs/workflow/for-testing/ai-llm-best-practices-hardening.md's Verification list —
+ * cases from docs/workflow/in-progress/production-readiness/audits/ai-llm-best-practices-hardening.md's Verification list —
  * the two items in that list that don't require a live DB round-trip.
  */
 
@@ -26,16 +26,16 @@ const BOOKING_B = '00000000-0000-0000-0000-0000000000d4';
 
 // ─── isTierSufficient ────────────────────────────────────────────────────────
 
-Deno.test('isTierSufficient — equal tiers are sufficient', () => {
+Deno.test('isTierSufficient - equal tiers are sufficient', () => {
   assertEquals(isTierSufficient('tier1_auto', 'tier1_auto'), true);
 });
 
-Deno.test('isTierSufficient — a higher executing tier covers a lower requirement', () => {
+Deno.test('isTierSufficient - a higher executing tier covers a lower requirement', () => {
   assertEquals(isTierSufficient('tier2_confirmed', 'tier1_auto'), true);
   assertEquals(isTierSufficient('tier2_confirmed', 'tier0_read'), true);
 });
 
-Deno.test('isTierSufficient — a lower executing tier never covers a higher requirement', () => {
+Deno.test('isTierSufficient - a lower executing tier never covers a higher requirement', () => {
   assertEquals(isTierSufficient('tier1_auto', 'tier2_confirmed'), false);
   assertEquals(isTierSufficient('tier0_read', 'tier1_auto'), false);
   assertEquals(isTierSufficient('tier0_read', 'tier2_confirmed'), false);
@@ -44,14 +44,14 @@ Deno.test('isTierSufficient — a lower executing tier never covers a higher req
 // ─── classifyActionRisk — read / tier1 / tier2-only catalogs ────────────────
 
 Deno.test(
-  'classifyActionRisk — a cataloged read tool is always tier0, regardless of payload',
+  'classifyActionRisk - a cataloged read tool is always tier0, regardless of payload',
   () => {
     const tier = classifyActionRisk({ toolName: 'get_booking', targetBookingId: BOOKING_A });
     assertEquals(tier, 'tier0_read');
   }
 );
 
-Deno.test('classifyActionRisk — a TIER2_ONLY tool is tier2 even with an in-scope target', () => {
+Deno.test('classifyActionRisk - a TIER2_ONLY tool is tier2 even with an in-scope target', () => {
   const tier = classifyActionRisk({
     toolName: 'propose_cancel_booking',
     targetBookingId: BOOKING_A,
@@ -60,7 +60,7 @@ Deno.test('classifyActionRisk — a TIER2_ONLY tool is tier2 even with an in-sco
   assertEquals(tier, 'tier2_confirmed');
 });
 
-Deno.test('classifyActionRisk — a TIER1_ONLY tool is tier1 when in scope and not bulk', () => {
+Deno.test('classifyActionRisk - a TIER1_ONLY tool is tier1 when in scope and not bulk', () => {
   const tier = classifyActionRisk({
     toolName: 'propose_mark_inbox_thread_read',
     targetBookingId: BOOKING_A,
@@ -72,7 +72,7 @@ Deno.test('classifyActionRisk — a TIER1_ONLY tool is tier1 when in scope and n
 // ─── classifyActionRisk — cross-scope escalation (the P0 "foreign propertyId" fix) ──
 
 Deno.test(
-  'classifyActionRisk — targeting a propertyId outside the page/attached scope escalates to tier2',
+  'classifyActionRisk - targeting a propertyId outside the page/attached scope escalates to tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_mark_inbox_thread_read',
@@ -84,7 +84,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — targeting a bookingId outside the page/attached scope escalates to tier2',
+  'classifyActionRisk - targeting a bookingId outside the page/attached scope escalates to tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_mark_inbox_thread_read',
@@ -96,7 +96,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — an attached-context pin extends scope without forcing tier2',
+  'classifyActionRisk - an attached-context pin extends scope without forcing tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_mark_inbox_thread_read',
@@ -109,7 +109,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — no page/attached scope at all is not treated as cross-scope',
+  'classifyActionRisk - no page/attached scope at all is not treated as cross-scope',
   () => {
     // No scope recorded for the turn means there is nothing to compare the target against — the
     // classifier does not invent a mismatch, it only escalates when a *different* id is on record.
@@ -123,7 +123,7 @@ Deno.test(
 
 // ─── classifyActionRisk — bulk / untrusted-content escalation ───────────────
 
-Deno.test('classifyActionRisk — isBulk always forces tier2, even for a TIER1_ONLY tool', () => {
+Deno.test('classifyActionRisk - isBulk always forces tier2, even for a TIER1_ONLY tool', () => {
   const input: ActionRiskInput = {
     toolName: 'propose_mark_inbox_thread_read',
     targetBookingId: BOOKING_A,
@@ -136,7 +136,7 @@ Deno.test('classifyActionRisk — isBulk always forces tier2, even for a TIER1_O
 // ─── classifyActionRisk — propose_transition_booking (statusMachine-derived) ─
 
 Deno.test(
-  'classifyActionRisk — a plain forward transition with no financial fields is tier1',
+  'classifyActionRisk - a plain forward transition with no financial fields is tier1',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -147,7 +147,7 @@ Deno.test(
   }
 );
 
-Deno.test('classifyActionRisk — transitioning to CANCELLED is always tier2', () => {
+Deno.test('classifyActionRisk - transitioning to CANCELLED is always tier2', () => {
   const input: ActionRiskInput = {
     toolName: 'propose_transition_booking',
     fromStatus: 'PENDING_REVIEW',
@@ -157,7 +157,7 @@ Deno.test('classifyActionRisk — transitioning to CANCELLED is always tier2', (
 });
 
 Deno.test(
-  'classifyActionRisk — refund finalization (PENDING_SD_REFUND -> COMPLETED) is tier2',
+  'classifyActionRisk - refund finalization (PENDING_SD_REFUND -> COMPLETED) is tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -169,7 +169,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — a forward transition carrying a financial payload field is tier2',
+  'classifyActionRisk - a forward transition carrying a financial payload field is tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -182,7 +182,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — a zero/false financial field still counts as present (not stripped as falsy)',
+  'classifyActionRisk - a zero/false financial field still counts as present (not stripped as falsy)',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -195,7 +195,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — a manual-override-only edge (not a primary graph edge) is tier2',
+  'classifyActionRisk - a manual-override-only edge (not a primary graph edge) is tier2',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -207,7 +207,7 @@ Deno.test(
 );
 
 Deno.test(
-  'classifyActionRisk — an unrecognized status string is tier2, never a thrown error',
+  'classifyActionRisk - an unrecognized status string is tier2, never a thrown error',
   () => {
     const input: ActionRiskInput = {
       toolName: 'propose_transition_booking',
@@ -220,7 +220,7 @@ Deno.test(
 
 // ─── classifyActionRisk — safe fallback for uncatalogued tools ──────────────
 
-Deno.test('classifyActionRisk — an uncatalogued tool name defaults to tier2 (fail closed)', () => {
+Deno.test('classifyActionRisk - an uncatalogued tool name defaults to tier2 (fail closed)', () => {
   const input: ActionRiskInput = { toolName: 'propose_something_not_in_any_catalog' };
   assertEquals(classifyActionRisk(input), 'tier2_confirmed');
 });

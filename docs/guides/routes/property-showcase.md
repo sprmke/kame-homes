@@ -42,13 +42,13 @@ Showcase is a one-page link you can send to guests with your property’s photos
 - Q: Where do I edit Showcase?
   A: Property → Public Pages → Showcase → Edit. Every plan can open the editor; saving needs Pro.
 - Q: Why does the guest link show a plan message I can’t close?
-  A: The live Showcase page isn’t available on this property’s plan. Guests see a short message and a **Home** link back to Explore — ask the host to upgrade or fix the link.
+  A: The live Showcase page isn’t available on this property’s plan. Guests see a short message and a **Home** link back to Explore - ask the host to upgrade or fix the link.
 - Q: Why is the guest link “Not available”?
   A: Publish it in the Showcase editor. Draft showcases stay private.
 - Q: Which plan includes Showcase?
   A: Pro and above (live page + save). Free can open the editor to explore.
 - Q: Can I use my own uploaded photos beyond the gallery?
-  A: Not yet — image slots pick from existing property media.
+  A: Not yet - image slots pick from existing property media.
 - Q: What’s the difference between Showcase and the Property listing?
   A: The listing lives in the marketing site with booking widgets. Showcase is a single scrollable landing page with its own look and motion, meant to share as a link.
 - Q: Why don’t Parallax / Canvas do anything?

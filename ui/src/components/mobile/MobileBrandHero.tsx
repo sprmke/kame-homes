@@ -1,10 +1,9 @@
 import { forwardRef, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react';
 
 import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
-import { SidebarTenantScope } from '@/features/dashboard/org/components/TenantSwitchers';
-import { SuperAdminSidebarScope } from '@/features/dashboard/super-admin/components/SuperAdminSidebarScope';
 
 import { MobilePageStack } from '@/components/mobile/FloatingPanel';
+import { HeroTenantScope } from '@/components/mobile/HeroTenantScope';
 import { MobileStickyChrome } from '@/components/mobile/MobileStickyChrome';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { useMobileHeroCollapseProgress } from '@/hooks/useMobileHeroCollapseProgress';
@@ -92,11 +91,7 @@ export const MobileBrandHero = forwardRef<HTMLElement, MobileBrandHeroProps>(
           style={chromeStyle}
         >
           <div className="min-w-0 flex-1">
-            {superAdmin ? (
-              <SuperAdminSidebarScope collapsed={false} variant="onPrimary" />
-            ) : (
-              <SidebarTenantScope collapsed={false} variant="onPrimary" />
-            )}
+            <HeroTenantScope superAdmin={superAdmin} />
           </div>
           {trailing ? <div className="flex shrink-0 items-center gap-0.5">{trailing}</div> : null}
         </div>

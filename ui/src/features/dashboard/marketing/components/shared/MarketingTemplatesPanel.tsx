@@ -28,6 +28,7 @@ import {
   useSaveMarketingTemplate,
   type MarketingTemplateRecord,
 } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { useMarketingTemplateThumbnails } from '@/features/dashboard/marketing/hooks/useMarketingTemplateThumbnails';
 import type { CollageStartFrom } from '@/features/dashboard/marketing/lib/collage/collageTypes';
 import { DESIGN_CUSTOM_SOURCE_PRESET_ID } from '@/features/dashboard/marketing/lib/designAutosave';
@@ -121,6 +122,10 @@ type Props = {
   /** Video: hide rename/delete on template cards; use editor settings instead */
   videoTemplateMenus?: 'minimal' | 'full';
   brandColor?: string;
+  /** Active marketing theme: preset thumbnails render in it. */
+  theme?: MarketingThemeTokens | null;
+  /** Theme saved items belong to (sent with "Save as template"). */
+  themeKey?: string | null;
   binding?: DesignBinding;
   /** Capture a JPEG data URL when saving a custom template (stored in designJson.thumbnailDataUrl). */
   captureSaveThumbnail?: () => Promise<string | null>;
@@ -158,6 +163,8 @@ export function MarketingTemplatesPanel({
   platform,
   videoTemplateMenus = tab === 'video' ? 'minimal' : 'full',
   brandColor,
+  theme,
+  themeKey,
   binding,
   captureSaveThumbnail,
   getThumbnailUrl: getThumbnailUrlProp,
@@ -216,6 +223,7 @@ export function MarketingTemplatesPanel({
             presetIds: visiblePresetIds,
             format: format as VideoFormat,
             brandColor,
+            theme,
             binding,
             savedRecords: visibleSavedRecords,
           }
@@ -223,9 +231,10 @@ export function MarketingTemplatesPanel({
             contentType: 'design' as const,
             presetIds: visiblePresetIds,
             brandColor,
+            theme,
             savedRecords: visibleSavedRecords,
           },
-    [contentType, visiblePresetIds, format, brandColor, binding, visibleSavedRecords]
+    [contentType, visiblePresetIds, format, brandColor, theme, binding, visibleSavedRecords]
   );
 
   const thumbnailHook = useMarketingTemplateThumbnails(thumbnailOptions);
@@ -441,6 +450,7 @@ export function MarketingTemplatesPanel({
               contentType,
               platform,
               aspectPreset: aspectPreset ?? format,
+              ...(themeKey !== undefined ? { themeKey } : {}),
               designJson: {
                 ...designJsonPayload,
                 ...(contentType === 'design'

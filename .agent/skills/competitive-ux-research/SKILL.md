@@ -10,7 +10,7 @@ description: >-
 
 # Competitive UX Research
 
-Study how category leaders solve the **same job** before writing UI or flow code. Adapt patterns to Kame Homes constraints — do not clone competitor chrome.
+Study how category leaders solve the **same job** before writing UI or flow code. Adapt patterns to Kame Space constraints — do not clone competitor chrome.
 
 ## Skip this skill when
 
@@ -84,7 +84,7 @@ If the user attached a screenshot, treat it as the target pattern and confirm wi
 - Flow: …
 - Parallels / differences: …
 
-### Adopt for Kame Homes
+### Adopt for Kame Space
 
 - … (specific UI/flow decisions)
 
@@ -106,7 +106,7 @@ Keep the brief **≤ 25 lines** unless the user asked for deep research.
 - Host: **`/for-hosts`** + Google OAuth pages only
 - Update **`docs/guides/routes/`** when behavior is new or changed
 
-## Kame Homes defaults (from shipped patterns)
+## Kame Space defaults (from shipped patterns)
 
 | Pattern        | Our choice                                                      |
 | -------------- | --------------------------------------------------------------- |

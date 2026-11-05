@@ -67,7 +67,7 @@ echo "  2. Provision an EMPTY replacement Supabase project (or documented fresh 
 echo "  3. Link the empty project; bun run rollback:supabase:dev -- --fresh-target"
 echo "  4. bun run rollback:functions:dev -- <known-good-git-ref>"
 echo "  5. Measure wall-clock RTO; verify auth sign-in, Storage objects, crons, smoke"
-echo "  6. Record results in docs/workflow/planned/production-readiness-checklist/24-hosting-and-deployment.md"
+echo "  6. Record results in docs/workflow/in-progress/production-readiness/checklist/24-hosting-and-deployment.md"
 echo ""
 echo "Runbook: docs/archive/operations/hosted-dev-rollback-rehearsal.md"
 

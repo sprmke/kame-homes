@@ -211,7 +211,7 @@ export function parseIcsCalendar(
           // Last wins; note the earlier one.
           const idx = events.findIndex((e) => e.uid === parsed.uid);
           if (idx >= 0) events.splice(idx, 1);
-          warnings.push(`duplicate UID ${parsed.uid} — last occurrence kept`);
+          warnings.push(`duplicate UID ${parsed.uid} - last occurrence kept`);
         }
         seenUids.add(parsed.uid);
         events.push(parsed);
@@ -240,23 +240,23 @@ function finalizeEvent(
 ): ParsedCalendarEvent | null {
   const uid = cur.UID?.value?.trim();
   if (!uid) {
-    warnings.push('VEVENT missing UID — skipped');
+    warnings.push('VEVENT missing UID - skipped');
     return null;
   }
   const dtStart = cur.DTSTART;
   const dtEnd = cur.DTEND;
   if (!dtStart || !dtEnd) {
-    warnings.push(`VEVENT ${uid} missing DTSTART/DTEND — skipped`);
+    warnings.push(`VEVENT ${uid} missing DTSTART/DTEND - skipped`);
     return null;
   }
   const startDate = parseIcsDateToKey(dtStart.value, dtStart.params);
   const endDate = parseIcsDateToKey(dtEnd.value, dtEnd.params);
   if (!startDate || !endDate) {
-    warnings.push(`VEVENT ${uid} unparseable dates — skipped`);
+    warnings.push(`VEVENT ${uid} unparseable dates - skipped`);
     return null;
   }
   if (endDate <= startDate) {
-    warnings.push(`VEVENT ${uid} DTEND <= DTSTART — skipped`);
+    warnings.push(`VEVENT ${uid} DTEND <= DTSTART - skipped`);
     return null;
   }
 

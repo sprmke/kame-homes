@@ -1,6 +1,6 @@
 /**
  * Env-driven platform product branding — never hardcode a host org name here.
- * Default product name is Kame Homes. Deployments may set `VITE_PLATFORM_APP_NAME`
+ * Default product name is Kame Space. Deployments may set `VITE_PLATFORM_APP_NAME`
  * / `VITE_PLATFORM_CONTACT_EMAIL` for a different operator label.
  */
 
@@ -11,8 +11,16 @@ const envContactEmail = import.meta.env.VITE_PLATFORM_CONTACT_EMAIL?.trim();
 /** Product name for marketing, legal, tab titles, PWA install copy, and super-admin chrome. */
 export const PLATFORM_APP_NAME = resolvePlatformAppName(import.meta.env.VITE_PLATFORM_APP_NAME);
 
-/** Support / legal contact — falls back to a placeholder when unset. */
-export const PLATFORM_CONTACT_EMAIL = envContactEmail || 'support@example.com';
+/** Support / legal contact — falls back to the operator mailbox when unset. */
+export const PLATFORM_CONTACT_EMAIL = envContactEmail || 'kameworks.tech@gmail.com';
+
+/** Former product name. Disclosed on legal pages and in structured data for continuity. */
+export const FORMER_PLATFORM_APP_NAME = 'Kame Homes';
+
+/** One-line rename disclosure for legal pages. */
+export function platformFormerNameNote(): string {
+  return `${PLATFORM_APP_NAME} was previously called ${FORMER_PLATFORM_APP_NAME}.`;
+}
 
 /** @deprecated Prefer `PLATFORM_APP_NAME` — kept for gradual import migration. */
 export const APP_TITLE = PLATFORM_APP_NAME;
@@ -21,8 +29,11 @@ export const APP_TITLE = PLATFORM_APP_NAME;
 export function isLegacyPlatformOrgBrand(label: string | null | undefined): boolean {
   const value = label?.trim() ?? '';
   if (!value) return false;
-  return /^kame\s*home(?:\s*[—\-–]\s*azure\s*north(?:\s+residences?)?)?$/i.test(value);
+  return /^kame\s*homes?(?:\s*[—\-–]\s*azure\s*north(?:\s+residences?)?)?$/i.test(value);
 }
+
+/** @deprecated Use `isLegacyPlatformOrgBrand`. */
+export const isLegacyPlatformBrand = isLegacyPlatformOrgBrand;
 
 /** @deprecated Use `isLegacyPlatformOrgBrand`. */
 export const isLegacyKameHomeBrand = isLegacyPlatformOrgBrand;

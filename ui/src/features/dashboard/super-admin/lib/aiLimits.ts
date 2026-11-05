@@ -14,6 +14,10 @@ export const AI_LIMIT_KEYS = [
   'voiceMaxConcurrentSessions',
   'imageMonthlyCreditCap',
   'videoMonthlyCreditCap',
+  'assistantMaxToolRounds',
+  'assistantMaxPlanSteps',
+  'guestRequestDailyLimit',
+  'assistantTurnCreditCeiling',
 ] as const;
 
 export type AiLimitKey = (typeof AI_LIMIT_KEYS)[number];
@@ -60,6 +64,10 @@ export const AI_LIMIT_FIELDS: Record<AiLimitKey, AiLimitFieldMeta> = {
   voiceMaxConcurrentSessions: { label: 'Concurrent sessions' },
   imageMonthlyCreditCap: { label: 'Image credits / month', unit: 'credits', blankHint: '60%' },
   videoMonthlyCreditCap: { label: 'Video credits / month', unit: 'credits', blankHint: '60%' },
+  assistantMaxToolRounds: { label: 'Max tool rounds / turn', unit: 'rounds' },
+  assistantMaxPlanSteps: { label: 'Max plan steps', unit: 'steps' },
+  guestRequestDailyLimit: { label: 'Guest requests / day', unit: 'requests' },
+  assistantTurnCreditCeiling: { label: 'Turn credit ceiling', decimal: true, unit: 'credits' },
 };
 
 export type AiLimitGroup = { id: string; label: string; keys: readonly AiLimitKey[] };
@@ -83,7 +91,15 @@ export const AI_LIMIT_GROUPS: readonly AiLimitGroup[] = [
       'assistantDailyMessageLimit',
       'assistantMonthlyMessageLimit',
       'assistantDailyWriteActionLimit',
+      'assistantMaxToolRounds',
+      'assistantMaxPlanSteps',
+      'assistantTurnCreditCeiling',
     ],
+  },
+  {
+    id: 'guestReceptionist',
+    label: 'Guest receptionist',
+    keys: ['guestRequestDailyLimit'],
   },
   {
     id: 'voice',
@@ -111,6 +127,10 @@ export const ORG_OVERRIDE_KEYS: readonly AiLimitKey[] = [
   'assistantDailyMessageLimit',
   'assistantMonthlyMessageLimit',
   'assistantDailyWriteActionLimit',
+  'assistantMaxToolRounds',
+  'assistantMaxPlanSteps',
+  'guestRequestDailyLimit',
+  'assistantTurnCreditCeiling',
 ];
 
 export const PROPERTY_OVERRIDE_KEYS: readonly AiLimitKey[] = [

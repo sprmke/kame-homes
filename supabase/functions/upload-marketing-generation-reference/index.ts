@@ -16,6 +16,7 @@
  * generated asset emits `marketing.generated_asset_deleted`.
  */
 
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
 import { createServiceClient, requirePropertyPermissionAndFeature } from '../_shared/orgAuth.ts';
 import { rateLimitGate } from '../_shared/rateLimit.ts';
@@ -46,6 +47,7 @@ serveAuthenticated('upload-marketing-generation-reference', async (req) => {
   let propertyId: string;
   let organizationId: string;
   let actorUserId: string;
+  let actorEmail: string;
   try {
     const scoped = await resolveScopedPropertyAccess(req, 'marketing.generate.image:add');
     propertyId = scoped.property.id;
@@ -56,6 +58,7 @@ serveAuthenticated('upload-marketing-generation-reference', async (req) => {
       'aiMarketingImageGeneration'
     );
     actorUserId = access.user.id;
+    actorEmail = access.user.email;
     organizationId = String(scoped.property.organization_id);
   } catch (err) {
     if (err instanceof Response) return err;
@@ -67,6 +70,13 @@ serveAuthenticated('upload-marketing-generation-reference', async (req) => {
   if (req.method === 'GET') {
     const references = await listMarketingGenerationReferences(sb, propertyId);
     return jsonSuccess(req, { references });
+  }
+
+  if (req.method === 'POST') {
+    const featureBlocked = await featureUnavailableResponse(req, 'marketing.ai_studio.generate', {
+      user: { id: actorUserId, email: actorEmail },
+    });
+    if (featureBlocked) return featureBlocked;
   }
 
   const limited = await rateLimitGate(req, {

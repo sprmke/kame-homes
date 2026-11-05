@@ -35,13 +35,13 @@ Two things on one page, per Phase 4 of the parking marketplace build:
 2. **Payout ledger** — every paid parking booking (`parking_payment_transactions`, `status =
 'paid'`), with a manual "mark disbursed" and "record clawback" action per row. There is no
    automated payout yet — PayMongo Platforms split-payout requires a business application
-   Kame Homes hasn't made; this is the day-one manual path until that ships.
+   Kame Space hasn't made; this is the day-one manual path until that ships.
 
 **Access:** `RequireSuperAdmin`.
 
 **Step-up OTP:** saving commission/rate config and every mark-disbursed / record-clawback action need a fresh email verification code (~15-min sudo window) — see [`overview.md`](overview.md#step-up-verification-all-admin-pages) / `.cursor/rules/admin-auth.mdc` §8.
 
-**Browser tab title:** `Kame Homes - Parking payouts`
+**Browser tab title:** `Kame Space - Parking payouts`
 
 ---
 
@@ -114,7 +114,7 @@ Two things on one page, per Phase 4 of the parking marketplace build:
 Hosts do not see this page. What affects them: the guest rate cap (visible as the maximum they
 can price their listing at, on their own pricing page) and the commission percentage (visible as
 the "Service fee" / "You get" breakdown under each rate field). Payout disbursement itself
-currently happens manually outside the platform — a host who has been paid for a completed
+currently happens manually outside the platform - a host who has been paid for a completed
 parking booking should see this reflected by their usual payment channel (bank transfer, GCash,
 etc.), not an in-app payout notification.
 
@@ -122,9 +122,9 @@ etc.), not an in-app payout notification.
 
 - Q: When do I get paid for a parking booking?
   A: Payouts are currently handled manually by the platform team after the guest's payment is
-  confirmed — you'll be paid through your agreed channel, not automatically through the app.
+  confirmed - you'll be paid through your agreed channel, not automatically through the app.
 - Q: Why can't I set my rate above a certain amount?
-  A: The platform caps host rates at the current guest rate — pricing above it would mean the
+  A: The platform caps host rates at the current guest rate - pricing above it would mean the
   guest is charged less than you're asking, which the platform won't allow.
 
 ---

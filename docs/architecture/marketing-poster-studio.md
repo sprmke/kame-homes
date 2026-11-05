@@ -7,7 +7,7 @@ updated: 2026-09-28
 
 # Marketing Poster Studio (AI Post)
 
-Finished, editable social posts made from a property's **real photos**. The Generate tab opens on **AI Post** (plan: [`docs/workflow/in-progress/marketing-ai-poster-studio.md`](../workflow/in-progress/marketing-ai-poster-studio.md)).
+Finished, editable social posts made from a property's **real photos**. AI Studio (the first Marketing tab) opens on **Post** (plan: [`docs/workflow/in-progress/marketing-ai-poster-studio.md`](../workflow/in-progress/marketing-ai-poster-studio.md)).
 
 ## Why this shape
 
@@ -20,7 +20,7 @@ Benchmark posts from real PH staycation pages are designed posters: a real photo
 ## Flow
 
 ```
-AiPostPanel (goal · format · optional message)
+AiStudioCreate (angle · size · optional message) → AiStudioConversation.create
   → buildPosterFacts(publicProperty)              lib/poster/posterFacts.ts
   → useGeneratePosters                            hooks/useGeneratePosters.ts
       POST generate-marketing-template {contentType:'poster', goal, prompt, facts, photoUrls}
@@ -31,10 +31,22 @@ AiPostPanel (goal · format · optional message)
   → normalizePosterSpec                           lib/poster/posterSpec.ts
   → compilePosterDocument(spec, facts, format)    lib/poster/posterCompiler.ts
   → auditPosterDocument (sort worst last)         lib/poster/posterAudit.ts
-  → renderPosterDocument (offscreen Workspace)    lib/poster/posterRender.ts
+  → renderPosterDocument (offscreen Workspace)    lib/poster/posterRender.ts (dynamic import: Konva + OpenPolotno load on first render, not with AI Studio)
        + fitPosterTextSlots (real Konva metrics)  lib/polotno/fitPosterTextSlots.ts
-  → Edit: saveMarketingTemplate (category "AI posts") → Design tab opens it (openTemplateId)
+  → useAiPosterEngine.render: compactPosterPhotos (keep only the photos this post places, ≤ 6)
+  → POST marketing-ai-sessions {action:"post-versions"} — one version per layout, preview uploaded
+  → refine: POST generate-marketing-template {revise:{spec, instruction}} → 1 variant → a new version
+     shuffle / resize make a version with no AI call
+  → Edit in Posts: saveMarketingTemplate (kind design) → openItem(id, { tab: "design" })
 ```
+
+**From an example.** `AiStudioSampleDetail`'s **Use this example** fills step 2 with the sample's prompt, goal and format plus `preferredArchetype` (the archetype that example is defined against). On the first Generate of a new batch only, `preferredArchetypeLine` asks the director to lead with that layout and `preferArchetypeFirst` reorders the returned specs so it renders first if the model complies; a refine never resends it. This is a nudge, not a constraint — `groundPosterFeatures` and the normal audit still run, so a result still reflects the host's own photos and facts rather than reproducing the example.
+
+## Examples gallery (AI Studio home)
+
+`AiStudioSampleGallery` / `AiStudioSampleCard` show **post** examples as live renders, not static mockups or screenshots: `useAiStudioPostSampleRenderer` (`hooks/useAiStudioPostSamples.ts`) runs the same `buildRuleBasedPosterSpecs` → `compilePosterDocument` → `renderPosterDocument` pipeline described above, in-memory and cached (`marketingPresetThumbnailStore`, IndexedDB) so a card renders once per sample/theme/version and is reused across sessions. It never calls the director (no AI, no credits, no network) — the sample's own fixed copy and a showcase property's facts (`postSampleFacts`, falling back to `showcaseFacts` when the signed-in property has no photos yet) go straight into the deterministic compiler. A render that throws falls back to the showcase listing instead of a broken card. Photo and clip examples are pre-generated once (`scripts/marketing/ai-studio-samples/`) rather than rendered live, since they go through the real image/video models.
+
+**Scheduling.** A card's visibility gate (`useVisibleThumbnailRequest`, `rootMargin: 240px`) fires for most of the gallery almost immediately on a fresh, short home page, which would otherwise kick off the one-time dynamic `import()` of the Konva/Polotno chunk and several canvas renders synchronously during first paint. `usePostSampleImage` awaits `waitForMarketingIdle()` (`lib/marketingIdle.ts`) before calling `renderer.render()`, so that cost lands after paint and a short idle window instead of blocking it — measured via an authenticated local Lighthouse run to add ~1.4s of Total Blocking Time (23x) and drop the Marketing route's mobile performance score from 60 to 34 before this was added; after it, both are statistically identical to the gallery being absent.
 
 ## Design system (`ui/src/features/dashboard/marketing/lib/poster/`)
 
@@ -65,11 +77,15 @@ AiPostPanel (goal · format · optional message)
 
 ## Formats
 
-`instagram-portrait` (1080×1350) is a real `DesignTemplateFormat`, so AI posts open and save in the Design editor. The hand-built preset library is only tuned for 1:1, 9:16 and 1.91:1 (`DESIGN_PRESET_FORMATS`). The editor's size picker therefore lists 4:5 only while a 4:5 design is open, until those presets have been reviewed for it.
+`instagram-portrait` (1080×1350) is a real `DesignTemplateFormat`, so AI posts open and save in the Posts editor. The hand-built preset library is only tuned for 1:1, 9:16 and 1.91:1 (`DESIGN_PRESET_FORMATS`). The editor's size picker therefore lists 4:5 only while a 4:5 design is open, until those presets have been reviewed for it.
+
+## Themes
+
+Inside Marketing Studio, AI Post follows the active [theme](./marketing-themes.md): `compilePosterDocument(..., { theme })` takes the theme palette (`posterPaletteInputFromTheme`) and swaps the theme's display, body and label faces into the archetype's pairing (`themedPosterFontPairing`), keeping its script accent and effects. Shuffle changes only the layout. **Edit** saves the post into the active theme.
 
 ## Plan default
 
-The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. AI Post stays visible with its tier badge.
+AI Studio opens on **Post** when `aiMarketingGeneration` is on (Business+), and on **Photo** otherwise. Post stays visible with its tier badge.
 
 ## Robustness
 
@@ -87,20 +103,22 @@ The Generate tab opens on **AI Post** when `aiMarketingGeneration` is on (Busine
 
 ## Tests
 
-| Suite                                                         | Covers                                                                                                                                                       |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `lib/poster/posterCompiler.test.ts`                           | Every archetype × 4 formats × rich/sparse facts passes the audit; fact strings print verbatim; fonts come from the pairing; copy/label/palette/fitting rules |
-| `lib/poster/posterEdgeCases.test.ts`                          | The audit catches each issue kind; every goal with no photos, amenities or times; hostile model output; odd times/locations; unbreakable words               |
-| `lib/poster/posterEdgeParity.test.ts`                         | Archetype, font pairing and goal enums match between UI and edge                                                                                             |
-| `hooks/useGeneratePosters.test.ts`                            | Request payload, photo remapping, fallback on 503 / empty / malformed / network errors, quota rethrow                                                        |
-| `_shared/marketingPosterDirector_test.ts` (Deno)              | Amenity grounding, photo allow-list (SSRF), byte budget, bad responses, banned copy, variant sanitizing                                                      |
-| `e2e/features/marketing/marketingAiPost.spec.ts` (Playwright) | Default mode, 4 rendered posts, request body, fallback, quota path, Edit → Design with a 4:5 save, plan default                                              |
+| Suite                                                             | Covers                                                                                                                                                                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/poster/posterCompiler.test.ts`                               | Every archetype × 4 formats × rich/sparse facts passes the audit; fact strings print verbatim; fonts come from the pairing; copy/label/palette/fitting rules                                           |
+| `lib/poster/posterEdgeCases.test.ts`                              | The audit catches each issue kind; every goal with no photos, amenities or times; hostile model output; odd times/locations; unbreakable words                                                         |
+| `lib/poster/posterEdgeParity.test.ts`                             | Archetype, font pairing and goal enums match between UI and edge                                                                                                                                       |
+| `hooks/useGeneratePosters.test.ts`                                | Request payload, photo remapping, fallback on 503 / empty / malformed / network errors, quota rethrow                                                                                                  |
+| `_shared/marketingPosterDirector_test.ts` (Deno)                  | Amenity grounding, photo allow-list (SSRF), byte budget, bad responses, banned copy, variant sanitizing, `readPreferredArchetype`, `preferredArchetypeLine` (new batches only), `preferArchetypeFirst` |
+| `e2e/features/marketing/marketingAiPost.spec.ts` (Playwright)     | Default mode, 4 rendered posts, request body, fallback, quota path, Edit → Design with a 4:5 save, plan default                                                                                        |
+| `lib/aiStudioSamples.test.ts`                                     | Sample catalog shape, file paths, readiness gating, `buildAiCreateRequest` (`sampleId`), `postSampleFacts` showcase fallback                                                                           |
+| `e2e/features/marketing/marketingAiExamples.spec.ts` (Playwright) | Examples gallery on home, detail view, Use this example / Clear, Undo over typed words, a post example's `preferredArchetype` on Generate, unknown `sample` dropped quietly                            |
 
 ## Not in this slice
 
 These are separate features from the plan, not gaps in AI Post:
 
-- brand kit fields (mascot, handles, tone)
+- brand kit fields (mascot, handles, tone); colors and fonts are now covered by [themes](./marketing-themes.md)
 - cached photo analysis
 - structure-locked photo enhancement
 - a vision critic

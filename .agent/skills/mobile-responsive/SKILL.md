@@ -196,7 +196,7 @@ Always set explicit `width`/`height` or `aspect-*` classes. Use `object-cover` i
 
 ## 9. Modals and dropdowns
 
-- **Modals:** no centered `Dialog` on mobile. Every modal uses `ResponsiveModal` (centered on `lg+`, bottom sheet below); guest via `GuestDialogShell`; dashboard forms via `AdminDialogShell`. Sticky chrome → `sheetLayout="split"`. Exceptions: `AlertDialog`, full-screen media lightboxes, full-screen video tour.
+- **Modals:** no centered `Dialog` on mobile. Every modal uses `ResponsiveModal` (centered on `lg+`, bottom sheet below); guest via `GuestDialogShell`; dashboard forms via `AdminDialogShell`. Sticky chrome → `sheetLayout="split"` (desktop dialog locks to a flex column so only the body scrolls). Exceptions: `AlertDialog`, full-screen media lightboxes, full-screen video tour.
 - **Dropdowns / overflow menus:** on `max-lg`, use `MobileChoiceSheet` or `ResponsiveOverflowMenu` (marketing: `MarketingOverflowMenu`), not floating `DropdownMenu` panels. Desktop keeps `DropdownMenu`. Legacy safety net: `max-w-[calc(100vw-24px)]`.
 - `z-50` overlays; `z-40` sticky headers and bottom tab / contextual bar.
 

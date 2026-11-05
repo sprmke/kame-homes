@@ -77,7 +77,8 @@ export function RescheduleBookingModal({
 
   const nextCheckIn = checkIn ? dateToString(checkIn) : '';
   const nextCheckOut = checkOut ? dateToString(checkOut) : '';
-  const datesValid = Boolean(nextCheckIn && nextCheckOut && nextCheckOut > nextCheckIn);
+  // Same-day stays are allowed (day use); only an inverted range is invalid.
+  const datesValid = Boolean(nextCheckIn && nextCheckOut && nextCheckOut >= nextCheckIn);
   const datesChanged = nextCheckIn !== currentCheckIn || nextCheckOut !== currentCheckOut;
   const nights = datesValid ? countParkingNights(nextCheckIn, nextCheckOut) : 0;
 
@@ -89,7 +90,7 @@ export function RescheduleBookingModal({
   const disabledCheckOut = useMemo(() => {
     const matcher = createDisabledCheckoutDateMatcher(bookedDates, booking.id);
     return (date: Date) => {
-      if (checkIn && date <= checkIn) return true;
+      if (checkIn && date < checkIn) return true;
       return matcher(date);
     };
   }, [bookedDates, booking.id, checkIn]);
@@ -176,7 +177,7 @@ export function RescheduleBookingModal({
                   if (!date) return;
                   setCheckIn(date);
                   setCheckOut((prev) => {
-                    if (prev && prev > date) return prev;
+                    if (prev && prev >= date) return prev;
                     return stringToDate(getNextDay(dateToString(date)));
                   });
                 }}
@@ -189,7 +190,7 @@ export function RescheduleBookingModal({
               <DatePicker
                 date={checkOut}
                 rangeEnd={checkIn}
-                minDate={checkIn ? stringToDate(getNextDay(dateToString(checkIn))) : startOfToday()}
+                minDate={checkIn ?? startOfToday()}
                 disabled={disabledCheckOut}
                 placeholder={DATE_PICKER_DISPLAY_FORMAT}
                 className={bookingEditDatePickerClass}

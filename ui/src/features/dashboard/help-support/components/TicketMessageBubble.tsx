@@ -29,7 +29,7 @@ export function TicketMessageBubble({ message, perspective }: TicketMessageBubbl
       <div
         className={cn(
           'max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed [overflow-wrap:anywhere] sm:max-w-[70%]',
-          isOutbound ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+          isOutbound ? 'bg-primary-strong text-primary-foreground' : 'bg-muted text-foreground'
         )}
       >
         <p className="whitespace-pre-wrap">{message.body}</p>

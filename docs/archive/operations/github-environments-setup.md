@@ -64,7 +64,7 @@ Add environment variable `SMOKE_PROPERTY_SLUG` with a stable **ACTIVE public** d
 1. Push to **`develop`** with a change under `supabase/**` or `scripts/deploy/**`, or use **Actions → CD Dev → Run workflow** if wired, so **`cd-dev.yml`** deploy runs with the secret present.
 2. Open the green run → confirm the **pg_stat_statements snapshot** step did not emit `pg_stat skipped`.
 3. Download the artifact: `gh run download <run-id> -n pg-stat-statements-hosted-dev`.
-4. Copy the JSON into `docs/workflow/planned/production-readiness-checklist/baselines/` (keep the `*-pg-stat-statements-hosted-dev-ci.json` naming).
+4. Copy the JSON into `docs/workflow/in-progress/production-readiness/checklist/baselines/` (keep the `*-pg-stat-statements-hosted-dev-ci.json` naming).
 5. Update doc **00** row 4 and the checklist **README** operator section with the run id.
 
 Edge latency uses the same pattern with artifact name `edge-latency-hosted-dev`.

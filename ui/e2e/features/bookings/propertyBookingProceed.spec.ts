@@ -56,10 +56,10 @@ test.describe('@smoke @ci property booking workflow proceed', () => {
       )
       .click();
 
-    await expect(page.getByRole('button', { name: /Proceed to Pending Documents/i })).toBeVisible({
+    await expect(page.getByRole('button', { name: /^Proceed to Pending Documents/i })).toBeVisible({
       timeout: 10_000,
     });
-    await page.getByRole('button', { name: /Proceed to Pending Documents/i }).click();
+    await page.getByRole('button', { name: /^Proceed to Pending Documents/i }).click();
 
     const confirm = page.getByRole('button', { name: 'Confirm' });
     await expect(confirm).toBeVisible({ timeout: 10_000 });

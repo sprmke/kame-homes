@@ -14,6 +14,8 @@ import {
 
 export type StoredPushSubscription = {
   id: string;
+  /** Owner — the badge count is per user, so the fan-out groups by this. */
+  user_id?: string;
   endpoint: string;
   p256dh: string;
   auth: string;
@@ -31,6 +33,8 @@ export type PushPayload = {
   tag?: string;
   notificationId?: string;
   type?: string;
+  /** Per-user unread count so the OS badge updates while the app is closed (6.3). */
+  unreadCount?: number;
 };
 
 let appServerPromise: Promise<ApplicationServer> | null = null;
@@ -92,9 +96,11 @@ export async function sendPush(
 ): Promise<PushSendResult> {
   try {
     const server = await getApplicationServer();
+    // `expirationTime` is part of the Web Push spec but not of `@negrel/webpush`'s
+    // `PushSubscription` type; omitting it means "does not expire", which is what
+    // every subscription we store is.
     const target: WebPushSubscription = {
       endpoint: sub.endpoint,
-      expirationTime: null,
       keys: { p256dh: sub.p256dh, auth: sub.auth },
     };
     // `urgency` omitted — the library defaults to Urgency.Normal.
@@ -110,7 +116,8 @@ export async function sendPush(
 export async function sendPushBatch(
   subs: StoredPushSubscription[],
   payload: PushPayload,
-  concurrency = 20
+  concurrency = 20,
+  send: (sub: StoredPushSubscription, payload: PushPayload) => Promise<PushSendResult> = sendPush
 ): Promise<PushSendResult[]> {
   const results: PushSendResult[] = [];
   let cursor = 0;
@@ -118,9 +125,35 @@ export async function sendPushBatch(
     while (cursor < subs.length) {
       const idx = cursor;
       cursor += 1;
-      results.push(await sendPush(subs[idx], payload));
+      results.push(await send(subs[idx], payload));
     }
   });
   await Promise.all(workers);
   return results;
+}
+
+/** Notification titles/bodies are capped so the encrypted payload stays under 4 KB. */
+export const PUSH_TITLE_MAX = 120;
+export const PUSH_BODY_MAX = 300;
+
+/**
+ * Build the wire payload from a notification row. Pure so the truncation rules
+ * and the path/tag shape are unit-tested; `push-fanout` passes the result to
+ * `sendPushBatch` with the per-user unread count.
+ */
+export function buildPushPayload(
+  row: { id: string; type: string; title: string; body: string | null },
+  path: string,
+  unreadCount?: number
+): PushPayload {
+  const body = row.body?.replace(/\s+/g, ' ').trim().slice(0, PUSH_BODY_MAX) || undefined;
+  return {
+    title: row.title.slice(0, PUSH_TITLE_MAX),
+    body,
+    path,
+    type: row.type,
+    notificationId: row.id,
+    tag: row.id,
+    unreadCount,
+  };
 }

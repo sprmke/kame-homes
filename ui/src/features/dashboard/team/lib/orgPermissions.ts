@@ -45,6 +45,7 @@ export function hasOrgPermission(
 export const ORG_NAV_VIEW_PERMISSION: Record<string, string> = {
   Dashboard: 'org.dashboard:view',
   Bookings: 'org.bookings:view',
+  Reviews: 'org.reviews:view',
   Properties: 'org.properties:view',
   Parkings: 'org.parkings:view',
   Team: 'org.team:view',
@@ -59,6 +60,7 @@ export const ORG_NAV_VIEW_PERMISSION: Record<string, string> = {
 export const ORG_SECTION_VIEW_PERMISSION = {
   dashboard: 'org.dashboard:view',
   bookings: 'org.bookings:view',
+  reviews: 'org.reviews:view',
   properties: 'org.properties:view',
   parkings: 'org.parkings:view',
   team: 'org.team:view',
@@ -78,6 +80,8 @@ export function orgSectionPath(orgSlug: string, section: OrgSection): string {
       return `/org/${orgSlug}/dashboard`;
     case 'bookings':
       return `/org/${orgSlug}/bookings`;
+    case 'reviews':
+      return `/org/${orgSlug}/reviews`;
     case 'properties':
       return `/org/${orgSlug}/properties`;
     case 'parkings':

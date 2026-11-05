@@ -43,9 +43,33 @@ function db(): Promise<IDBPDatabase<OutboxDB>> {
         const store = database.createObjectStore('mutations', { keyPath: 'id' });
         store.createIndex('by-createdAt', 'createdAt');
       },
+    }).then((database) => {
+      const drop = () => {
+        if (dbPromise) dbPromise = null;
+      };
+      // A blocked delete (Clear offline data) closes this handle. Drop it so the
+      // next call reopens instead of hanging on a dead connection.
+      database.addEventListener('versionchange', () => {
+        database.close();
+        drop();
+      });
+      database.addEventListener('close', drop);
+      return database;
     });
   }
   return dbPromise;
+}
+
+/** Close the cached handle so a following `deleteDatabase` is not blocked. */
+export async function releaseOutboxConnection(): Promise<void> {
+  const pending = dbPromise;
+  dbPromise = null;
+  if (!pending) return;
+  try {
+    (await pending).close();
+  } catch {
+    // already closed or the open failed
+  }
 }
 
 export async function outboxAdd(

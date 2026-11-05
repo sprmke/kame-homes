@@ -15,6 +15,7 @@ Routes (authenticated explore mode):
 - `/account/vouchers`
 - `/account/favorites` (legacy `/account/wishlist` redirects here)
 - `/account/tickets` (+ `/new`, `/:ticketId`)
+- `/account/help`
 
 > **Status:** Documented — nav avatar + account shell + profile/stays/vouchers/favorites/tickets.
 
@@ -33,7 +34,7 @@ Routes (authenticated explore mode):
 
 ## Overview
 
-Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown always has a **Host** section with **Dashboard** above the **Explore** links (Profile · Stays · Vouchers · Favorites · Tickets). **Dashboard** from explore runs the global mode-switch curtain, then opens **`/org`** (the hub redirects to an org the caller can access, or onboarding if none). From host marketing (`/for-hosts`) it navigates directly. On phone/tablet the same **Dashboard** row lives in the marketing **More** sheet (the header avatar is `lg+` only). Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
+Signed-in guests see a **rounded avatar** in the marketing nav (explore pages only). The dropdown always has a **Host** section with **Dashboard** above the **Explore** links (Profile · Trips · Reviews · Stays · Vouchers · Favorites · Tickets · Help). **Dashboard** from explore runs the global mode-switch curtain, then opens **`/org`** (the hub redirects to an org the caller can access — usually the last visited one at its listing level — or onboarding if none). From host marketing (`/for-hosts`) it navigates directly. On phone/tablet the same **Dashboard** row lives in the marketing **More** sheet (the header avatar is `lg+` only). Anonymous guests still use the **checkout auth modal** — no `/for-guests/login` pages.
 
 **Host marketing (`/for-hosts`):** signed-in hosts see the same pill + avatar pattern — **Explore** switches to guest mode; avatar menu opens **Dashboard**. Signed-out hosts see **Explore** + **Sign In**.
 
@@ -64,7 +65,7 @@ Explore account routes use a **dashboard-style sidebar** (not horizontal tabs):
 - Mobile: the site-wide `MarketingBottomNav` bottom tab bar (Explore/Properties/Parkings/Account/More) plus a **top** `GuestAccountMobileNav` strip (`sticky top-16`, `lg:hidden`) below the marketing header for the account sub-nav — deliberately kept as a top strip rather than a second bottom tab bar (two bottom bars stacked on one screen is an anti-pattern; see `mobile-responsive` skill §2b)
 - Content sits below the fixed marketing nav (`pt-16 lg:pt-20`) so page titles no longer clash with the site header
 
-Sub-nav: Profile · Stays · Vouchers · Favorites · Tickets (log out in sidebar footer). **2026-09-10:** the mobile strip's grid was `grid-cols-3` (only fit 3 of the 5 items, wrapping unevenly) — fixed to `grid-cols-5`.
+Sub-nav: Profile · Trips · Reviews · Stays · Vouchers · Favorites · Tickets · Help (log out in sidebar footer). The mobile strip uses `grid-cols-4`, so eight items sit as two balanced rows.
 
 ---
 

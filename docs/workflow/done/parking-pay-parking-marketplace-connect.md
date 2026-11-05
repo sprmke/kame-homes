@@ -163,17 +163,17 @@ Implementation complete for this plan’s locked scope (public new-tab Find park
 
 ## Docs to update
 
-| Doc                                                         | Change                                |
-| ----------------------------------------------------------- | ------------------------------------- |
-| `docs/guides/routes/bookings/parking.md`                    | Marketplace entry + redirect matrix   |
-| `docs/guides/routes/org/property/bookings-detail.md`        | Find parking / labels                 |
-| `docs/guides/routes/org/property/public-pages.md`           | Pay parking card                      |
-| `docs/guides/routes/parkings.md`                            | `linkStay` query behavior             |
-| `docs/PROJECT.md`                                           | Routes / deprecated pay-parking       |
-| `.cursor/rules/parking-workflow.mdc`                        | Host-assist = stay-scoped marketplace |
-| `.cursor/rules/booking-workflow.mdc`                        | Pay-parking sunset note               |
-| `docs/workflow/planned/parking-e2e-production-readiness.md` | Resolve Q5 for new setups             |
-| This plan → `/workflow-start` when implementing             | Move to `in-progress/`                |
+| Doc                                                                                         | Change                                |
+| ------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `docs/guides/routes/bookings/parking.md`                                                    | Marketplace entry + redirect matrix   |
+| `docs/guides/routes/org/property/bookings-detail.md`                                        | Find parking / labels                 |
+| `docs/guides/routes/org/property/public-pages.md`                                           | Pay parking card                      |
+| `docs/guides/routes/parkings.md`                                                            | `linkStay` query behavior             |
+| `docs/PROJECT.md`                                                                           | Routes / deprecated pay-parking       |
+| `.cursor/rules/parking-workflow.mdc`                                                        | Host-assist = stay-scoped marketplace |
+| `.cursor/rules/booking-workflow.mdc`                                                        | Pay-parking sunset note               |
+| `docs/workflow/in-progress/production-readiness/audits/parking-e2e-production-readiness.md` | Resolve Q5 for new setups             |
+| This plan → `/workflow-start` when implementing                                             | Move to `in-progress/`                |
 
 ## Open questions
 
@@ -184,6 +184,6 @@ Implementation complete for this plan’s locked scope (public new-tab Find park
 ## Related
 
 - Done: [`../done/parking-e2e-phase7-property-booking-migration.md`](../done/parking-e2e-phase7-property-booking-migration.md)
-- Overview: [`parking-e2e-later-phases.md`](./parking-e2e-later-phases.md)
-- Tracking: [`parking-e2e-production-readiness.md`](./parking-e2e-production-readiness.md) (Q5)
+- Overview: [`parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md)
+- Tracking: [`parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md) (Q5)
 - In progress: Phase 3–5 / 8 docs under `../in-progress/`

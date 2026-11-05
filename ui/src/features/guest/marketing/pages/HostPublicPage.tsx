@@ -9,6 +9,7 @@ import {
 } from '@/features/guest/marketing/hosts/components/HostPublicListingsTabs';
 import { HostPublicParkingCard } from '@/features/guest/marketing/hosts/components/HostPublicParkingCard';
 import { HostPublicPropertyCard } from '@/features/guest/marketing/hosts/components/HostPublicPropertyCard';
+import { HostPublicReviews } from '@/features/guest/marketing/hosts/components/HostPublicReviews';
 import { useHostListingPageSize } from '@/features/guest/marketing/hosts/hooks/useHostListingPageSize';
 import { HOST_LISTING_GRID_CLASS } from '@/features/guest/marketing/hosts/lib/hostListingGrid';
 import { usePublicHost } from '@/features/guest/marketing/properties/hooks/usePublicHost';
@@ -239,6 +240,8 @@ export function HostPublicPage() {
             </div>
           </div>
         ) : null}
+
+        <HostPublicReviews host={host} />
       </div>
     </GuestPublicBrandShell>
   );

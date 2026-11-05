@@ -13,15 +13,31 @@ jobs:
   # Doc 26 Phase 26.2 — split into parallel jobs so PR feedback stays under the
   # single-serial-job wall-clock time. Each job is independent (own checkout +
   # install); a required-check name change means updating branch protection
-  # (.github/CODEOWNERS-adjacent — see docs/workflow/planned/production-readiness-checklist/26-ci-cd-and-version-control.md).
+  # (.github/CODEOWNERS-adjacent — see docs/workflow/in-progress/production-readiness/checklist/26-ci-cd-and-version-control.md).
   static-guards:
     name: static-guards
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
 
       - name: Filename conventions
         run: bash scripts/dev/check-ui-filename-conventions.sh
+
+      - name: Brand guard (retired product name)
+        run: bun scripts/brand/check-brand.ts --check
+
+      - name: AI knowledge coverage (Host-facing knowledge Q&A minimums)
+        run: bun scripts/check-ai-knowledge-coverage.ts
+
+      - name: Support content format (curated FAQ doc + source paths)
+        run: bun scripts/check-support-content.ts
+
+      - name: Support content parser tests
+        run: bun test scripts/supportContent.test.ts
 
       - name: Migration conventions
         run: |
@@ -71,14 +87,14 @@ jobs:
     name: lint-and-types
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Cache bun install
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -97,25 +113,25 @@ jobs:
     name: unit-and-edge-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
       - name: Cache bun install
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/deno
           key: deno-${{ runner.os }}-${{ hashFiles('deno.lock') }}
@@ -140,14 +156,14 @@ jobs:
     name: e2e-smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Cache bun install
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -158,7 +174,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -174,9 +190,15 @@ jobs:
       - name: Playwright smoke (@smoke)
         run: bun run test:e2e:smoke
 
+      # Production-build PWA checks: installability, launch resolver, shell-only
+      # precache, offline navigation. The service worker is off under `vite` dev,
+      # so these can only run against `vite build && vite preview`.
+      - name: Playwright PWA (@pwa)
+        run: bun run test:e2e:pwa
+
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
           path: |
@@ -188,14 +210,14 @@ jobs:
     name: build-and-budgets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Cache bun install
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}

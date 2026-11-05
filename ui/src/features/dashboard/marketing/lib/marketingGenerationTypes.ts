@@ -22,7 +22,7 @@ export type MarketingGenerationJob = {
   promptEnhanced: boolean;
   /** Video: `{ cameraMove, sound }`. Empty for images and older video jobs; may be
    *  missing on responses from an older edge deploy. */
-  generationOptions?: { cameraMove?: string; sound?: string };
+  generationOptions?: { cameraMove?: string; sound?: string; sampleId?: string };
   model: string;
   qualityTier: MarketingGenerationTier;
   aspectRatio: string;
@@ -42,6 +42,10 @@ export type MarketingGenerationJob = {
   errorMessage: string | null;
   expiresAt: string | null;
   completedAt: string | null;
+  /** AI Studio conversation (missing on responses from an older edge deploy). */
+  sessionId?: string | null;
+  /** The version this one refines. */
+  parentJobId?: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -118,7 +118,9 @@ export function WelcomeStep() {
                 <span
                   className={cn(
                     'flex size-8 shrink-0 items-center justify-center rounded-full',
-                    path.done ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+                    path.done
+                      ? 'bg-primary-strong text-primary-foreground'
+                      : 'bg-primary/10 text-primary'
                   )}
                 >
                   {path.done ? (
@@ -152,7 +154,7 @@ export function DoneStep() {
       <div
         className={cn(
           'relative flex size-20 items-center justify-center rounded-full',
-          complete ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+          complete ? 'bg-primary-strong text-primary-foreground' : 'bg-muted text-muted-foreground',
           'motion-safe:animate-setup-guide-hero-in'
         )}
       >

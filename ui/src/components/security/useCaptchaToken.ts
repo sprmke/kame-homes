@@ -29,7 +29,7 @@ export type CaptchaController = {
 
 /**
  * Attaches an invisible-first Turnstile widget to a form.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1)
  *
  * Usage:
  *   const captcha = useCaptchaToken({ action: 'submit-form' });

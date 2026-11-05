@@ -18,6 +18,7 @@ import type {
   ExternalReviewApprovalSummary,
   ListingVerificationApprovalSummary,
   OrgApprovalSummary,
+  ReportedReviewApprovalSummary,
   SuperAdminApprovalTypeFilter,
 } from '@/features/dashboard/super-admin/types/approval';
 
@@ -148,6 +149,9 @@ export function useApprovals(
           if (row.type === 'external_review') {
             return normalizeExternalReviewApproval(row);
           }
+          if (row.type === 'reported_review') {
+            return row as ReportedReviewApprovalSummary;
+          }
           if (row.type === 'listing_verification') {
             return normalizeListingVerificationApproval(row);
           }
@@ -262,6 +266,20 @@ export function useExternalReviewAssets(propertyId: string | null, reviewId: str
       }>(
         `get-external-review-assets?propertyId=${encodeURIComponent(propertyId!)}&reviewId=${encodeURIComponent(reviewId!)}`
       ),
+  });
+}
+
+export function useModerateReviewReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { reportId: string; decision: 'upheld' | 'rejected'; note?: string }) =>
+      callEdgeFunction('moderate-review-report', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: APPROVALS_QUERY_KEY });
+    },
   });
 }
 

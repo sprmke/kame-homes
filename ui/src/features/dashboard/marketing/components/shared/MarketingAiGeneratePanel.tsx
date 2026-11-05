@@ -1,3 +1,5 @@
+import { ThemeSwatchDots } from '@/features/dashboard/marketing/components/themes/ThemePreview';
+import type { MarketingThemeTokens } from '@/features/dashboard/marketing/lib/theme/marketingTheme';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ChevronLeft, Loader2, Sparkles } from 'lucide-react';
@@ -122,6 +124,11 @@ export type MarketingAiGeneratePanelProps = {
   /** Org/property brand — fallback when no photos for the first Look template. */
   brandColor?: string;
   suggestions?: CalendarAiSuggestion[] | DesignAiSuggestion[] | VideoAiSuggestion[];
+  /**
+   * Active marketing theme. When set, colors, type and background come from it:
+   * the Look step only asks for the mood, and the type/background pickers hide.
+   */
+  theme?: { name: string; tokens: MarketingThemeTokens } | null;
   generating?: boolean;
   onGenerate: (input: MarketingAiGenerateInput) => void | Promise<void>;
 };
@@ -409,6 +416,18 @@ function SuggestionsSection({
  */
 const SUGGESTIONS_PREVIEW_COUNT = CALENDAR_AI_SUGGESTIONS_PREVIEW_COUNT;
 
+function ThemeLookNotice({ name, tokens }: { name: string; tokens: MarketingThemeTokens }) {
+  return (
+    <div className="border-border bg-muted/30 flex items-center gap-3 rounded-xl border p-3">
+      <ThemeSwatchDots tokens={tokens} />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">{name}</p>
+        <p className="text-muted-foreground text-xs">Colors and fonts follow this theme.</p>
+      </div>
+    </div>
+  );
+}
+
 function defaultSuggestionsFor(
   contentType: MarketingAiGeneratePanelProps['contentType']
 ): CalendarAiSuggestion[] | DesignAiSuggestion[] | VideoAiSuggestion[] {
@@ -418,6 +437,7 @@ function defaultSuggestionsFor(
 }
 
 export function MarketingAiGeneratePanel({
+  theme = null,
   open,
   onOpenChange,
   contentType,
@@ -590,8 +610,8 @@ export function MarketingAiGeneratePanel({
   const { open: openUpgradeModal } = useUpgradeModal();
 
   const stepCopy = useMemo(
-    () => marketingAiGenerateStepCopy(stepIndex, contentType),
-    [stepIndex, contentType]
+    () => marketingAiGenerateStepCopy(stepIndex, contentType, Boolean(theme)),
+    [stepIndex, contentType, theme]
   );
 
   const canAdvanceFromCurrentStep = useMemo(
@@ -889,6 +909,9 @@ export function MarketingAiGeneratePanel({
 
             {stepIndex === 1 ? (
               <>
+                {theme ? (
+                  <ThemeLookNotice name={theme.name} tokens={theme.tokens} />
+                ) : (
                 <SuggestionsSection
                   suggestions={resolvedSuggestions}
                   visibleSuggestions={visibleSuggestions}
@@ -900,9 +923,10 @@ export function MarketingAiGeneratePanel({
                   onSelect={handleSuggestion}
                   renderPreview={renderSuggestionPreview}
                 />
+                )}
                 <CountedTextarea
                   id="marketing-ai-prompt"
-                  label="Look"
+                  label={theme ? 'Mood' : 'Look'}
                   value={prompt}
                   onChange={(next) => {
                     setSelectedSuggestionId(null);
@@ -923,7 +947,9 @@ export function MarketingAiGeneratePanel({
                   }}
                   rows={4}
                   className="min-h-[112px]"
-                  placeholder="Pick a template or describe the look…"
+                  placeholder={
+                    theme ? 'Describe the mood (optional)' : 'Pick a template or describe the look…'
+                  }
                   disabled={generating}
                 />
               </>
@@ -958,56 +984,60 @@ export function MarketingAiGeneratePanel({
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-muted-foreground text-xs font-medium">Type</span>
-                      <div
-                        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                        role="group"
-                        aria-label="Type"
-                      >
-                        {CALENDAR_AI_FONT_OPTIONS.map((option) => (
-                          <VisualChoiceButton
-                            key={option.value}
-                            active={calendarPreferences.fontPairing === option.value}
-                            disabled={generating}
-                            title={option.label}
-                            hint={option.hint}
-                            preview={<FontOptionPreview option={option} />}
-                            onClick={() =>
-                              setCalendarPreferences((prev) => ({
-                                ...prev,
-                                fontPairing: option.value,
-                              }))
-                            }
-                          />
-                        ))}
+                    {theme ? null : (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Type</span>
+                        <div
+                          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                          role="group"
+                          aria-label="Type"
+                        >
+                          {CALENDAR_AI_FONT_OPTIONS.map((option) => (
+                            <VisualChoiceButton
+                              key={option.value}
+                              active={calendarPreferences.fontPairing === option.value}
+                              disabled={generating}
+                              title={option.label}
+                              hint={option.hint}
+                              preview={<FontOptionPreview option={option} />}
+                              onClick={() =>
+                                setCalendarPreferences((prev) => ({
+                                  ...prev,
+                                  fontPairing: option.value,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <span className="text-muted-foreground text-xs font-medium">Background</span>
-                      <div
-                        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                        role="group"
-                        aria-label="Background"
-                      >
-                        {CALENDAR_AI_BACKGROUND_OPTIONS.map((option) => (
-                          <VisualChoiceButton
-                            key={option.value}
-                            active={calendarPreferences.backgroundMood === option.value}
-                            disabled={generating}
-                            title={option.label}
-                            hint={option.hint}
-                            preview={<BackgroundOptionPreview option={option} />}
-                            onClick={() =>
-                              setCalendarPreferences((prev) => ({
-                                ...prev,
-                                backgroundMood: option.value,
-                              }))
-                            }
-                          />
-                        ))}
+                    )}
+                    {theme ? null : (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Background</span>
+                        <div
+                          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                          role="group"
+                          aria-label="Background"
+                        >
+                          {CALENDAR_AI_BACKGROUND_OPTIONS.map((option) => (
+                            <VisualChoiceButton
+                              key={option.value}
+                              active={calendarPreferences.backgroundMood === option.value}
+                              disabled={generating}
+                              title={option.label}
+                              hint={option.hint}
+                              preview={<BackgroundOptionPreview option={option} />}
+                              onClick={() =>
+                                setCalendarPreferences((prev) => ({
+                                  ...prev,
+                                  backgroundMood: option.value,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="space-y-2">
                       <Label className="text-muted-foreground text-xs font-medium">
                         Show on calendar
@@ -1076,56 +1106,60 @@ export function MarketingAiGeneratePanel({
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-muted-foreground text-xs font-medium">Type</span>
-                      <div
-                        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                        role="group"
-                        aria-label="Type"
-                      >
-                        {DESIGN_AI_FONT_OPTIONS.map((option) => (
-                          <VisualChoiceButton
-                            key={option.value}
-                            active={designPreferences.fontPairing === option.value}
-                            disabled={generating}
-                            title={option.label}
-                            hint={option.hint}
-                            preview={<DesignFontOptionPreview option={option} />}
-                            onClick={() =>
-                              setDesignPreferences((prev) => ({
-                                ...prev,
-                                fontPairing: option.value,
-                              }))
-                            }
-                          />
-                        ))}
+                    {theme ? null : (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Type</span>
+                        <div
+                          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                          role="group"
+                          aria-label="Type"
+                        >
+                          {DESIGN_AI_FONT_OPTIONS.map((option) => (
+                            <VisualChoiceButton
+                              key={option.value}
+                              active={designPreferences.fontPairing === option.value}
+                              disabled={generating}
+                              title={option.label}
+                              hint={option.hint}
+                              preview={<DesignFontOptionPreview option={option} />}
+                              onClick={() =>
+                                setDesignPreferences((prev) => ({
+                                  ...prev,
+                                  fontPairing: option.value,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <span className="text-muted-foreground text-xs font-medium">Background</span>
-                      <div
-                        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                        role="group"
-                        aria-label="Background"
-                      >
-                        {DESIGN_AI_BACKGROUND_OPTIONS.map((option) => (
-                          <VisualChoiceButton
-                            key={option.value}
-                            active={designPreferences.backgroundMood === option.value}
-                            disabled={generating}
-                            title={option.label}
-                            hint={option.hint}
-                            preview={<DesignBackgroundOptionPreview option={option} />}
-                            onClick={() =>
-                              setDesignPreferences((prev) => ({
-                                ...prev,
-                                backgroundMood: option.value,
-                              }))
-                            }
-                          />
-                        ))}
+                    )}
+                    {theme ? null : (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Background</span>
+                        <div
+                          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                          role="group"
+                          aria-label="Background"
+                        >
+                          {DESIGN_AI_BACKGROUND_OPTIONS.map((option) => (
+                            <VisualChoiceButton
+                              key={option.value}
+                              active={designPreferences.backgroundMood === option.value}
+                              disabled={generating}
+                              title={option.label}
+                              hint={option.hint}
+                              preview={<DesignBackgroundOptionPreview option={option} />}
+                              onClick={() =>
+                                setDesignPreferences((prev) => ({
+                                  ...prev,
+                                  backgroundMood: option.value,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 ) : null}
 
@@ -1153,31 +1187,33 @@ export function MarketingAiGeneratePanel({
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-muted-foreground text-xs font-medium">Type</span>
-                      <div
-                        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-                        role="group"
-                        aria-label="Type"
-                      >
-                        {VIDEO_AI_FONT_OPTIONS.map((option) => (
-                          <VisualChoiceButton
-                            key={option.value}
-                            active={videoPreferences.fontPairing === option.value}
-                            disabled={generating}
-                            title={option.label}
-                            hint={option.hint}
-                            preview={<VideoFontOptionPreview option={option} />}
-                            onClick={() =>
-                              setVideoPreferences((prev) => ({
-                                ...prev,
-                                fontPairing: option.value,
-                              }))
-                            }
-                          />
-                        ))}
+                    {theme ? null : (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Type</span>
+                        <div
+                          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                          role="group"
+                          aria-label="Type"
+                        >
+                          {VIDEO_AI_FONT_OPTIONS.map((option) => (
+                            <VisualChoiceButton
+                              key={option.value}
+                              active={videoPreferences.fontPairing === option.value}
+                              disabled={generating}
+                              title={option.label}
+                              hint={option.hint}
+                              preview={<VideoFontOptionPreview option={option} />}
+                              onClick={() =>
+                                setVideoPreferences((prev) => ({
+                                  ...prev,
+                                  fontPairing: option.value,
+                                }))
+                              }
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="space-y-2">
                       <span className="text-muted-foreground text-xs font-medium">Motion</span>
                       <div

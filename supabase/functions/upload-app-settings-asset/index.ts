@@ -14,6 +14,7 @@ import {
 } from '../_shared/appSettingsAssetUpload.ts';
 import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
+import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
 
 const BUCKET = 'app-settings-assets';
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -47,6 +48,7 @@ serve(async (req) => {
       if (!ALLOWED_MIME.has(mime)) {
         throw new Error('File must be JPEG, PNG, or WebP');
       }
+      assertUploadMatchesBytes(new Uint8Array(await file.arrayBuffer()), mime, ALLOWED_MIME);
       assertWithinUploadLimit(file, 'image');
       const ext = fileName.includes('.')
         ? `.${fileName.split('.').pop()?.toLowerCase()}`

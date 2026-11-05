@@ -1,10 +1,9 @@
-import { lazy, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 import { Navigate, Route, useLocation, useParams, useSearchParams } from 'react-router-dom';
 
 import { CalendarDays, Home, MessageCircle } from 'lucide-react';
 
-import { GuestForm } from '@/features/guest/form/components/GuestForm';
 import { GuestFormSuccess } from '@/features/guest/form/components/GuestFormSuccess';
 import { useGuestPaymentInfo } from '@/features/guest/form/hooks/useGuestPaymentInfo';
 import { stripLegacyFromQueryParam } from '@/features/guest/form/lib/bookingSourceFromSearchParams';
@@ -14,6 +13,9 @@ import {
 } from '@/features/guest/form/lib/guestFormBranding';
 import { readGuestPropertySlug } from '@/features/guest/form/lib/guestPropertyScope';
 import { useGuestPropertySlug } from '@/features/guest/hooks/useGuestPropertySlug';
+import {
+  resolveBookingPropertySlug,
+} from '@/features/guest/lib/guestBookingPropertyResolver';
 import {
   guestCalendarPath,
   guestFormPath,
@@ -27,10 +29,15 @@ import {
 import { fetchPayParking } from '@/features/guest/pay-parking/lib/api';
 
 import type { BottomTabItem } from '@/components/mobile/BottomTabBar';
+import { GuestFormPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useFavicon } from '@/lib/favicon';
 import { propertyPublicPageTitle, usePageTitle } from '@/lib/pageTitle';
 
+/** Booking form pulls in the date picker, uploads and payment step; not needed on browse pages. */
+const GuestForm = lazy(() =>
+  import('@/features/guest/form/components/GuestForm').then((m) => ({ default: m.GuestForm }))
+);
 const GuestBookingDocumentPage = lazy(() =>
   import('@/features/guest/booking-documents/pages/GuestBookingDocumentPage').then((m) => ({
     default: m.GuestBookingDocumentPage,
@@ -147,18 +154,20 @@ function GuestPublicLayout() {
 
 type LegacySegment = 'calendar' | 'form' | 'success' | 'sd-form' | 'guest-review';
 
+const LEGACY_BOOKING_LINK_SEGMENTS: ReadonlySet<LegacySegment> = new Set(['sd-form', 'guest-review']);
+
 function LegacyGuestPathRedirect({ segment }: { segment: LegacySegment }) {
   const [searchParams] = useSearchParams();
   const property = readGuestPropertySlug(searchParams);
+  const bookingId = searchParams.get('bookingId')?.trim() ?? '';
+  const resolveFromBookingId = !property && !!bookingId && LEGACY_BOOKING_LINK_SEGMENTS.has(segment);
+
+  if (resolveFromBookingId) return <LegacyBookingIdRedirect segment={segment} bookingId={bookingId} />;
   if (!property) return <Navigate to="/properties" replace />;
 
   const next = stripLegacyFromQueryParam(new URLSearchParams(searchParams));
   next.delete('property');
   next.delete('property_slug');
-
-  const bookingId = next.get('bookingId')?.trim();
-  if (segment === 'sd-form' && !bookingId) return <Navigate to="/properties" replace />;
-  if (segment === 'guest-review' && !bookingId) return <Navigate to="/properties" replace />;
 
   const path =
     segment === 'calendar'
@@ -168,10 +177,42 @@ function LegacyGuestPathRedirect({ segment }: { segment: LegacySegment }) {
         : segment === 'success'
           ? guestSuccessPath(property, next)
           : segment === 'guest-review'
-            ? guestReviewPath(property, bookingId!, next)
-            : guestSdFormPath(property, bookingId!, next);
+            ? guestReviewPath(property, bookingId, next)
+            : guestSdFormPath(property, bookingId, next);
 
   return <Navigate to={path} replace />;
+}
+
+/** Legacy links carry no `?property=` — resolve the property slug from the booking server-side. */
+function LegacyBookingIdRedirect({ segment, bookingId }: { segment: LegacySegment; bookingId: string }) {
+  const [searchParams] = useSearchParams();
+  const [target, setTarget] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const slug = await resolveBookingPropertySlug(bookingId);
+      if (cancelled) return;
+      if (!slug) {
+        setFailed(true);
+        return;
+      }
+      const next = stripLegacyFromQueryParam(new URLSearchParams(searchParams));
+      const path =
+        segment === 'guest-review'
+          ? guestReviewPath(slug, bookingId, next)
+          : guestSdFormPath(slug, bookingId, next);
+      if (!cancelled) setTarget(path);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [segment, bookingId, searchParams]);
+
+  if (target) return <Navigate to={target} replace />;
+  if (failed) return <Navigate to="/properties" replace />;
+  return null;
 }
 
 function LegacyPayParkingRedirect() {
@@ -232,7 +273,14 @@ export const propertyGuestRoutes = [
   <Route key="property-guest" path="properties/:propertySlug" element={<GuestPublicLayout />}>
     <Route path="calendar" element={<CalendarPage />} />
     <Route path="messages" element={<PropertyChatPage />} />
-    <Route path="form" element={<GuestForm />} />
+    <Route
+      path="form"
+      element={
+        <Suspense fallback={<GuestFormPageSkeleton />}>
+          <GuestForm />
+        </Suspense>
+      }
+    />
     <Route path="success" element={<GuestFormSuccess />} />
     <Route path="trip" element={<GuestTripPage />} />
     <Route path="sd-form" element={<SdFormPage />} />

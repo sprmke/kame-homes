@@ -28,7 +28,7 @@ Property-only team members can open this deep-link route to read platform mainte
 
 ## Host-facing knowledge
 
-This is where you read official notices from Kame Homes — scheduled maintenance, new features, and updates for your building or development. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group. The list always shows active notices until we turn them off or the schedule ends.
+This is where you read official notices from Kame Space - scheduled maintenance, new features, and updates for your building or development. Unread notices show a small red dot and stronger title; open a row to mark it read. Use **Read all** next to a group title to clear every unread notice in that group. The list always shows active notices until we turn them off or the schedule ends.
 
 **Common host questions**
 
@@ -40,6 +40,8 @@ This is where you read official notices from Kame Homes — scheduled maintenanc
   A: Yes. Next to each group title (Platform or a development name), tap **Read all** when that group has unread notices.
 - Q: What's the difference between Platform and a development name?
   A: **Platform** applies to all hosts. A development name (e.g. your building) applies only to properties linked to that development.
+- Q: Can I delete an announcement I have already read?
+  A: No. You can mark it read, but the notice stays in the archive while it is active. We remove or expire notices when they no longer apply.
 
 ## Summary cards
 

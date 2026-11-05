@@ -12,6 +12,8 @@
  * Exemption: geminiLiveEphemeral.ts mints a server-side ephemeral token only — the browser
  * then connects directly to Gemini Live over WebSocket (the API key never leaves the server,
  * but the Live traffic itself is not proxied through the gateway by design).
+ * systemHealth/probes.ts calls the provider `models` list endpoints only, to check that a key is
+ * valid for /admin/health: no generation, no tokens, no metering.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -20,7 +22,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
 const FUNCTIONS = join(ROOT, 'supabase', 'functions');
 const GATEWAY_DIR = join(FUNCTIONS, '_shared', 'ai') + sep;
-const EXEMPT_FILES = [join(FUNCTIONS, '_shared', 'geminiLiveEphemeral.ts')];
+const EXEMPT_FILES = [
+  join(FUNCTIONS, '_shared', 'geminiLiveEphemeral.ts'),
+  join(FUNCTIONS, '_shared', 'systemHealth', 'probes.ts'),
+];
 
 const PROVIDER_HOSTS = [
   'generativelanguage.googleapis.com',

@@ -11,6 +11,7 @@ import {
   collageCellIndex,
   collageFrames,
   EMPTY_COLLAGE_CELL_NAME,
+  emptyCollageCellSvgDataUri,
   FILLED_COLLAGE_CELL_NAME,
   planRelayout,
   readCollageSettings,
@@ -64,6 +65,8 @@ type CollagePageLike = {
 };
 
 type CollageStoreLike = {
+  width?: number | 'auto';
+  height?: number | 'auto';
   activePage?: CollagePageLike;
   custom?: unknown;
   selectedElementsIds?: string[];
@@ -80,14 +83,19 @@ function asCollageStore(store: PolotnoStore): CollageStoreLike {
   return store as unknown as CollageStoreLike;
 }
 
+/** Canvas size: the page's own size, else the store's (pages are usually `auto`). */
 function pageDimensions(
-  page: CollagePageLike | undefined,
+  store: CollageStoreLike,
   format?: DesignTemplateFormat
 ): { width: number; height: number } {
   const fallback = DESIGN_FORMAT_DIMENSIONS[format ?? 'instagram-post'];
-  const width = typeof page?.width === 'number' ? page.width : fallback.width;
-  const height = typeof page?.height === 'number' ? page.height : fallback.height;
-  return { width, height };
+  const page = store.activePage;
+  const pick = (own: number | 'auto' | undefined, shared: number | 'auto' | undefined, d: number) =>
+    typeof own === 'number' ? own : typeof shared === 'number' ? shared : d;
+  return {
+    width: pick(page?.width, store.width, fallback.width),
+    height: pick(page?.height, store.height, fallback.height),
+  };
 }
 
 function collageCellElements(
@@ -118,13 +126,17 @@ function currentCollageCells(page: CollagePageLike | undefined): CollageCellStat
   return cells;
 }
 
+/**
+ * Reads `store.custom` (an observable prop) rather than `store.toJSON()` so mobx
+ * observers (the layout grid's selected state) re-render when the layout changes.
+ */
 function currentSettings(store: CollageStoreLike): CollageSettings {
-  return readCollageSettings(store.toJSON()) ?? resolveCollageSettings();
+  return readCollageSettings(store.custom) ?? resolveCollageSettings();
 }
 
 /** True when the active page's canvas is a collage document. */
 export function isStoreInCollageMode(store: PolotnoStore): boolean {
-  return readCollageSettings((store as unknown as { toJSON: () => unknown }).toJSON()) != null;
+  return readCollageSettings(asCollageStore(store).custom) != null;
 }
 
 /** Current collage settings, or the defaults if the store isn't a collage yet. */
@@ -202,27 +214,50 @@ export function startCollageDocument(
   loadable.history.clear();
 }
 
-/** Relays out the canvas for `layoutId`, preserving existing cell photos by position. */
+/**
+ * Relays out the canvas for `layoutId`, preserving existing cell photos by position.
+ * Cells are reshaped in place (never deleted and re-added under the same id, which
+ * trips mobx-state-tree); only the surplus is removed and the shortfall appended.
+ */
 export async function applyCollageLayout(store: PolotnoStore, layoutId: string): Promise<void> {
   const layout = getCollageLayout(layoutId);
   if (!layout) return;
   const s = asCollageStore(store);
   const page = s.activePage;
-  const { width, height } = pageDimensions(page);
+  if (!page) return;
+  const { width, height } = pageDimensions(s);
   const settings = resolveCollageSettings({ ...currentSettings(s), layoutId });
-  const existingCells = currentCollageCells(page);
-  const existingIds = collageCellElements(page).map(({ element }) => element.id);
-  const nextCells = planRelayout(existingCells, layout, settings, width, height);
+  const existing = collageCellElements(page);
+  const nextCells = planRelayout(currentCollageCells(page), layout, settings, width, height);
 
   await s.history.transaction(async () => {
-    if (existingIds.length) s.deleteElements(existingIds);
+    const surplus = existing.filter(({ index }) => index >= nextCells.length);
+    if (surplus.length) s.deleteElements(surplus.map(({ element }) => element.id));
+
     nextCells.forEach((cell, index) => {
-      page?.addElement(
-        collageCellElement(index, cell.frame, cell.src ? { url: cell.src } : null, settings),
-        { skipSelect: true }
+      const entry = existing.find((e) => e.index === index);
+      if (entry) {
+        entry.element.set({
+          x: cell.frame.x,
+          y: cell.frame.y,
+          width: cell.frame.width,
+          height: cell.frame.height,
+          cornerRadius: settings.cornerRadius,
+          borderColor: settings.borderColor,
+          borderSize: settings.borderSize,
+          ...(cell.src ? {} : { src: emptyCollageCellPlaceholderSrc(index, cell.frame) }),
+        });
+        return;
+      }
+      const { id: _id, ...attrs } = collageCellElement(
+        index,
+        cell.frame,
+        cell.src ? { url: cell.src } : null,
+        settings
       );
+      page.addElement(attrs, { skipSelect: true });
     });
-    page?.set({ background: settings.backgroundColor });
+    page.set({ background: settings.backgroundColor });
     setStoreCollageSettings(s, settings);
     await refineCellCrops(page);
   });
@@ -238,7 +273,7 @@ export async function applyCollageStyle(
   const settings = resolveCollageSettings({ ...currentSettings(s), ...patch });
   const layout = getCollageLayout(settings.layoutId);
   if (!layout) return;
-  const { width, height } = pageDimensions(page);
+  const { width, height } = pageDimensions(s);
   const frames = collageFrames(layout, settings, width, height);
   const entries = collageCellElements(page);
   const gapChanged = patch.gap != null || patch.outerPadding != null;
@@ -255,6 +290,9 @@ export async function applyCollageStyle(
         cornerRadius: settings.cornerRadius,
         borderColor: settings.borderColor,
         borderSize: settings.borderSize,
+        ...(element.name === EMPTY_COLLAGE_CELL_NAME
+          ? { src: emptyCollageCellPlaceholderSrc(index, frame) }
+          : {}),
       });
     });
     page?.set({ background: settings.backgroundColor });
@@ -316,7 +354,7 @@ export async function clearCollageCell(store: PolotnoStore, cellId: string): Pro
 
   await s.history.transaction(() => {
     entry.element.set({
-      src: emptyCollageCellPlaceholderSrc(entry.index),
+      src: emptyCollageCellPlaceholderSrc(entry.index, entry.element),
       name: EMPTY_COLLAGE_CELL_NAME,
       cropX: 0,
       cropY: 0,
@@ -340,8 +378,8 @@ export async function swapCollageCells(
   const b = entries.find(({ index }) => collageCellId(index) === bCellId);
   if (!a || !b) return;
 
-  const aPatch = cellPhotoPatch(b.element, a.index);
-  const bPatch = cellPhotoPatch(a.element, b.index);
+  const aPatch = cellPhotoPatch(b.element, a);
+  const bPatch = cellPhotoPatch(a.element, b);
   const changedIds = new Set([aCellId, bCellId]);
 
   await s.history.transaction(async () => {
@@ -370,10 +408,13 @@ export function enterCellCropMode(store: PolotnoStore, cellId: string): void {
   entry.element.toggleCropMode(true);
 }
 
-function cellPhotoPatch(source: CollageElementLike, targetIndex: number) {
+function cellPhotoPatch(
+  source: CollageElementLike,
+  target: { index: number; element: CollageElementLike }
+) {
   const isEmpty = source.name === EMPTY_COLLAGE_CELL_NAME;
   return {
-    src: isEmpty ? emptyCollageCellPlaceholderSrc(targetIndex) : source.src,
+    src: isEmpty ? emptyCollageCellPlaceholderSrc(target.index, target.element) : source.src,
     name: isEmpty ? EMPTY_COLLAGE_CELL_NAME : FILLED_COLLAGE_CELL_NAME,
     cropX: source.cropX ?? 0,
     cropY: source.cropY ?? 0,
@@ -382,12 +423,9 @@ function cellPhotoPatch(source: CollageElementLike, targetIndex: number) {
   };
 }
 
-function emptyCollageCellPlaceholderSrc(index: number): string {
-  // Re-derive via the shared builder so the placeholder always matches its cell number.
-  return collageCellElement(
-    index,
-    { x: 0, y: 0, width: 1, height: 1 },
-    null,
-    resolveCollageSettings()
-  ).src as string;
+function emptyCollageCellPlaceholderSrc(
+  index: number,
+  frame: { width: number; height: number }
+): string {
+  return emptyCollageCellSvgDataUri(index + 1, frame.width, frame.height);
 }

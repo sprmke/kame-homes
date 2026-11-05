@@ -2,48 +2,58 @@
 title: 'Documentation index'
 status: active
 tags: [docs]
-updated: 2026-08-18
+updated: 2026-11-05
 ---
 
 # Documentation index
 
 Navigation for **guest-form-management**.
 
+> **Name note:** the product is **Kame Space**. It was called **Kame Space** before 2026-11. Older plans, archives and `done/` docs still quote the old name on purpose (historical records). Code identifiers such as the `kame-homes` repo, Vercel project and `kame-home` slugs are stable technical names, not branding.
+
 **AI agents:** **[`.cursor/rules/README.md`](../.cursor/rules/README.md)** → **[`architecture/overview.md`](./architecture/overview.md)** (full-app picture, then topic files)
+
+**Vocabulary:** [`GLOSSARY.md`](./GLOSSARY.md) — product names, casing and the identifiers that intentionally keep the old name.
 
 ## Workflow (active feature work)
 
-| Doc                                                | Purpose                                                                                                                                                                                                        |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`workflow/README.md`](./workflow/README.md)       | Lifecycle: intake → planned → in-progress → done · wont-do                                                                                                                                                     |
-| [`workflow/planned/`](./workflow/planned/)         | Plans not yet shipped                                                                                                                                                                                          |
-| [`workflow/in-progress/`](./workflow/in-progress/) | Active implementation. Shipped audits: [`tier-feature-alignment-audit.md`](./workflow/done/tier-feature-alignment-audit.md), [`pricing-portfolio-bundling.md`](./workflow/done/pricing-portfolio-bundling.md). |
-| [`workflow/done/`](./workflow/done/)               | Verified shipped plans                                                                                                                                                                                         |
+| Doc                                                                                                   | Purpose                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`workflow/README.md`](./workflow/README.md)                                                          | Lifecycle: intake → planned → in-progress → done · wont-do                                                                                                                                                     |
+| [`workflow/planned/`](./workflow/planned/)                                                            | Plans not yet shipped                                                                                                                                                                                          |
+| [`workflow/in-progress/`](./workflow/in-progress/)                                                    | Active implementation. Shipped audits: [`tier-feature-alignment-audit.md`](./workflow/done/tier-feature-alignment-audit.md), [`pricing-portfolio-bundling.md`](./workflow/done/pricing-portfolio-bundling.md). |
+| [`workflow/done/`](./workflow/done/)                                                                  | Verified shipped plans                                                                                                                                                                                         |
+| [`workflow/in-progress/production-readiness/`](./workflow/in-progress/production-readiness/README.md) | Launch readiness: checklist 00–38, audits, QA batch, operator inputs, evidence, ledger                                                                                                                         |
 
 ## Product backlog (GitHub Issues)
 
-**Source of truth:** [GitHub Issues](https://github.com/sprmke/kame-homes/issues)  
+**Source of truth:** [GitHub Issues](https://github.com/sprmke/kame-space/issues)  
 **Shipped archive:** [`archive/todos/shipped/`](./archive/todos/shipped/)
 
 See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive/todos/BACKLOG_DRAFT.md) or GitHub. Agent CLI: **`.cursor/skills/github-issues/SKILL.md`**.
 
 ## Architecture (live)
 
-| Doc                                                                                  | Purpose                                                                    |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| [`PROJECT.md`](./PROJECT.md)                                                         | Thin index into `architecture/`                                            |
-| [`architecture/overview.md`](./architecture/overview.md)                             | **Start here** — full-app diagrams, stack, surfaces, auth, booking, deploy |
-| [`architecture/routing.md`](./architecture/routing.md)                               | Routes and user flows                                                      |
-| [`architecture/data-model.md`](./architecture/data-model.md)                         | Postgres schema                                                            |
-| [`architecture/edge-functions.md`](./architecture/edge-functions.md)                 | Edge function inventory                                                    |
-| [`architecture/integrations.md`](./architecture/integrations.md)                     | Resend, Google, PDF                                                        |
-| [`architecture/validation-and-env.md`](./architecture/validation-and-env.md)         | Validation + env vars                                                      |
-| [`architecture/deployment.md`](./architecture/deployment.md)                         | Deployment summary (links runbooks in archive)                             |
-| [`architecture/roadmap.md`](./architecture/roadmap.md)                               | Roadmap / gaps                                                             |
-| [`architecture/ai-dashboard-assistant.md`](./architecture/ai-dashboard-assistant.md) | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions        |
-| [`architecture/plans-feature-matrix.md`](./architecture/plans-feature-matrix.md)     | Plan/tier feature × entitlement matrix, client/server gate inventory       |
-| [`architecture/pwa.md`](./architecture/pwa.md)                                       | PWA — service worker, Web Push, offline read + outbox, kill-switch         |
-| [`architecture/unsaved-changes.md`](./architecture/unsaved-changes.md)               | Unsaved-changes guard — leave / close confirmation for every editable form |
+| Doc                                                                                  | Purpose                                                                       |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [`PROJECT.md`](./PROJECT.md)                                                         | Thin index into `architecture/`                                               |
+| [`architecture/overview.md`](./architecture/overview.md)                             | **Start here** — full-app diagrams, stack, surfaces, auth, booking, deploy    |
+| [`architecture/routing.md`](./architecture/routing.md)                               | Routes and user flows                                                         |
+| [`architecture/data-model.md`](./architecture/data-model.md)                         | Postgres schema                                                               |
+| [`architecture/edge-functions.md`](./architecture/edge-functions.md)                 | Edge function inventory                                                       |
+| [`architecture/integrations.md`](./architecture/integrations.md)                     | Resend, Google, PDF                                                           |
+| [`architecture/validation-and-env.md`](./architecture/validation-and-env.md)         | Validation + env vars                                                         |
+| [`architecture/observability.md`](./architecture/observability.md)                   | Faults vs outcomes — Sentry errors, PostHog analytics, shared ids, scrub list |
+| [`architecture/deployment.md`](./architecture/deployment.md)                         | Deployment summary (links runbooks in archive)                                |
+| [`architecture/supabase-capacity.md`](./architecture/supabase-capacity.md)           | Pro-plan limits, measured baseline, capacity estimates, scaling triggers      |
+| [`architecture/ops-reports.md`](./architecture/ops-reports.md)                       | Weekly operations report: sources, schema, AI handoff, delivery, limits       |
+| [`architecture/roadmap.md`](./architecture/roadmap.md)                               | Roadmap / gaps                                                                |
+| [`architecture/ai-dashboard-assistant.md`](./architecture/ai-dashboard-assistant.md) | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions           |
+| [`architecture/plans-feature-matrix.md`](./architecture/plans-feature-matrix.md)     | Plan/tier feature × entitlement matrix, client/server gate inventory          |
+| [`architecture/feature-availability.md`](./architecture/feature-availability.md)     | Super-admin platform feature on/off catalog, server 503 gates, UI hooks       |
+| [`architecture/pwa.md`](./architecture/pwa.md)                                       | PWA — service worker, Web Push, offline read + outbox, kill-switch            |
+| [`architecture/unsaved-changes.md`](./architecture/unsaved-changes.md)               | Unsaved-changes guard — leave / close confirmation for every editable form    |
+| [`architecture/contextual-help.md`](./architecture/contextual-help.md)               | Contextual help — InfoHint, How it works panels, intro cards, copy registry   |
 
 ## Guides (live — per-route behavior)
 
@@ -62,13 +72,13 @@ See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive
 
 ## Archive
 
-| Folder                                         | Purpose                                                                            |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| [`archive/README.md`](./archive/README.md)     | Archive index                                                                      |
-| [`archive/reference/`](./archive/reference/)   | Project structure, admin walkthrough, receipt AI, Telegram, property catalog       |
-| [`archive/operations/`](./archive/operations/) | Migration runbook, prod deploy, **dev/staging**, scheduled jobs, Meta inbox/review |
-| [`archive/planning/`](./archive/planning/)     | Booking redesign history (`NEW_FLOW*`)                                             |
-| [`archive/todos/`](./archive/todos/)           | Legacy backlog draft + shipped issue archive                                       |
+| Folder                                         | Purpose                                                                                                                                                  |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`archive/README.md`](./archive/README.md)     | Archive index                                                                                                                                            |
+| [`archive/reference/`](./archive/reference/)   | Project structure, admin walkthrough, receipt AI, Telegram, property catalog                                                                             |
+| [`archive/operations/`](./archive/operations/) | Migration runbook, prod deploy, **dev/staging**, scheduled jobs, Meta inbox/review, [branch cleanup audit](./archive/operations/branch-cleanup-audit.md) |
+| [`archive/planning/`](./archive/planning/)     | Booking redesign history (`NEW_FLOW*`)                                                                                                                   |
+| [`archive/todos/`](./archive/todos/)           | Legacy backlog draft + shipped issue archive                                                                                                             |
 
 ## Agent tooling
 

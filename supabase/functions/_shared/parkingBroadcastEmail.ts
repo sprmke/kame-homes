@@ -6,13 +6,12 @@
 import { resolveAppSettings } from './appSettings.ts';
 import { resolveEmailOnPrimaryHex, resolveEmailPrimaryHex } from './emailBrandColor.ts';
 import { createServiceClient, type ParkingRow } from './orgAuth.ts';
-import {
-  formatEmailDateRange,
-  formatResendFromAddress,
-  loadPropertyEmailBranding,
-} from './propertyEmailBranding.ts';
+import { formatEmailDateRange, loadPropertyEmailBranding } from './propertyEmailBranding.ts';
 import { renderPropertyTemplateSendEmail } from './propertyTemplateEmail.ts';
 import { escapeHtml } from './renderEmailHtml.ts';
+import { sendResendEmailWithDisplayName as sendResendEmail } from './sendResendEmail.ts';
+
+export { sendResendEmail };
 
 async function getFirstPropertyIdForOrg(organizationId: string): Promise<string | null> {
   const supabase = createServiceClient();
@@ -47,12 +46,6 @@ export function parkingLocationLabel(
   return parts.filter(Boolean).join(' - ');
 }
 
-function requireResendKey(): string {
-  const key = Deno.env.get('RESEND_API_KEY');
-  if (!key) throw new Error('Missing RESEND_API_KEY');
-  return key;
-}
-
 export async function resolveParkingEmailBranding(organizationId: string) {
   const brandingPropertyId = await getFirstPropertyIdForOrg(organizationId);
   if (!brandingPropertyId) {
@@ -63,37 +56,6 @@ export async function resolveParkingEmailBranding(organizationId: string) {
     loadPropertyEmailBranding(brandingPropertyId),
   ]);
   return { brandingPropertyId, settings, branding };
-}
-
-export async function sendResendEmail(input: {
-  fromDisplayName: string;
-  fromEmail: string;
-  to: string;
-  cc?: string[];
-  replyTo: string;
-  subject: string;
-  html: string;
-  errorLabel: string;
-}): Promise<void> {
-  const RESEND_API_KEY = requireResendKey();
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: formatResendFromAddress(input.fromDisplayName, input.fromEmail),
-      to: [input.to],
-      ...(input.cc && input.cc.length > 0 ? { cc: input.cc } : {}),
-      reply_to: input.replyTo,
-      subject: input.subject,
-      html: input.html,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(
-      `Failed to send ${input.errorLabel} (${res.status})${body ? `: ${body.slice(0, 200)}` : ''}`
-    );
-  }
 }
 
 const HOST_REQUEST_BODY_TEMPLATE = `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;color:#333333;">A guest is requesting <strong>{{parking_location}}</strong> for {{check_in_date}} to {{check_out_date}}.</p>
@@ -257,7 +219,7 @@ export async function sendParkingAwaitingPaymentEmail(
   const html = await renderPropertyTemplateSendEmail({
     propertyId: brandingPropertyId,
     templateKey: 'email-booking-acknowledgement',
-    emailTitle: 'Parking — Pay to Confirm',
+    emailTitle: 'Parking - Pay to Confirm',
     contentOverride: GUEST_AWAITING_PAYMENT_BODY_TEMPLATE,
     branding,
     placeholderVars: {

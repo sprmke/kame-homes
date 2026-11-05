@@ -29,12 +29,14 @@ import { PropertyMediaUpload } from '@/features/dashboard/org/components/propert
 import {
   PropertySettingsSectionAlert,
   SettingsField,
+  SettingsManageButton,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
+import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { TowerUnitConflictAlert } from '@/features/dashboard/org/components/TowerUnitConflictAlert';
 import { useResidenceUnitTypes } from '@/features/dashboard/org/hooks/useResidenceUnitTypes';
-import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import { absoluteGuestPropertyUrl } from '@/features/dashboard/org/lib/guestPublicPaths';
+import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import {
   HOUSE_RULE_CUSTOM_MAX_LENGTH,
   MUTUALLY_EXCLUSIVE_HOUSE_RULES,
@@ -114,6 +116,7 @@ type ProfileSectionsProps = {
   resolveFieldError: (fieldId: string) => string | null;
   markFieldInteracted: (fieldId: string) => void;
   sectionMessages?: Partial<Record<PropertySettingsSectionId, string>>;
+  issueSectionIds?: readonly PropertySettingsSectionId[];
   brandColor: string;
   inheritedBrandColor: string;
   onBrandColorChange: (value: string) => void;
@@ -147,6 +150,7 @@ export function PropertyProfileMainSections({
   resolveFieldError,
   markFieldInteracted,
   sectionMessages = {},
+  issueSectionIds = [],
   brandColor,
   inheritedBrandColor,
   onBrandColorChange,
@@ -755,15 +759,10 @@ export function PropertyProfileMainSections({
                     ? ` · ${draft.customAmenities.length} custom`
                     : ''}
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="settings-action"
+                <SettingsManageButton
+                  needsAttention={propertySettingsSectionHasIssue('amenities', issueSectionIds)}
                   onClick={() => setAmenitiesManageOpen(true)}
-                >
-                  Manage
-                </Button>
+                />
               </div>
               <PropertyAmenitiesManageDialog
                 open={amenitiesManageOpen}
@@ -812,15 +811,7 @@ export function PropertyProfileMainSections({
                     ? ` · ${draft.customHouseRules.length} custom`
                     : ''}
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="settings-action"
-                  onClick={() => setHouseRulesManageOpen(true)}
-                >
-                  Manage
-                </Button>
+                <SettingsManageButton onClick={() => setHouseRulesManageOpen(true)} />
               </div>
               <PropertyHouseRulesManageDialog
                 open={houseRulesManageOpen}
@@ -842,20 +833,23 @@ export function PropertyProfileMainSections({
       {sectionIsVisible('guest-form') ? (
         <PropertyGuestFormSettingsSection
           draft={draft}
-          disabled={lock('house-rules')}
+          disabled={lock('guest-form')}
           onChange={onChange}
           setField={setField}
           resolveFieldError={fieldError}
+          embedded={embedded}
+          manageNeedsAttention={propertySettingsSectionHasIssue('guest-form', issueSectionIds)}
         />
       ) : null}
 
       {sectionIsVisible('cancellation') ? (
         <PropertyCancellationPolicySection
           policy={draft.cancellationPolicy}
-          disabled={lock('house-rules')}
+          disabled={lock('cancellation')}
           resolveFieldError={fieldError}
           markFieldInteracted={markFieldInteracted}
           onChange={(policy) => onChange('cancellationPolicy', policy)}
+          manageNeedsAttention={propertySettingsSectionHasIssue('cancellation', issueSectionIds)}
         />
       ) : null}
 
@@ -870,6 +864,7 @@ export function PropertyProfileMainSections({
             embedded={embedded}
             disabled={lock('location')}
             persistPending={locationPersistPending}
+            manageNeedsAttention={propertySettingsSectionHasIssue('location', issueSectionIds)}
             onFieldInteract={markFieldInteracted}
             onPersist={onPersistLocation}
             value={{

@@ -44,7 +44,9 @@ When a guest needs parking, use **Use your parking** if you list your own slot (
 - Q: Where did the old vehicle form go?
   A: Parking is arranged through Find parking / the marketplace now. Vehicle details are collected when the guest reserves a slot.
 - Q: Does Find parking change the booking status?
-  A: It marks that the stay needs parking. Matching and payment happen on the parking side; this booking’s parking step completes after a successful linked payment.
+  A: It marks that the stay needs parking. Matching and payment happen on the parking side; this booking's parking step completes after a successful linked payment.
+- Q: Who pays for the parking slot?
+  A: The guest pays through the parking listing they choose. If you offer your own complimentary slot, the link confirms without a payment step.
 
 ---
 
@@ -91,5 +93,5 @@ The retired `POST submit-pay-parking` endpoint still exists for backward-compati
 - [Route index](../README.md)
 - [`parkings.md`](../parkings.md) — `linkStay` behavior
 - [`org/property/bookings-detail.md`](../org/property/bookings-detail.md) — Find parking actions
-- [`docs/workflow/done/parking-owner-owned-default.md`](../../workflow/done/parking-owner-owned-default.md)
-- [`docs/workflow/done/parking-pay-parking-marketplace-connect.md`](../../workflow/done/parking-pay-parking-marketplace-connect.md)
+- [`docs/workflow/done/parking-owner-owned-default.md`](../../../workflow/done/parking-owner-owned-default.md)
+- [`docs/workflow/done/parking-pay-parking-marketplace-connect.md`](../../../workflow/done/parking-pay-parking-marketplace-connect.md)

@@ -428,3 +428,17 @@ export function applyAssetPath(
     },
   };
 }
+
+/**
+ * Whole hours between a submission timestamp and now.
+ *
+ * Used by `host_verification_resolved` so review latency is a number in PostHog rather than
+ * a question answered by joining two tables by hand. Null when the timestamp is missing or
+ * unreadable, so a legacy row reports the outcome without inventing a duration.
+ */
+export function hoursSinceSubmission(submittedAt: string | null | undefined): number | null {
+  if (!submittedAt) return null;
+  const parsed = Date.parse(submittedAt);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.round((Date.now() - parsed) / 3_600_000));
+}

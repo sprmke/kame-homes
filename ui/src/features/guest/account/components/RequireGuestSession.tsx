@@ -1,7 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
 
-import { GuestAccountGateSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { useGuestAuth } from '@/features/guest/auth/context/GuestAuthContext';
+
+import { GuestAccountGateSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 
 export function RequireGuestSession({ children }: { children: ReactNode }) {
   const { status, requireGuestAuth } = useGuestAuth();

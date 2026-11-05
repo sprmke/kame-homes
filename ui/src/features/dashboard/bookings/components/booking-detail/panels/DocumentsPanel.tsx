@@ -143,7 +143,15 @@ function collectBookingFileGroups(
   }));
 }
 
-function FileGroupSection({ group, onPreview }: { group: DocGroup; onPreview: PreviewHandler }) {
+function FileGroupSection({
+  booking,
+  group,
+  onPreview,
+}: {
+  booking: BookingRow;
+  group: DocGroup;
+  onPreview: PreviewHandler;
+}) {
   return (
     <section aria-labelledby={`files-group-${group.id}`} className="min-w-0">
       <h4 id={`files-group-${group.id}`} className="text-overline mb-2.5">
@@ -155,6 +163,8 @@ function FileGroupSection({ group, onPreview }: { group: DocGroup; onPreview: Pr
             key={`${d.label}-${d.url}`}
             label={d.label}
             url={d.url}
+            bookingId={booking.id}
+            propertyId={booking.property_id ?? null}
             onPreview={onPreview}
             receiptAiVerdict={d.receiptAiVerdict}
             receiptAiLoading={d.receiptAiLoading}
@@ -192,7 +202,12 @@ export function DocumentsPanel({
       <BookingDetailRowBlock>
         <div className="flex flex-col gap-5">
           {groups.map((group) => (
-            <FileGroupSection key={group.id} group={group} onPreview={onPreview} />
+            <FileGroupSection
+              key={group.id}
+              booking={booking}
+              group={group}
+              onPreview={onPreview}
+            />
           ))}
         </div>
       </BookingDetailRowBlock>

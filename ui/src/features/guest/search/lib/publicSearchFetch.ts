@@ -1,3 +1,5 @@
+import { EdgeResponseError } from '@/lib/api/edgeError';
+
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
@@ -25,11 +27,14 @@ export async function publicSearchFetch<T>(
   const json = (await res.json().catch(() => ({}))) as EdgeEnvelope<T>;
 
   if (res.status === 429) {
-    throw new Error(json.error ?? 'Too many requests. Please wait a moment.');
+    throw new EdgeResponseError(json.error ?? 'Too many requests. Please wait a moment.', 429);
   }
 
   if (!res.ok || !json.success || json.data === undefined) {
-    throw new Error(json.error ?? `Failed to call ${functionName}`);
+    throw new EdgeResponseError(
+      json.error ?? `Failed to call ${functionName}`,
+      res.status || 502
+    );
   }
 
   return json.data;

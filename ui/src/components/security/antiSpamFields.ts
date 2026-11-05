@@ -1,6 +1,6 @@
 /**
  * Client mirror of `supabase/functions/_shared/botHeuristics.ts`.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1, Layer 0)
  *
  * Keep the field names in sync with the server helper.
  */

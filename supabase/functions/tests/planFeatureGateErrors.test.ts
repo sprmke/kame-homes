@@ -34,7 +34,7 @@ Deno.test("catchPlanFeatureError maps the error to the upgradeHook envelope the 
 
 Deno.test("catchPlanFeatureError keeps a custom (suspended) message", async () => {
   const message =
-    "Subscription suspended — pay from Plans & Billing to restore access";
+    "Subscription suspended - pay from Plans & Billing to restore access";
   const res = catchPlanFeatureError(
     req,
     new PlanFeatureRequiredError("financeReporting", message),

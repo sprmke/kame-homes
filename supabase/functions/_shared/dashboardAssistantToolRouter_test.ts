@@ -46,6 +46,20 @@ Deno.test('routes by the host’s words and always keeps core', () => {
   );
 });
 
+Deno.test('routes template content questions and pins to settings', () => {
+  const byWords = routeAssistantModules({
+    ...base,
+    message: 'Can you display the house rules template content here?',
+  });
+  assert(byWords.modules.includes('settings'));
+  const byPin = routeAssistantModules({
+    ...base,
+    attachedTypes: ['property_template'],
+    message: 'What does it say?',
+  });
+  assert(byPin.modules.includes('settings'));
+});
+
 Deno.test('pins, the booking page and conversation history add modules', () => {
   assert(
     routeAssistantModules({
@@ -53,6 +67,20 @@ Deno.test('pins, the booking page and conversation history add modules', () => {
       message: 'summarize this',
       attachedTypes: ['maintenance_item'],
     }).modules.includes('maintenance')
+  );
+  assert(
+    routeAssistantModules({
+      ...base,
+      message: 'summarize this',
+      attachedTypes: ['review'],
+    }).modules.includes('bookings')
+  );
+  assert(
+    routeAssistantModules({
+      ...base,
+      message: 'summarize this',
+      attachedTypes: ['marketing_theme'],
+    }).modules.includes('marketing')
   );
   assert(
     routeAssistantModules({
@@ -84,6 +112,18 @@ Deno.test('plan and handoff intents route to core alone instead of failing open'
   ]);
   // "plan" as a verb is not a billing intent: nothing matched, so the router still fails open.
   assertEquals(routeAssistantModules({ ...base, message: 'plan a surprise' }).failOpen, true);
+});
+
+Deno.test('Remove Pedro routes to team instead of failing open', () => {
+  const route = routeAssistantModules({ ...base, message: 'Remove Pedro' });
+  assertEquals(route.failOpen, false);
+  assert(route.modules.includes('team'));
+});
+
+Deno.test('Publish this to Facebook routes to marketing', () => {
+  const route = routeAssistantModules({ ...base, message: 'Publish this to Facebook' });
+  assertEquals(route.failOpen, false);
+  assert(route.modules.includes('marketing'));
 });
 
 Deno.test('fails open when nothing matches', () => {

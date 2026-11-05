@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Settings,
+  Star,
   Tags,
   Users,
   Wrench,
@@ -80,6 +81,11 @@ export function buildOrgNavSections(
       label: 'Bookings',
       href: orgBookingsPath(orgSlug),
       Icon: BookOpen,
+    },
+    {
+      label: 'Reviews',
+      href: orgSectionPath(orgSlug, 'reviews'),
+      Icon: Star,
     },
   ];
 
@@ -184,6 +190,11 @@ export function buildPropertyNavSections(
           label: 'Inbox',
           href: propertySectionPath(orgSlug, propertySlug, 'inbox'),
           Icon: Inbox,
+        },
+        {
+          label: 'Reviews',
+          href: propertySectionPath(orgSlug, propertySlug, 'reviews'),
+          Icon: Star,
         },
         {
           label: 'Notifications',

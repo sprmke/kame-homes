@@ -1,5 +1,4 @@
 import { corsHeaders } from './cors.ts';
-import { capturePostHogException } from './posthog.ts';
 import { logEvent, resolveRequestId } from './requestLog.ts';
 import { captureSentryException } from './sentry.ts';
 
@@ -80,6 +79,9 @@ export function jsonResponse(
     headers: {
       ...corsHeaders(req),
       'Content-Type': 'application/json',
+      // Every response carries the correlation id, so a successful call and a failed one
+      // are equally traceable and the client reads this instead of inventing its own.
+      'x-request-id': resolveRequestId(req),
       ...cacheHeaders(cacheClass),
     },
   });
@@ -178,6 +180,47 @@ export function jsonUpgradeHook(
     },
     options?.status ?? 429
   );
+}
+
+/**
+ * 503 for a feature a super admin has turned off (feature-availability plan). Chosen on
+ * purpose: the PWA sync engine retries 5xx with backoff then marks failed, which is right
+ * for "temporarily off" (`ui/src/lib/pwa/syncEngine.ts`). `Retry-After` is only set when
+ * `expectedBackAt` is a real future time, so callers without one don't send a bogus hint.
+ */
+export function jsonFeatureUnavailable(
+  req: Request,
+  options: {
+    feature: string;
+    error: string;
+    reason: string | null;
+    expectedBackAt?: string | null;
+  }
+): Response {
+  const body = {
+    success: false,
+    error: options.error,
+    code: 'FEATURE_UNAVAILABLE',
+    feature: options.feature,
+    reason: options.reason,
+    expectedBackAt: options.expectedBackAt ?? null,
+  };
+  const headers: Record<string, string> = {};
+  if (options.expectedBackAt) {
+    const retryAfterSec = Math.ceil(
+      (new Date(options.expectedBackAt).getTime() - Date.now()) / 1000
+    );
+    if (retryAfterSec > 0) headers['Retry-After'] = String(retryAfterSec);
+  }
+  return new Response(JSON.stringify(body), {
+    status: 503,
+    headers: {
+      ...corsHeaders(req),
+      'Content-Type': 'application/json',
+      ...cacheHeaders('private'),
+      ...headers,
+    },
+  });
 }
 
 export function handleOptions(req: Request): Response | null {
@@ -306,18 +349,35 @@ export async function errorMessageFromThrown(
   return { status: 400, message };
 }
 
+/**
+ * Per-request facts the `serve*` wrappers know after auth but the thrown error does not.
+ * Passing them in is what lets an issue say which user and which tenant it belongs to,
+ * instead of every edge error looking identical.
+ */
+export type EdgeErrorContext = {
+  userId?: string;
+  orgId?: string;
+  propertyId?: string;
+  parkingId?: string;
+  /** Cron monitor slug, when the caller is a scheduled job. */
+  cron?: string;
+};
+
 export async function handleEdgeError(
   req: Request,
   error: unknown,
   logPrefix: string,
-  unauthorizedFallback = 'Unauthorized'
+  unauthorizedFallback = 'Unauthorized',
+  context: EdgeErrorContext = {}
 ): Promise<Response> {
   const { status, message, code } = await errorMessageFromThrown(error, unauthorizedFallback);
   const requestId = resolveRequestId(req);
-  // Response-instance throws are intentional control flow (401/403/expected 400s).
-  // Logging the Response object as console.error looks like a crash in `functions serve`.
-  // An EdgeError below 500 is the same: a status the handler chose on purpose.
-  const isDeliberate4xx = (error instanceof Response || error instanceof EdgeError) && status < 500;
+  // Anything that resolves below 500 is a status the handler chose on purpose: a Response
+  // throw, an EdgeError, or a bare `new Error('property_id is required')`, which this codebase
+  // uses for validation and which resolves to 400. The contract is the status, not the class —
+  // `captureFaultIfServerError` already uses exactly this rule. Class-based detection leaked
+  // validation throws and 405s from wrong-verb probes into Sentry as faults to fix.
+  const isDeliberate4xx = status < 500;
   if (isDeliberate4xx) {
     console.warn(`${logPrefix} ${status} ${message}`);
     logEvent('warn', { fn: logPrefix, requestId, event: 'request_failed', status, meta: { code } });
@@ -331,21 +391,25 @@ export async function handleEdgeError(
       meta: { code },
     });
     const safeUrl = sanitizeUrlForTelemetry(req.url);
-    // PostHog keeps the exception history; Sentry carries the alert (doc 28 records
-    // PostHog alerting as operator-blocked). Settled together so one vendor being slow
-    // or down cannot make the other wait, and neither can fail the response — both
-    // swallow their own errors internally.
+    // Sentry owns faults, once. PostHog no longer receives a copy: duplicated exception
+    // history meant two sources that could disagree about the same incident.
     await Promise.allSettled([
-      capturePostHogException(error, {
-        logPrefix,
-        request: req,
-        extra: { status, message, code, url: safeUrl, requestId },
-      }),
       captureSentryException(error, {
         logPrefix,
         requestId,
         url: safeUrl,
         method: req.method,
+        userAgent: req.headers.get('user-agent') ?? undefined,
+        userId: context.userId,
+        traceHeader: req.headers.get('sentry-trace'),
+        tags: {
+          http_status: String(status),
+          ...(context.cron ? { cron: context.cron } : {}),
+          ...(context.orgId ? { org_id: context.orgId } : {}),
+          ...(context.propertyId ? { property_id: context.propertyId } : {}),
+          ...(context.parkingId ? { parking_id: context.parkingId } : {}),
+          ...(code ? { edge_code: code } : {}),
+        },
         extra: { status, message, code },
       }),
     ]);
@@ -370,13 +434,62 @@ export async function handleEdgeError(
   return jsonError(req, message, status, status >= 500 ? requestId : undefined);
 }
 
+/**
+ * Capture a thrown error from a raw `serve()` handler, but only when it is a real fault.
+ *
+ * Several hand-rolled handlers catch everything and answer 400 with the message. That is
+ * right for the client and wrong for alerting: a `TypeError` from a bad property access
+ * would arrive as a validation error and never page. Reusing the same status inference as
+ * `handleEdgeError` means a deliberate 4xx stays an outcome (PostHog's job) and anything
+ * that resolves to 5xx reaches Sentry.
+ */
+export async function captureFaultIfServerError(
+  req: Request,
+  error: unknown,
+  logPrefix: string,
+  context: EdgeErrorContext = {}
+): Promise<void> {
+  try {
+    const { status, message, code } = await errorMessageFromThrown(error);
+    if (status < 500) return;
+
+    const requestId = resolveRequestId(req);
+    await captureSentryException(error, {
+      logPrefix,
+      requestId,
+      url: sanitizeUrlForTelemetry(req.url),
+      method: req.method,
+      userAgent: req.headers.get('user-agent') ?? undefined,
+      userId: context.userId,
+      traceHeader: req.headers.get('sentry-trace'),
+      tags: {
+        http_status: String(status),
+        ...(context.cron ? { cron: context.cron } : {}),
+        ...(context.orgId ? { org_id: context.orgId } : {}),
+        ...(context.propertyId ? { property_id: context.propertyId } : {}),
+        ...(context.parkingId ? { parking_id: context.parkingId } : {}),
+        ...(code ? { edge_code: code } : {}),
+      },
+      extra: { status, message, code },
+    });
+  } catch {
+    // telemetry must never change the response
+  }
+}
+
 export async function readJsonBody(req: Request): Promise<Record<string, unknown>> {
   return (await req.json().catch(() => ({}))) as Record<string, unknown>;
 }
 
 export function requireHttpMethod(req: Request, method: string): void {
-  if (req.method !== method) {
-    throw new Error(`Method ${req.method} not allowed`);
+  // HEAD is GET without a body: uptime monitors probe public read endpoints with it, and a
+  // 405 there reads as downtime. The runtime drops the body for a HEAD response.
+  const accepted = req.method === method || (method === 'GET' && req.method === 'HEAD');
+  if (!accepted) {
+    // An EdgeError, not a bare Error: a caller using the wrong verb is a client mistake with
+    // a well-defined status, not a runtime fault. A bare Error would resolve to 400 and, until
+    // the capture rule below changed, page Sentry on every uptime probe and misconfigured client.
+    throw new EdgeError(405, `Method ${req.method} not allowed`, 'method_not_allowed');
   }
 }
 

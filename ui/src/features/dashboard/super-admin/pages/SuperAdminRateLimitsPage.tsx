@@ -13,6 +13,7 @@ import {
 } from '@/features/dashboard/super-admin/hooks/useSuperAdminRateLimits';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { SuperAdminCardListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +63,7 @@ export function SuperAdminRateLimitsPage() {
       title="Rate limits"
       subtitle="Who is close to or over the authenticated-wrapper limit right now, and the manual block list. Enforcement itself is a switch on Platform settings."
       isLoading={isLoading && !data}
+      loadingBody={<SuperAdminCardListBodySkeleton />}
       error={error}
       errorMessage="Could not load rate-limit activity."
     >
@@ -71,7 +73,7 @@ export function SuperAdminRateLimitsPage() {
           <p className="text-sm font-medium">
             Enforcement is{' '}
             <Badge variant={data?.enforceEnabled ? 'success' : 'secondary'}>
-              {data?.enforceEnabled ? 'ON — 429 on limit' : 'OFF — log-only'}
+              {data?.enforceEnabled ? 'ON - 429 on limit' : 'OFF - log-only'}
             </Badge>
             {typeof data?.limit === 'number' ? (
               <span className="text-muted-foreground ml-2 text-xs">

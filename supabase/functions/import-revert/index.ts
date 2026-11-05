@@ -195,7 +195,7 @@ serveAuthenticated('import-revert', async (req) => {
     const message =
       allSubmissions.length === 0
         ? 'No bookings found for this import batch.'
-        : 'Nothing to cancel — all bookings have been moved out of Imported or Pending Review. Enable "Also cancel moved bookings" to include them.';
+        : 'Nothing to cancel. All bookings have been moved out of Imported or Pending Review. Enable "Also cancel moved bookings" to include them.';
 
     console.warn(`[import-revert] no-op guard triggered for batch ${batchId}: ${message}`);
     return jsonError(req, message);
@@ -240,7 +240,7 @@ serveAuthenticated('import-revert', async (req) => {
     );
     return jsonError(
       req,
-      `Revert failed — could not cancel any bookings (${revertFailed.length} error${revertFailed.length !== 1 ? 's' : ''}). The batch remains committed; you may retry.`
+      `Revert failed. Could not cancel any bookings (${revertFailed.length} error${revertFailed.length !== 1 ? 's' : ''}). The batch remains committed; you may retry.`
     );
   }
 
@@ -256,7 +256,7 @@ serveAuthenticated('import-revert', async (req) => {
   }
 
   console.log(
-    `[import-revert] batch ${batchId} — cancelled=${cancelled}, moved=${movedDetails.length}, failed=${revertFailed.length}`
+    `[import-revert] batch ${batchId} - cancelled=${cancelled}, moved=${movedDetails.length}, failed=${revertFailed.length}`
   );
 
   // One summary row for the batch — the per-booking `booking.cancelled` rows are

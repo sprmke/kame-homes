@@ -164,10 +164,63 @@ export class TurnTaskPlanRecorder {
   private steps: TaskPlanStep[] = [];
   private title = 'Working on your request';
   private active = false;
+  /** True once the model declared its own goals via `plan_task` — replaces per-round inference. */
+  private goalPlanActive = false;
 
   constructor(private emit?: AssistantStreamEmitter) {}
 
+  /** Phase 2 `plan_task`: the model's own declared sub-goals, called before any other tool. */
+  declareGoals(goals: readonly string[]): void {
+    const cleaned = goals.map((g) => String(g ?? '').trim()).filter(Boolean);
+    if (cleaned.length === 0) return;
+    this.active = true;
+    this.goalPlanActive = true;
+    this.steps = cleaned.map((label, index) => ({
+      id: `g${index}`,
+      label,
+      status: 'pending' as const,
+    }));
+    const streamSteps: AssistantStreamTaskPlanStep[] = this.steps.map((step) => ({ ...step }));
+    this.emit?.({ type: 'plan', title: this.title, steps: streamSteps });
+  }
+
+  /**
+   * Phase 4 resumable turns: seed the plan from a prior turn's unfinished `task_plan` block
+   * (the "Continue" chip) instead of starting goal-planning over. Steps already `done` stay
+   * done; anything else (`pending`/`running`/`failed`) resets to `pending` so it's retried this
+   * turn. Synth placeholder rows from the prior turn are dropped — this turn gets its own.
+   */
+  resumeFrom(priorSteps: readonly Pick<TaskPlanStep, 'id' | 'label' | 'status'>[]): void {
+    const carried = priorSteps.filter((step) => !step.id.endsWith('-synth'));
+    if (carried.length === 0) return;
+    this.active = true;
+    this.goalPlanActive = true;
+    this.steps = carried.map((step) => ({
+      id: step.id,
+      label: step.label,
+      status: step.status === 'done' ? ('done' as const) : ('pending' as const),
+    }));
+    const streamSteps: AssistantStreamTaskPlanStep[] = this.steps.map((step) => ({ ...step }));
+    this.emit?.({ type: 'plan', title: this.title, steps: streamSteps });
+  }
+
+  /**
+   * After a round where at least one real tool call succeeded, advance the earliest open
+   * declared goal. Positional, not semantic — a simple, deterministic progress signal, not an
+   * attempt to match a goal's text to which tool addressed it.
+   */
+  advanceDeclaredGoal(): void {
+    if (!this.goalPlanActive) return;
+    const next = this.steps.find((step) => step.status === 'pending');
+    if (!next) return;
+    this.updateStep(next.id, 'done');
+    this.emit?.({ type: 'plan_update', stepId: next.id, status: 'done' });
+  }
+
   initFromToolCalls(toolCalls: Array<{ name: string }>, roundIndex: number): void {
+    // A declared-goal plan replaces the inferred per-tool checklist for this turn — one
+    // coherent list, not two.
+    if (this.goalPlanActive) return;
     if (toolCalls.length < 2) return;
     this.active = true;
     // Drop prior synth placeholder so multi-round batches accumulate tool steps.
@@ -243,6 +296,14 @@ export class TurnTaskPlanRecorder {
       title: this.title,
       steps: this.steps,
     };
+  }
+
+  /** Steps not yet finished when the turn ran out of rounds/budget — see completionCheck.ts. */
+  getOpenSteps(): Array<{ id: string; label: string }> {
+    return this.steps
+      .filter((step) => step.status === 'pending' || step.status === 'running')
+      .filter((step) => !step.id.endsWith('-synth'))
+      .map((step) => ({ id: step.id, label: step.label }));
   }
 
   private updateStep(stepId: string, status: TaskPlanStepStatus): void {

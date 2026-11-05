@@ -50,6 +50,8 @@ export type InboxConversation = {
   inquiry_check_out?: string | null;
   property_name?: string | null;
   property_slug?: string | null;
+  ai_handoff_at?: string | null;
+  ai_handoff_reason?: string | null;
 };
 
 export type InboxMessage = {
@@ -67,9 +69,38 @@ export type InboxMessage = {
   deleted_at?: string | null;
   reply_to_message_id?: string | null;
   reply_preview_text?: string | null;
+  message_kind?: 'text' | 'template';
+  template_snapshot?: unknown | null;
+};
+
+export type GuestRequestKind = 'booking_inquiry' | 'early_checkin_late_checkout';
+export type GuestRequestStatus = 'pending' | 'approved' | 'declined';
+
+/** A guest-submitted request from the AI receptionist, shown inline in this thread. */
+export type GuestRequestDto = {
+  id: string;
+  conversation_id: string | null;
+  booking_id: string | null;
+  kind: GuestRequestKind;
+  status: GuestRequestStatus;
+  payload: Record<string, unknown>;
+  resolved_at: string | null;
+  created_at: string;
+};
+
+/** Row in the composer Insert → Templates list (`chat-templates` edge function). */
+export type ChatTemplateListItem = {
+  templateKey: string;
+  name: string;
+  category: 'standard' | 'custom';
+  description: string | null;
+  sectionImageUrl: string | null;
+  folderId: string | null;
+  updatedAt: string | null;
 };
 
 export function canHostEditMessage(message: InboxMessage, messages: InboxMessage[]): boolean {
+  if (message.message_kind === 'template') return false;
   return canHostEditMessageInThread(message as ChatActionMessage, messages);
 }
 

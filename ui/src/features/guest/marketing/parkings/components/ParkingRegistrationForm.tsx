@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { GuestFormStepNavigation } from '@/features/guest/form/components/GuestFormStepNavigation';
@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useOfflineFormDraft } from '@/hooks/useOfflineFormDraft';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { parkingFlowStep, parkingFlowTransition } from '@/lib/parking/parkingFlowMotion';
@@ -82,6 +83,8 @@ interface ParkingRegistrationFormProps {
    * on phone/tablet, same as the property booking form.
    */
   mobileVariant?: 'modal' | 'page';
+  /** Stable key for the local draft (e.g. the parking slug); drafts stay off when unset. */
+  draftKey?: string;
   /** Reports unsaved edits so a host modal can guard its own close. */
   onDirtyChange?: (isDirty: boolean) => void;
 }
@@ -124,6 +127,7 @@ export function ParkingRegistrationForm({
   preferredLinkStayId = null,
   onSubmit,
   mobileVariant = 'modal',
+  draftKey,
   onDirtyChange,
 }: ParkingRegistrationFormProps) {
   const reduceMotion = useReducedMotion();
@@ -158,6 +162,34 @@ export function ParkingRegistrationForm({
   // Route guard only on the standalone page; the modal host guards its own close.
   const isFormDirty = form.formState.isDirty && !isSubmitting;
   useUnsavedChangesGuard({ isDirty: isFormDirty, enabled: mobileVariant === 'page' });
+
+  /**
+   * Local draft. Restoring is an explicit user choice (a toast action) rather than
+   * automatic, so it can never race the stay-link prefill or a `defaultValues`
+   * change. Cleared on a successful submit.
+   */
+  const watchedValues = useWatch({ control: form.control });
+  const draft = useOfflineFormDraft<Partial<ParkingRegistrationValues>>({
+    key: draftKey ? `parking:${draftKey}` : 'parking:unset',
+    values: watchedValues as Partial<ParkingRegistrationValues>,
+    enabled: Boolean(draftKey) && mobileVariant === 'page' && !isSubmitting,
+    onRestore: (values, savedAt) => {
+      const hasContent = Object.values(values).some((value) => typeof value === 'string' && value.trim());
+      if (!hasContent) return;
+      const when = new Date(savedAt).toLocaleString();
+      toast('Continue where you left off?', {
+        description: `Saved ${when}`,
+        duration: 15000,
+        action: {
+          label: 'Restore',
+          onClick: () => {
+            form.reset({ ...form.getValues(), ...values });
+            toast.success('Draft restored');
+          },
+        },
+      });
+    },
+  });
   useEffect(() => {
     onDirtyChange?.(isFormDirty);
   }, [isFormDirty, onDirtyChange]);
@@ -267,6 +299,7 @@ export function ParkingRegistrationForm({
       setIsSubmitting(true);
       try {
         await onSubmit(values, linkedBookingId, antiSpamFields.getFields());
+        draft.clear();
       } finally {
         setIsSubmitting(false);
       }
@@ -278,7 +311,7 @@ export function ParkingRegistrationForm({
 
   if (phase === 'loading') {
     return (
-      <div className="space-y-3" aria-busy="true" aria-label="Loading stays">
+      <div role="status" className="space-y-3" aria-busy="true" aria-label="Loading stays">
         <Skeleton className="h-5 w-28" />
         <Skeleton className="h-[4.25rem] w-full rounded-xl" />
         <Skeleton className="h-[4.25rem] w-full rounded-xl" />

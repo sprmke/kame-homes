@@ -20,7 +20,9 @@ import { maybeNotifyGuestOfHostWebReply } from './guestChatEmail.ts';
 import { assertGuestWebMessagePayload, buildMessagePreview } from './guestChatAttachments.ts';
 import type { NormalizedInboxAttachment } from './inboxAttachments.ts';
 import type { SocialChannelConnectionRow, SocialConversationRow } from './socialInboxTypes.ts';
+import { assertFeatureAvailable, FeatureUnavailableError } from './featureAvailability.ts';
 import type { InboxAccessContext } from './inboxAccess.ts';
+import type { AuthenticatedUser } from './orgAuth.ts';
 
 export class InboxSendReplyError extends Error {
   status: number;
@@ -53,6 +55,8 @@ export async function loadInboxConversationInScope(
 export type SendInboxReplyOptions = {
   useHumanAgentTag?: boolean;
   attachments?: NormalizedInboxAttachment[];
+  /** When set, super-admin bypass on `inbox.meta.reply` may apply. */
+  actor?: AuthenticatedUser;
 };
 
 /** Sends a reply — web insert+notify (text and/or attachments), or Meta DM text only. */
@@ -68,7 +72,7 @@ export async function sendInboxReply(
 
   if (attachments.length > 0 && conv.platform !== 'web') {
     throw new InboxSendReplyError(
-      'Attachments are only supported for website chat — send text only on Messenger or Instagram'
+      'Attachments are only supported for website chat - send text only on Messenger or Instagram'
     );
   }
 
@@ -101,6 +105,7 @@ export async function sendInboxReply(
       reply_status: 'replied',
       unread_delta: 0,
       guest_unread_delta: 1,
+      aiHandoff: { clear_ai_handoff: true },
     });
     void maybeNotifyGuestOfHostWebReply({
       orgId: ctx.org.id,
@@ -119,7 +124,7 @@ export async function sendInboxReply(
     .eq('id', conv.connection_id)
     .maybeSingle();
   if (conn?.status !== 'connected') {
-    throw new InboxSendReplyError('This channel is disconnected — reconnect Meta to reply');
+    throw new InboxSendReplyError('This channel is disconnected - reconnect Meta to reply');
   }
   if (!conn?.encrypted_access_token || !conn.meta_page_id) {
     throw new InboxSendReplyError('Channel not connected');
@@ -128,11 +133,20 @@ export async function sendInboxReply(
   const token = await getPageAccessToken(connection);
 
   try {
+    try {
+      await assertFeatureAvailable('inbox.meta.reply', { user: opts.actor });
+    } catch (err) {
+      if (err instanceof FeatureUnavailableError) {
+        throw new InboxSendReplyError(err.message, 503);
+      }
+      throw err;
+    }
+
     if (conv.conversation_type === 'dm') {
       const withinStandardWindow = isWithinMessagingWindowFromInbound(conv.last_inbound_at);
       const withinHumanAgentWindow = isWithinHumanAgentWindowFromInbound(conv.last_inbound_at);
       if (!withinStandardWindow && !(opts.useHumanAgentTag === true && withinHumanAgentWindow)) {
-        throw new InboxSendReplyError('Reply window closed — guest must message again');
+        throw new InboxSendReplyError('Reply window closed - guest must message again');
       }
       const result = await sendMetaMessage({
         pageId: connection.meta_page_id,
@@ -142,6 +156,9 @@ export async function sendInboxReply(
         platform: conv.platform,
         tag: !withinStandardWindow && opts.useHumanAgentTag === true ? 'HUMAN_AGENT' : undefined,
       });
+      if (!result.ok) {
+        throw new InboxSendReplyError(result.message, 503);
+      }
       await insertMessageIfNew({
         organization_id: ctx.org.id,
         conversation_id: conv.id,
@@ -171,6 +188,7 @@ export async function sendInboxReply(
     last_message_at: now,
     reply_status: 'replied',
     unread_delta: 0,
+    aiHandoff: { clear_ai_handoff: true },
   });
 
   return { sent: true };

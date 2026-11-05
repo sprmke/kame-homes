@@ -58,6 +58,8 @@ Finance gives hosts one place to see how much money is coming in and going out f
   A: Use **Export report** in the page header. You can export just the summary, just stays, just transactions, or a full combined report as a PDF for the date range you picked.
 - Q: I set up a recurring expense. Can I edit just one occurrence without changing future ones?
   A: Yes. When editing or deleting a recurring transaction you're asked whether the change applies to just that occurrence, that one and all future ones, or the whole series.
+- Q: Do the charts and totals follow the date range I pick?
+  A: Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
 
 ---
 
@@ -187,6 +189,7 @@ Legacy stored `finance:edit` expands to all transaction + export leaves. Parking
 | Concern             | Path                                                                                                                                                                                                                                                          |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Page                | `ui/src/features/dashboard/finance/pages/FinancePage.tsx`                                                                                                                                                                                                     |
+| Loading skeleton    | `FinancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — KPIs, cash-flow / breakdown, toolbar, then table (desktop) / cards (phone) or calendar from `?view=`                                                                                                  |
 | Route               | `ui/src/features/dashboard/finance/routes/index.tsx`                                                                                                                                                                                                          |
 | Summary cards       | `ui/src/features/dashboard/finance/components/FinanceSummaryCards.tsx`                                                                                                                                                                                        |
 | Ledger toolbar      | `ui/src/features/dashboard/finance/components/FinanceLedgerToolbar.tsx`                                                                                                                                                                                       |

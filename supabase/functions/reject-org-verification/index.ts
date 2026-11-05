@@ -7,6 +7,7 @@ import { createServiceClient, serializeOrganization, type OrgRow } from '../_sha
 import {
   ORG_VERIFICATION_REJECTION_KINDS,
   asChangesRequestedDocs,
+  hoursSinceSubmission,
   orgVerificationToSettingsValue,
   readOrgVerificationFromSettings,
   type OrgVerificationRejectionKind,
@@ -22,6 +23,7 @@ import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
 import { buildActorContext, logActivity } from '../_shared/activityLog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('reject-org-verification', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -150,6 +152,20 @@ serveAuthenticated('reject-org-verification', async (req) => {
       kind: `${tier} host verification`,
       decision: kind === 'changes' ? 'changes_requested' : 'rejected',
       via: 'platform_review',
+    },
+  });
+
+  await capturePostHogEvent('host_verification_resolved', {
+    logPrefix: 'reject-org-verification',
+    request: req,
+    distinctId: admin.id,
+    groups: { organization: orgId },
+    properties: {
+      outcome: kind === 'changes' ? 'needs_info' : 'rejected',
+      tier,
+      hours_to_resolve: hoursSinceSubmission(
+        tier === 'enhanced' ? verification.enhancedSubmittedAt : verification.baseSubmittedAt
+      ),
     },
   });
 

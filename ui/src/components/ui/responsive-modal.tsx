@@ -60,6 +60,8 @@ type ResponsiveModalContentProps = React.ComponentPropsWithoutRef<typeof DialogC
    * wraps all children in one scroll region.
    */
   sheetLayout?: 'scroll' | 'split';
+  /** Bottom sheet only: disable drag-to-dismiss on the handle. */
+  disableDrag?: boolean;
 };
 
 export function ResponsiveModalContent({
@@ -69,6 +71,7 @@ export function ResponsiveModalContent({
   sheetLayout = 'scroll',
   showCloseButton,
   overlayClassName: _overlayClassName,
+  disableDrag,
   ...props
 }: ResponsiveModalContentProps) {
   const useSheet = useIsBelowLg();
@@ -78,6 +81,7 @@ export function ResponsiveModalContent({
       <BottomSheetContent
         hideClose
         layout={sheetLayout}
+        disableDrag={disableDrag}
         overlayClassName={_overlayClassName}
         className={cn(
           'gap-0',

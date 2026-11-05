@@ -17,8 +17,8 @@ export const PROPERTY_SLUG = E2E_PROPERTY_SLUG;
 export const PROPERTY_BOOKING_ID = E2E_PROPERTY_BOOKING_ID;
 
 export const propertyBookingParkingPaths = {
-  bookingDetail: `/org/kame-homes-ph/property/${PROPERTY_SLUG}/bookings/${PROPERTY_BOOKING_ID}`,
-  propertySettings: `/org/kame-homes-ph/property/${PROPERTY_SLUG}/settings`,
+  bookingDetail: `/org/sample-stays-ph/property/${PROPERTY_SLUG}/bookings/${PROPERTY_BOOKING_ID}`,
+  propertySettings: `/org/sample-stays-ph/property/${PROPERTY_SLUG}/settings`,
 } as const;
 
 export type PropertyBookingParkingState = {
@@ -271,7 +271,7 @@ export async function installPropertyBookingParkingMocks(
       window.localStorage.setItem('kame-last-property-slug', propertySlug);
       window.localStorage.setItem('kame-last-tenant-kind', 'property');
     },
-    { orgSlug: 'kame-homes-ph', propertySlug: PROPERTY_SLUG }
+    { orgSlug: 'sample-stays-ph', propertySlug: PROPERTY_SLUG }
   );
 
   await page.route('**/functions/v1/get-linked-parking-booking**', async (route) => {

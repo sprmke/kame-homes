@@ -4,7 +4,6 @@ import { Wallet } from 'lucide-react';
 
 import { SuperAdminEmptyState } from '@/features/dashboard/super-admin/components/shared/SuperAdminEmptyState';
 import { SuperAdminPage } from '@/features/dashboard/super-admin/components/shared/SuperAdminPage';
-import { SuperAdminPageLoading } from '@/features/dashboard/super-admin/components/shared/SuperAdminPageLoading';
 import {
   SuperAdminSettingsCard,
   SuperAdminSettingsRow,
@@ -21,7 +20,10 @@ import {
 import { AdminDialogShell } from '@/components/AdminDialogShell';
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
 import { SectionContentSkeleton } from '@/components/skeletons/AdminSkeletons';
-import { SuperAdminAdminListBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
+import {
+  SuperAdminAdminListBodySkeleton,
+  SuperAdminSettingsBodySkeleton,
+} from '@/components/skeletons/SuperAdminSkeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -39,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 function formatPhp(value: number): string {
@@ -227,7 +230,8 @@ function ParkingSettingsCard() {
 
   useUnsavedChangesGuard({ isDirty, onSave: saveSettings });
 
-  if (isLoading && !data) return <SuperAdminPageLoading metricCount={2} />;
+  if (isLoading && !data)
+    return <SuperAdminSettingsBodySkeleton cards={1} titles={['Commission & guest rate']} />;
   if (error) return <p className="text-destructive text-sm">Could not load parking settings.</p>;
 
   return (
@@ -311,7 +315,7 @@ function ParkingSettingsCard() {
             <Input
               id="support-escalation-phone"
               type="tel"
-              placeholder="e.g. +63 900 000 0000"
+              placeholder={FORM_PLACEHOLDERS.phone}
               value={escalationPhone}
               onChange={(event) => setEscalationPhone(event.target.value)}
             />
@@ -342,7 +346,7 @@ function PayoutStatusBadge({ txn }: { txn: ParkingPayoutTransaction }) {
 function PayoutsLedger() {
   const { data, isLoading, error } = useParkingPayouts();
 
-  if (isLoading && !data) return <SuperAdminAdminListBodySkeleton metricCount={3} />;
+  if (isLoading && !data) return <SuperAdminAdminListBodySkeleton metricCount={0} />;
   if (error) return <p className="text-destructive text-sm">Could not load the payout ledger.</p>;
 
   const transactions = data ?? [];

@@ -10,6 +10,32 @@ export type PlanTeamManagement = {
   maxMembers: number | null;
 };
 
+/**
+ * Per-tier Marketing Studio media library quota. Seeded per plan code by
+ * `20261316128910_marketing_media_library_plan_features.sql` (+ the paid-tier fix in
+ * `…950`), editable in the super-admin plan editor afterwards.
+ */
+export type PlanMarketingMediaLibrary = {
+  storageMb: number;
+  maxFiles: number;
+  maxImageMb: number;
+  maxVideoMb: number;
+  maxVideoSec: number;
+  maxAudioMb: number;
+  dailyUploads: number;
+};
+
+/** Free-tier allowance. Used when a plan row predates the quota migrations. */
+export const DEFAULT_MARKETING_MEDIA_LIBRARY: PlanMarketingMediaLibrary = {
+  storageMb: 100,
+  maxFiles: 30,
+  maxImageMb: 10,
+  maxVideoMb: 50,
+  maxVideoSec: 30,
+  maxAudioMb: 15,
+  dailyUploads: 20,
+};
+
 export type PlanFeatures = {
   automatedBookingFlow: boolean;
   verifiedBadgeEligible: boolean;
@@ -41,6 +67,8 @@ export type PlanFeatures = {
   bookingImport: boolean;
   /** Connect external OTA calendars (Airbnb / Booking.com / VRBO) for two-way iCal sync. */
   calendarSync: boolean;
+  /** Auto-review guests after check-out and AI review drafts. Pro (`growth`) and above. */
+  reviewAutomation: boolean;
   /** AI-assisted dynamic nightly rates (Smart Pricing) on the Pricing page. */
   smartPricing: boolean;
   customRoles: boolean;
@@ -50,6 +78,8 @@ export type PlanFeatures = {
   analyticsInsights: boolean;
   /** CSV export of the org Activity & Audit Log. In-app viewing stays ungated. */
   activityLogExport: boolean;
+  /** Marketing Studio media library storage quotas (images, video, audio). */
+  marketingMediaLibrary: PlanMarketingMediaLibrary;
 };
 
 export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
@@ -80,11 +110,13 @@ export const DEFAULT_PLAN_FEATURES: PlanFeatures = {
   publicPagesAutosave: false,
   bookingImport: false,
   calendarSync: false,
+  reviewAutomation: false,
   smartPricing: false,
   customRoles: false,
   copyPropertySettings: false,
   analyticsInsights: false,
   activityLogExport: false,
+  marketingMediaLibrary: { ...DEFAULT_MARKETING_MEDIA_LIBRARY },
 };
 
 function asBool(value: unknown, fallback: boolean): boolean {
@@ -102,6 +134,27 @@ function asSearchTier(value: unknown, fallback: SearchVisibilityTier): SearchVis
   if (value === 'top20') return 'top30';
   if (value === 'top10') return 'top15';
   return fallback;
+}
+
+/** Non-negative integer quota, falling back per field so a partial JSONB row still parses. */
+function asQuota(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return Math.floor(value);
+  return fallback;
+}
+
+function parseMarketingMediaLibrary(raw: unknown): PlanMarketingMediaLibrary {
+  const base = DEFAULT_MARKETING_MEDIA_LIBRARY;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...base };
+  const obj = raw as Record<string, unknown>;
+  return {
+    storageMb: asQuota(obj.storageMb, base.storageMb),
+    maxFiles: asQuota(obj.maxFiles, base.maxFiles),
+    maxImageMb: asQuota(obj.maxImageMb, base.maxImageMb),
+    maxVideoMb: asQuota(obj.maxVideoMb, base.maxVideoMb),
+    maxVideoSec: asQuota(obj.maxVideoSec, base.maxVideoSec),
+    maxAudioMb: asQuota(obj.maxAudioMb, base.maxAudioMb),
+    dailyUploads: asQuota(obj.dailyUploads, base.dailyUploads),
+  };
 }
 
 export function parsePlanFeatures(raw: unknown): PlanFeatures {
@@ -169,11 +222,13 @@ export function parsePlanFeatures(raw: unknown): PlanFeatures {
     publicPagesAutosave: asBool(obj.publicPagesAutosave, base.publicPagesAutosave),
     bookingImport: asBool(obj.bookingImport, base.bookingImport),
     calendarSync: asBool(obj.calendarSync, base.calendarSync),
+    reviewAutomation: asBool(obj.reviewAutomation, base.reviewAutomation),
     smartPricing: asBool(obj.smartPricing, base.smartPricing),
     customRoles: asBool(obj.customRoles, base.customRoles),
     copyPropertySettings: asBool(obj.copyPropertySettings, base.copyPropertySettings),
     analyticsInsights: asBool(obj.analyticsInsights, base.analyticsInsights),
     activityLogExport: asBool(obj.activityLogExport, base.activityLogExport),
+    marketingMediaLibrary: parseMarketingMediaLibrary(obj.marketingMediaLibrary),
   };
 }
 
@@ -200,5 +255,7 @@ export function isFeatureEnabled(features: PlanFeatures, key: PlanFeatureKey): b
     );
   }
   if (key === 'aiMonthlyCreditAllowance') return features.aiMonthlyCreditAllowance > 0;
+  // Object-valued quota: any allowance above zero means the library is usable.
+  if (key === 'marketingMediaLibrary') return features.marketingMediaLibrary.maxFiles > 0;
   return false;
 }

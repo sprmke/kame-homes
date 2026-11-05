@@ -122,8 +122,11 @@ export function AiOverrideDialog({
   return (
     <>
       <ResponsiveModal open={open} onOpenChange={guardedOpenChange}>
-        <ResponsiveModalContent className="max-w-2xl" sheetLayout="split">
-          <ResponsiveModalHeader className="px-4 sm:px-0">
+        <ResponsiveModalContent
+          className="max-h-[min(90dvh,44rem)] max-w-2xl sm:max-w-2xl"
+          sheetLayout="split"
+        >
+          <ResponsiveModalHeader className="shrink-0 px-4 sm:px-0">
             <ResponsiveModalTitle>Overrides for {label}</ResponsiveModalTitle>
           </ResponsiveModalHeader>
 
@@ -149,7 +152,7 @@ export function AiOverrideDialog({
             </div>
           </div>
 
-          <ResponsiveModalFooter className="px-4 pb-4 sm:px-0 sm:pb-0">
+          <ResponsiveModalFooter className="shrink-0 px-4 pb-4 sm:px-0 sm:pb-0">
             <Button type="button" variant="outline" onClick={requestClose}>
               Cancel
             </Button>

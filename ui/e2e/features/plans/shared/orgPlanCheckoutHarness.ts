@@ -171,7 +171,7 @@ function createPendingCheckout(state: PlansCheckoutHarnessState, planId: string)
   return pending;
 }
 
-/** Stub PayMongo Hosted Checkout — redirects back to Kame Homes billing return URLs. */
+/** Stub PayMongo Hosted Checkout — redirects back to Kame Space billing return URLs. */
 export async function installPaymongoCheckoutRedirectStub(
   page: Page,
   result: 'success' | 'cancelled' = 'success'

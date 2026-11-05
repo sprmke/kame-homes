@@ -101,6 +101,8 @@ export type GuestPaymentInfoDto = {
   organizationName: string;
   defaultParkingRateGuest: number;
   petFee: number;
+  /** Flat per-booking down payment (`app_settings.default_down_payment`). */
+  downPayment: number;
 } & GafDetailsResolved;
 
 export type AppSettingsFieldSource = 'db' | 'default';
@@ -474,21 +476,23 @@ function pickPropertyFieldsFromRow(
 }
 
 export async function resolveAppSettings(propertyId?: string | null): Promise<AppSettingsResolved> {
-  const row = await loadSettingsRow(propertyId);
-  const orgRow = propertyId ? await loadOrgSettingsRowByPropertyId(propertyId) : null;
+  const resolvedPropertyId = propertyId ?? (await getDefaultPropertyId());
+  const [row, orgRow, residenceName, brandColor] = await Promise.all([
+    loadSettingsRow(propertyId),
+    propertyId ? loadOrgSettingsRowByPropertyId(propertyId) : Promise.resolve(null),
+    propertyId
+      ? loadPropertyResidenceName(resolvedPropertyId)
+      : Promise.resolve(DEFAULT_RESIDENCE_NAME),
+    loadOrgBrandColorByPropertyId(resolvedPropertyId),
+  ]);
   const org = pickOrgSettingsFieldsFromRow(orgRow);
   const originBase = resolvePublicGuestAppOrigin(org.origin.value || null);
-  const resolvedPropertyId = propertyId ?? (await getDefaultPropertyId());
-  const residenceName = propertyId
-    ? await loadPropertyResidenceName(resolvedPropertyId)
-    : DEFAULT_RESIDENCE_NAME;
   const developmentPmoEmail = await loadDevelopmentPmoEmailByName(
     createServiceClient(),
     residenceName
   );
   const property = pickPropertyFieldsFromRow(row, originBase, residenceName, developmentPmoEmail);
   const branding = pickPropertyBrandingFromRow(row);
-  const brandColor = await loadOrgBrandColorByPropertyId(resolvedPropertyId);
 
   const facebookReviewsUrl = resolvePropertyFacebookUrl(
     branding.facebook.value,
@@ -562,6 +566,7 @@ export async function serializeGuestPaymentInfo(
     organizationName: guestForm.organizationName,
     defaultParkingRateGuest: s.defaultParkingRateGuest,
     petFee: pricing.petFee,
+    downPayment: pricing.downPayment,
   };
 }
 
@@ -757,7 +762,13 @@ export function validateGafContactNumber(raw: string): string | null {
 export async function applyGafDefaultsToFormData<T extends Partial<GuestFormData>>(
   data: T,
   propertyId?: string | null
-): Promise<T & Pick<GuestFormData, 'unitOwner' | 'towerAndUnitNumber' | 'ownerOnsiteContactPerson' | 'ownerContactNumber'>> {
+): Promise<
+  T &
+    Pick<
+      GuestFormData,
+      'unitOwner' | 'towerAndUnitNumber' | 'ownerOnsiteContactPerson' | 'ownerContactNumber'
+    >
+> {
   const s = await resolveAppSettings(propertyId);
   return {
     ...data,

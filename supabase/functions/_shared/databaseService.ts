@@ -800,6 +800,7 @@ export class DatabaseService {
     // update the guard alongside it, or a parking scope with pending broadcasts could
     // silently take the fast path and drop those broadcast-only rows from the list.
     let hasPendingParkingBroadcasts = false;
+    let pendingParkingBookingIds: string[] = [];
 
     if (parkingId) {
       // Broadcast pre-claim requests still have parking_id = null — surface this
@@ -810,6 +811,7 @@ export class DatabaseService {
         .eq('parking_id', parkingId)
         .eq('response', 'pending');
       const pendingBookingIds = (pendingBroadcasts ?? []).map((row) => String(row.booking_id));
+      pendingParkingBookingIds = pendingBookingIds;
       hasPendingParkingBroadcasts = pendingBookingIds.length > 0;
       const request = this.supabase.from('guest_submissions').select('*');
       baseRequests.push(
@@ -861,6 +863,35 @@ export class DatabaseService {
     if (baseRequests.length === 0) {
       return { rows: [], total: 0 };
     }
+
+    // Preferred path: one RPC performs filtering, sorting, and pagination in
+    // Postgres so a tenant's full history never materialises in the Edge
+    // Function isolate. Falls back to the PostgREST paths below when the
+    // function is missing (pre-migration environment) or errors, so a deploy
+    // order mismatch can never break the admin list.
+    const viaRpc = await this.listBookingsViaRpc({
+      propertyId,
+      parkingId,
+      orgId,
+      propertyIds,
+      parkingIds,
+      extraBookingIds: pendingParkingBookingIds,
+      includePropertyMeta,
+      includeParkingMeta,
+      bookingKind,
+      q,
+      status,
+      from,
+      to,
+      hasPets,
+      needParking,
+      sort,
+      page,
+      limit,
+      showCompletedBookings,
+      expandImportedBatch,
+    });
+    if (viaRpc) return viaRpc;
 
     // --- Filters (applied identically to every base request above) ---
     // Free-text search now spans the full guest record:
@@ -965,10 +996,12 @@ export class DatabaseService {
         ? request.eq('parking_id', parkingId)
         : request.eq('property_id', propertyId!);
       request = applyBookingsListFilters(request);
-      // Same AND precedence as the in-memory path: visibility filtering always applies,
-      // independent of an explicit status filter (see matchesDefaultBookingsListVisibility).
-      request = request.neq('status', 'CANCELLED');
-      if (!showCompletedBookings) request = request.neq('status', 'COMPLETED');
+      // Match matchesDefaultBookingsListVisibility: hide cancelled/completed by default,
+      // but honor an explicit status filter (History stage / Filters → Done|Cancelled).
+      if (!status.includes('CANCELLED')) request = request.neq('status', 'CANCELLED');
+      if (!showCompletedBookings && !status.includes('COMPLETED')) {
+        request = request.neq('status', 'COMPLETED');
+      }
 
       const ascending = sqlSortDir === 'asc';
       request =
@@ -1026,8 +1059,10 @@ export class DatabaseService {
       rows = rows.filter((r) => passesListCheckInDateRangeFilter(r, from, to));
     }
 
-    // Default list: hide cancelled + completed unless toggle is on
-    rows = rows.filter((r) => matchesDefaultBookingsListVisibility(r, showCompletedBookings));
+    // Default list: hide cancelled + completed unless toggle / status filter asks for them
+    rows = rows.filter((r) =>
+      matchesDefaultBookingsListVisibility(r, showCompletedBookings, status)
+    );
 
     const listSort = sort as BookingsListSort;
     rows.sort((a, b) => compareBookingsForListSort(a, b, listSort, todayManila));
@@ -1052,6 +1087,114 @@ export class DatabaseService {
     }));
 
     return { rows: paged, total };
+  }
+
+  /**
+   * Single-round-trip list via `list_bookings_page` (migration
+   * 20261318171000). Returns `null` when the RPC is unavailable or fails so
+   * `listBookings` can fall back to the older PostgREST paths.
+   */
+  private static async listBookingsViaRpc(params: {
+    propertyId?: string;
+    parkingId?: string;
+    orgId?: string;
+    propertyIds?: string[];
+    parkingIds?: string[];
+    extraBookingIds?: string[];
+    includePropertyMeta?: boolean;
+    includeParkingMeta?: boolean;
+    bookingKind?: 'property' | 'parking' | null;
+    q?: string;
+    status?: string[];
+    from?: string | null;
+    to?: string | null;
+    hasPets?: boolean | null;
+    needParking?: boolean | null;
+    sort?:
+      | 'status_priority:asc'
+      | 'check_in_date:asc'
+      | 'check_in_date:desc'
+      | 'created_at:asc'
+      | 'created_at:desc';
+    page?: number;
+    limit?: number;
+    showCompletedBookings?: boolean;
+    expandImportedBatch?: boolean;
+  }): Promise<{ rows: any[]; total: number } | null> {
+    const {
+      propertyId,
+      parkingId,
+      orgId,
+      propertyIds,
+      parkingIds,
+      extraBookingIds,
+      includePropertyMeta = false,
+      includeParkingMeta = false,
+      bookingKind = null,
+      q = '',
+      status = [],
+      from = null,
+      to = null,
+      hasPets = null,
+      needParking = null,
+      sort = 'status_priority:asc',
+      page = 1,
+      limit = 31,
+      showCompletedBookings = false,
+      expandImportedBatch = false,
+    } = params;
+
+    const { data, error } = await this.supabase.rpc('list_bookings_page', {
+      p_org_id: orgId ?? null,
+      p_property_id: propertyId ?? null,
+      p_parking_id: parkingId ?? null,
+      p_property_ids: propertyIds && propertyIds.length > 0 ? propertyIds : null,
+      p_parking_ids: parkingIds && parkingIds.length > 0 ? parkingIds : null,
+      p_extra_booking_ids:
+        extraBookingIds && extraBookingIds.length > 0 ? extraBookingIds : null,
+      p_booking_kind: bookingKind,
+      p_q: q.trim() || null,
+      p_status: status.length > 0 ? status : null,
+      p_from: from || null,
+      p_to: to || null,
+      p_has_pets: hasPets,
+      p_need_parking: needParking,
+      p_sort: sort,
+      p_page: page,
+      p_limit: limit,
+      p_show_completed: showCompletedBookings,
+      p_expand_imported: expandImportedBatch,
+    });
+
+    if (error) {
+      // 42883 / PGRST202 = function not found (migration not applied yet).
+      // Anything else is logged once per request and also falls back.
+      console.warn('[DatabaseService] list_bookings_page RPC failed, using fallback:', error.message);
+      return null;
+    }
+
+    const payload = (Array.isArray(data) ? data[0] : data) as
+      | { rows?: unknown; total?: unknown }
+      | null
+      | undefined;
+    if (!payload || !Array.isArray(payload.rows)) {
+      console.warn('[DatabaseService] list_bookings_page returned an unexpected shape');
+      return null;
+    }
+
+    let paged = payload.rows as any[];
+    if (includePropertyMeta && paged.length > 0) {
+      paged = await this.enrichBookingsWithPropertyMeta(paged);
+    }
+    if (includeParkingMeta && paged.length > 0) {
+      paged = await this.enrichBookingsWithParkingMeta(paged, parkingId);
+    }
+    paged = paged.map((row) => ({
+      ...row,
+      booking_kind: row.parking_id || parkingId ? 'parking' : 'property',
+    }));
+
+    return { rows: paged, total: Number(payload.total ?? 0) };
   }
 
   /**
@@ -1187,6 +1330,18 @@ export class DatabaseService {
       const newCheckIn = normalizeDate(checkInDate);
       const newCheckOut = normalizeDate(checkOutDate);
 
+      // Same-day stays (check in and out on one date) occupy the check-in night, so the
+      // half-open range they block is [check-in, check-in + 1 day). Without this the zero
+      // length range would never collide with another booking on that night.
+      const toOccupiedRange = (checkIn: string, checkOut: string): [string, string] => {
+        if (checkOut > checkIn) return [checkIn, checkOut];
+        const [y, m, d] = checkIn.split('-').map(Number);
+        if (!y || !m || !d) return [checkIn, checkOut];
+        const next = new Date(Date.UTC(y, m - 1, d + 1));
+        return [checkIn, next.toISOString().slice(0, 10)];
+      };
+      const [newOccupiedIn, newOccupiedOut] = toOccupiedRange(newCheckIn, newCheckOut);
+
       console.log('Normalized dates - Check-in:', newCheckIn, 'Check-out:', newCheckOut);
 
       // Query for overlapping bookings
@@ -1231,8 +1386,10 @@ export class DatabaseService {
       // Filter overlapping bookings in memory
       const overlappingBookings =
         activeBookings?.filter((booking) => {
-          const existingCheckIn = normalizeDate(booking.check_in_date);
-          const existingCheckOut = normalizeDate(booking.check_out_date);
+          const [existingCheckIn, existingCheckOut] = toOccupiedRange(
+            normalizeDate(booking.check_in_date),
+            normalizeDate(booking.check_out_date)
+          );
 
           console.log(`Comparing with existing booking ${booking.id}:`);
           console.log(`  Existing: ${existingCheckIn} to ${existingCheckOut}`);
@@ -1244,9 +1401,9 @@ export class DatabaseService {
           // - New check-out is after existing check-in
           // However, we allow check-in on checkout dates (same day turnover)
           const overlaps =
-            newCheckIn < existingCheckOut &&
-            newCheckOut > existingCheckIn &&
-            !(newCheckIn === existingCheckOut || newCheckOut === existingCheckIn);
+            newOccupiedIn < existingCheckOut &&
+            newOccupiedOut > existingCheckIn &&
+            !(newOccupiedIn === existingCheckOut || newOccupiedOut === existingCheckIn);
 
           console.log(`  Overlap detected: ${overlaps}`);
           console.log(
@@ -1399,7 +1556,7 @@ export class DatabaseService {
       const pg = `${error.code ?? ''} ${error.message ?? ''}`.trim();
       throw new Error(
         `Failed to load Telegram marketing settings${pg ? `: ${pg}` : ''}. ` +
-          `On production this usually means the table is missing — run migration ` +
+          `On production this usually means the table is missing - run migration ` +
           `20260614120000_telegram_marketing_settings.sql (or “supabase db push”) on this project.`
       );
     }
@@ -1493,7 +1650,7 @@ export class DatabaseService {
       const pg = `${error.code ?? ''} ${error.message ?? ''}`.trim();
       throw new Error(
         `Failed to load Telegram staff settings${pg ? `: ${pg}` : ''}. ` +
-          `On production this usually means the table is missing — run migration ` +
+          `On production this usually means the table is missing - run migration ` +
           `20260622120000_telegram_staff_settings.sql (or "supabase db push") on this project.`
       );
     }

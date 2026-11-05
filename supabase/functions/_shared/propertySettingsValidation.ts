@@ -8,10 +8,7 @@ import {
   validateFullPersonName,
   validatePhilippineMobilePhone,
 } from './fieldValidation.ts';
-import {
-  normalizeCancellationPolicySettings,
-  validateCancellationPolicySettings,
-} from './propertyCancellationPolicy.ts';
+import { validateCancellationPolicy } from './cancellationPolicy.ts';
 import { validatePropertyDetailsForResidence } from './propertyResidenceDefaults.ts';
 
 export function validatePropertySettingsPatch(
@@ -75,13 +72,11 @@ export function validatePropertySettingsPatch(
     incoming.cleaningBufferMinutes !== undefined &&
     !isValidCleaningBufferMinutes(incoming.cleaningBufferMinutes as number)
   ) {
-    return 'Minimum cleaning time is required — between 1 and 6 hours, in 30-minute steps';
+    return 'Minimum cleaning time is required - between 1 and 6 hours, in 30-minute steps';
   }
 
   if (incoming.cancellationPolicy !== undefined) {
-    const policyErr = validateCancellationPolicySettings(
-      normalizeCancellationPolicySettings(incoming.cancellationPolicy)
-    );
+    const policyErr = validateCancellationPolicy(incoming.cancellationPolicy);
     if (policyErr) return policyErr;
   }
 

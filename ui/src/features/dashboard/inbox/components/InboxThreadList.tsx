@@ -57,7 +57,11 @@ type Props = {
     | 'load-error'
     | 'empty'
     | 'search-not-loaded'
-    | 'search-empty';
+    | 'search-empty'
+    | 'feature-unavailable';
+  featureUnavailableLabel?: string;
+  featureUnavailableMessage?: string;
+  featureUnavailableExpectedBack?: string | null;
   syncError?: string | null;
   loadError?: string | null;
   canConnect?: boolean;
@@ -91,6 +95,9 @@ export function InboxThreadList({
   onLoadMore,
   canLoadOlderFromMeta = false,
   onLoadOlderFromMeta,
+  featureUnavailableLabel,
+  featureUnavailableMessage,
+  featureUnavailableExpectedBack,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -146,9 +153,13 @@ export function InboxThreadList({
         </div>
         <InboxFilterBar statusFilter={statusFilter} onStatusFilter={onStatusFilter} />
       </div>
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div
+        ref={scrollRef}
+        data-pull-to-refresh
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
         {isLoading ? (
-          <div className="py-1" aria-busy="true" aria-label="Loading conversations">
+          <div role="status" className="py-1" aria-busy="true" aria-label="Loading conversations">
             {Array.from({ length: 6 }).map((_, i) => (
               <InboxThreadRowSkeleton key={i} opacity={1 - i * 0.08} />
             ))}
@@ -164,6 +175,9 @@ export function InboxThreadList({
             canLoadOlderFromMeta={canLoadOlderFromMeta}
             onLoadOlderFromMeta={onLoadOlderFromMeta}
             loadingOlderFromMeta={loadingMore}
+            featureUnavailableLabel={featureUnavailableLabel}
+            featureUnavailableMessage={featureUnavailableMessage}
+            featureUnavailableExpectedBack={featureUnavailableExpectedBack}
           />
         ) : (
           <div className="py-1">

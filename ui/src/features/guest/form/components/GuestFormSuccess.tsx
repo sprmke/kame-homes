@@ -100,9 +100,12 @@ export function GuestFormSuccess() {
 
   // Calculate number of nights
   const numberOfNights = bookingData
-    ? Math.ceil(
-        (dayjs(bookingData.checkOutDate).valueOf() - dayjs(bookingData.checkInDate).valueOf()) /
-          (1000 * 60 * 60 * 24)
+    ? Math.max(
+        1,
+        Math.ceil(
+          (dayjs(bookingData.checkOutDate).valueOf() - dayjs(bookingData.checkInDate).valueOf()) /
+            (1000 * 60 * 60 * 24)
+        )
       )
     : 0;
 
@@ -239,7 +242,7 @@ export function GuestFormSuccess() {
                     </div>
                   </div>
 
-                  {/* Parking interest (Phase 7) — self-serve marketplace, not part of this total */}
+                  {/* Parking interest (Phase 7) - self-serve marketplace, not part of this total */}
                   {bookingData.needParking && (
                     <div className="border-t pt-5">
                       <div className="border-primary/20 bg-primary/5 flex items-start gap-4 rounded-lg border p-4">

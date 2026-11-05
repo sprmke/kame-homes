@@ -68,9 +68,27 @@ export const GUEST_CHAT_FAQS: readonly GuestChatFaq[] = [
     prompt: 'How do I submit my security deposit refund details?',
     phases: ['ongoing'],
   },
+  {
+    id: 'g-24',
+    prompt: 'Can I use a voucher from a past stay?',
+    phases: ['pre_booking', 'inquiry'],
+  },
+  {
+    id: 'g-25',
+    prompt: 'How do I leave a review after my stay?',
+    phases: ['ongoing'],
+  },
+  {
+    id: 'g-26',
+    prompt: 'Where can I see the documents I submitted?',
+    phases: ['inquiry', 'ongoing'],
+  },
 ];
 
 export const GUEST_CHAT_FAQ_VISIBLE_COUNT = 5;
+
+export const TALK_TO_HOST_PROMPT = "I'd like to talk to the host.";
+export const GUEST_CHAT_FOLLOW_UP_COUNT = 3;
 
 export function resolveGuestChatFaqPhase(input: {
   hasInquiryDates: boolean;
@@ -79,6 +97,36 @@ export function resolveGuestChatFaqPhase(input: {
   if (input.hasMessages) return 'ongoing';
   if (input.hasInquiryDates) return 'inquiry';
   return 'pre_booking';
+}
+
+function overlapTokenCount(prompt: string, haystack: string): number {
+  const hay = haystack.toLowerCase();
+  const tokens = prompt
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((token) => token.length > 3);
+  return tokens.filter((token) => hay.includes(token)).length;
+}
+
+export function pickFollowUpFaqs(input: {
+  phase: GuestChatFaqPhase;
+  lastGuestPrompt?: string;
+  lastAiReply?: string;
+  count?: number;
+}): GuestChatFaq[] {
+  const used = `${input.lastGuestPrompt ?? ''} ${input.lastAiReply ?? ''}`.trim();
+  const count = input.count ?? GUEST_CHAT_FOLLOW_UP_COUNT;
+  const pool = GUEST_CHAT_FAQS.filter((faq) => {
+    if (!faq.phases.includes(input.phase)) return false;
+    if (!used) return true;
+    return overlapTokenCount(faq.prompt, used) < 2;
+  });
+  const copy = [...pool];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(count, copy.length));
 }
 
 export function pickGuestChatFaqs(

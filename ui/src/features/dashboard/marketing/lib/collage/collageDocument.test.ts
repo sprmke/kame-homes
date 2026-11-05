@@ -6,6 +6,7 @@ import {
   collageCellIndex,
   collageFrames,
   EMPTY_COLLAGE_CELL_NAME,
+  emptyCollageCellSvgDataUri,
   FILLED_COLLAGE_CELL_NAME,
   planRelayout,
   readCollageSettings,
@@ -199,5 +200,13 @@ describe('planRelayout', () => {
     const settings = resolveCollageSettings({ layoutId: DUO.id });
     const next = planRelayout([], NINE, settings, 1080, 1080);
     expect(next).toHaveLength(9);
+  });
+});
+
+describe('emptyCollageCellSvgDataUri', () => {
+  it('matches the cell frame so the placeholder never stretches', () => {
+    const svg = decodeURIComponent(emptyCollageCellSvgDataUri(3, 270, 540).split(',')[1]!);
+    expect(svg).toContain('width="270" height="540" viewBox="0 0 270 540"');
+    expect(svg).toContain('>3</text>');
   });
 });

@@ -51,7 +51,7 @@ Route/nav: `settings:view`. Each section has its own edit leaf (`settings.basicI
 
 ## Host-facing knowledge
 
-Property Settings is where you complete operational setup: basic info, capacity, location, payment details, building forms, email automations, and integrations. Listing content (photos, description, amenities, house rules, cancellation, brand color) can be edited here **or** under **Public Pages → Edit** on the Property card — both screens save to the same place. Social URLs are edited here only (**Socials**). You can save section by section, and incomplete required areas show a red dot until they're done.
+Property Settings is where you complete operational setup: basic info, capacity, location, payment details, building forms, email automations, and integrations. Listing content (photos, description, amenities, house rules, cancellation, brand color) can be edited here **or** under **Public Pages → Edit** on the Property card - both screens save to the same place. Social URLs are edited here only (**Socials**). You can save section by section, and incomplete required areas show a red dot until they're done.
 
 **Common host questions**
 
@@ -60,25 +60,27 @@ Property Settings is where you complete operational setup: basic info, capacity,
 - Q: What's the difference between Archive and Delete?
   A: Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it's blocked if any bookings exist, so use Archive instead for units with past stays.
 - Q: Where do guests see my cancellation policy and house rules?
-  A: House rules and cancellation policy appear on your public property listing. Automated email wording is edited separately on the Templates page.
+  A: House rules and cancellation policy appear on your public property listing. The booking form also shows the policy with the exact deadline dates for the stay and asks the guest to agree to it. After booking, the trip page shows the policy that applied when they booked, plus their refund if they cancel. Automated email wording is edited separately on the Templates page.
+- Q: If I change my cancellation policy, do existing bookings change too?
+  A: No. The policy is copied onto each booking when the guest books, so a change only applies to new bookings. Property Settings shows how many upcoming bookings keep their current policy before you save.
 - Q: Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
   A: Document requirements are set at the **development** level by the platform team (Super Admin → Developments → Document Requirements). All properties in that development inherit the same list.
 - Q: Where is the PMO / documents-approver email set?
   A: On the development in Super Admin (**Developments → Email automations → PMO email**). Property Settings only holds your property/team ops email (alerts, Reply-To, CC on GAF/pet), not the PMO To address.
 - Q: Where do I edit amenities, house rules, or cancellation?
-  A: In **Property Settings** — Amenities, House Rules, and Cancellation use **Manage** for the full editor — or in **Public Pages → Property → Edit** if you want a live preview. Both save the same data.
+  A: In **Property Settings** - Amenities, House Rules, and Cancellation use **Manage** for the full editor - or in **Public Pages → Property → Edit** if you want a live preview. Both save the same data.
 - Q: Where do I fill Building Forms (GAF owner and signature)?
   A: **Property Settings → Building Forms → Manage**. Enter owner and contact details, add the signature, and check the live PDF preview. Save in the modal, then use page **Save Changes** for the text fields.
 - Q: Where do I upload listing photos?
   A: **Property Settings → Photos & Videos**, or the listing Page Editor gallery. Photos are shared across the listing, property cards, and Marketing.
 - Q: Where is listing verification?
   A: Open **Verification** from the property sidebar, or upload listing docs in org **Get Verified → Listings**. Listing go-live needs your Property Rights (and contract end when you are an Authorized Representative or Sublessee) plus proof of ownership or authorization on listing **Verified**. Additional proof and the Azure Property Management email confirmation are for listing **Recommended**. Submitting listing **Recommended** waits until listing Verified is approved and needs a paid plan that includes the Recommended badge.
-- Q: My contract is ending — what should I do?
+- Q: My contract is ending - what should I do?
   A: A renewal reminder may appear when you log in. Tap **Submit renewal contract** or use **Verification** in the sidebar to upload an updated contract before the grace period ends.
 - Q: What does the Cleaning Time setting do?
-  A: It's the shortest gap your cleaner needs between one guest checking out and the next guest checking in **on the same day**. Set it under **Guest Form → Cleaning Time** — it's required and always at least 1 hour. Guests can't pick a check-in or check-out time on the booking form that leaves less than that gap.
+  A: It's the shortest gap your cleaner needs between one guest checking out and the next guest checking in **on the same day**. Set it under **Guest Form → Cleaning Time** - it's required and always at least 1 hour. Guests can't pick a check-in or check-out time on the booking form that leaves less than that gap.
 - Q: How do next-stay vouchers work?
-  A: Under **Reviews & vouchers**, open **Manage** on Next-stay vouchers. Turn them on, pick a **reveal style** (Reel, Wheel, or Flip), choose which discounts to include (5% through free stay), and set a **Weight** for each — higher weight = more often. **Odds** update automatically; you do not need the weights to add to 100. Use the nightly rate select (weekday / weekend / custom) to see about how much each prize saves. Guests who leave a review can claim one of those discounts. Apply the code manually on their next booking — automatic redemption is not built yet.
+  A: Under **Reviews & vouchers**, open **Manage** on Next-stay vouchers. Turn them on, pick a **reveal style** (Reel, Wheel, or Flip), choose which discounts to include (5% through free stay), and set a **Weight** for each - higher weight = more often. **Odds** update automatically; you do not need the weights to add to 100. Use the nightly rate select (weekday / weekend / custom) to see about how much each prize saves. Guests who leave a review can claim one of those discounts. Apply the code manually on their next booking - automatic redemption is not built yet.
 - Q: Can I copy settings from another property onto this one?
   A: Yes. On the org **Properties** page, use **Copy settings**. Pick the source property and which groups to copy. Payment methods are not copied.
 - Q: What happens if I rename the property?
@@ -135,7 +137,7 @@ Both use the same column: `properties.status` (`ACTIVE` | `INACTIVE`).
 | Property type | `properties.type`                  | **Read-only** in settings (set at property creation). Condo enables residence / tower / unit display                                                                                                                                                                                                                                                                                                                                                 |
 | Residence     | `properties.residence_name`        | **Read-only** in settings. Known residences apply defaults at creation (see below)                                                                                                                                                                                                                                                                                                                                                                   |
 | Tower         | `properties.tower`                 | **Read-only** in settings. Options from residence config (Azure North: Monaco, Bali, Barbados)                                                                                                                                                                                                                                                                                                                                                       |
-| Unit          | `properties.unit_number`           | **Read-only** in settings. 4-digit. Unique per tower among **`ACTIVE`** properties only ([#120](https://github.com/sprmke/kame-homes/issues/120)); many `INACTIVE` peers allowed (succession). Republish / stay ACTIVE with an ACTIVE peer → **409**.                                                                                                                                                                                                |
+| Unit          | `properties.unit_number`           | **Read-only** in settings. 4-digit. Unique per tower among **`ACTIVE`** properties only ([#120](https://github.com/sprmke/kame-space/issues/120)); many `INACTIVE` peers allowed (succession). Republish / stay ACTIVE with an ACTIVE peer → **409**.                                                                                                                                                                                                |
 | Contact name  | `properties.settings.contactName`  | Required; full name when non-empty; inline error on blur                                                                                                                                                                                                                                                                                                                                                                                             |
 | Contact role  | `properties.settings.contactRole`  | Required                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Phone         | `properties.settings.contactPhone` | Required; PH mobile `09XXXXXXXXX`                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -207,13 +209,13 @@ Stored in `properties.settings.description` (max 1000 chars). Also editable in t
 
 ## Amenities
 
-Compact card on Property Settings: selected count summary with **Manage** in the summary row (replaces the old header/chevron). Opens a large `ResponsiveModal` (`PropertyAmenitiesManageDialog`) with collapsible amenity categories (3-column grid on large screens). Preset + custom amenities still store in `properties.settings.enabledAmenities` / `customAmenities`. Changes update the page draft live; persist with the page **Save**. Also editable in the listing Page Editor.
+Compact card on Property Settings: selected count summary with **Manage** in the summary row (replaces the old header/chevron). Opens a large `ResponsiveModal` (`PropertyAmenitiesManageDialog`) with collapsible amenity categories (3-column grid on large screens): Essentials, Kitchen & Dining, Entertainment, Workspace, Facilities, Outdoor, Safety & Security, Family & Accessibility — catalog in `propertySettingsConstants.ts` includes PH-condo-relevant presets (rice cooker, water dispenser, function room/clubhouse, visitor parking, keycard access, etc.). Preset + custom amenities still store in `properties.settings.enabledAmenities` / `customAmenities`. Changes update the page draft live; persist with the page **Save**. Also editable in the listing Page Editor.
 
 ---
 
 ## House Rules
 
-Compact card on Property Settings: selected count summary with **Manage** in the summary row. Opens a large `ResponsiveModal` (`PropertyHouseRulesManageDialog`) with collapsible rule categories (3-column grid on large screens). Preset + custom house rules (`enabledHouseRules` / `customHouseRules`). Mutually exclusive presets still apply on toggle. Changes update the page draft live; persist with the page **Save**. Also editable in the listing Page Editor. Preset catalog still mirrors `propertyHouseRulesConstants.ts`; check-in/out presets use property detail times on the public listing. Templates → **House Rules** remains email copy only.
+Compact card on Property Settings: selected count summary with **Manage** in the summary row. Opens a large `ResponsiveModal` (`PropertyHouseRulesManageDialog`) with collapsible rule categories (3-column grid on large screens): Check-in & timing, Restrictions, Guests & pets, Property — catalog in `propertyHouseRulesConstants.ts` includes condo-building presets (comply with condo/building rules, valid ID at lobby, no unregistered guests, etc.). Preset + custom house rules (`enabledHouseRules` / `customHouseRules`). Mutually exclusive presets still apply on toggle. Changes update the page draft live; persist with the page **Save**. Also editable in the listing Page Editor. Preset catalog still mirrors `propertyHouseRulesConstants.ts`; check-in/out presets use property detail times on the public listing. Templates → **House Rules** remains email copy only.
 
 ---
 
@@ -251,7 +253,13 @@ Public exposure: resolved via **`get-guest-payment-info`** (same request as paym
 
 ## Cancellation policy
 
-Compact card on Property Settings: guest preview of the resolved policy with **Manage** beside the preview. Opens a `ResponsiveModal` with the full preset picker, option fields, and live guest preview. Stored in `properties.settings.cancellationPolicy`. Changes update the page draft live; persist with the page **Save**. Page Editor (`embedded`) still shows the full form inline. Also editable in the listing Page Editor.
+Compact card on Property Settings with the guest preview and **Manage**. The Manage sheet has preset cards (Flexible, Moderate, Limited, Firm, Strict, Non-refundable, Custom), a live timeline preview with a sample check-in, an optional free-cancellation window (hours + minimum lead days), fee rules for pet/additional fees, and the guest cancellation mode (**Cancel right away** vs **Ask me first**). **Custom** adds a tier builder (up to 5 rows, days 0–365, refund 0–100, sorted, validated).
+
+Stored in `properties.settings.cancellationPolicy` (v2 shape) with the current version id at `properties.settings.cancellationPolicyVersionId`. Every change appends a row to `property_cancellation_policy_versions` and logs `property.cancellation_policy_updated`. Saving while live bookings exist asks **"Apply to new bookings only?"** with the count from `cancellation-policy-impact`; existing bookings keep their snapshot.
+
+Legacy v1 shapes are mapped on read (no data migration): `grace_period` → grace-only custom, `full_before_checkin(N)` → 100% at N days, `moderate(h,N)` → grace + 100% at N days, `partial_before_checkin(N,p)` → p% at N days, `non_refundable` → Non-refundable, free text → custom with `needsReview` and request mode. A property with no saved policy resolves to **unset** (listing says "Ask the host about cancellation") instead of a silent default.
+
+Page Editor (`embedded`) shows the same controls inline. Closing the Manage sheet with unsaved edits prompts Save / Discard / Keep editing.
 
 ## Location
 
@@ -312,7 +320,7 @@ Platform defaults (all presets on): 5%→25, 10%→34, 15%→20, 20%→12, 25%�
 
 Host UI: compact summary (`Next-stay vouchers · {prize summary|Off}` · optional style label when not Reel) + **Manage** modal — enable toggle, **Style** picker with **animated preview thumbnails** (**Reel** / **Wheel** / **Flip**), full preset catalog (checkbox per discount), **Weight** steppers + live **Odds**, rate select, **Reset defaults**. Previews loop subtly in the modal (static when OS reduce motion is on). Save with page **Save Changes** (header actions when dirty) → `app-settings` PATCH (`vouchersEnabled`, `voucherPrizes`, `voucherRevealStyle`). Style-only edits in this section count as savable changes (not “No changes to save”). Guest `/sd-form` and guest-review animate with the chosen style (reel / wheel / flip). Claim rolls via `claim-sd-voucher`; awarded `next_stay_voucher_amount` stores the **percent** (1–100). Legacy peso `KAME-*` awards still display as ₱.
 
-**Superhost** is not configured per property — hosts earn it automatically org-wide (see [`docs/workflow/planned/superhost-program.md`](../../../../workflow/planned/superhost-program.md); progress lives under **Org settings → Trust**).
+**Superhost** is not configured per property — hosts earn it automatically org-wide (see [`docs/workflow/planned/superhost-program.md`](../../../../workflow/for-testing/superhost-program.md); progress lives under **Org settings → Trust**).
 
 ---
 
@@ -410,7 +418,7 @@ The retired leaves `settings.voiceReceptionist:edit` and `settings.aiOverrides:e
 
 ## Activity
 
-Read-only. Summary: "Who did what on this property." **Manage** opens a large modal with the full property-scoped activity feed (search, filters, infinite scroll, detail sheet, CSV export for owner / org-admin). Legacy `/org/:orgSlug/property/:propertySlug/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path.
+Read-only. Summary: "Who did what on this property." **Manage** opens a large modal with the full property-scoped activity feed (search, filters, infinite scroll, an in-place sliding detail view with Back / Esc, CSV export for owner / org-admin). Legacy `/org/:orgSlug/property/:propertySlug/activity` redirects to `…/settings?open=activity`. See [activity.md](./activity.md). No save path.
 
 ---
 
@@ -471,7 +479,7 @@ Keep UI and edge copies in sync when changing rules.
 
 ---
 
-**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing** only after you change a field on this visit (load-time sync such as GAF tower/unit from profile does not prompt). Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, F5 / Cmd+Ctrl+R, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing** only after you change a field on this visit (load-time sync such as GAF tower/unit from profile does not prompt). Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Testing
 

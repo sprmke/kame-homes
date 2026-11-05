@@ -123,7 +123,7 @@ export function AiStudioGeneratingStage({
   const elapsedMs = useElapsed(startedAt);
 
   const status = job?.jobStatus;
-  const title = label ?? (mediaType === 'video' ? 'Generating video' : 'Generating image');
+  const title = label ?? (mediaType === 'video' ? 'Generating clip' : 'Generating photo');
   const line = statusLine(Math.floor(elapsedMs / STEP_MS), mediaType, status);
   const progress = estimateProgress(elapsedMs, mediaType, status);
   const elapsed = mediaType === 'video' ? formatElapsed(elapsedMs) : null;

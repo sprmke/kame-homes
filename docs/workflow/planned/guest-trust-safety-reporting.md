@@ -48,7 +48,7 @@ Guests need a trustworthy, low-friction way to flag bad actors and unsafe situat
 - **Human-in-the-loop for appeals, high-risk, and policy calls**; automation for triage, dedup, language detection, risk scoring.
 - Standard lifecycle: **policy → risk tiers → triage/queue → decision → enforcement → appeal → audit → continuous improvement.**
 
-### Adopt for Kame Homes
+### Adopt for Kame Space
 
 - **Two entry surfaces, one component:** an unobtrusive "Report this listing / host" link on `/properties/:slug` and `/hosts/:orgSlug` **near the footer/overflow**, and a "Report conversation" item in the chat thread `…` menu — all opening the same `ReportDialog` (reason → details → optional evidence → submit → reference code).
 - **Reason taxonomy** close to Airbnb's, split by reporter context: content-integrity set for everyone signed in; safety set unlocked when the reporter has a linked booking. Discrimination is its own reason (not a sub-option).

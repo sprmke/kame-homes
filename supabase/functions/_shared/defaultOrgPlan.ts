@@ -35,7 +35,7 @@ export async function assignDefaultOrgPlanIfConfigured(input: {
 
   const pricePhp = Number(plan.price_php ?? 0);
   if (!Number.isFinite(pricePhp) || pricePhp > 0) {
-    console.warn('[defaultOrgPlan] skipping auto-assign for paid plan — use checkout', plan.code);
+    console.warn('[defaultOrgPlan] skipping auto-assign for paid plan - use checkout', plan.code);
     return;
   }
 

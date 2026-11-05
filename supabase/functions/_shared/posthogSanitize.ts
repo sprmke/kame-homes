@@ -1,28 +1,10 @@
-const DENYLIST = new Set([
-  'email',
-  'phone',
-  'guest_email',
-  'guest_phone_number',
-  'primary_guest_name',
-  'message',
-  'body',
-  'description',
-  'caption',
-  'subject',
-  'access',
-  'token',
-  'complete',
-  'url',
-]);
+import { scrubRecord } from './telemetryScrub.ts';
+
+/**
+ * Edge PostHog property sanitizer. The deny list lives in `telemetryScrub.ts` so PostHog
+ * and Sentry share one rule; this is the seam every edge capture runs through.
+ */
 
 export function sanitizePostHogProperties(input: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(input)) {
-    const lower = key.toLowerCase();
-    if (DENYLIST.has(lower)) continue;
-    if (lower.includes('token') || lower.includes('password')) continue;
-    if (value === undefined) continue;
-    out[key] = value;
-  }
-  return out;
+  return scrubRecord(input);
 }

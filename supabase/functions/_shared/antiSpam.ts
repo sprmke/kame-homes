@@ -1,6 +1,6 @@
 /**
  * One-call anti-spam gate for public + lightly-authenticated write handlers.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
  *
  * Composes the three layers — bot heuristics → CAPTCHA → durable rate limit — and
  * returns a ready-to-send `Response` (with CORS headers + the standard error
@@ -24,7 +24,8 @@ import { resolveCaptchaMode, verifyCaptchaToken, readCaptchaToken } from './capt
 import { checkBotHeuristics } from './botHeuristics.ts';
 import { checkRateLimit, identityFromRequest } from './rateLimit.ts';
 import { clientIpFromRequest } from './publicRateLimit.ts';
-import { capturePostHogException } from './posthog.ts';
+import { capturePostHogEvent } from './posthog.ts';
+import { logEvent, resolveRequestId } from './requestLog.ts';
 
 type BodyLike = Record<string, unknown> | FormData | URLSearchParams;
 
@@ -65,10 +66,21 @@ export async function antiSpamGate(
     const tuning = typeof options.heuristics === 'object' ? options.heuristics : {};
     const heur = checkBotHeuristics(body, { minElapsedMs: tuning.minElapsedMs });
     if (!heur.ok) {
-      await capturePostHogException(new Error('antispam_heuristic_block'), {
+      // A heuristic block is the system working: expected, frequent, and not a fault.
+      // Sending it as an exception buried real errors and billed for the privilege.
+      logEvent('warn', {
+        fn: `antispam:${scope}`,
+        requestId: resolveRequestId(req),
+        event: 'antispam_heuristic_block',
+        meta: { reason: heur.reason },
+      });
+      // An outcome, not a fault: this is the system working. Recorded so "how often do we
+      // block real people" and "which check fires" are answerable from PostHog.
+      await capturePostHogEvent('public_write_blocked', {
         logPrefix: `antispam:${scope}`,
         request: req,
-        extra: { reason: heur.reason },
+        system: true,
+        properties: { scope, reason: heur.reason },
       });
       // Deliberately vague to the client — don't teach a bot which check tripped.
       return blockedResponse(

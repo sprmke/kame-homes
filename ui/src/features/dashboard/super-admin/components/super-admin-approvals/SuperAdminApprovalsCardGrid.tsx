@@ -72,7 +72,7 @@ export function SuperAdminApprovalsCardGrid({ approvals, onSelect }: Props) {
   return (
     <AdminCardGrid denser={false}>
       {approvals.map((approval) => {
-        const isReview = approval.type === 'external_review';
+        const isReview = approval.type === 'external_review' || approval.type === 'reported_review';
         const isListing = approval.type === 'listing_verification';
         const label = isReview
           ? approval.propertyName
@@ -140,11 +140,13 @@ export function SuperAdminApprovalsCardGrid({ approvals, onSelect }: Props) {
 
             <div className="sm:border-border/50 mt-1 flex min-w-0 items-center justify-between gap-2 sm:mt-auto sm:flex-wrap sm:border-t sm:pt-3">
               <span className="text-muted-foreground min-w-0 truncate text-[11px] sm:text-xs">
-                {isReview
+                {approval.type === 'external_review'
                   ? externalReviewSourceLabel(approval.source)
-                  : isListing
-                    ? listingKindLabel(approval.listingKind)
-                    : hostModesLabel(approval.hostModes)}
+                  : approval.type === 'reported_review'
+                    ? 'Reported'
+                    : isListing
+                      ? listingKindLabel(approval.listingKind)
+                      : hostModesLabel(approval.hostModes)}
                 <span className="text-muted-foreground/40 mx-1" aria-hidden>
                   ·
                 </span>

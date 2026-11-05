@@ -9,13 +9,15 @@ updated: 2026-09-20
 
 Route: `/org/:orgSlug/property/:propertySlug/templates`
 
-> **Status:** Documented — admin UI, DB persistence, workflow email sends, and custom template manual send shipped
+> **Status:** Documented — admin UI, DB persistence, workflow email sends, custom template manual send, and chat templates shipped
 
 ## Purpose
 
 Each template card shows a **title**, **subtitle** (built-in description from the server registry; custom templates use a generic fallback), Edit/Preview tabs, WYSIWYG editor (white `bg-card` surface on light theme), placeholders, and reset-to-default. On phone, Edit/Preview and Placeholders/Send/Reset/Save (and Delete for custom) are **icon-only** so the whole toolbar stays on one row; labels return from `sm` up.
 
 **Custom templates → Send to guest (shipped):** Custom template cards show a **Send** icon button (next to Placeholders) once the saved content has no unsaved edits. It opens a dialog to search/pick a booking (guest name, date, or status). While bookings load, the list is row skeletons. The send button keeps a spinner only while the email is sending. It sends that exact saved content to the booking's guest email immediately — not tied to booking status or an automation toggle, and no cooldown. Uses the same `renderPropertyTemplateSendEmail` shell as every other template send. Requires `bookings.detail.workflow:edit` (same leaf as the booking-detail manual workflow email resends). Skipped (with a toast) if the guest's email is on the suppression list. Emits `booking.custom_template_sent` to the org activity log on success (`booking` category, `metadata.template_key` / `template_name`).
+
+**Chat templates (shipped):** the property's standard and custom templates are also selectable in **Guest Inbox → Insert (`+`) → Templates** and in the **AI Assistant → Pin context → Templates**. Email templates are excluded from both. The Inbox opens the same preview as this page, then sends a snapshot into the thread; web chat renders the snapshot as a rich card, Meta DMs receive flattened text. The AI Assistant receives the template body as context, not a message. No new plan key or permission leaf: standard templates stay free and custom templates inherit `customTemplates`; Inbox listing uses `inbox:view`, sending uses `inbox.messages:edit`, and assistant listing uses `templates:view`.
 
 **Plans/RBAC decision (Send to guest):** No new `PlanFeatureKey` — a custom template only exists on Starter+ (creating one is already gated by `customTemplates`), so the send action inherits that gate transitively; a Free org has no custom template card to send from. No new permission leaf — reuses `bookings.detail.workflow:edit`, the same booking-mutation-adjacent leaf that already gates manual workflow email resends from the booking detail page.
 
@@ -47,10 +49,14 @@ Templates is where you customize the text guests and your team receive: stay gui
   A: Yes. Use **Reset to default** on any built-in template to restore the original wording, including dynamic sections like payment tables and signatures. Reset works on Free; saving your own edits still needs Starter.
 - Q: Can I customize email templates on Free?
   A: You can open, edit, and reset them. Saving your changes requires Starter. Standard stay-guide templates can be edited and saved on Free.
+- Q: Can I use these templates in chat?
+  A: Yes. In Guest Inbox, open **Insert** (`+`) and pick a template under **Templates**. You see the full preview before sending. Web chat shows your template as a card the guest can open; Facebook and Instagram get the same words as plain text. In the AI Assistant, pin a template as context to rewrite or reuse it. Email templates stay email-only.
 - Q: Do custom templates get sent automatically?
-  A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand — the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
+  A: No, custom templates are never part of the automated booking workflow. Use the **Send** button on a custom template card to send it to a specific booking's guest on demand - the built-in standard and email templates are still the only ones wired to guest-facing pages and automated status-driven sends.
+- Q: Why do I need a code to save a template?
+  A: Template text can reach guests and building admins, so saving, resetting, or creating a template asks the org owner for a one-time email code first - same idea as changing payment details. Renaming, moving, or deleting does not.
 - Q: Why is Add Custom Template asking me to upgrade?
-  A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy — Save just prompts you to upgrade.
+  A: Custom templates and saving email templates are on Starter and above. You can still fully edit and save the four standard stay-guide templates on Free, and you can preview, edit, and reset email copy - Save just prompts you to upgrade.
 
 ## Integration status
 
@@ -105,18 +111,21 @@ Built-in defaults ship in `propertyTemplates.ts` on the server. Rows in `propert
 
 ## Save paths
 
-| Action                                                                                          | API                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Load all                                                                                        | `GET property-templates-settings?property_id=`                                                                                      |
-| Save standard content                                                                           | `PATCH property-templates-settings` `{ templateKey, content, sectionImageUrl? }` — free on every tier                               |
-| Save email content                                                                              | same PATCH shape — requires **`customTemplates`** (429 + `upgradeHook` when not entitled); Free UI opens upgrade modal on Save      |
-| Reset built-in to default                                                                       | `PATCH` `{ action: "reset", templateKey }` — free on every tier (including email); restores shipped default content                 |
-| Upload section / inline image                                                                   | `POST upload-property-template-asset` multipart `assetType`, `file`, `templateKey` (section only)                                   |
-| Create custom                                                                                   | `PATCH` `{ action: "create", name, content }` — requires plan feature **`customTemplates`** (429 + `upgradeHook` when not entitled) |
-| Save custom content                                                                             | `PATCH` `{ templateKey: "custom-…", content, name? }` — same **`customTemplates`** gate as create                                   |
-| Delete custom                                                                                   | `PATCH` `{ action: "delete", templateKey }`                                                                                         |
-| Preview (email shell)                                                                           | `POST property-templates-preview` `{ templateKey, category, content, name? }`                                                       |
-| Auth: `verifyAdminJwt` + property scope via `property_id` query (same as other admin settings). |                                                                                                                                     |
+| Action                                                                                          | API                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Load all                                                                                        | `GET property-templates-settings?property_id=`                                                                                                                                                |
+| Save standard content                                                                           | `PATCH property-templates-settings` `{ templateKey, content, sectionImageUrl?, settingsVerificationToken }` — free on every tier; **org-owner OTP** required (same modal as Payment settings) |
+| Save email content                                                                              | same PATCH shape — requires **`customTemplates`** (429 + `upgradeHook` when not entitled); Free UI opens upgrade modal on Save; OTP after upgrade check                                       |
+| Reset built-in to default                                                                       | `PATCH` `{ action: "reset", templateKey, settingsVerificationToken }` — free on every tier (including email); OTP required                                                                    |
+| Upload section / inline image                                                                   | `POST upload-property-template-asset` multipart `assetType`, `file`, `templateKey` (section only) — stages only; content save still OTP-gated                                                 |
+| Create custom                                                                                   | `PATCH` `{ action: "create", name, content, settingsVerificationToken }` — **`customTemplates`** + OTP                                                                                        |
+| Save custom content                                                                             | `PATCH` `{ templateKey: "custom-…", content, name?, settingsVerificationToken }` — same **`customTemplates`** + OTP as create                                                                 |
+| Delete custom                                                                                   | `PATCH` `{ action: "delete", templateKey }` — no OTP (organise / remove only)                                                                                                                 |
+| Rename / move / folders                                                                         | organise PATCHes — no OTP                                                                                                                                                                     |
+| Preview (email shell)                                                                           | `POST property-templates-preview` `{ templateKey, category, content, name? }`                                                                                                                 |
+| Auth: `verifyAdminJwt` + property scope via `property_id` query (same as other admin settings). |                                                                                                                                                                                               |
+
+**OTP (org owner).** Saving template content, resetting a built-in template, or creating a custom template opens **Verify template changes** (same **Send OTP** → code → **Verify and save** flow as [Property Settings → Payment](settings.md)) on the **first** content write (or after the window expires). Code goes to the **org owner** email only. After a successful verify, the tab keeps a **15-minute fixed sudo token** (sessionStorage, per property) so further Save / Reset / Create in that window skip the modal. Payment settings stay fingerprint-bound per save. Server rejects content writes without a valid `settingsVerificationToken` for action `property_templates` (stable fingerprint `property_templates`, not content-hash). **Exception:** Stay Guide / Page Editor autosave (`publicPagesAutosaveGate: true`) stays ungated so typing there is not interrupted. Rename, move, folder CRUD, and delete do not require OTP.
 
 ## Preview
 
@@ -183,22 +192,22 @@ Table **`property_template_contents`**: `property_id`, `template_key`, `category
 
 Workflow emails resolve labels from the database via **`propertyEmailBranding.ts`**:
 
-| Field                                                           | Source                                                                                                                                                |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Organization name** (shell `{{brandName}}`, logo alt, footer) | `organizations.name`                                                                                                                                  |
-| **Property name** (`{{property_name}}` placeholder)             | `properties.name`                                                                                                                                     |
-| **Unit label** (shell subtitle, subjects, From display name)    | Booking/form `tower_and_unit_number` → **`app_settings.gaf_tower_and_unit_number`** → **`properties.tower_and_unit`** → property name                 |
-| **From email address**                                          | **`RESEND_FROM_EMAIL`** env, else **`app_settings.email_reply_to`**                                                                                   |
-| **From display name**                                           | e.g. `{unit} - GAF Request` or `{unit} - {org}` for guest mail                                                                                        |
-| **Logo**                                                        | **`org_settings.email_logo_url`** (via merged app settings)                                                                                           |
-| **Brand color**                                                 | Org/property `brandColor` (property override → org settings) — the picker hex, same as admin `--primary` / `bg-primary`. Email CTA labels stay white. |
-| **Body copy**                                                   | **`property_template_contents`** (Templates page)                                                                                                     |
+| Field                                                           | Source                                                                                                                                                                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Organization name** (shell `{{brandName}}`, logo alt, footer) | `organizations.name`                                                                                                                                                                                                                |
+| **Property name** (`{{property_name}}` placeholder)             | `properties.name`                                                                                                                                                                                                                   |
+| **Unit label** (shell subtitle, subjects, From display name)    | Booking/form `tower_and_unit_number` → **`app_settings.gaf_tower_and_unit_number`** → **`properties.tower_and_unit`** → property name                                                                                               |
+| **From email address**                                          | **`RESEND_FROM_EMAIL`** env, else **`app_settings.email_reply_to`**. Sends go through **`sendResendEmail`**, which CID-inlines off-domain images (e.g. org logos on Supabase Storage) so Resend deliverability insights stay clean. |
+| **From display name**                                           | e.g. `{unit} - GAF Request` or `{unit} - {org}` for guest mail                                                                                                                                                                      |
+| **Logo**                                                        | **`org_settings.email_logo_url`** (via merged app settings)                                                                                                                                                                         |
+| **Brand color**                                                 | Org/property `brandColor` (property override → org settings) — the picker hex, same as admin `--primary` / `bg-primary`. Email CTA labels stay white.                                                                               |
+| **Body copy**                                                   | **`property_template_contents`** (Templates page)                                                                                                                                                                                   |
 
 Platform defaults (not property-specific): **`DEFAULT_EMAIL_LOGO_URL`** when org has no logo; **`PUBLIC_GUEST_APP_ORIGIN`** for link absolutization; preview sample placeholders still use demo values in the UI catalog.
 
 ## Dynamic section data sources (live sends)
 
-Preview uses **`buildSampleDynamicSections()`** with demo dates/names/phones. **Production sends** resolve real values from booking rows + org/property settings (never legacy Kame Home / Monaco 2604 literals).
+Preview uses **`buildSampleDynamicSections()`** with demo dates/names/phones. **Production sends** resolve real values from booking rows + org/property settings (never legacy Kame Space / Monaco 2604 literals).
 
 | Section placeholder                             | Templates                                              | Live data source                                                                                                                      |
 | ----------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -249,9 +258,15 @@ Implementation: **`guestContactInfo.ts`** (contact resolution), **`propertyTempl
 
 ## Testing
 
-| Layer | Path / spec                                                                                                   | Manual                                                                             |
-| ----- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Unit  | Template placeholder normalization when pure helpers change                                                   | —                                                                                  |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`)                             | WYSIWYG save, email send; asserts no console "duplicate" TipTap extension warnings |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "custom template sends to a picked booking" (`@ci`) | Send to guest: picker, POST `send-property-custom-template-email`, success toast   |
-| N/A   | —                                                                                                             | —                                                                                  |
+| Layer  | Path / spec                                                                                                   | Manual                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Unit   | `ui/src/features/dashboard/org/lib/templatesSudoToken.test.ts` (15m sudo sessionStorage)                      | —                                                                                       |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` templates shell (`@ci`)                             | WYSIWYG save, email send; asserts no console "duplicate" TipTap extension warnings      |
+| E2E    | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` "custom template sends to a picked booking" (`@ci`) | Send to guest: picker, POST `send-property-custom-template-email`, success toast        |
+| Manual | —                                                                                                             | First Save → OTP → persists; second Save within 15m skips modal; after expiry OTP again |
+
+plans: N/A — reuses existing `customTemplates` + templates.* leaves; OTP is additive safety like payment.
+permissions: N/A — OTP is in addition to existing `templates.*:edit` / `:add` leaves (same pattern as payment OTP + `settings.payment:edit`).
+activity-log: N/A — existing `settings.template_saved` / delete / folder events unchanged; sudo reuse is the same write path.
+sentry: N/A — faults still go through existing edge / client seams.
+analytics: N/A — no new host outcome beyond existing template save toasts.

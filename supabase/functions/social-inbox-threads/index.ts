@@ -18,6 +18,7 @@ import type {
 } from '../_shared/socialInboxTypes.ts';
 import { enrichWebConversationsWithPropertyNames } from '../_shared/webGuestChatService.ts';
 import { jsonError, jsonSuccess } from '../_shared/httpResponse.ts';
+import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 function parseFilter(url: URL): InboxThreadFilter {
@@ -65,11 +66,13 @@ serveAuthenticated('social-inbox-threads', async (req) => {
   const conversations = await attachConversationConnectionStatus(
     await enrichWebConversationsWithPropertyNames(listResult.conversations)
   );
-  const metaHasMore = await resolveMetaHasMore(ctx.orgId);
+  const metaSyncAvailable = await isFeatureAvailable('inbox.meta.sync');
+  const metaHasMore = metaSyncAvailable ? await resolveMetaHasMore(ctx.orgId) : false;
 
   return jsonSuccess(req, {
     conversations,
     nextCursor: listResult.nextCursor,
     metaHasMore,
+    ...(metaSyncAvailable ? {} : { metaSyncPaused: true }),
   });
 });

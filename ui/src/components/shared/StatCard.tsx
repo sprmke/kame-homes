@@ -30,6 +30,8 @@ export type StatCardProps = {
   className?: string;
   change?: number;
   changeLabel?: string;
+  /** Optional control after the change caption (e.g. a comparison-period hint). */
+  changeAdornment?: ReactNode;
   /** When true, `change` is shown as percentage points (e.g. occupancy). */
   changeIsPoints?: boolean;
   footer?: ReactNode;
@@ -37,6 +39,8 @@ export type StatCardProps = {
   /** When set, the card renders as a router link instead of a button. */
   to?: string;
   active?: boolean;
+  /** Tighter padding and type for dense KPI rows (e.g. super-admin overview). */
+  density?: 'default' | 'compact';
 };
 
 function formatChange(change: number, isPoints: boolean): string {
@@ -45,6 +49,13 @@ function formatChange(change: number, isPoints: boolean): string {
   return `${sign}${change.toFixed(1)}%`;
 }
 
+const OVERLAY_CLASS =
+  'absolute inset-0 z-10 rounded-[inherit] focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none';
+
+/**
+ * Some cards navigate as a whole. A stretched overlay keeps the card a real
+ * link/button without nesting the title hint (or any other control) inside it.
+ */
 export function StatCard({
   title,
   titleAdornment,
@@ -56,28 +67,50 @@ export function StatCard({
   className,
   change,
   changeLabel = 'vs last period',
+  changeAdornment,
   changeIsPoints = false,
   footer,
   onClick,
   to,
   active,
+  density = 'default',
 }: StatCardProps) {
   const hasChange = change !== undefined;
   const isPositive = change !== undefined && change >= 0;
   const interactive = onClick !== undefined || to !== undefined;
   const compactChrome = useDashboardCompactChrome();
-  const showIcon = Icon && !compactChrome;
+  const compact = density === 'compact';
+  const showIcon = Boolean(Icon && !compactChrome);
 
   const shellClassName = cn(
-    'surface-card group relative flex h-full w-full flex-col items-start justify-start overflow-hidden p-3 text-left transition-all duration-300 sm:p-3.5 md:p-5',
+    'surface-card group relative flex h-full w-full flex-col items-start justify-start overflow-hidden text-left transition-all duration-300',
+    compact ? 'p-2 sm:p-2.5' : 'p-3 sm:p-3.5 md:p-5',
     interactive && 'native-press',
     'sm:hover:shadow-elevated-lg sm:hover:-translate-y-0.5',
     interactive &&
-      'focus-visible:ring-primary/40 text-left focus-visible:outline-none focus-visible:ring-2',
+      'focus-within:ring-primary/40 text-left focus-within:outline-none focus-within:ring-2',
     active &&
       'border-primary/50 bg-primary/[0.06] shadow-card-hover ring-primary/40 ring-2 ring-inset sm:hover:translate-y-0',
     className
   );
+
+  const overlay = to ? (
+    <Link
+      to={to}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : null;
 
   const body = (
     <>
@@ -91,16 +124,25 @@ export function StatCard({
         <div className="flex w-full items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
             <div className="flex items-start gap-0.5">
-              <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
+              <p
+                className={cn(
+                  'text-muted-foreground line-clamp-2 font-medium leading-snug',
+                  compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:line-clamp-none sm:text-sm'
+                )}
+              >
                 {title}
               </p>
-              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
+              {titleAdornment ? (
+                <span className="relative z-20 shrink-0">{titleAdornment}</span>
+              ) : null}
             </div>
             <p
               className={cn(
                 valueClassName?.includes('line-clamp')
                   ? 'font-bold tracking-tight'
-                  : 'text-stat-value truncate',
+                  : compact
+                    ? 'text-foreground truncate text-sm font-bold tabular-nums tracking-tight sm:text-base lg:text-lg'
+                    : 'text-stat-value truncate',
                 // Color override only — do not append `text-foreground` (token already
                 // sets it; a trailing text-* color used to make twMerge drop the token).
                 valueClassName
@@ -129,18 +171,25 @@ export function StatCard({
                 <span className="text-muted-foreground hidden text-xs lg:inline">
                   {changeLabel}
                 </span>
+                {changeAdornment ? (
+                  <span className="relative z-20 shrink-0">{changeAdornment}</span>
+                ) : null}
               </div>
             ) : null}
           </div>
-          {showIcon ? (
+          {showIcon && Icon ? (
             <div
               data-stat-card-icon
               className={cn(
-                'native-icon-tile hidden transition-transform sm:group-hover:scale-110 lg:flex',
+                'hidden shrink-0 items-center justify-center transition-transform lg:flex',
+                compact ? 'size-7 rounded-lg' : 'native-icon-tile sm:group-hover:scale-110',
                 iconBgClassName
               )}
             >
-              <Icon className={cn('size-4 sm:size-5', iconClassName)} aria-hidden />
+              <Icon
+                className={cn(compact ? 'size-3.5' : 'size-4 sm:size-5', iconClassName)}
+                aria-hidden
+              />
             </div>
           ) : null}
         </div>
@@ -149,51 +198,102 @@ export function StatCard({
     </>
   );
 
-  if (to) {
-    return (
-      <Link
-        to={to}
-        onClick={onClick}
-        aria-current={active ? 'page' : undefined}
-        className={shellClassName}
-      >
-        {body}
-      </Link>
-    );
-  }
-
-  if (interactive) {
-    return (
-      <button type="button" onClick={onClick} aria-pressed={active} className={shellClassName}>
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={shellClassName}>{body}</div>;
+  return (
+    <div className={shellClassName}>
+      {body}
+      {overlay}
+    </div>
+  );
 }
 
 type StatCardSkeletonProps = {
   showTrend?: boolean;
+  /** Desktop status chips under the value (bookings stage cards). */
+  showStatusFooter?: boolean;
+  /** Fixed card label — render it immediately instead of a bar. */
+  title?: string;
+  /** Fixed adornment beside the title (e.g. metric info dot). */
+  titleAdornment?: ReactNode;
+  /** Fixed icon — render the real icon well instead of a placeholder. */
+  icon?: LucideIcon;
+  iconClassName?: string;
+  iconBgClassName?: string;
+  /** Fixed trend caption, e.g. "vs last period". */
+  changeLabel?: string;
+  /** Fixed adornment after the trend caption (e.g. a comparison hint slot). */
+  changeAdornment?: ReactNode;
+  /** Fixed footer content (status chips, helper copy). */
+  footer?: ReactNode;
   className?: string;
   style?: CSSProperties;
 };
 
-export function StatCardSkeleton({ showTrend = false, className, style }: StatCardSkeletonProps) {
+export function StatCardSkeleton({
+  showTrend = false,
+  showStatusFooter = false,
+  title,
+  titleAdornment,
+  icon: Icon,
+  iconClassName = STAT_CARD_ICON_MUTED.iconClassName,
+  iconBgClassName = STAT_CARD_ICON_MUTED.iconBgClassName,
+  changeLabel,
+  changeAdornment,
+  footer,
+  className,
+  style,
+}: StatCardSkeletonProps) {
   return (
-    <div className={cn('surface-card p-3 sm:p-3.5 md:p-4', className)} style={style}>
-      <div className="flex items-start justify-between gap-2.5 sm:gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
-          <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
-          <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
-          {showTrend ? (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <Skeleton className="h-6 w-14 rounded-full" />
-              <Skeleton className="hidden h-3 w-20 lg:block" />
+    <div className={cn('surface-card p-3 sm:p-3.5 md:p-5', className)} style={style}>
+      <div className={cn('flex flex-col', (showStatusFooter || footer) && 'lg:gap-2.5')}>
+        <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+          <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
+            <div className="flex items-start gap-0.5">
+              {title ? (
+                <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
+                  {title}
+                </p>
+              ) : (
+                <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
+              )}
+              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
             </div>
-          ) : null}
+            <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
+            {showTrend ? (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <Skeleton className="h-6 w-14 rounded-full" />
+                {changeLabel ? (
+                  <span className="text-muted-foreground hidden text-xs lg:inline">
+                    {changeLabel}
+                  </span>
+                ) : (
+                  <Skeleton className="hidden h-3 w-20 lg:block" />
+                )}
+                {changeAdornment ? <span className="shrink-0">{changeAdornment}</span> : null}
+              </div>
+            ) : null}
+          </div>
+          {Icon ? (
+            <div
+              className={cn(
+                'native-icon-tile hidden shrink-0 items-center justify-center lg:flex',
+                iconBgClassName
+              )}
+            >
+              <Icon className={cn('size-4 sm:size-5', iconClassName)} aria-hidden />
+            </div>
+          ) : (
+            <Skeleton className="hidden size-8 shrink-0 rounded-lg sm:size-10 sm:rounded-xl lg:block" />
+          )}
         </div>
-        <Skeleton className="hidden size-8 shrink-0 rounded-lg sm:size-10 sm:rounded-xl lg:block" />
+        {footer ? (
+          <div className="w-full shrink-0 self-start">{footer}</div>
+        ) : showStatusFooter ? (
+          <div className="hidden flex-wrap gap-1 lg:flex">
+            <Skeleton className="h-5 w-14 rounded-md" />
+            <Skeleton className="h-5 w-16 rounded-md" />
+            <Skeleton className="h-5 w-10 rounded-md" />
+          </div>
+        ) : null}
       </div>
     </div>
   );

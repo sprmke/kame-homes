@@ -1,5 +1,6 @@
 {"id": "list-bookings", "message": "Show me my bookings for next week", "expectToolsAny": ["list_bookings", "get_available_dates"]}
 {"id": "finance-summary", "message": "How much profit did I make this month?", "expectToolsAny": ["get_finance_summary"]}
+{"id": "finance-trend", "message": "Show my income trend for the last 6 months", "expectToolsAny": ["get_finance_trend"]}
 {"id": "inbox-threads", "message": "Any unread guest messages?", "expectToolsAny": ["list_inbox_threads"]}
 {"id": "how-to", "message": "How does smart pricing work?", "expectToolsAny": ["search_knowledge_base", "explain_metric"]}
 {"id": "analytics", "message": "How is my occupancy compared to last month?", "expectToolsAny": ["get_property_analytics", "get_dashboard_stats"]}
@@ -23,3 +24,23 @@
 {"id": "team-list", "message": "Who is on my team?", "expectToolsAny": ["list_team_members", "list_property_team_members"]}
 {"id": "support-tickets", "message": "Do I have any open support tickets?", "expectToolsAny": ["list_support_tickets"]}
 {"id": "verification-status", "message": "Is my organization verified yet?", "expectToolsAny": ["get_org_verification_status"]}
+{"id": "guest-reviews-list", "message": "Show me recent guest reviews", "expectToolsAny": ["list_guest_reviews", "get_review_summary"]}
+{"id": "guest-reviews-rating", "message": "What is my average guest rating?", "expectToolsAny": ["get_review_summary", "list_guest_reviews"]}
+{"id": "vouchers-list", "message": "Which next-stay vouchers are still open?", "expectToolsAny": ["list_vouchers", "get_rewards_summary"]}
+{"id": "vouchers-summary", "message": "How many vouchers have been redeemed?", "expectToolsAny": ["get_rewards_summary", "list_vouchers"]}
+{"id": "superhost-status", "message": "Am I a Superhost yet?", "expectToolsAny": ["get_superhost_status"]}
+{"id": "superhost-criteria", "message": "Which Superhost criteria am I missing?", "expectToolsAny": ["get_superhost_status"]}
+{"id": "setup-guide-progress", "message": "What's left on my setup guide?", "expectToolsAny": ["get_setup_guide_progress"]}
+{"id": "setup-guide-next", "message": "What is the next setup guide step?", "expectToolsAny": ["get_setup_guide_progress"]}
+{"id": "marketing-themes-list", "message": "What marketing themes do I have?", "expectToolsAny": ["list_marketing_themes"]}
+{"id": "marketing-theme-one", "message": "Show me this marketing theme", "expectToolsAny": ["get_marketing_theme", "list_marketing_themes"]}
+{"id": "analytics-party-size", "message": "Who are my guests? Show party size", "expectToolsAny": ["get_analytics_demographics", "get_property_analytics"]}
+{"id": "analytics-lead-time", "message": "What is the lead time mix for my guests?", "expectToolsAny": ["get_analytics_demographics", "get_property_analytics"]}
+{"id": "notifications-list", "message": "Show my latest notifications", "expectToolsAny": ["list_notifications"]}
+{"id": "notifications-unread", "message": "Do I have unread notifications?", "expectToolsAny": ["list_notifications"]}
+{"id": "stay-guide-content", "message": "What's in this listing's stay guide?", "expectToolsAny": ["get_stay_guide_content", "get_custom_page_content"]}
+{"id": "stay-guide-public-link", "message": "Give me the stay guide public link for this listing", "expectToolsAny": ["get_stay_guide_content", "get_guest_link"]}
+{"id": "custom-pages", "message": "Are my custom pages published?", "expectToolsAny": ["get_custom_page_content", "get_public_pages_status"]}
+{"id": "custom-pages-showcase", "message": "What's on the showcase page?", "expectToolsAny": ["get_custom_page_content"]}
+{"id": "help-center-search", "message": "Search the help center for smart pricing", "expectToolsAny": ["search_help_center", "search_knowledge_base"]}
+{"id": "help-center-howto", "message": "Find help center articles about Superhost", "expectToolsAny": ["search_help_center", "search_knowledge_base"]}

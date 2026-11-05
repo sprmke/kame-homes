@@ -4,6 +4,7 @@ import { ORGANIZATIONS_QUERY_KEY } from '@/features/dashboard/org/hooks/useOrgan
 import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 import type { PropertyProfileUpdatePayload } from '@/features/dashboard/org/lib/propertySettingsForm';
 import type { Property } from '@/features/dashboard/org/types';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export function useUpdateProperty(orgSlug: string) {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export function useUpdateProperty(orgSlug: string) {
         body: JSON.stringify(payload),
       }),
     onSuccess: (data) => {
+      captureAppEvent('settings_saved', { section: 'property_profile' });
       queryClient.setQueryData(
         ['properties', orgSlug],
         (old: { properties: Property[] } | undefined) => {

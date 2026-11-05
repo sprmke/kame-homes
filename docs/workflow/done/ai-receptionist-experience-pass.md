@@ -8,7 +8,7 @@ updated: 2026-10-04
 
 # AI Receptionist Experience Pass
 
-Follow-up to [`ai-receptionist-production-readiness.md`](./ai-receptionist-production-readiness.md).
+Follow-up to [`ai-receptionist-production-readiness.md`](../in-progress/production-readiness/audits/ai-receptionist-production-readiness.md).
 That plan closed the trust boundary, lifecycle, guardrails, and telemetry. This pass rechecks the
 module end to end for audio quality, startup latency, animation smoothness, transcript assembly,
 and asset weight.

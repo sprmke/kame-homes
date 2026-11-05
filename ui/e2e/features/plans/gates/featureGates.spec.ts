@@ -16,7 +16,7 @@ import {
 import { retryThroughDevReload } from '../shared/planPageAssertions';
 import { installTierGateMocks, type TierGateOptions } from '../shared/tierGateMocks';
 
-const PROPERTY = '/org/kame-homes-ph/property/solea-mactan';
+const PROPERTY = '/org/sample-stays-ph/property/solea-mactan';
 
 type Feature = keyof GoldenPlan['features'];
 
@@ -123,16 +123,16 @@ const SURFACES: GateSurface[] = [
   },
   {
     feature: 'customTemplates',
-    name: 'Templates: Add Custom Template',
+    name: 'Templates: Add Template',
     path: `${PROPERTY}/templates`,
-    control: (page) => page.getByRole('button', { name: /Add Custom Template/ }),
+    control: (page) => page.getByRole('button', { name: /Add Template/ }),
     scope: parentScope,
     behaviour: 'modal',
   },
   {
     feature: 'activityLogExport',
     name: 'Activity log: Export CSV',
-    path: '/org/kame-homes-ph/activity',
+    path: '/org/sample-stays-ph/activity',
     mocks: { orgHub: true },
     control: (page) => page.getByRole('button', { name: 'Export CSV' }),
     scope: parentScope,
@@ -166,16 +166,17 @@ const SURFACES: GateSurface[] = [
   },
   {
     feature: 'marketingStudio',
-    name: 'Marketing Studio: Download PNG',
-    path: `${PROPERTY}/marketing`,
-    control: (page) => page.getByRole('button', { name: /Download PNG/ }),
+    name: 'Marketing Studio: Download',
+    // A new calendar opens straight in the editor (Library → editor flow).
+    path: `${PROPERTY}/marketing?theme=property-colors&tab=calendar&item=new`,
+    control: (page) => page.getByRole('button', { name: /^Download/ }),
     scope: parentScope,
     behaviour: 'modal',
   },
   {
     feature: 'marketingPublishLimitPerGroup',
     name: 'Marketing Studio: Publish',
-    path: `${PROPERTY}/marketing`,
+    path: `${PROPERTY}/marketing?theme=property-colors&tab=calendar&item=new`,
     control: (page) => page.getByRole('button', { name: /^Publish/ }),
     scope: parentScope,
     behaviour: 'modal',
@@ -197,6 +198,18 @@ const SURFACES: GateSurface[] = [
     behaviour: 'pill',
   },
   {
+    feature: 'reviewAutomation',
+    name: 'Reviews: Auto-review',
+    path: `${PROPERTY}/reviews`,
+    // Auto-review lives in a header sheet now; open it, then gate the switch.
+    reveal: async (page) => {
+      await page.getByRole('button', { name: 'Auto-review', exact: true }).click();
+    },
+    control: (page) => page.locator('#auto-review-enabled'),
+    scope: (control) => control.locator('xpath=ancestor::*[@role="dialog"]'),
+    behaviour: 'pill',
+  },
+  {
     feature: 'smartPricing',
     name: 'Pricing: Smart Pricing',
     path: `${PROPERTY}/pricing`,
@@ -207,7 +220,7 @@ const SURFACES: GateSurface[] = [
   {
     feature: 'copyPropertySettings',
     name: 'Org properties: Copy settings',
-    path: '/org/kame-homes-ph/properties',
+    path: '/org/sample-stays-ph/properties',
     mocks: { orgHub: true, multiProperty: true },
     control: (page) => page.getByRole('button', { name: /Copy settings/ }),
     scope: parentScope,
@@ -257,7 +270,9 @@ test.describe('@ci plan feature gates, per tier', () => {
         await retryThroughDevReload(async () => {
           await page.goto(surface.path);
           await surface.reveal?.(page);
-          await expect(control).toBeVisible();
+          // Heavy pages (Marketing Studio) take >5s to render on CI runners; a short wait
+          // made every attempt reload the page and start over until the 60s limit.
+          await expect(control).toBeVisible({ timeout: 20_000 });
         });
         const scope = surface.scope(control);
 

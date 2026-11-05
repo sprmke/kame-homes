@@ -139,7 +139,7 @@ export function OrgInviteMemberDialog({
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  placeholder="user@gmail.com"
+                  placeholder={FORM_PLACEHOLDERS.email}
                   value={form.email}
                   onChange={(e) => onFormChange({ email: e.target.value })}
                   className={cn('h-10', emailInvalid && 'border-destructive')}
@@ -193,7 +193,7 @@ export function OrgInviteMemberDialog({
                     );
                   }}
                 >
-                  <SelectTrigger id="org-invite-role" className="h-10">
+                  <SelectTrigger id="org-invite-role" aria-label="Role" className="h-10">
                     <SelectValue>
                       {getRoleLabelForScope('org', form.roleId, customRoles)}
                     </SelectValue>

@@ -1,0 +1,41 @@
+{
+  "search_knowledge_base_smart_pricing": {
+    "toolName": "search_knowledge_base",
+    "data": [
+      {
+        "question": "How does Smart Pricing decide a nightly rate?",
+        "answer": "Smart Pricing looks at your base rates, weekends, holidays, and how many nights are already booked in the next 30 days. It proposes a rate per night and you approve before anything changes.",
+        "route_path": "/org/:orgSlug/property/:propertySlug/pricing",
+        "source": "docs/guides/routes/org/property/pricing.md"
+      },
+      {
+        "question": "Can I undo a Smart Pricing run?",
+        "answer": "Yes. Open Pricing, pick the run under History, and choose Revert. Rates return to what they were before that run.",
+        "route_path": "/org/:orgSlug/property/:propertySlug/pricing",
+        "source": "docs/guides/routes/org/property/pricing.md"
+      }
+    ]
+  },
+  "search_knowledge_base_empty": {
+    "toolName": "search_knowledge_base",
+    "data": []
+  },
+  "explain_booking_status_pending_documents": {
+    "toolName": "explain_booking_status",
+    "data": {
+      "status": "PENDING_DOCUMENTS",
+      "label": "Pending Documents",
+      "nextOptions": [
+        { "status": "READY_FOR_CHECKIN", "label": "Ready for Check-in" },
+        { "status": "CANCELLED", "label": "Cancelled" }
+      ]
+    }
+  },
+  "explain_metric_revpar": {
+    "toolName": "explain_metric",
+    "data": {
+      "metric": "revpar",
+      "explanation": "RevPAR (Revenue per Available Night) = gross lodging revenue ÷ total nights available (booked + open). Combines occupancy and rate into one number."
+    }
+  }
+}

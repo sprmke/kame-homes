@@ -42,8 +42,8 @@ import { useMarketingBrandColor } from '@/features/guest/marketing/shared/contex
 
 import { bottomTabBarOffsetClassName } from '@/components/mobile/BottomTabBar';
 import { ContextualActionBar } from '@/components/mobile/ContextualActionBar';
+import { PropertyDetailPageSkeleton } from '@/components/skeletons/GuestMarketingSkeleton';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { captureAppEvent } from '@/lib/posthog/capture';
@@ -284,52 +284,11 @@ export function PropertyDetailPage() {
 
   if (isLoading && !propertyData) {
     return (
-      <div className="@container bg-background public-page-top min-h-screen w-full min-w-0 pb-20">
-        <div className="@xl:px-6 @5xl:px-8 container mx-auto px-4">
-          <Skeleton className="@xl:h-[400px] @3xl:h-[500px] h-[300px] w-full rounded-2xl" />
-        </div>
-
-        <div className="@xl:px-6 @5xl:px-8 @xl:py-8 container mx-auto px-4 py-5">
-          <div className="@5xl:grid-cols-3 @5xl:gap-12 grid grid-cols-1 gap-8">
-            <div className="@5xl:col-span-2 min-w-0 space-y-10">
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-2/3 rounded-lg" />
-                <Skeleton className="h-4 w-1/3 rounded-full" />
-                <div className="flex flex-wrap gap-4">
-                  <Skeleton className="h-4 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-16 rounded-full" />
-                  <Skeleton className="h-4 w-16 rounded-full" />
-                </div>
-              </div>
-
-              <hr className="border-border" />
-
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full rounded-full" />
-                <Skeleton className="h-4 w-full rounded-full" />
-                <Skeleton className="h-4 w-2/3 rounded-full" />
-              </div>
-
-              <hr className="border-border" />
-
-              <div className="@2xl:grid-cols-3 grid grid-cols-2 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-4 w-24 rounded-full" />
-                ))}
-              </div>
-            </div>
-
-            <div className="@5xl:block hidden">
-              <div className="border-border space-y-5 rounded-2xl border p-6 shadow-sm">
-                <Skeleton className="h-7 w-32 rounded-lg" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-11 w-full rounded-xl" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PropertyDetailPageSkeleton
+        reserveBar={!isEditorPreview && !forceDesktopChrome}
+        bookingColumn={forceDesktopChrome ? 'show' : forceMobileChrome ? 'hide' : 'auto'}
+        framed={isEditorPreview}
+      />
     );
   }
 
@@ -362,6 +321,7 @@ export function PropertyDetailPage() {
       media: review.media ?? [],
       source: review.source,
       createdAt: review.createdAt ?? null,
+      responseText: review.responseText ?? null,
     })) ?? [];
 
   const showRatingInBooking =
@@ -391,7 +351,7 @@ export function PropertyDetailPage() {
   });
 
   const renderBodySection = (sectionId: PropertyLandingSectionId, index: number) => {
-    const divider = index > 0 ? <hr className="border-border" /> : null;
+    const divider = index > 0 ? <hr className="border-border @xl:mb-10 mb-7" /> : null;
     const wrap = (node: ReactNode) => (
       <div
         key={sectionId}
@@ -474,6 +434,7 @@ export function PropertyDetailPage() {
             rating={propertyData.rating ?? 5}
             totalReviews={propertyData.reviews ?? listingReviews.length}
             reviews={listingReviews}
+            summary={propertyData.reviewSummary}
           />
         );
       default:

@@ -36,13 +36,13 @@ const EXPECTED_WORKFLOW_EMAIL_KINDS = [
   'sd_refund_form_request',
 ] as const;
 
-Deno.test('tool catalog counts match architecture doc (127 total)', () => {
-  assertEquals(READ_TOOL_NAMES.size, 62);
+Deno.test('tool catalog counts match architecture doc (142 total)', () => {
+  assertEquals(READ_TOOL_NAMES.size, 77);
   assertEquals(TIER1_ONLY_TOOL_NAMES.size, 8);
   assertEquals(TIER2_ONLY_TOOL_NAMES.size, 56);
   assertEquals(
     READ_TOOL_NAMES.size + TIER1_ONLY_TOOL_NAMES.size + TIER2_ONLY_TOOL_NAMES.size + 1,
-    127
+    142
   );
 });
 
@@ -80,7 +80,7 @@ Deno.test('Part F.4 workflow email kinds match send helper', () => {
  * so this reads the file instead of importing it): every tool declared to the model has exactly
  * one execution handler in TOOL_HANDLERS, and no handler exists for an undeclared tool.
  */
-Deno.test('assistant tool registry — declarations and handlers stay in sync', async () => {
+Deno.test('assistant tool registry - declarations and handlers stay in sync', async () => {
   const source = await Deno.readTextFile(
     new URL('../_shared/dashboardAssistantTools.ts', import.meta.url)
   );
@@ -89,6 +89,14 @@ Deno.test('assistant tool registry — declarations and handlers stay in sync', 
     source.indexOf('\n};', source.indexOf('const TOOL_HANDLERS'))
   );
   const handlers = new Set([...registryBlock.matchAll(/^ {2}([a-z_0-9]+): \(/gm)].map((m) => m[1]));
+  if (source.includes('COVERAGE_TOOL_DECLARATIONS')) {
+    const coverage = await Deno.readTextFile(
+      new URL('../_shared/dashboardAssistantCoverageTools.ts', import.meta.url)
+    );
+    for (const m of coverage.matchAll(/^    name: '([a-z_0-9]+)',$/gm)) {
+      handlers.add(m[1]);
+    }
+  }
   // Declarations live in dashboardAssistantTools.ts (TOOL_DECLARATIONS) and the per-domain
   // *Tools.ts modules it spreads in.
   const declared = new Set<string>();
@@ -100,7 +108,7 @@ Deno.test('assistant tool registry — declarations and handlers stay in sync', 
       declared.add(m[1]);
     }
     // Shape 2: literal entries inside the `TOOL_DECLARATIONS = [` array.
-    const arrayStart = text.search(/export const TOOL_DECLARATIONS\s*=\s*\[/);
+    const arrayStart = text.search(/export const \w*TOOL_DECLARATIONS\s*=\s*\[/);
     if (arrayStart >= 0) {
       for (const m of text.slice(arrayStart).matchAll(/^ {4}name: '([a-z_0-9]+)',$/gm)) {
         declared.add(m[1]);

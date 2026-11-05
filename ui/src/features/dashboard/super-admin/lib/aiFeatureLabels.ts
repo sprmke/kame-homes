@@ -12,12 +12,14 @@ const AI_FEATURE_LABELS: Record<string, string> = {
   voice_polish: 'Voice polish',
   voice_receptionist: 'Voice receptionist',
   dashboard_assistant: 'Dashboard assistant',
+  dashboard_assistant_complex: 'Dashboard assistant (complex turn)',
   ai_integration_verify: 'Integration verify',
   booking_ai_summary_guests: 'Booking review: guests',
   booking_ai_summary_pets: 'Booking review: pets',
   booking_ai_summary_pricing: 'Booking review: pricing',
   smart_pricing: 'Smart pricing',
   host_analytics: 'Host analytics',
+  review_draft: 'Review draft',
 };
 
 export const AI_FEATURE_LABEL_KEYS = Object.keys(AI_FEATURE_LABELS);

@@ -30,7 +30,7 @@ Common FAQs here are scoped to the **parking** mount: this slot’s settings, ra
 
 ## Host-facing knowledge
 
-Same as the property-level page: documentation, AI Assistant, and support tickets, just scoped to this parking listing.
+Same as the property-level page: searchable and browsable FAQs, documentation, AI Assistant, and support tickets, just scoped to this parking listing. Guest-only FAQ categories stay out of host Help. Synced FAQs are read-only in the super-admin editor; manual FAQs remain editable.
 
 **Common host questions**
 
@@ -38,6 +38,12 @@ Same as the property-level page: documentation, AI Assistant, and support ticket
   A: Yes. Tickets filed from a parking listing's Help & Support page are tagged with that listing, so our team has the context automatically.
 - Q: Why don't I see property booking FAQs here?
   A: Help FAQs match the page you're on. Parking Help shows parking answers; open a property's Help & Support for stay and booking questions.
+- Q: Can every parking team member open Help & Support?
+  A: Yes. It is available to every parking team member, the same as the parking dashboard. No extra permission is needed.
+- Q: Where do announcements live now?
+  A: Announcements have their own page. The old Help & Support announcements link sends you to the parking announcements archive.
+- Q: Does Ask AI know about this parking slot?
+  A: Ask AI opens the dashboard assistant with your current context. Parking data and actions are still limited, so use a ticket when you need our team to check a parking issue.
 
 ## API reference · Implementation map
 

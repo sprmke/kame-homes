@@ -2,7 +2,9 @@
  * Optional AI auto-send after inbound guest web chat messages.
  */
 
-import { suggestInboxReply } from './socialInboxAiService.ts';
+import { isAutoReplyPausedByHandoff } from './aiHandoff.ts';
+import { logActivity, type ActorContext } from './activityLog.ts';
+import { runGuestReceptionistTurn } from './guestReceptionistTurn.ts';
 import {
   consumeAutoReplyBudget,
   isAutoReplyEntitled,
@@ -11,7 +13,11 @@ import {
   loadAutoReplySettings,
 } from './inboxAutoReplyPolicy.ts';
 import { socialInboxDb } from './socialInboxDb.ts';
-import { insertMessageIfNew, listMessages, updateConversationAfterMessage } from './socialInboxService.ts';
+import {
+  insertMessageIfNew,
+  listMessages,
+  updateConversationAfterMessage,
+} from './socialInboxService.ts';
 import { maybeNotifyGuestOfHostWebReply } from './guestChatEmail.ts';
 import { buildWebMessageExternalId } from './webGuestChatIds.ts';
 
@@ -49,6 +55,7 @@ export async function maybeAutoReplyToWebInbound(
     .eq('platform', 'web')
     .maybeSingle();
   if (!conv || conv.conversation_type !== 'dm') return;
+  if (isAutoReplyPausedByHandoff(conv)) return;
   if (!(await isAutoReplyEntitled(orgId, (conv.property_id as string | null) ?? null))) return;
 
   const { data: inboundRow } = await sb
@@ -66,8 +73,9 @@ export async function maybeAutoReplyToWebInbound(
 
   const propertyCtx = await loadWebPropertyContext(conv.property_id as string | null);
 
-  const reply = await suggestInboxReply({
+  const reply = await runGuestReceptionistTurn({
     orgId,
+    conversationId,
     platform: 'web',
     conversationType: conv.conversation_type,
     participantName: conv.participant_name,
@@ -75,12 +83,14 @@ export async function maybeAutoReplyToWebInbound(
     propertyName: propertyCtx.propertyName,
     inquiryCheckIn: (conv.inquiry_check_in as string | null) ?? null,
     inquiryCheckOut: (conv.inquiry_check_out as string | null) ?? null,
+    guestUserId: (conv.guest_user_id as string | null) ?? null,
     messages: messages.map((m) => ({
       direction: m.direction,
       body: m.body_text,
       sentAt: m.sent_at,
     })),
     systemPromptOverride: settings.ai_system_prompt,
+    feature: 'inbox_auto_reply',
   });
   if (!isSendableAutoReply(reply)) return;
   const draft = reply.suggestion;
@@ -104,7 +114,31 @@ export async function maybeAutoReplyToWebInbound(
     last_message_at: now,
     reply_status: 'replied',
     guest_unread_delta: 1,
+    ...(reply.handoffRequested
+      ? {
+          aiHandoff: {
+            ai_handoff: {
+              reason: reply.handoffReason ?? 'Guest asked to speak with the host team.',
+            },
+          },
+        }
+      : {}),
   });
+  if (reply.handoffRequested) {
+    await logActivity({
+      action: 'inbox.ai_handoff',
+      organizationId: orgId,
+      propertyId: conv.property_id as string | null,
+      actor: {
+        actorType: 'ai_assistant',
+        source: 'ai_assistant',
+        displayName: 'AI receptionist',
+      } satisfies ActorContext,
+      targetId: conversationId,
+      targetLabel: conv.participant_name as string | undefined,
+      metadata: { reason: reply.handoffReason ?? null },
+    });
+  }
   void maybeNotifyGuestOfHostWebReply({
     orgId,
     conversationId,

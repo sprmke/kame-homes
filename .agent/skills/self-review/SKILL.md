@@ -188,13 +188,14 @@ Each finding: **what** · **where** (`path:line` or symbol) · **why it matters*
 
 ## 4. Related
 
-| Need                       | Use instead / after                  |
-| -------------------------- | ------------------------------------ |
-| Prove a change works in UI | `verify` skill (Claude) / Playwright |
-| Property dashboard host QA | `property-dashboard-qa`              |
-| CI gate only               | `/kh-check-before-pr`                |
-| Open PR                    | `/kh-submit-for-review`              |
-| Auth/PII deep audit        | `security-auditor` agent             |
+| Need                           | Use instead / after                                        |
+| ------------------------------ | ---------------------------------------------------------- |
+| Prove a change works in UI     | `verify` skill (Claude) / Playwright                       |
+| Property dashboard host QA     | `property-dashboard-qa`                                    |
+| CI gate only                   | `/kh-check-before-pr`                                      |
+| Open PR                        | `/kh-submit-for-review`                                    |
+| Auth/PII deep audit            | `security-auditor` agent                                   |
+| Pre-launch full codebase audit | Cloudflare `security-audit` skill (artifacts outside repo) |
 
 ## Don'ts
 

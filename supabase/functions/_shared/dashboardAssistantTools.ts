@@ -33,6 +33,7 @@ import {
   createFinanceLineItem,
   financeThisMonthRange,
   formatFinancePhp,
+  lastNFinanceMonthRanges,
   listFinanceBookings,
   toHostFacingFinanceKpis,
   type FinanceLineItemKind,
@@ -230,6 +231,11 @@ import {
   toolGetPropertyAnalytics,
 } from './dashboardAssistantAnalyticsTools.ts';
 import {
+  COVERAGE_TOOL_DECLARATIONS,
+  isCoverageTool,
+  runCoverageTool,
+} from './dashboardAssistantCoverageTools.ts';
+import {
   DELETE_FINANCE_LINE_ITEM_TOOL_DECLARATION,
   DELETE_MAINTENANCE_ITEM_TOOL_DECLARATION,
   UPDATE_FINANCE_LINE_ITEM_TOOL_DECLARATION,
@@ -267,6 +273,7 @@ import {
 import { downloadAssistantAttachment } from './assistantAttachmentApply.ts';
 import { uploadMarketingMediaFromAssistantBytes } from './marketingMediaUpload.ts';
 import { validateToolArgs } from './ai/toolArgs.ts';
+import { ToolTimeoutError, withToolTimeout } from './ai/agent/toolTimeout.ts';
 
 export type ToolExecutionContext = {
   req: Request;
@@ -476,14 +483,22 @@ async function toolGetBooking(
   ctx: ToolExecutionContext,
   args: Record<string, unknown>
 ): Promise<ToolResult> {
-  const bookingId = str(args, 'bookingId');
+  const bookingId = defaultBookingId(ctx, args);
   if (!bookingId) return { ok: false, error: 'bookingId is required' };
   const propertyId = await resolveBookingProperty(ctx, bookingId, 'bookings:view');
 
   const sb = createServiceClient();
-  const [{ data: booking }, { data: property }] = await Promise.all([
+  const [{ data: booking }, { data: property }, { data: historyRows }] = await Promise.all([
     sb.from('guest_submissions').select('*').eq('id', bookingId).maybeSingle(),
     sb.from('properties').select('id, name').eq('id', propertyId).maybeSingle(),
+    sb
+      .from('activity_log')
+      .select('created_at, actor_display_name, summary, action')
+      .eq('organization_id', ctx.organizationId)
+      .eq('target_type', 'booking')
+      .eq('target_id', bookingId)
+      .order('created_at', { ascending: true })
+      .limit(20),
   ]);
   if (!booking) return { ok: false, error: 'Booking not found' };
 
@@ -491,6 +506,28 @@ async function toolGetBooking(
   const balanceDue = totalDue === null ? null : totalDue - num(booking.guest_balance_paid_amount);
   const status = String(booking.status ?? '');
   const bookingRecord = booking as Record<string, unknown>;
+  const statusLabel = isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status;
+  const hostLabel = formatBookingHostLabel({
+    guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
+    checkIn: booking.check_in_date,
+    checkOut: booking.check_out_date,
+    statusLabel,
+  });
+  const statusHistory =
+    (historyRows ?? []).map((row) => ({
+      at: row.created_at,
+      label: row.summary || row.action,
+      detail: row.summary,
+      actor: row.actor_display_name,
+    })) ?? [];
+  if (statusHistory.length === 0) {
+    statusHistory.push({
+      at: booking.created_at,
+      label: statusLabel,
+      detail: hostLabel,
+      actor: null,
+    });
+  }
 
   return {
     ok: true,
@@ -498,17 +535,13 @@ async function toolGetBooking(
     auditBookingId: bookingId,
     data: {
       bookingId: booking.id,
-      hostLabel: formatBookingHostLabel({
-        guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
-        checkIn: booking.check_in_date,
-        checkOut: booking.check_out_date,
-        statusLabel: isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status,
-      }),
+      hostLabel,
       guestName: booking.primary_guest_name || booking.guest_facebook_name || '',
       status,
-      statusLabel: isBookingStatus(status) ? STATUS_HUMAN_LABEL[status] : status,
+      statusLabel,
       checkIn: booking.check_in_date,
       checkOut: booking.check_out_date,
+      createdAt: booking.created_at,
       propertyId,
       propertyName: property?.name ?? '',
       balanceDue,
@@ -517,6 +550,7 @@ async function toolGetBooking(
       sdRefundFormSubmitted: Boolean(booking.sd_refund_form_submitted_at),
       pendingTasks: pendingTasksForBooking(bookingRecord),
       documents: collectAssistantBookingDocuments(bookingRecord),
+      statusHistory,
     },
   };
 }
@@ -909,6 +943,62 @@ async function toolGetFinanceSummary(
   };
 }
 
+async function toolGetFinanceTrend(
+  ctx: ToolExecutionContext,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  const { propertyId } = await resolveTargetProperty(ctx, args, 'finance:view');
+  const monthsArg = typeof args.months === 'number' ? args.months : Number(args.months);
+  const ranges = lastNFinanceMonthRanges(manilaTodayIso(), monthsArg || 6);
+  const sb = createServiceClient();
+  const { data: property } = await sb
+    .from('properties')
+    .select('name')
+    .eq('id', propertyId)
+    .maybeSingle();
+  const propertyName = property?.name ? String(property.name) : propertyId;
+  const months: Array<{
+    month: string;
+    label: string;
+    from: string;
+    to: string;
+    income: number;
+    expenses: number;
+    netProfit: number;
+    display: { income: string; expenses: string; netProfit: string };
+  }> = [];
+  for (const range of ranges) {
+    const summary = await computeFinanceSummary({
+      propertyId,
+      from: range.from,
+      to: range.to,
+      basis: 'check_in',
+      includeCancelled: true,
+      completedOnly: false,
+    });
+    const kpis = toHostFacingFinanceKpis(summary);
+    months.push({
+      month: range.month,
+      label: range.label,
+      from: range.from,
+      to: range.to,
+      income: kpis.totalIncome,
+      expenses: kpis.totalExpenses,
+      netProfit: kpis.netProfit,
+      display: {
+        income: formatFinancePhp(kpis.totalIncome),
+        expenses: formatFinancePhp(kpis.totalExpenses),
+        netProfit: formatFinancePhp(kpis.netProfit),
+      },
+    });
+  }
+  return {
+    ok: true,
+    auditPropertyId: propertyId,
+    data: { propertyId, propertyName, months },
+  };
+}
+
 async function toolListFinanceBookings(
   ctx: ToolExecutionContext,
   args: Record<string, unknown>
@@ -970,6 +1060,7 @@ async function toolListMaintenanceItems(
     propertyId,
     from: str(args, 'from') ?? null,
     to: str(args, 'to') ?? null,
+    q: str(args, 'q') ?? undefined,
   });
   return {
     ok: true,
@@ -1313,7 +1404,7 @@ async function toolGetParkingAvailableTransitions(
         bookingId,
         currentStatus: status,
         options: [],
-        note: 'This request is still awaiting broadcast response — resolves only via claim, decline, or expiry, not a direct transition.',
+        note: 'This request is still awaiting broadcast response - resolves only via claim, decline, or expiry, not a direct transition.',
       },
     };
   }
@@ -1546,6 +1637,7 @@ async function toolListMarketingTemplates(
     .from('marketing_templates')
     .select('id, name, content_type, platform, aspect_preset, updated_at')
     .eq('property_id', access.propertyId)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false });
   if (error) return { ok: false, error: error.message };
   return {
@@ -1914,7 +2006,7 @@ async function toolProposeTransitionBooking(
     return {
       ok: false,
       error: nextLabel
-        ? `This booking is at ${fromLabel}. Complete each step in order — the next step is ${nextLabel}, not ${toLabel}.`
+        ? `This booking is at ${fromLabel}. Complete each step in order - the next step is ${nextLabel}, not ${toLabel}.`
         : `This booking is at ${fromLabel}. That move to ${toLabel} is not available from here.`,
       data: journey,
     };
@@ -2613,7 +2705,7 @@ async function toolProposeClaimParkingBooking(
       bookingId,
       parkingId,
       endorsementNote,
-      summary: 'Claim this parking request — commits this parking slot and notifies the guest.',
+      summary: 'Claim this parking request - commits this parking slot and notifies the guest.',
     },
   };
 }
@@ -2883,7 +2975,7 @@ async function toolProposeUnblockPropertyDates(
   if (days > MAX_UNBLOCK_DATE_RANGE_DAYS) {
     return {
       ok: false,
-      error: `Range too large — unblock at most ${MAX_UNBLOCK_DATE_RANGE_DAYS} days at a time`,
+      error: `Range too large - unblock at most ${MAX_UNBLOCK_DATE_RANGE_DAYS} days at a time`,
     };
   }
 
@@ -3044,6 +3136,20 @@ async function toolDraftInboxReply(
     new Set(metaConnectionIds)
   );
 
+  if (conv.platform === 'facebook' || conv.platform === 'instagram') {
+    const actor = { id: ctx.userId, email: ctx.userEmail };
+    const { isFeatureAvailable } = await import('./featureAvailability.ts');
+    if (!(await isFeatureAvailable('inbox.meta.reply', { user: actor }))) {
+      const { getFeatureAvailabilitySnapshot, resolveFeatureUnavailableMessage } =
+        await import('./featureAvailability.ts');
+      const resolved = (await getFeatureAvailabilitySnapshot()).get('inbox.meta.reply');
+      const message = resolved
+        ? resolveFeatureUnavailableMessage(resolved)
+        : 'Replies on Facebook and Instagram are unavailable.';
+      return { ok: false, error: message };
+    }
+  }
+
   const { messages } = await listMessages(inboxCtx.orgId, conversationId, { limit: 20 });
   const sb = createServiceClient();
   const settingsQuery = sb
@@ -3135,7 +3241,7 @@ async function toolProposeSendInboxReply(
       return {
         ok: false,
         error:
-          'Attachments are only supported for website chat — send text only on Messenger or Instagram',
+          'Attachments are only supported for website chat - send text only on Messenger or Instagram',
       };
     }
   }
@@ -3231,7 +3337,7 @@ async function toolProposePublishToMeta(
       attachmentPath: attachmentPath ?? null,
       publishType: publishTypeArg,
       caption,
-      summary: `Publish to ${publishTypeArg.replace('_', ' ')}: "${caption.length > 80 ? `${caption.slice(0, 80)}…` : caption || '(no caption)'}" — media: ${mediaLabel}`,
+      summary: `Publish to ${publishTypeArg.replace('_', ' ')}: "${caption.length > 80 ? `${caption.slice(0, 80)}…` : caption || '(no caption)'}" - media: ${mediaLabel}`,
     },
   };
 }
@@ -4203,7 +4309,10 @@ export async function executeConfirmedAction(
         new Set(metaConnectionIds)
       );
       const attachments = await resolveInboxReplyAttachments(ctx, conversationId, attachmentPaths);
-      const result = await sendInboxReply(inboxCtx, conv, ctx.userId, text, { attachments });
+      const result = await sendInboxReply(inboxCtx, conv, ctx.userId, text, {
+        attachments,
+        actor: { id: ctx.userId, email: ctx.userEmail },
+      });
       return { ok: true, riskTier: 'tier2_confirmed', data: { conversationId, ...result } };
     } catch (err) {
       if (err instanceof InboxSendReplyError) return { ok: false, error: err.message };
@@ -4379,6 +4488,7 @@ const TOOL_HANDLERS: Record<string, ToolHandler> = {
   get_available_dates: (ctx, args) => toolGetAvailableDates(ctx, args),
   get_dashboard_stats: (ctx, args) => toolGetDashboardStats(ctx, args),
   get_finance_summary: (ctx, args) => toolGetFinanceSummary(ctx, args),
+  get_finance_trend: (ctx, args) => toolGetFinanceTrend(ctx, args),
   list_finance_bookings: (ctx, args) => toolListFinanceBookings(ctx, args),
   get_maintenance_summary: (ctx, args) => toolGetMaintenanceSummary(ctx, args),
   list_maintenance_items: (ctx, args) => toolListMaintenanceItems(ctx, args),
@@ -4487,6 +4597,15 @@ for (const declaration of PARITY_TOOL_DECLARATIONS) {
   TOOL_HANDLERS[declaration.name] = (ctx, args) => runParityTool(declaration.name, ctx, args);
 }
 
+for (const declaration of COVERAGE_TOOL_DECLARATIONS) {
+  TOOL_HANDLERS[declaration.name] = (ctx, args) => {
+    if (!isCoverageTool(declaration.name)) {
+      return Promise.resolve({ ok: false, error: 'Unknown coverage tool' });
+    }
+    return runCoverageTool(declaration.name, ctx, args);
+  };
+}
+
 /** Test/catalog helper: tool names that have an execution handler. */
 export function registeredToolNames(): string[] {
   return Object.keys(TOOL_HANDLERS);
@@ -4507,13 +4626,15 @@ export async function executeTool(
   try {
     const handler = TOOL_HANDLERS[toolName];
     if (!handler) return { ok: false, error: `Unhandled tool: ${toolName}` };
-    return await handler(ctx, args);
+    return await withToolTimeout(toolName, () => Promise.resolve(handler(ctx, args)));
   } catch (err) {
     // A permission re-check failure (verifyPropertyAccess/verifyOrgAccess throwing a Response)
     // or any other tool error surfaces as a plain refusal — never a confirmation prompt.
     if (err instanceof Response) {
       return { ok: false, error: 'Access restricted for this action.' };
     }
+    // Model-facing: classifyToolFailure's `retryable` pattern matches "timed out" (assistantToolFailureReason.ts).
+    if (err instanceof ToolTimeoutError) return { ok: false, error: err.message };
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -4546,11 +4667,10 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'get_booking',
     description:
-      'Fetch a single booking by id, including human statusLabel, pendingTasks, securityDeposit, sdRefundAmount, and documents (label + storage url for GAF, receipts, IDs, pet forms). When the host asks to see a file, also call get_booking_documents.',
+      'Fetch a single booking by id (or the pinned stay), including human statusLabel, statusHistory, pendingTasks, securityDeposit, sdRefundAmount, and documents. Use this for "what happened to this booking" / history. When the host asks to see a file, also call get_booking_documents.',
     parameters: {
       type: 'object',
       properties: { bookingId: { type: 'string' } },
-      required: ['bookingId'],
     },
   },
   {
@@ -4574,7 +4694,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'list_bookings',
     description:
-      'List bookings (guest name, human statusLabel, dates, hostLabel). Optionally filter by property, status, check-in date range, or guestName/q (free-text guest search). When the host names a guest, search with guestName/q first — do not claim the booking is missing until that search returns empty. Date-range queries include completed stays.',
+      'List bookings (guest name, human statusLabel, dates, hostLabel). Optionally filter by property, status, check-in date range, or guestName/q (free-text guest search). When the host names a guest, search with guestName/q first - do not claim the booking is missing until that search returns empty. Date-range queries include completed stays.',
     parameters: {
       type: 'object',
       properties: {
@@ -4638,7 +4758,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'get_finance_summary',
     description:
-      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for ONE property. Defaults to this calendar month and the current page property. With no property in scope, pass propertyId or use get_org_portfolio_analytics for org-wide revenue. Use display.* ₱ strings and netProfit for host answers — do not invent Grand Net.',
+      'Get Finance-page KPIs (total income, total expenses, net profit, pending) for ONE property. Defaults to this calendar month and the current page property. With no property in scope, pass propertyId or use get_org_portfolio_analytics for org-wide revenue. Use display.* ₱ strings and netProfit for host answers - do not invent Grand Net.',
     parameters: {
       type: 'object',
       properties: {
@@ -4650,6 +4770,21 @@ export const TOOL_DECLARATIONS = [
         to: {
           type: 'string',
           description: 'YYYY-MM-DD inclusive end (default: last day of this Manila month)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_finance_trend',
+    description:
+      'Month-by-month income, expenses, and net profit for ONE property (same Finance-page math as get_finance_summary). Defaults to the last 6 Manila calendar months including this month. Use for "last 6 months", "income trend", and "revenue vs expenses over time".',
+    parameters: {
+      type: 'object',
+      properties: {
+        propertyId: { type: 'string' },
+        months: {
+          type: 'number',
+          description: 'How many calendar months to include, 2–12 (default 6)',
         },
       },
     },
@@ -4680,13 +4815,20 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: 'list_maintenance_items',
-    description: 'List maintenance items for a property.',
+    description:
+      'List maintenance items for a property. Only the 10 most recently scheduled are returned ' +
+      "when q is omitted - pass q with the host's wording when they named a specific item, so an " +
+      'older item is still found instead of only searching the most recent 10.',
     parameters: {
       type: 'object',
       properties: {
         propertyId: { type: 'string' },
         from: { type: 'string' },
         to: { type: 'string' },
+        q: {
+          type: 'string',
+          description: "Search text matched against the item's label/category/notes.",
+        },
       },
     },
   },
@@ -4806,7 +4948,7 @@ export const TOOL_DECLARATIONS = [
         email: { type: 'string' },
         roleId: {
           type: 'string',
-          description: 'ADMIN or a permission-template UUID — defaults to ADMIN',
+          description: 'ADMIN or a permission-template UUID - defaults to ADMIN',
         },
       },
       required: ['email'],
@@ -4886,7 +5028,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_update_property_settings',
     description:
-      "Update a property's configurable settings — contact info, bedrooms/bathrooms/floors, max adults/children, description, custom house rules, custom amenities, or cancellation policy. Owner-only. Always requires host confirmation, even for small changes, since these are guest-facing terms.",
+      "Update a property's configurable settings - contact info, bedrooms/bathrooms/floors, max adults/children, description, custom house rules, custom amenities, or cancellation policy. Owner-only. Always requires host confirmation, even for small changes, since these are guest-facing terms.",
     parameters: {
       type: 'object',
       properties: {
@@ -4911,7 +5053,7 @@ export const TOOL_DECLARATIONS = [
         cancellationPolicy: {
           type: 'object',
           description:
-            'Cancellation policy settings object — read current value via get_property_settings first.',
+            'Cancellation policy settings object - read current value via get_property_settings first.',
         },
       },
     },
@@ -5009,7 +5151,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_claim_parking_booking',
     description:
-      'Accept/claim a broadcast parking request for this parking slot — commits the slot and emails the guest to pay and confirm (the guest still needs to complete payment before the booking is fully confirmed). Always requires host confirmation; first-Accept-wins, may fail if another host already claimed it.',
+      'Accept/claim a broadcast parking request for this parking slot - commits the slot and emails the guest to pay and confirm (the guest still needs to complete payment before the booking is fully confirmed). Always requires host confirmation; first-Accept-wins, may fail if another host already claimed it.',
     parameters: {
       type: 'object',
       properties: {
@@ -5036,7 +5178,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_transition_parking_booking',
     description:
-      'Move a parking booking to a new status (post-broadcast only — cannot be used while a request is still PENDING_HOST_ACCEPTANCE; use claim/decline for that). Always requires host confirmation.',
+      'Move a parking booking to a new status (post-broadcast only - cannot be used while a request is still PENDING_HOST_ACCEPTANCE; use claim/decline for that). Always requires host confirmation.',
     parameters: {
       type: 'object',
       properties: {
@@ -5097,7 +5239,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_add_property_holiday_rule',
     description:
-      'Add a holiday pricing rule for a property — a date range with a percentage rate increase (e.g. "add 50% for Christmas, Dec 24-26"). Always requires host confirmation.',
+      'Add a holiday pricing rule for a property - a date range with a percentage rate increase (e.g. "add 50% for Christmas, Dec 24-26"). Always requires host confirmation.',
     parameters: {
       type: 'object',
       properties: {
@@ -5218,7 +5360,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_mark_inbox_thread_read',
     description:
-      'Mark a Guest Inbox conversation as read. Internal only — does not notify the guest.',
+      'Mark a Guest Inbox conversation as read. Internal only - does not notify the guest.',
     parameters: {
       type: 'object',
       properties: {
@@ -5232,7 +5374,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_inbox_reply',
     description:
-      'Generate an AI-drafted reply suggestion for a Guest Inbox conversation for the host to review — does NOT send it. Use propose_send_inbox_reply to actually send.',
+      'Generate an AI-drafted reply suggestion for a Guest Inbox conversation for the host to review - does NOT send it. Use propose_send_inbox_reply to actually send.',
     parameters: {
       type: 'object',
       properties: {
@@ -5246,7 +5388,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_send_inbox_reply',
     description:
-      'Send a real reply to a guest in a Guest Inbox conversation (web chat, Messenger, or Instagram DM). Optional attachmentPath(s) from this assistant conversation work on website chat only — Meta DMs are text-only. This sends immediately once confirmed — always requires explicit host confirmation, no exceptions.',
+      'Send a real reply to a guest in a Guest Inbox conversation (web chat, Messenger, or Instagram DM). Optional attachmentPath(s) from this assistant conversation work on website chat only - Meta DMs are text-only. This sends immediately once confirmed - always requires explicit host confirmation, no exceptions.',
     parameters: {
       type: 'object',
       properties: {
@@ -5263,7 +5405,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'list_marketing_templates',
     description:
-      "List a property's saved Marketing Studio templates (calendar/design/video). Global-admin only — see note on Marketing Studio access.",
+      "List a property's saved Marketing Studio templates (calendar/design/video). Global-admin only - see note on Marketing Studio access.",
     parameters: {
       type: 'object',
       properties: { propertyId: { type: 'string' } },
@@ -5296,7 +5438,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_marketing_caption',
     description:
-      'Generate an AI-drafted social media caption for a property (Facebook or Instagram, post or story) — for host review, does not post anywhere. Global-admin only.',
+      'Generate an AI-drafted social media caption for a property (Facebook or Instagram, post or story) - for host review, does not post anywhere. Global-admin only.',
     parameters: {
       type: 'object',
       properties: {
@@ -5313,7 +5455,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'draft_marketing_template',
     description:
-      'Generate AI design tokens for a Marketing Studio calendar/design/video template from a text prompt — for the host to review and refine in the visual editor. Does not save or publish. Global-admin only.',
+      'Generate AI design tokens for a Marketing Studio calendar/design/video template from a text prompt - for the host to review and refine in the visual editor. Does not save or publish. Global-admin only.',
     parameters: {
       type: 'object',
       properties: {
@@ -5384,4 +5526,5 @@ export const TOOL_DECLARATIONS = [
   EXPLAIN_ANALYTICS_METRIC_TOOL_DECLARATION,
   OPEN_PAGE_TOOL_DECLARATION,
   ...PARITY_TOOL_DECLARATIONS,
+  ...COVERAGE_TOOL_DECLARATIONS,
 ];

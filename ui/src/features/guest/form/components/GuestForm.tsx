@@ -6,10 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import dayjs from 'dayjs';
 import {
   Upload,
-  Loader2,
   Settings,
   ClipboardPaste,
-  XCircle,
   PartyPopper,
   User,
 } from 'lucide-react';
@@ -34,6 +32,7 @@ import {
   GuestFormOptionCard,
 } from '@/features/guest/form/components/GuestFormOptionCard';
 import { GuestFormPaymentStepContent } from '@/features/guest/form/components/GuestFormPaymentStepContent';
+import { GuestFormCancellationPolicy } from '@/features/guest/form/components/GuestFormCancellationPolicy';
 import { GuestFormStepNavigation } from '@/features/guest/form/components/GuestFormStepNavigation';
 import { GuestFormStepper } from '@/features/guest/form/components/GuestFormStepper';
 import { GuestFormVoucherPicker } from '@/features/guest/form/components/GuestFormVoucherPicker';
@@ -133,7 +132,14 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
+import {
+  clearFormDraft,
+  readFormDraft,
+  saveFormDraft,
+  toDraftValues,
+} from '@/hooks/useOfflineFormDraft';
 import { useRunUnguarded, useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { publicEdgeFetch } from '@/lib/api/publicEdgeFetch';
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import { setAnalyticsScope } from '@/lib/posthog/context';
@@ -200,7 +206,7 @@ function guestEarlyLateContactLabel(isAirbnb: boolean, isFacebook: boolean): str
   return 'Contact us to arrange.';
 }
 
-const isProduction = import.meta.env.VITE_NODE_ENV === 'production';
+const isProduction = import.meta.env.PROD;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 /** Step actions lifted into a host footer (e.g. GuestDialogShell). */
@@ -267,7 +273,6 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestCanUpdate, setGuestCanUpdate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const [invalidBookingId, setInvalidBookingId] = useState(false);
   const [validIdPreviews, setValidIdPreviews] = useState<Record<string, string | null>>({});
   const [validIdImageErrors, setValidIdImageErrors] = useState<Record<string, boolean>>({});
@@ -280,6 +285,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   const prevGuestFacebookNameRef = useRef('');
   const [currentStep, setCurrentStep] = useState<GuestFormStepId>(1);
   const [submitReady, setSubmitReady] = useState(false);
+  const [cancellationAccepted, setCancellationAccepted] = useState(false);
   const stepPanelRef = useRef<HTMLDivElement>(null);
   const pendingSubmitAfterAuthRef = useRef(false);
   const guestFormStartedRef = useRef(false);
@@ -290,7 +296,9 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   const location = useLocation();
   const propertySlug = useGuestPropertySlug();
   const scopedSearchParams = useGuestPropertySearchParams();
-  const { data: publicProperty } = usePublicPropertyDetail(propertySlug ?? '');
+  const { data: publicProperty, refetch: refetchPublicProperty } = usePublicPropertyDetail(
+    propertySlug ?? ''
+  );
   const { data: propertyVouchers = [], isLoading: propertyVouchersLoading } = useGuestVouchersQuery(
     {
       propertySlug: propertySlug ?? undefined,
@@ -306,7 +314,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [completionReady, setCompletionReady] = useState(!isCompletionMode);
   // Invisible anti-spam (Turnstile + honeypot/timing). The Turnstile `action`
-  // must match the edge scope. Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+  // must match the edge scope. Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
   const antiSpam = useAntiSpamSubmit({
     action: isCompletionMode ? 'submit-form-completion' : 'submit-form',
   });
@@ -438,7 +446,61 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     mode: 'all',
   });
 
-  // No draft is persisted, so leaving mid-form loses it. Discard-only prompt (no save from here).
+  /**
+   * Local draft (5.11). Values autosave to IndexedDB (never the network, never a
+   * `File` field) so a reload or a dead battery does not lose a half-filled form.
+   * Restoring is an explicit tap, offered only once the server prefill has settled,
+   * so it can never race the `bookingId` `form.reset()` paths.
+   */
+  const draftKey = propertySlug && !embed ? `booking:${propertySlug}:${bookingId ?? 'new'}` : null;
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRestoreOfferedRef = useRef(false);
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const subscription = form.watch((values) => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+      draftSaveTimer.current = setTimeout(() => {
+        void saveFormDraft(draftKey, toDraftValues(values as Record<string, unknown>));
+      }, 1200);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    };
+  }, [draftKey, form]);
+
+  useEffect(() => {
+    if (!draftKey || isLoading || draftRestoreOfferedRef.current) return;
+    draftRestoreOfferedRef.current = true;
+    void readFormDraft<Record<string, unknown>>(draftKey).then((draft) => {
+      if (!draft) return;
+      const differing = Object.entries(draft.values).some(
+        ([key, value]) =>
+          JSON.stringify(value) !==
+          JSON.stringify((form.getValues() as Record<string, unknown>)[key])
+      );
+      if (!differing) return;
+      toast('Continue where you left off?', {
+        description: `Saved ${new Date(draft.savedAt).toLocaleString()}`,
+        duration: 15000,
+        action: {
+          label: 'Restore',
+          onClick: () => {
+            form.reset({ ...form.getValues(), ...draft.values } as GuestFormData);
+            toast.success('Draft restored');
+          },
+        },
+      });
+    });
+  }, [draftKey, isLoading, form]);
+
+  const clearDraft = useCallback(() => {
+    if (!draftKey) return;
+    void clearFormDraft(draftKey);
+  }, [draftKey]);
+
+  // The draft is local only; leaving still loses in-page state, so the guard stays.
   useUnsavedChangesGuard({
     isDirty: form.formState.isDirty,
     enabled: !embed && !isSubmitting,
@@ -874,66 +936,6 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
     }
   }, [isLoading, bookingId, showDevControls, handleGenerateNewData]);
 
-  const handleCancelBooking = async () => {
-    if (!showDevControls || !bookingId) return;
-
-    // Confirmation dialog
-    if (
-      !window.confirm(
-        '⚠️ Are you sure you want to CANCEL this booking?\n\n' +
-          'This will:\n' +
-          '• Mark booking status as "Canceled" in database\n' +
-          '• Free up the booked dates for new bookings\n\n' +
-          'All booking data will be preserved for records.'
-      )
-    ) {
-      return;
-    }
-
-    setIsCancellingBooking(true);
-
-    try {
-      const response = await fetch(`${apiUrl}/cancel-booking`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ bookingId, confirm: true }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to cancel booking');
-      }
-
-      toast.success('Booking cancelled');
-
-      // Refresh booked dates after cancellation
-      await fetchBookedDates();
-
-      // Back to calendar; drop bookingId + stripped legacy keys; keep source / dates.
-      const next = stripLegacyFromQueryParam(new URLSearchParams(scopedSearchParams));
-      next.delete('bookingId');
-      runUnguarded(() =>
-        navigate(
-          propertySlug
-            ? guestCalendarPath(propertySlug, next)
-            : next.toString()
-              ? `/properties?${next.toString()}`
-              : '/properties'
-        )
-      );
-    } catch (error) {
-      console.error('Cancel booking error:', error);
-      toast.error('Could not cancel booking');
-    } finally {
-      setIsCancellingBooking(false);
-    }
-  };
-
   function buildBookingSummary(values: GuestFormData): GuestFormBookingSummary {
     return {
       checkInDate: values.checkInDate,
@@ -958,6 +960,17 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   async function onSubmit(values: GuestFormData) {
     if (bookingId && !guestCanUpdate) {
       toast.error('This booking can no longer be updated online. Contact your host for changes.');
+      return;
+    }
+
+    if (
+      !bookingId &&
+      !isCompletionMode &&
+      publicProperty &&
+      !publicProperty.cancellationPolicy.unset &&
+      !cancellationAccepted
+    ) {
+      toast.error('Tick the cancellation policy agreement to continue.');
       return;
     }
 
@@ -995,6 +1008,15 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       });
 
       formData.append('bookingSource', bookingSource);
+
+      if (!bookingId && !isCompletionMode && publicProperty) {
+        formData.append(
+          'cancellationPolicyVersionId',
+          publicProperty.cancellationPolicyVersionId ?? ''
+        );
+        formData.append('cancellationPolicyHash', publicProperty.cancellationPolicyHash ?? '');
+        formData.append('cancellationPolicyAccepted', String(cancellationAccepted));
+      }
 
       const guestFileUploads: Array<{
         prefix: string;
@@ -1104,7 +1126,9 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       const apiUrlWithParams = `${apiUrl}/${submitFnName}${queryParamsString}`;
 
       const authHeaders = await guestEdgeAuthHeaders();
-      const response = await fetch(apiUrlWithParams, {
+      // Shared guest wrapper: adds the correlation id and reports a 5xx to Sentry, so a
+      // failed booking submit is traceable instead of just a toast.
+      const response = await publicEdgeFetch(apiUrlWithParams, {
         method: 'POST',
         headers: authHeaders,
         body: formData,
@@ -1114,6 +1138,14 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         const errorData = await response.json().catch(() => ({}));
         if (isAntiSpamFailure(response.status, errorData)) {
           throw new Error(antiSpamErrorMessage(response.status, errorData));
+        }
+        if (errorData.error === 'policy_changed') {
+          setCancellationAccepted(false);
+          await refetchPublicProperty();
+          toast.error('The host updated the cancellation policy. Review it and tick the box again.');
+          throw new Error(
+            'The cancellation policy changed. Review the new terms and try again.'
+          );
         }
         throw new Error(
           errorData.error ||
@@ -1149,6 +1181,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       if (result.skipped) {
         console.log('ℹ️ No changes detected, redirecting to success page');
         clearGuestFormStartedMarker();
+        clearDraft();
 
         // Prepare booking data to pass to success page
         const bookingData = buildBookingSummary(values);
@@ -1174,6 +1207,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       }
 
       clearGuestFormStartedMarker();
+      clearDraft();
 
       // Reset form and redirect to success page
       // Only reset form in normal production mode (not dev controls)
@@ -1549,7 +1583,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   if (!skipAuthGate && (guestAuthStatus === 'loading' || guestAuthStatus === 'anonymous')) {
     return (
       <div className={cn(embed?.compactChrome ? 'p-0 sm:p-1' : 'p-4 sm:p-6 lg:p-8')}>
-        <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+        <GuestFormPageSkeleton
+          embed={Boolean(embed?.compactChrome)}
+          stepTitles={guestFormSteps.map((step) => step.title)}
+          activeStep={currentStep}
+          stepTitle={activeStepConfig?.title}
+          stepHint={activeStepConfig?.hint}
+        />
       </div>
     );
   }
@@ -1566,7 +1606,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   if (isCompletionMode && !completionReady) {
     return (
       <div className={cn(embed?.compactChrome ? 'p-0 sm:p-1' : 'p-4 sm:p-6 lg:p-8')}>
-        <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+        <GuestFormPageSkeleton
+          embed={Boolean(embed?.compactChrome)}
+          stepTitles={guestFormSteps.map((step) => step.title)}
+          activeStep={currentStep}
+          stepTitle={activeStepConfig?.title}
+          stepHint={activeStepConfig?.hint}
+        />
       </div>
     );
   }
@@ -1589,7 +1635,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         )}
       >
         {isLoading ? (
-          <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+          <GuestFormPageSkeleton
+            embed={Boolean(embed?.compactChrome)}
+            stepTitles={guestFormSteps.map((step) => step.title)}
+            activeStep={currentStep}
+            stepTitle={activeStepConfig?.title}
+            stepHint={activeStepConfig?.hint}
+          />
         ) : invalidBookingId ? (
           <div className="flex flex-col items-center justify-center space-y-4 py-20">
             <div className="text-center">
@@ -1970,11 +2022,11 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                                         currentBookingId
                                       )(date);
 
-                                      // Disable dates before or equal to check-in date
+                                      // Same-day stays are allowed (day use); only earlier dates are out
                                       const checkInDate = form.watch('checkInDate');
                                       if (checkInDate) {
                                         const checkIn = stringToDate(checkInDate);
-                                        if (date <= checkIn) {
+                                        if (date < checkIn) {
                                           return true;
                                         }
                                       }
@@ -1983,7 +2035,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                                     }}
                                     minDate={
                                       form.watch('checkInDate')
-                                        ? stringToDate(getNextDay(form.watch('checkInDate')))
+                                        ? stringToDate(form.watch('checkInDate'))
                                         : new Date()
                                     }
                                     placeholder={DATE_PICKER_DISPLAY_FORMAT}
@@ -2228,7 +2280,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                     {form.watch('needParking') && (
                       <div className="border-primary/20 bg-primary/5 space-y-2 rounded-lg border p-4 pt-4">
                         <p className="text-foreground text-sm font-medium">
-                          Good news — you don't need to add vehicle or date details here.
+                          Good news: you don't need to add vehicle or date details here.
                         </p>
                         <p className="text-muted-foreground text-sm">
                           Once your booking is confirmed, we'll send you a link to reserve and pay
@@ -2655,7 +2707,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                   </div>
                 )}
 
-                {/* Developer API Controls (non-production only) — shown on the last step */}
+                {/* Developer API Controls (non-production only) - shown on the last step */}
                 {showDevControls && currentStep === guestFormStepCount && (
                   <div className="border-border/80 bg-muted/20 space-y-4 rounded-xl border border-dashed px-4 py-4">
                     <div className="border-separator flex items-center gap-3 border-b pb-3">
@@ -2763,38 +2815,25 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                         </div>
                       )}
 
-                      {/* Cancel Booking Button - Only show when viewing an existing booking */}
-                      {bookingId && (
-                        <div className="border-t pt-4">
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={handleCancelBooking}
-                            disabled={isCancellingBooking}
-                            className="w-full"
-                          >
-                            {isCancellingBooking ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Cancelling booking...
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Cancel This Booking
-                              </>
-                            )}
-                          </Button>
-                          <p className="text-muted-foreground mt-2 text-center text-xs">
-                            Cancels the booking and frees dates. Data stays on file.
-                          </p>
-                        </div>
-                      )}
+                      {/* Cancellation policy moved to the agreement block below the form. */}
                     </div>
                   </div>
                 )}
               </div>
             </fieldset>
+
+            {!bookingId &&
+            !isCompletionMode &&
+            publicProperty &&
+            currentStep === guestFormStepCount ? (
+              <GuestFormCancellationPolicy
+                policy={publicProperty.cancellationPolicy}
+                checkInDate={watchedValues.checkInDate ?? ''}
+                accepted={cancellationAccepted}
+                onAcceptedChange={setCancellationAccepted}
+                showAgreement={!publicProperty.cancellationPolicy.unset}
+              />
+            ) : null}
 
             {antiSpam.render}
 

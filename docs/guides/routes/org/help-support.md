@@ -15,10 +15,10 @@ Announcements live on the org hub — see [Org Announcements](./announcements.md
 
 ## Progress overview
 
-| Section      | E2E | Validation | Docs | Notes                                        |
-| ------------ | --- | ---------- | ---- | -------------------------------------------- |
-| FAQs         | Yes | N/A        | Yes  | Up to eight org-scoped published FAQs        |
-| All sections | Yes | Yes        | Yes  | Same feature as the property scope, org-wide |
+| Section      | E2E | Validation | Docs | Notes                                            |
+| ------------ | --- | ---------- | ---- | ------------------------------------------------ |
+| FAQs         | Yes | N/A        | Yes  | Up to ten org-scoped common FAQs + search/browse |
+| All sections | Yes | Yes        | Yes  | Same feature as the property scope, org-wide     |
 
 ## Overview
 
@@ -28,7 +28,9 @@ Identical feature to [Property Help & Support](./property/help-support.md), moun
 
 ## FAQs
 
-Common FAQs here are scoped to the **organization** mount: **Getting Started** first (ownership, Owner vs Admin, invites, delete org, add property), then portfolio **Parking** questions from the org Parkings list (add a slot, standalone vs stay parking). AI Assistant and property/parking-ops FAQs stay on those Help pages.
+Common FAQs here are scoped to the **organization** mount: **Getting Started**, **Plans & Billing**, **Parking** (portfolio), and **Account & Security** first. Search covers every host FAQ on this mount, and the category list opens the full set. AI Assistant and property/parking-operations FAQs stay on those Help pages.
+
+**Provenance:** synced rows (`origin = 'synced'`) come from `docs/guides/support/faqs.md` and are read-only in the super-admin editor. Manual rows (`origin = 'manual'`) stay fully editable. Both appear here when published.
 
 ## Host-facing knowledge
 
@@ -39,7 +41,13 @@ Same as the property-level page: documentation, AI Assistant, and support ticket
 - Q: Should I file a ticket from the org page or a property page?
   A: Either works, so pick whichever you're already on. We can still see which property or parking listing (if any) a ticket was filed from.
 - Q: Why do the FAQs look different here than on a property?
-  A: Each Help & Support page shows short answers for that level — organization, property, or parking — so you see the questions that match where you are.
+  A: Each Help & Support page shows short answers for that level - organization, property, or parking - so you see the questions that match where you are.
+- Q: Does a ticket filed here belong to a property?
+  A: No. Tickets filed from the organization Help page are org-level and are not tied to a property or parking listing.
+- Q: Where did the announcements link go?
+  A: Announcements now live on their own page in the org sidebar. The old Help & Support announcements link sends you there.
+- Q: Can every team member open this page?
+  A: Yes. Help & Support is available to every org team member, the same as the dashboard. No extra permission is needed.
 
 ## API reference · Implementation map
 

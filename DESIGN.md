@@ -1,10 +1,10 @@
-# DESIGN.md — Kame Homes / Guest Form Management
+# DESIGN.md — Kame Space / Guest Form Management
 
 Plain-text design system for AI coding agents (Google Stitch–compatible). **This file is canonical.** Inspiration catalogs under `.agents/design-md/` never override it.
 
 ## 1. Visual Theme & Atmosphere
 
-- **Product:** Multi-tenant property / parking / guest booking platform (Kame Homes). Trust-first guest flows + dense operational admin.
+- **Product:** Multi-tenant property / parking / guest booking platform (Kame Space). Trust-first guest flows + dense operational admin.
 - **Mood:** Calm hospitality teal, clean surfaces, confident hierarchy — not playful startup purple, not brutalist, not newspaper editorial.
 - **Density:** Guest/marketing = generous whitespace. Dashboard (`/org/...`, bookings) = denser, scan-friendly tables and panels.
 - **Theme:** Light-first; dark tokens exist in CSS — if you touch dark variants, update every surface in the change.
@@ -14,18 +14,24 @@ Plain-text design system for AI coding agents (Google Stitch–compatible). **Th
 
 Source of truth: `ui/src/index.css` HSL tokens (no raw hex in components).
 
-| Role                  | Token                            | Approx (light)       | Use                            |
-| --------------------- | -------------------------------- | -------------------- | ------------------------------ |
-| Canvas                | `--background`                   | white                | Page background                |
-| Ink                   | `--foreground`                   | near-black blue-gray | Body text                      |
-| Brand                 | `--primary`                      | teal `168 65% 40%`   | CTAs, focus ring, key accents  |
-| Brand text on primary | `--primary-foreground`           | white                | Button labels on primary       |
-| Muted                 | `--muted` / `--muted-foreground` | cool gray            | Secondary surfaces / meta text |
-| Border                | `--border` / `--input`           | light gray           | Dividers, inputs               |
-| Danger                | `--destructive`                  | red                  | Destructive actions / errors   |
-| Success               | `--success`                      | teal-aligned         | Positive states                |
-| Warning               | `--warning`                      | amber                | Caution                        |
-| Radius                | `--radius`                       | `0.75rem`            | Default control radius         |
+| Role                  | Token                  | Approx (light)       | Use                           |
+| --------------------- | ---------------------- | -------------------- | ----------------------------- |
+| Canvas                | `--background`         | white                | Page background               |
+| Ink                   | `--foreground`         | near-black blue-gray | Body text                     |
+| Brand                 | `--primary`            | teal `168 65% 40%`   | Accents, focus ring, icons    |
+| Brand fill with text  | `--primary-strong`     | teal `168 65% 31%`   | Fills behind white labels     |
+| Brand text on primary | `--primary-foreground` | white                | Labels on `bg-primary-strong` |
+
+Fills that carry white text (buttons, badges, active pills, chips) use `bg-primary-strong`,
+never `bg-primary`. `brandColor.ts` derives it per tenant brand color: same hue/saturation,
+darkened only until white text reaches 4.5:1. The CTA `--brand-gradient` follows the same
+rule. `src/lib/theme/textOnBrandFill.test.ts` fails on new `bg-primary` + white text pairs.
+| Muted | `--muted` / `--muted-foreground` | cool gray | Secondary surfaces / meta text |
+| Border | `--border` / `--input` | light gray | Dividers, inputs |
+| Danger | `--destructive` | red | Destructive actions / errors |
+| Success | `--success` | teal-aligned | Positive states |
+| Warning | `--warning` | amber | Caution |
+| Radius | `--radius` | `0.75rem` | Default control radius |
 
 **Do not** introduce purple-indigo gradients, terracotta-on-cream “AI default” themes, or neon glow stacks.
 
@@ -103,8 +109,10 @@ Guest heroes may use larger tracking-tight headlines; admin stays tighter and qu
 - **Primitives:** shadcn/radix under `ui/src/components/ui/**` — extend, don’t fork.
 - **Buttons:** Primary = solid teal; secondary/ghost for quieter actions. Mobile CTAs use existing `mobile-*` utility classes in `index.css` where present.
 - **Inputs:** Border token, clear focus ring (`--ring` = primary). 44×44px touch targets on guest/mobile.
+- **Contact placeholders:** every name, email, and phone input uses `FORM_PLACEHOLDERS` (`ui/src/lib/constants/formPlaceholders.ts`): `Ex. Juan Dela Cruz`, `juan.delacruz@gmail.com`, `0917 123 4567`. Never a literal; `formPlaceholders.test.ts` fails on hardcoded ones. Organisation mailboxes (support, team, documents) keep the `@yourcompany.com` pattern.
 - **Cards:** Use only when they contain interaction or a clear grouped control. Prefer flat sections on marketing heroes.
 - **Feedback:** Sonner toasts; inline errors only on failure/validation.
+- **Brand mark:** teal gradient tile (`--primary` → 80% over the page surface) with a white Plus Jakarta Sans Bold **K**, corner radius 30%. Vector sources live in `ui/public/brand/`: `kame-space-mark.svg` (rounded), `kame-space-tile.svg` (full-bleed), `kame-space-mark-mono.svg` (silhouette). Never hand-edit the rasters; regenerate with `node scripts/pwa/generate-icons.mjs`. Google OAuth branding upload is `ui/public/brand/kame-space-mark-120.png`.
 
 ## 5. Layout Principles
 

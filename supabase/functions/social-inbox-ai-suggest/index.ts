@@ -2,7 +2,7 @@
  * AI reply suggestion for a conversation.
  */
 
-import { suggestInboxReply } from '../_shared/socialInboxAiService.ts';
+import { runGuestReceptionistTurn } from '../_shared/guestReceptionistTurn.ts';
 import { isAiPlatformDisabledError, isAiQuotaError } from '../_shared/aiUsageService.ts';
 import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
@@ -14,6 +14,7 @@ import { resolveMetaConnectionIdsForScope } from '../_shared/metaInboxScope.ts';
 import { listMessages } from '../_shared/socialInboxService.ts';
 import { jsonError, jsonResponse, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
@@ -47,6 +48,11 @@ serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
     throw err;
   }
 
+  if (conv.platform === 'facebook' || conv.platform === 'instagram') {
+    const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.reply', { user });
+    if (featureBlocked) return featureBlocked;
+  }
+
   const { messages } = await listMessages(ctx.orgId, conversationId, { limit: 20 });
   const sb = createServiceClient();
   const settingsQuery = sb
@@ -60,14 +66,17 @@ serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
   ).maybeSingle();
 
   try {
-    const result = await suggestInboxReply({
+    const result = await runGuestReceptionistTurn({
       orgId: ctx.orgId,
+      conversationId: conv.id,
       platform: conv.platform,
       conversationType: conv.conversation_type,
       participantName: conv.participant_name,
       propertyId: (conv.property_id as string | null) ?? null,
+      parkingId: ctx.parkingId ?? null,
       inquiryCheckIn: (conv.inquiry_check_in as string | null) ?? null,
       inquiryCheckOut: (conv.inquiry_check_out as string | null) ?? null,
+      guestUserId: (conv.guest_user_id as string | null) ?? null,
       messages: messages.map((m) => ({
         direction: m.direction,
         body: m.body_text,
@@ -76,6 +85,7 @@ serveAuthenticated('social-inbox-ai-suggest', async (req, user) => {
       systemPromptOverride: (settings?.ai_system_prompt as string | null) ?? null,
       actorUserId: user.id,
       actorType: 'staff',
+      feature: 'inbox_suggest',
     });
     return jsonSuccess(req, {
       suggestion: result.suggestion,

@@ -80,7 +80,7 @@ if ci_deploy_is_ci || [[ "$CI_MODE" == true ]]; then
   export CI=1
   if [[ -n "${SUPABASE_PROJECT_REF:-}" ]]; then
     DEV_REF="$(tr -d '[:space:]' <<<"${SUPABASE_PROJECT_REF}")"
-    PROD_REF_GUARD="$(tr -d '[:space:]' <<<"${LEGACY_PROD_PROJECT_REF:-${PROD_PROJECT_REF:-}}")"
+    PROD_REF_GUARD="$(tr -d '[:space:]' <<<"${PROD_PROJECT_REF:-}")"
   fi
 fi
 
@@ -116,10 +116,6 @@ if [[ -n "$PROD_REF_GUARD" && "$DEV_REF" == "$PROD_REF_GUARD" ]]; then
   echo "Refusing dev deploy: DEV_PROJECT_REF matches PROD_PROJECT_REF in .env.dev.local." >&2
   echo "Use a separate Supabase project for dev." >&2
   exit 1
-fi
-
-if [[ "$ALLOW_MULTI_TENANCY" == true ]]; then
-  ci_deploy_assert_not_legacy_ref "$DEV_REF" "${LEGACY_PROD_PROJECT_REF:-$PROD_REF_GUARD}"
 fi
 
 print_linked_project
@@ -171,25 +167,50 @@ run_backup_if_needed() {
     echo "⚠️  If this db push goes wrong, you will have nothing scripted to roll back to." >&2
     return 0
   fi
-  echo "→ Backing up before db push (./scripts/deploy/backup-supabase.sh dev)"
-  "$ROOT/scripts/deploy/backup-supabase.sh" dev
+  echo "→ Backing up before db push (./scripts/deploy/backup-supabase.sh dev --expect-ref $DEV_REF)"
+  "$ROOT/scripts/deploy/backup-supabase.sh" dev --expect-ref "$DEV_REF"
   echo
 }
 
 run_db_push() {
-  local -a push_args=(db push)
+  # `db push` is LOCAL by default in current CLI versions ("Local by default. Pass --remote
+  # for the linked project"). `--linked` is not a flag this CLI accepts. Without `--remote`
+  # a deploy pushes migrations at 127.0.0.1:54322: a no-op on a CI runner, and the wrong
+  # database on a developer machine that then reports a successful deploy.
+  local -a push_args=(db push --remote --yes)
+  if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
+    push_args+=(--password "$SUPABASE_DB_PASSWORD")
+  fi
   if [[ "$INCLUDE_ALL" == true ]]; then
     push_args+=(--include-all)
     echo "Using db push --include-all (dev default — applies migrations even when timestamps predate remote head)"
   fi
-  echo "→ supabase ${push_args[*]}"
+  print_masked_command "${push_args[@]}"
   "${SUPABASE[@]}" "${push_args[@]}"
 }
 
 run_functions_deploy() {
   assert_functions_match_db_schema
+  sync_release_secret
   echo "→ supabase functions deploy"
-  "${SUPABASE[@]}" functions deploy
+  # Non-interactive CI: the hosted CLI now requires an explicit yes.
+  "${SUPABASE[@]}" functions deploy --yes
+}
+
+# Stamps every function with the commit it was built from, so a Sentry issue can be tied to
+# a deploy. A failure here only costs release tagging, so it warns and continues: telemetry
+# metadata must never block a deploy (observability plan D11).
+sync_release_secret() {
+  local release
+  release="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+  if [[ -z "$release" ]]; then
+    echo "⚠️  Could not resolve git HEAD — APP_RELEASE not updated." >&2
+    return 0
+  fi
+  echo "→ supabase secrets set APP_RELEASE=$release"
+  if ! "${SUPABASE[@]}" secrets set --yes "APP_RELEASE=$release" >/dev/null; then
+    echo "⚠️  APP_RELEASE not updated; edge errors will not carry this deploy's release id." >&2
+  fi
 }
 
 run_backup_if_needed

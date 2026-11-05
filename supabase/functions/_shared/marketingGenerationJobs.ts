@@ -19,7 +19,7 @@ export const MARKETING_GENERATION_JOB_COLUMNS = `
   last_provider_poll_at, output_storage_path, output_url, output_mime_type, output_bytes,
   output_width, output_height, estimated_credits, credits_consumed, estimated_cost_usd,
   usage_event_id, usage_recorded_at, error_code, error_message, expires_at, completed_at,
-  triggered_by, created_at, updated_at
+  triggered_by, session_id, parent_job_id, created_at, updated_at
 `;
 
 export type MarketingGenerationJobRow = Record<string, unknown>;
@@ -60,6 +60,10 @@ export type MarketingGenerationJobDto = {
   errorMessage: string | null;
   expiresAt: string | null;
   completedAt: string | null;
+  /** AI Studio conversation this version belongs to. */
+  sessionId: string | null;
+  /** The version this one refines. */
+  parentJobId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -67,7 +71,16 @@ export type MarketingGenerationJobDto = {
 export type MarketingGenerationOptions = {
   cameraMove?: string;
   sound?: string;
+  /** AI Studio example the host started from (attribution only; catalog lives in the client). */
+  sampleId?: string;
 };
+
+const SAMPLE_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** A well-formed example id, or null. Malformed ids are dropped, never a 400. */
+export function readSampleId(value: unknown): string | null {
+  return typeof value === 'string' && value.length <= 64 && SAMPLE_ID_RE.test(value) ? value : null;
+}
 
 function readGenerationOptions(value: unknown): MarketingGenerationOptions {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -75,6 +88,8 @@ function readGenerationOptions(value: unknown): MarketingGenerationOptions {
   const options: MarketingGenerationOptions = {};
   if (typeof raw.cameraMove === 'string') options.cameraMove = raw.cameraMove;
   if (typeof raw.sound === 'string') options.sound = raw.sound;
+  const sampleId = readSampleId(raw.sampleId);
+  if (sampleId) options.sampleId = sampleId;
   return options;
 }
 
@@ -112,6 +127,8 @@ export function toMarketingGenerationJobDto(row: MarketingGenerationJobRow) {
     errorMessage: (row.error_message as string | null) ?? null,
     expiresAt: (row.expires_at as string | null) ?? null,
     completedAt: (row.completed_at as string | null) ?? null,
+    sessionId: (row.session_id as string | null) ?? null,
+    parentJobId: (row.parent_job_id as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   } satisfies MarketingGenerationJobDto;
@@ -138,6 +155,8 @@ export type InsertMarketingGenerationJobInput = {
   estimatedCostUsd: number;
   expiresAt?: string | null;
   triggeredBy: string | null;
+  sessionId?: string | null;
+  parentJobId?: string | null;
 };
 
 export async function insertMarketingGenerationJob(
@@ -168,6 +187,8 @@ export async function insertMarketingGenerationJob(
       estimated_cost_usd: input.estimatedCostUsd,
       expires_at: input.expiresAt ?? null,
       triggered_by: input.triggeredBy,
+      session_id: input.sessionId ?? null,
+      parent_job_id: input.parentJobId ?? null,
     })
     .select(MARKETING_GENERATION_JOB_COLUMNS)
     .single();

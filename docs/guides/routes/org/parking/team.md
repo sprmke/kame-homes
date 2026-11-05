@@ -49,6 +49,10 @@ Parking **Team** controls who can access this slot's dashboard: bookings (when l
   A: Only if they’re also invited at the org or property level. Parking invites grant access to **this slot only**.
 - Q: Why must invites use Gmail?
   A: Host sign-in is Google-based. The invitee must accept with the same Gmail address you invited.
+- Q: Do organization owners and admins appear on the parking team?
+  A: Yes. They appear automatically as managers with full parking access and are not edited from this page.
+- Q: Can I create a role that is not Manager, Staff, or Viewer?
+  A: Yes. Create a custom role and choose exactly which parking permissions it includes.
 
 ---
 

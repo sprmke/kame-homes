@@ -655,7 +655,7 @@ function SplitBody({ frame }: { frame: number }) {
             }}
           >
             <Diamond size={13} color={which === 'before' ? c.muted : c.mint} />
-            {which === 'before' ? 'Before' : 'With Kame Homes'}
+            {which === 'before' ? 'Before' : 'With Kame Space'}
           </div>
           {lines.map((l, i) => (
             <div
@@ -734,7 +734,7 @@ function WordmarkOn() {
       }}
     >
       <Diamond size={17} color={c.mint} />
-      Kame Homes
+      Kame Space
     </div>
   );
 }
@@ -886,7 +886,7 @@ function Panorama() {
             color: c.white,
           }}
         >
-          <Diamond size={18} color={c.mint} /> Kame Homes
+          <Diamond size={18} color={c.mint} /> Kame Space
         </div>
       </Box>
       <Box x={84} y={250}>

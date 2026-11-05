@@ -29,6 +29,10 @@ This dashboard is the home screen for one parking slot. It's the same layout you
   A: It covers a single **parking slot** (tower bay, motorcycle space, etc.), not a rental unit. Labels say “reservations” instead of “bookings.”
 - Q: Where do I edit rates or slot details?
   A: Use **Pricing** for nightly rates and the calendar, and **Settings** for photos, location, and payment methods. This dashboard is for at-a-glance monitoring.
+- Q: Can I open the public parking page from here?
+  A: Yes. **View Parking** opens the public listing in a new tab so you can check what guests see.
+- Q: Does the date range change every card and chart?
+  A: Yes. The selected range applies to the KPIs and the calendar section, so you can compare a quiet week with a busy month.
 
 ---
 
@@ -44,13 +48,14 @@ This dashboard is the home screen for one parking slot. It's the same layout you
 
 ## Implementation map
 
-| Concern        | Path                                                                               |
-| -------------- | ---------------------------------------------------------------------------------- |
-| Page           | `ui/src/features/dashboard/parking/pages/ParkingDashboardPage.tsx`                 |
-| Stat cards     | `ui/src/features/dashboard/parking/components/ParkingDashboardStatCards.tsx`       |
-| Calendar block | `ui/src/features/dashboard/parking/components/ParkingDashboardCalendarSection.tsx` |
-| Empty stats    | `ui/src/features/dashboard/parking/hooks/useParkingDashboardStats.ts`              |
-| Shell          | `ui/src/features/dashboard/org/components/ParkingAdminShell.tsx`                   |
+| Concern        | Path                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Page           | `ui/src/features/dashboard/parking/pages/ParkingDashboardPage.tsx`                                                        |
+| Loading        | `ParkingDashboardSkeleton` (`ParkingSkeleton.tsx`) — attention strip, 4 KPIs, cash-flow / breakdown / due / calendar grid |
+| Stat cards     | `ui/src/features/dashboard/parking/components/ParkingDashboardStatCards.tsx`                                              |
+| Calendar block | `ui/src/features/dashboard/parking/components/ParkingDashboardCalendarSection.tsx`                                        |
+| Empty stats    | `ui/src/features/dashboard/parking/hooks/useParkingDashboardStats.ts`                                                     |
+| Shell          | `ui/src/features/dashboard/org/components/ParkingAdminShell.tsx`                                                          |
 
 ---
 

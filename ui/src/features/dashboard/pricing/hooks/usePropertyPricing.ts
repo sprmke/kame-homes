@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { propertyPricingDefaultsFromDto } from '@/features/dashboard/pricing/lib/pricingCompute';
+import { captureAppEvent } from '@/lib/posthog/capture';
 import {
   fetchPropertyPricing,
   PROPERTY_PRICING_QUERY_KEY,
@@ -38,7 +39,24 @@ export function useSavePropertyPricing() {
 
   return useMutation({
     mutationFn: (patch: PropertyPricingPatch) => savePropertyPricing(propertyId!, patch),
-    onSuccess: (data: PropertyPricingDto) => {
+    onSuccess: (data: PropertyPricingDto, patch) => {
+      // Blocking a range is not a rate change; only count saves that actually set prices.
+      const rateKeys = Object.keys(patch ?? {}).filter(
+        (key) => key !== 'blockRange' && key !== 'unblockDateKeys'
+      );
+      if (rateKeys.length > 0) {
+        const scope = patch?.dateOverrides
+          ? 'date_override'
+          : patch?.holidayRules
+            ? 'season'
+            : 'base';
+        const count = patch?.dateOverrides
+          ? Object.keys(patch.dateOverrides).length
+          : patch?.holidayRules
+            ? patch.holidayRules.length
+            : 1;
+        captureAppEvent('pricing_rates_saved', { scope, count });
+      }
       queryClient.setQueriesData({ queryKey: [PROPERTY_PRICING_QUERY_KEY, propertyId] }, data);
       void queryClient.invalidateQueries({
         queryKey: [PROPERTY_PRICING_QUERY_KEY, propertyId],

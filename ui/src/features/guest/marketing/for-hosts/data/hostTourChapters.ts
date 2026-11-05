@@ -77,7 +77,7 @@ const chapterMeta: ChapterMeta[] = [
   {
     id: 'intro',
     label: 'Intro',
-    eyebrow: 'Kame Homes for hosts',
+    eyebrow: 'Kame Space for hosts',
     caption: 'Your rentals, run for you',
     title: 'Everything you need to run your rentals',
     description: 'Bookings, guests, money, marketing, and your team in one workspace.',
@@ -379,7 +379,7 @@ const chapterMeta: ChapterMeta[] = [
   {
     id: 'outro',
     label: 'Start free',
-    eyebrow: 'Kame Homes',
+    eyebrow: 'Kame Space',
     caption: 'Start free today',
     title: 'Start free today',
     description: 'Set up your first property in minutes.',

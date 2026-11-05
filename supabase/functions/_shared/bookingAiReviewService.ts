@@ -90,7 +90,7 @@ export const AI_SUMMARY_STYLE_GUIDE = `Style guide (strict):
 - Write terse operations notes, not conversational sentences.
 - Maximum 100 characters per summary sentence.
 - State facts directly. Never use "It appears", "It seems", "I can see", "I think", "may be", or similar hedging.
-- When a file fails the check, name it, say what's wrong in plain words, then end with "Please review." Do not use an em dash (—) or a "verdict: reason" shape.
+- When a file fails the check, name it, say what's wrong in plain words, then end with "Please review." Do not use an em dash (-) or a "verdict: reason" shape.
 - Write for a host with no technical background: plain words, no jargon, no verdict codes ("invalid", "unclear"), no mention of AI or models.
 - Always name the document you checked. Never start with bare "Image", "Images", "Photo", "Photos", "File", or "Document".
 - Example good: "Downpayment receipt shows ₱3,500 GCash transfer."
@@ -99,7 +99,7 @@ export const AI_SUMMARY_STYLE_GUIDE = `Style guide (strict):
 - Example bad: "Images show payment receipts, not a pet."
 - Example bad: "Image displays Payment Receipt and date."
 - Example bad: "It appears this may be a valid receipt."
-- Example bad: "Guest 1 ID uploaded — needs review: too unclear to verify."
+- Example bad: "Guest 1 ID uploaded - needs review: too unclear to verify."
 - Example bad: "Verdict: unclear."`;
 
 /**
@@ -163,11 +163,11 @@ function rewriteNeedsReviewWording(text: string, label: string): string {
     needsReviewText('Downpayment receipt', verdict.toLowerCase() as 'invalid' | 'unclear')
   );
   out = out.replace(
-    /^(.+?)\s+uploaded\s+—\s+needs review:\s+too unclear to verify\.?$/i,
+    /^(.+?)\s+uploaded\s+-\s+needs review:\s+too unclear to verify\.?$/i,
     (_m, subject: string) => needsReviewText(subject.trim(), 'unclear')
   );
   out = out.replace(
-    /^(.+?)\s+uploaded\s+—\s+needs review:\s+not a valid document\.?$/i,
+    /^(.+?)\s+uploaded\s+-\s+needs review:\s+not a valid document\.?$/i,
     (_m, subject: string) => needsReviewText(subject.trim(), 'invalid')
   );
   out = out.replace(
@@ -380,7 +380,7 @@ function coerceNumber(value: unknown): number | null {
 }
 
 function pesoMoney(value: number | null): string {
-  if (value === null) return '—';
+  if (value === null) return '-';
   return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -849,7 +849,7 @@ export async function computeStayDetailsSection(
       } else if (gapMinutes < 120) {
         flags.push(
           flag(
-            `Only ${gapMinutes} min to clean — previous guest checks out at ${previousLabel}.`,
+            `Only ${gapMinutes} min to clean - previous guest checks out at ${previousLabel}.`,
             'warning'
           )
         );
@@ -1040,7 +1040,7 @@ export async function runGuestsSection(
         activeSlots.length === 1
           ? 'Guest ID is on file but could not be opened.'
           : `${activeSlots.length} guest IDs are on file but none could be opened.`,
-        [uploadedFileFlag('Guest IDs', 'the files could not be opened — re-upload may be needed.')],
+        [uploadedFileFlag('Guest IDs', 'the files could not be opened - re-upload may be needed.')],
         fingerprint,
         false
       ),
@@ -1071,7 +1071,7 @@ export async function runGuestsSection(
 
   for (const slot of unreadableSlots) {
     flags.push(
-      uploadedFileFlag(`Guest ${slot.slot} ID`, 'the file could not be opened — re-upload may be needed.')
+      uploadedFileFlag(`Guest ${slot.slot} ID`, 'the file could not be opened - re-upload may be needed.')
     );
   }
 
@@ -1310,7 +1310,7 @@ export async function runPricingSection(
 
   if (isAirbnb || isBlankUrl(receiptUrl)) {
     const summary = isAirbnb
-      ? 'Airbnb booking — no downpayment receipt expected.'
+      ? 'Airbnb booking - no downpayment receipt expected.'
       : 'Downpayment receipt not uploaded yet.';
     const flags: AiReviewFlag[] = isAirbnb ? [] : [missingFileFlag('Downpayment receipt')];
     return withBalanceReceiptPricing(booking, {
@@ -1328,7 +1328,7 @@ export async function runPricingSection(
         [
           uploadedFileFlag(
             'Downpayment receipt',
-            'the file could not be opened — re-upload may be needed.'
+            'the file could not be opened - re-upload may be needed.'
           ),
         ],
         fingerprint,
@@ -1380,7 +1380,7 @@ export async function runPricingSection(
     flags.push(
       uploadedFileFlag(
         'Downpayment receipt',
-        `it shows ${pesoMoney(extractedAmount)} — ${pesoMoney(requiredDownpayment)} is due.`
+        `it shows ${pesoMoney(extractedAmount)} - ${pesoMoney(requiredDownpayment)} is due.`
       )
     );
   }
@@ -1476,7 +1476,7 @@ export async function computeParkingSection(
               'Downpayment receipt',
               'no amount could be read, so the parking fee is unverified.'
             )
-          : flag('Downpayment receipt not uploaded yet — parking fee unverified.', 'warning')
+          : flag('Downpayment receipt not uploaded yet - parking fee unverified.', 'warning')
       );
       summary = `Parking requested${feeSuffix} · amount unverified.`;
     }

@@ -44,8 +44,22 @@ for path in supabase/migrations/*.sql; do
   definer_count="$(count_matches '^[[:space:]]*SECURITY DEFINER' "$path")"
   revoke_count="$(count_public_function_revokes "$path")"
   if (( definer_count > revoke_count )); then
-    echo "MISSING PUBLIC revoke for SECURITY DEFINER function: $path" >&2
-    failed=1
+    # CREATE OR REPLACE of a function that already has REVOKE FROM PUBLIC in an
+    # earlier migration keeps those grants. Require an in-file REVOKE only for
+    # newly introduced definer functions.
+    inherited=0
+    if command -v rg >/dev/null 2>&1; then
+      while IFS= read -r fn; do
+        [[ -z "$fn" ]] && continue
+        if rg -q "REVOKE (ALL|EXECUTE) ON FUNCTION ${fn}" supabase/migrations --glob "!${filename}"; then
+          inherited=$((inherited + 1))
+        fi
+      done < <(rg -o 'CREATE OR REPLACE FUNCTION (public\.[a-zA-Z0-9_]+)' -r '$1' "$path" || true)
+    fi
+    if (( definer_count > revoke_count + inherited )); then
+      echo "MISSING PUBLIC revoke for SECURITY DEFINER function: $path" >&2
+      failed=1
+    fi
   fi
 
   table_count="$(count_matches '^[[:space:]]*CREATE TABLE( IF NOT EXISTS)? public\.' "$path")"

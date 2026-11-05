@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'AI Dashboard Assistant v2 — Full Dashboard Coverage'
-status: All 8 phases shipped (architecture fixes, external-action risk tier, org & team, property settings, parking, pricing, guest inbox, marketing). 64 tools total. Full tool-by-tool reference lives at docs/architecture/ai-dashboard-assistant.md — keep both in sync going forward.
+status: done
 tags: [planning, planned-modules, ai]
-updated: 2026-08-17
+updated: 2026-11-04
 ---
 
 # AI Dashboard Assistant v2 — Full Dashboard Coverage

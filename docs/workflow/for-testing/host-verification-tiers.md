@@ -104,7 +104,7 @@ Tier subtitle: _Earn a Recommended badge guests notice on your listings._
 **Public badge & highlight**
 
 - Enhance `ListingRecommendedBadge` (contrast, `BadgeCheck` + Recommended).
-- Tooltip: _Identity, ownership, and Azure records checked by Kame Homes._
+- Tooltip: _Identity, ownership, and Azure records checked by Kame Space._
 - Radix Tooltip; touch-friendly trigger (≥44px where interactive).
 - When `verifiedBadge`: badge by host name + minimal _Recommended host_ line (property, parking, host card/hero). No new marketing cards.
 - Replace duplicate inline badge in `HostPublicHero` with shared `ListingRecommendedBadge`.

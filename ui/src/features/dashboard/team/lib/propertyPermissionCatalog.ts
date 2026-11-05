@@ -28,6 +28,7 @@ export type PermissionCatalog = readonly PermissionCatalogNode[];
 
 const MODULE_ORDER = [
   'bookings',
+  'reviews',
   'finance',
   'pricing',
   'analytics',
@@ -45,6 +46,7 @@ const MODULE_ORDER = [
 
 const CATEGORY_TO_MODULE: Record<string, string> = {
   Bookings: 'bookings',
+  Reviews: 'reviews',
   Finance: 'finance',
   Pricing: 'pricing',
   Analytics: 'analytics',
@@ -62,6 +64,7 @@ const CATEGORY_TO_MODULE: Record<string, string> = {
 
 const MODULE_LABELS: Record<string, string> = {
   bookings: 'Bookings',
+  reviews: 'Reviews',
   finance: 'Finance',
   pricing: 'Pricing',
   analytics: 'Analytics',
@@ -114,6 +117,9 @@ function chipLabelFromPermission(name: string, id: string): string {
     'bookings.detail.pets:edit': 'Pets',
     'bookings.detail.pricing:edit': 'Pricing',
     'bookings.detail.workflow:edit': 'Workflow',
+    'reviews:view': 'Open page',
+    'reviews.guests:edit': 'Review guests',
+    'reviews.responses:edit': 'Respond',
     'finance:view': 'Open page',
     'finance.transactions:add': 'Add',
     'finance.transactions:edit': 'Edit',
@@ -133,6 +139,8 @@ function chipLabelFromPermission(name: string, id: string): string {
     'marketing.generate:add': 'Text',
     'marketing.generate.image:add': 'Image',
     'marketing.generate.video:add': 'Video',
+    'marketing.media:add': 'Upload',
+    'marketing.media:delete': 'Delete',
     'marketing.publish:add': 'Publish',
     'pricing:view': 'Open page',
     'pricing.rates:edit': 'Rates',
@@ -288,11 +296,19 @@ function buildCatalog(): PermissionCatalogNode[] {
     },
     {
       id: null,
+      key: 'marketing.media',
+      parentKey: 'marketing',
+      module: 'marketing',
+      label: 'Media library',
+      order: 3,
+    },
+    {
+      id: null,
       key: 'marketing.publish',
       parentKey: 'marketing',
       module: 'marketing',
       label: 'Publish',
-      order: 3,
+      order: 4,
     },
     {
       id: null,
@@ -442,6 +458,8 @@ function buildCatalog(): PermissionCatalogNode[] {
     'marketing.generate:add': 'marketing.generate',
     'marketing.generate.image:add': 'marketing.generate',
     'marketing.generate.video:add': 'marketing.generate',
+    'marketing.media:add': 'marketing.media',
+    'marketing.media:delete': 'marketing.media',
     'marketing.publish:add': 'marketing.publish',
     'pricing:view': 'pricing',
     'pricing.rates:edit': 'pricing.calendar',

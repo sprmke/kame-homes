@@ -16,11 +16,12 @@ import {
   PRIVATE_STORAGE_BUCKETS,
   resolveAssetUrlForBrowser,
 } from '@/features/dashboard/bookings/lib/storageUrls';
+import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 
 import { DocThumbnailSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function getDocType(url: string): 'image' | 'pdf' | 'file' {
+function getDocType(url: string): 'image' | 'pdf' | 'file' {
   const path = url.split('?')[0].toLowerCase();
   if (/\.(jpg|jpeg|png|webp|gif|heic|heif)$/.test(path)) return 'image';
   if (/\.pdf$/.test(path)) return 'pdf';
@@ -70,16 +71,22 @@ export function DocPreview({
   /** Square thumbnail for dense guest-roster rows (no caption chrome). */
   compact = false,
   className,
+  bookingId = null,
+  propertyId: propertyIdProp = null,
 }: {
   label: string;
   url: string;
   onPreview: (label: string, rawUrl: string) => void;
+  bookingId?: string | null;
+  propertyId?: string | null;
   receiptAiVerdict?: ReceiptAiVerdict;
   receiptAiLoading?: boolean;
   receiptAiVariant?: DocumentAiVerdictVariant;
   compact?: boolean;
   className?: string;
 }) {
+  const propertyIdFromRoute = usePropertyIdParam();
+  const propertyId = propertyIdProp ?? propertyIdFromRoute;
   const normalized = normalizeStoragePublicUrl(url) ?? url;
   const parsed = parseStorageUrl(normalized);
   const inPrivateBucket = Boolean(parsed && PRIVATE_STORAGE_BUCKETS.has(parsed.bucket));
@@ -105,7 +112,7 @@ export function DocPreview({
     setDisplayUrl(null);
     setImgError(false);
     setMissingInStorage(false);
-    resolveAssetUrlForBrowser(url)
+    resolveAssetUrlForBrowser(url, propertyId, bookingId)
       .then((u) => {
         if (!cancelled) setDisplayUrl(u);
       })
@@ -117,12 +124,13 @@ export function DocPreview({
           setImgError(true);
           return;
         }
-        setDisplayUrl(n);
+        setDisplayUrl(null);
+        setImgError(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, propertyId, bookingId]);
 
   const hrefForOpen = displayUrl ?? normalized;
   const widthClass = className ?? docPreviewOuterWidth(compact);

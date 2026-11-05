@@ -1,0 +1,46 @@
+---
+description: >-
+  Every user-visible behavior change must reach the route guide, Host-facing
+  knowledge, and the curated FAQ layer in the same change. Never ship a feature
+  with stale help content.
+alwaysApply: true
+---
+
+# Support content — docs to help surfaces
+
+**Non-negotiable:** support content ships with the feature, not after it.
+
+Full checklist: **`support-content`** skill (`.agent/skills/support-content/SKILL.md`). Claude Code / OpenCode: invoke it before claiming material work done.
+
+| Change                                 | Update                                                                                      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Page, section, save flow, validation   | Matching `docs/guides/routes/**` guide + **Host-facing knowledge**                          |
+| New page or route                      | New guide from `docs/guides/_template.md` + README row                                      |
+| Cross-cutting answer (billing, access) | `docs/guides/support/faqs.md` (category + audience + source)                                |
+| Guest / public behavior                | `/support`, `/account/help`, and guest prompt starters when relevant                        |
+| Sync / provenance / schema             | Preserve `origin='manual'` rows and `is_published`; prune synced rows by `content_key` only |
+
+## Minimums
+
+- **5+ Q&A** for major module pages (org, property operations, growth, config, parking, guest trips/stays/vouchers/tickets).
+- **3+ Q&A** for every other documented guide.
+- `admin/**` is exempt and never appears on host surfaces.
+
+## Before claiming done
+
+```bash
+bun run check:support-content
+bun run check:ai-knowledge-coverage
+bun run test:support-content
+bun scripts/sync-ai-knowledge-base.ts --dry-run
+```
+
+## Copy
+
+Follow **`human-copy`**: short, plain, no em dashes, no AI tells. Use host-facing plan names only (`growth` is **Pro**, `pro` is **Business**). Never mention `business_plus` or `commission`.
+
+## Related
+
+- Skill: **`support-content`**
+- Routes: **`route-guides`** · Docs: **`documentation-maintenance`**
+- Plan: `docs/workflow/in-progress/support-content-and-faq-sync.md`

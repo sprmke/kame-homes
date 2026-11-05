@@ -2,7 +2,7 @@
 title: 'Bookings List — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-08-27
+updated: 2026-11-05
 ---
 
 # Bookings List — operator guide
@@ -32,7 +32,7 @@ Paginated booking list with PMA-style **stage summary cards** and four view mode
 Layout (top → bottom):
 
 1. **Mobile (`max-lg`):** brand hero with tenant switcher + **Import** icon + **New booking** icon (property scope); overlapping floating toolbar with **date range** only (same as Finance / Maintenance); layout frosted header hidden on this route.
-2. **Desktop (`lg+`):** page header — **date range** (top right) + **Import** (outline) + **New booking** → opens `AdminNewBookingModal` (in-dashboard modal; see below)
+2. **Desktop (`lg+`):** page header — **date range** (top right) + **Import** (outline) + **New booking** → opens `AdminNewBookingModal` (in-dashboard modal; see below). On the first list load, before a range is in the URL, the date button keeps its icon and chevron and shows a skeleton in place of the **Date** label. The route skeleton mounts this same header (title, subtitle, and action placeholders) before the page chunk loads, so the summary cards do not drop when the header appears.
 3. **Summary cards** — Action Required, Pending Docs, Confirmed Stays, History (Finance-style `surface-card`; count + inline status hints; click toggles `?stage=` filter)
 4. **Toolbar** (`BookingFilters` in page body — always visible, matches Finance / Maintenance):
    - **Mobile (`max-lg`):** search + refine icon (opens sheet for status / more filters / sort / per-page) + view toggle (**Kanban** hidden below `md` / phone width)
@@ -50,13 +50,15 @@ This page is your main dashboard for all bookings at this property. Summary card
 - Q: What do the summary cards at the top mean?
   A: They group bookings by where they are in your workflow: things needing your action, waiting on guest documents, confirmed upcoming stays, and past or cancelled bookings. Tap a card to filter the list.
 - Q: Can I move a booking forward without opening every detail page?
-  A: Yes on **tablet and desktop** (Kanban view). Drag bookings between columns — the board auto-scrolls near the edges, and status chips above the board stay visible (valid ones highlight green while you drag). You can also click a card to open a quick workflow panel with the same actions as the full booking page. On phone, use card or table (desktop) and open a booking for workflow actions.
+  A: Yes on **tablet and desktop** (Kanban view). Drag bookings between columns - the board auto-scrolls near the edges, and status chips above the board stay visible (valid ones highlight green while you drag). You can also click a card to open a quick workflow panel with the same actions as the full booking page. On phone, use card or table (desktop) and open a booking for workflow actions.
 - Q: How do I create a new booking?
-  A: Use **New booking** in the page header. It opens the same guest booking form in a dialog, right in the dashboard — fill it out on the guest's behalf. After you submit, you can add another booking or jump straight to the new booking's detail page.
+  A: Use **New booking** in the page header. It opens the same guest booking form in a dialog, right in the dashboard - fill it out on the guest's behalf. After you submit, you can add another booking or jump straight to the new booking's detail page.
 - Q: Can I bulk-import bookings from a spreadsheet?
   A: Yes on **Starter and above**. Use **Import** beside **New booking** (property bookings only). You can open the wizard and upload a file on Free to try it, but continuing past the first step asks you to upgrade. On a paid plan, confirm column mapping, then review the rows. Select **Need fixing** to see problem rows; **Fix** opens the complete row so you can correct every invalid value together. **Skipped** rows stay openable the same way, so use **Restore** to bring them back, or **Fix** to correct them. Past stays commit as **Imported**; today and future stays show **Pending Review** but still appear when you filter by **Imported**. No new-booking emails or calendar events on import.
 - Q: How do I read the calendar view?
-  A: Use **Month**, **Week**, or **Day** in the calendar toolbar. Month shows stays as colored pills across nights — click a pill to open that booking, or click a day for the side list. If a day has more stays than fit in the cell, you’ll see a **+N** chip — click the day to review them all. Week and Day show an hour grid so you can see checkout/check-in gaps; multi-night stays read as one continuous block. Hover uses a darker shade of that booking’s status color (not the brand primary). A pricing-style tip appears on hover. In week view, tap a day header to zoom into that day.
+  A: Use **Month**, **Week**, or **Day** in the calendar toolbar. Month shows stays as colored pills across nights - click a pill to open that booking, or click a day for the side list. If a day has more stays than fit in the cell, you’ll see a **+N** chip - click the day to review them all. Week and Day show an hour grid so you can see checkout/check-in gaps; multi-night stays read as one continuous block. Hover uses a darker shade of that booking’s status color (not the brand primary). A pricing-style tip appears on hover. In week view, tap a day header to zoom into that day.
+- Q: Why don’t I see past / completed bookings in the table?
+  A: The default list focuses on active work (review, docs, check-in/out). Completed and cancelled stays are counted on the **History** card but stay out of the table until you tap **History** (or pick Completed / Cancelled under Status). The Done / Cancelled labels under History are a legend, not separate filters. Year / month in the header still limits what shows by check-in date.
 
 ---
 
@@ -117,6 +119,8 @@ Counts come from a secondary list fetch (same date range, up to 100 rows, includ
 
 When a stage is active, the list query sends the matching `status[]` values to `list-bookings` (intersected with manual status filters when compatible; otherwise stage wins).
 
+**Default visibility:** without a stage or status filter, `list-bookings` hides `COMPLETED` and `CANCELLED` so the table stays focused on the live pipeline. Summary card counts use a separate fetch that includes completed rows (same date range, up to 100). **History** (or Filters → Completed / Cancelled) sends those statuses in `status[]`; the list then includes them. Inline Done / Cancelled hints on the History card are legend labels only (`max-lg:hidden`) — click the card itself. Calendar / kanban still auto-set `showCompletedBookings=true` (completed yes; cancelled still omitted unless filtered).
+
 ---
 
 ## Views
@@ -147,7 +151,7 @@ Existing params unchanged: `q`, `status`, `from`, `to`, `hasPets`, `needParking`
 
 `from` / `to` filter on **check-in date** and apply to **every status** — navigating to a month with no check-ins shows an empty list. (Pending Review rows used to be exempt so new submissions were never hidden; that made month navigation look broken and was removed.) No range is applied until the host picks one, so the default landing view still lists all active bookings.
 
-`showCompletedBookings` remains supported for calendar/kanban (auto-enabled in those views); there is no UI toggle — use the **History** stage card or status filter for completed rows.
+`showCompletedBookings` remains supported for calendar/kanban (auto-enabled in those views); there is no UI toggle. Table/card views surface completed (and cancelled) rows via the **History** stage card or Status filter — those set `status[]`, which overrides the default hide for matching terminal statuses.
 
 New: `stage` (see above).
 
@@ -155,7 +159,7 @@ New: `stage` (see above).
 
 ## API
 
-- `list-bookings` edge function — admin JWT; see [[PROJECT|Guest Form Management — Project Documentation]] API table.
+- `list-bookings` edge function — admin JWT; see [[PROJECT|Guest Form Management — Project Documentation]] API table. Filtering, sorting, and pagination run in Postgres via `list_bookings_page` (`supabase/migrations/20261318171000_list_bookings_page_rpc.sql`), so a tenant's full history never loads into the edge isolate. The legacy PostgREST paths remain as a fallback if the RPC is unavailable.
 - CSV import: `import-parse-file`, `import-ai-map-columns`, `import-save-mapping`, `import-preview`, `import-update-row`, `import-commit`, `import-cancel` — all require **`bookings.import:add`** (or org owner/admin) + `?property_id=`. Match / preview / commit paths also require plan **`bookingImport`** (Starter+).
 
 ---

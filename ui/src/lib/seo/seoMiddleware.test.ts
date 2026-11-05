@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { handleSeoRequest } from '@/lib/seo/seoMiddleware';
 
 const SHELL =
-  '<html><head><title>Kame Homes</title></head><body><div id="root"></div></body></html>';
+  '<html><head><title>Old Brand</title></head><body><div id="root"></div></body></html>';
 const BOT = 'facebookexternalhit/1.1';
 const BROWSER = 'Mozilla/5.0 (iPhone) Safari/604.1';
 
@@ -15,7 +15,7 @@ function deps(fetchImpl: typeof fetch) {
   return {
     functionsUrl: 'https://abc.supabase.co/functions/v1/',
     anonKey: 'anon',
-    siteName: 'Kame Homes',
+    siteName: 'Old Brand',
     fetchImpl,
   };
 }
@@ -33,6 +33,24 @@ describe('handleSeoRequest', () => {
   it('serves robots.txt with the request origin sitemap', async () => {
     const res = await handleSeoRequest(req('/robots.txt', BROWSER), deps(vi.fn()), shell);
     expect(await res!.text()).toContain('Sitemap: https://kamehomes.space/sitemap.xml');
+  });
+
+  it('keeps production hosts indexable even when SEO_INDEXABLE_HOSTS omits them', async () => {
+    const res = await handleSeoRequest(
+      new Request('https://kamespace.com/robots.txt', { headers: { 'user-agent': BROWSER } }),
+      { ...deps(vi.fn()), indexableHosts: ['legacy.example.com'] },
+      shell
+    );
+    const txt = await res!.text();
+    expect(txt).toContain('Allow: /');
+    expect(txt).toContain('Sitemap: https://kamespace.com/sitemap.xml');
+    // The env list still adds hosts.
+    const legacy = await handleSeoRequest(
+      new Request('https://legacy.example.com/robots.txt', { headers: { 'user-agent': BROWSER } }),
+      { ...deps(vi.fn()), indexableHosts: ['legacy.example.com'] },
+      shell
+    );
+    expect(await legacy!.text()).toContain('Allow: /');
   });
 
   it('proxies sitemap.xml (with part param) and passes through on upstream failure', async () => {
@@ -74,7 +92,7 @@ describe('handleSeoRequest', () => {
     const res = await handleSeoRequest(req('/properties/monaco-2612/'), deps(fetchImpl), shell);
     const html = await res!.text();
     expect(res!.headers.get('content-type')).toContain('text/html');
-    expect(html).toContain('<title>Kame Homes - Monaco 2612</title>');
+    expect(html).toContain('<title>Old Brand - Monaco 2612</title>');
     expect(html).toContain('og:image" content="https://img/a.jpg"');
     expect(html).toContain('href="https://kamehomes.space/properties/monaco-2612"');
     expect(html).toContain('"@type":"LodgingBusiness"');

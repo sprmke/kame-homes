@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { aiAssistantConversationsQueryKey } from '@/features/dashboard/ai-assistant/hooks/useAiAssistantConversations';
 import {
   confirmAssistantAction,
+  confirmAssistantPlan,
   fetchAiAssistantConversationMessages,
   sendAssistantFeedback,
   type AiAssistantConversationSummary,
@@ -34,6 +35,7 @@ import type { ChatSendInput } from '@/features/dashboard/ai-assistant/lib/chatAt
 import {
   hostFacingUserMessageText,
   patchActionConfirmationStatus,
+  patchActionPlanStatus,
   patchDynamicFormStatus,
 } from '@/features/dashboard/ai-assistant/lib/chatBlockDisplay';
 import { useOrgScopeKey, useOrgSlugParam } from '@/features/dashboard/org/lib/adminApiScope';
@@ -252,6 +254,10 @@ export function useAiAssistantChat(pageContext: PageContext) {
             setStreamingText((prev) => prev + event.delta);
             return;
           }
+          if (event.type === 'retract') {
+            setStreamingText(event.fallbackText);
+            return;
+          }
           setTurnProgress((prev) => buildTurnProgressFromStreamEvent(prev, event));
         },
       };
@@ -442,19 +448,28 @@ export function useAiAssistantChat(pageContext: PageContext) {
     try {
       const result = await confirmAssistantAction({ actionId, confirm });
       setMessages((prev) =>
-        prev.map((msg) => ({
-          ...msg,
-          blocks:
-            result.status === 'pending'
-              ? msg.blocks
-              : patchActionConfirmationStatus(
-                  msg.blocks,
-                  actionId,
-                  result.status,
-                  result.ok === false ? result.error : undefined,
-                  result.ok !== false ? result.resultNote : undefined
-                ),
-        }))
+        prev.map((msg) => {
+          const hasAction = (msg.blocks ?? []).some(
+            (block) =>
+              (block.type === 'action_confirmation' && block.actionId === actionId) ||
+              (block.type === 'stepper' &&
+                block.steps?.some((step) => step.actionBlock?.actionId === actionId))
+          );
+          if (!hasAction || result.status === 'pending') return msg;
+          if (Array.isArray(result.blocks) && result.blocks.length > 0) {
+            return { ...msg, blocks: result.blocks };
+          }
+          return {
+            ...msg,
+            blocks: patchActionConfirmationStatus(
+              msg.blocks,
+              actionId,
+              result.status,
+              result.ok === false ? result.error : undefined,
+              result.ok !== false ? result.resultNote : undefined
+            ),
+          };
+        })
       );
       setError(null);
       return result;
@@ -465,6 +480,36 @@ export function useAiAssistantChat(pageContext: PageContext) {
       setPending(false);
     }
   }, []);
+
+  /** Phase 3 plan-card approval — mirrors resolveAction for a multi-step action_plan block. */
+  const resolvePlan = useCallback(
+    async (planId: string, confirm: boolean, selectedStepIds?: string[]) => {
+      setPending(true);
+      try {
+        const result = await confirmAssistantPlan({ planId, confirm, selectedStepIds });
+        setMessages((prev) =>
+          prev.map((msg) => {
+            const hasPlan = (msg.blocks ?? []).some(
+              (block) => block.type === 'action_plan' && block.planId === planId
+            );
+            if (!hasPlan || result.status === 'proposed' || result.status === 'running') return msg;
+            if (Array.isArray(result.blocks) && result.blocks.length > 0) {
+              return { ...msg, blocks: result.blocks };
+            }
+            return { ...msg, blocks: patchActionPlanStatus(msg.blocks, planId, result.status) };
+          })
+        );
+        setError(null);
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to resolve plan');
+        return null;
+      } finally {
+        setPending(false);
+      }
+    },
+    []
+  );
 
   /** Thumbs up / down; tapping the active rating again clears it. Optimistic with rollback. */
   const rateMessage = useCallback(
@@ -546,6 +591,7 @@ export function useAiAssistantChat(pageContext: PageContext) {
     regenerateLastTurn,
     editAndResend,
     resolveAction,
+    resolvePlan,
     rateMessage,
     loadConversation,
     startNewConversation,

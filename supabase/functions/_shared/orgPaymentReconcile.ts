@@ -46,7 +46,7 @@ async function fulfillPaidTransaction(input: {
 
 /**
  * If PayMongo already collected payment, fulfill the subscription. Legacy Payment Links
- * (no redirect back to Kame Homes) are expired when still open so the next checkout uses
+ * (no redirect back to Kame Space) are expired when still open so the next checkout uses
  * Hosted Checkout Sessions with success/cancel URLs.
  */
 export async function reconcilePendingOrgPaymentTransaction(

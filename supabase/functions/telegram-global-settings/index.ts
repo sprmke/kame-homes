@@ -17,13 +17,14 @@ import {
   resolveTelegramAssetAccess,
 } from '../_shared/telegramAssetScope.ts';
 import {
+  gateTelegramSettingsWrites,
   parseAction,
   telegramUnknownAction,
   telegramVerifyResponse,
 } from '../_shared/telegramSettingsHttp.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
-serveAuthenticated('telegram-global-settings', async (req) => {
+serveAuthenticated('telegram-global-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req);
   await ensureTelegramAssetSettings(asset);
 
@@ -36,6 +37,8 @@ serveAuthenticated('telegram-global-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const action = parseAction(body).trim();
 
@@ -81,6 +84,8 @@ serveAuthenticated('telegram-global-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     if (body.telegramGlobalBotToken === undefined) {
       return jsonError(req, 'telegramGlobalBotToken is required');

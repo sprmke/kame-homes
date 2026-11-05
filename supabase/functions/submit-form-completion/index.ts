@@ -28,10 +28,13 @@ import { bookingNotificationMetadata } from '../_shared/notificationEnrichment.t
 import { tryGetAuthenticatedUser } from '../_shared/orgAuth.ts';
 import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 import type { GuestSubmission } from '../_shared/types.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { validateGuestFormFormatFields } from '../_shared/guestFormSubmitValidation.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { syncReviewIdentityKey } from '../_shared/hostGuestReviewService.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
+import { captureSnapshotForBooking } from '../_shared/cancellationService.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -54,7 +57,7 @@ serve(async (req) => {
     const formData = await req.formData();
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, formData, {
       scope: 'submit-form-completion',
       rateLimit: { limit: 15, windowSec: 60 },
@@ -94,7 +97,7 @@ serve(async (req) => {
           success: false,
           error: gone
             ? 'This stay has already ended'
-            : 'This booking is already being processed — please contact your host',
+            : 'This booking is already being processed. Please contact your host.',
         },
         gone ? 410 : 409
       );
@@ -152,6 +155,32 @@ serve(async (req) => {
     // Guarded stamp — no-ops if a concurrent submit already completed it.
     await markGuestFormCompleted(bookingId);
 
+    // The OTA stub was created before the guest could see a policy. Capture the
+    // property's current policy now that the guest is filling the form.
+    if (!booking.cancellation_policy_snapshot && propertyId) {
+      try {
+        const snapshot = await captureSnapshotForBooking({
+          propertyId,
+          capturedFrom: 'form_completion',
+          externalSource: String(booking.external_source ?? '') || null,
+        });
+        await DatabaseService.setWorkflowFields(bookingId, {
+          cancellation_policy_snapshot: snapshot,
+          booked_at: booking.booked_at ?? booking.created_at ?? new Date().toISOString(),
+        });
+      } catch (snapshotErr) {
+        console.error(
+          '[submit-form-completion] cancellation snapshot failed (non-fatal):',
+          snapshotErr
+        );
+      }
+    }
+
+    const completedEmail =
+      (submissionData as GuestSubmission | undefined)?.guest_email ??
+      (formData.get('guestEmail') as string | null);
+    await syncReviewIdentityKey(bookingId, completedEmail);
+
     // Host notification — the ingested stub now has real guest details to review.
     try {
       const organizationId = propertyId ? await resolveOrganizationIdForProperty(propertyId) : null;
@@ -187,7 +216,7 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[submit-form-completion] error:', message);
-    await capturePostHogException(error, { logPrefix: 'submit-form-completion', request: req });
+    await captureFaultIfServerError(req, error, 'submit-form-completion');
     return json({ success: false, error: message }, 400);
   }
 });

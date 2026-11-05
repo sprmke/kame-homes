@@ -46,7 +46,7 @@ export function TeamLogoMark({
   return (
     <div
       className={cn(
-        'bg-primary text-primary-foreground shadow-soft flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl',
+        'bg-primary-strong text-primary-foreground shadow-soft flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl',
         className
       )}
     >

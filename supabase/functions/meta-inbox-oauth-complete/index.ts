@@ -11,13 +11,18 @@ import {
 import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveAuthenticated('meta-inbox-oauth-complete', async (req, user) => {
   if (req.method !== 'POST') {
     return jsonError(req, 'Method not allowed', 405);
   }
+
+  const featureBlocked = await featureUnavailableResponse(req, 'inbox.meta.connect', { user });
+  if (featureBlocked) return featureBlocked;
 
   const body = (await readJsonBody(req)) as Record<string, unknown>;
   const ctx = await resolveInboxAccess(req, 'channels_add', body);
@@ -84,6 +89,17 @@ serveAuthenticated('meta-inbox-oauth-complete', async (req, user) => {
       metadata: { provider: 'meta_inbox', page_name: page.name },
     });
 
+    await capturePostHogEvent('meta_inbox_connected', {
+      logPrefix: 'meta-inbox-oauth-complete',
+      request: req,
+      distinctId: user.id,
+      groups: {
+        organization: ctx.orgId,
+        ...(ctx.propertyId ? { property: ctx.propertyId } : {}),
+        ...(ctx.parkingId ? { parking: ctx.parkingId } : {}),
+      },
+      properties: { channel: page.instagram_business_account ? 'instagram' : 'messenger' },
+    });
     return jsonSuccess(req, { connected: true, pageName: page.name });
   } catch (e) {
     console.error('[meta-inbox-oauth-complete]', e);

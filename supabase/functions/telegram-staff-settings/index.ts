@@ -23,6 +23,7 @@ import {
   parseAction,
   parseManilaTimeSlotField,
   gateTelegramEnabledPatch,
+  gateTelegramSettingsWrites,
   telegramPatchNoFields,
   telegramPatchSuccessResponse,
   telegramUnknownAction,
@@ -54,7 +55,7 @@ function staffDraftByScenario<T>(
   return handlers.default(text);
 }
 
-serveAuthenticated('telegram-staff-settings', async (req) => {
+serveAuthenticated('telegram-staff-settings', async (req, user) => {
   const asset = await resolveTelegramAssetAccess(req, 'staff');
   const scope = telegramDbScope(asset);
 
@@ -73,6 +74,8 @@ serveAuthenticated('telegram-staff-settings', async (req) => {
   }
 
   if (req.method === 'PATCH') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     const body = await readJsonBody(req);
     const gateResponse = await gateTelegramEnabledPatch(req, asset, body);
     if (gateResponse) return gateResponse;
@@ -146,6 +149,8 @@ serveAuthenticated('telegram-staff-settings', async (req) => {
   }
 
   if (req.method === 'POST') {
+    const settingsGate = await gateTelegramSettingsWrites(req, user);
+    if (settingsGate) return settingsGate;
     await ensureTelegramAssetSettings(asset);
     const body = await readJsonBody(req);
     const action = parseAction(body);

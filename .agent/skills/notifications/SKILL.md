@@ -7,17 +7,19 @@ description: In-app Notification Center — bell + realtime toasts for booking s
 
 ## Architecture map
 
-| Layer                      | Path                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Migration                  | `supabase/migrations/20261015120000_notifications.sql`                                                 |
-| Event insert               | `supabase/functions/_shared/notificationService.ts`                                                    |
-| Access resolve             | `supabase/functions/_shared/notificationsAccess.ts`                                                    |
-| List / mark-read           | `supabase/functions/notifications-list`, `supabase/functions/notifications-mark-read`                  |
-| UI hooks                   | `ui/src/features/dashboard/notifications/hooks/useNotifications.ts`, `useNotificationsRealtime.ts`     |
-| UI provider + bell         | `ui/src/features/dashboard/notifications/components/NotificationsProvider.tsx`, `NotificationBell.tsx` |
-| In-app list + page section | `InAppNotificationsPanel.tsx`, `InAppNotificationsSection.tsx`                                         |
-| Path resolution            | `ui/src/features/dashboard/notifications/lib/notificationsPaths.ts`, `notificationsScope.ts`           |
-| Display / toast            | `ui/src/features/dashboard/notifications/lib/notificationsDisplay.ts`, `notificationToast.tsx`         |
+| Layer                     | Path                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Migration                 | `supabase/migrations/20261015120000_notifications.sql`                                                 |
+| Event insert              | `supabase/functions/_shared/notificationService.ts`                                                    |
+| Access resolve            | `supabase/functions/_shared/notificationsAccess.ts`                                                    |
+| List / mark-read          | `supabase/functions/notifications-list`, `supabase/functions/notifications-mark-read`                  |
+| UI hooks                  | `ui/src/features/dashboard/notifications/hooks/useNotifications.ts`, `useNotificationsRealtime.ts`     |
+| UI provider + bell        | `ui/src/features/dashboard/notifications/components/NotificationsProvider.tsx`, `NotificationBell.tsx` |
+| In-app list (bell + feed) | `InAppNotificationsPanel.tsx` (`variant="sheet"` bell, `variant="feed"` page)                          |
+| Hub page frame            | `NotificationsHubShell.tsx`, `NotificationsHubTabs.tsx`, `NotificationsActivityView.tsx`               |
+| Hub `?view=` state        | `hooks/useNotificationsHubView.ts`, `lib/notificationsPaths.ts#resolveNotificationsHubView`            |
+| Path resolution           | `ui/src/features/dashboard/notifications/lib/notificationsPaths.ts`, `notificationsScope.ts`           |
+| Display / toast           | `ui/src/features/dashboard/notifications/lib/notificationsDisplay.ts`, `notificationToast.tsx`         |
 
 ## Event catalog (v1 — 7 types)
 

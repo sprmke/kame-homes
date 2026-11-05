@@ -1,5 +1,6 @@
 {
   "disabled": false,
-  "minBuild": 0,
-  "note": "PWA kill-switch. Set disabled:true to make every installed service worker unregister + wipe caches on next check. Set minBuild to a recent epoch-seconds value to retire only builds older than that. Served with Cache-Control: no-cache (see ui/vercel.json)."
+  "minBuild": 1793764300,
+  "forceUpdateBelow": 0,
+  "note": "PWA kill-switch. disabled:true makes every installed service worker unregister and wipe caches on its next check. minBuild retires builds older than that epoch-seconds value (same effect). forceUpdateBelow is softer: builds below it keep working but show a blocking 'update needed' sheet instead of wiping anything. Served with Cache-Control: no-store (see ui/vercel.json). minBuild is currently set to retire every build from before the 2026-11-04 stale-shell fix - reset it to 0 before deploying a rollback built earlier than that, or the rollback retires itself."
 }

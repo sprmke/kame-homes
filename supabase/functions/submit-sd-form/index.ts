@@ -6,7 +6,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { capturePostHogEvent, capturePostHogException } from '../_shared/posthog.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { DatabaseService } from '../_shared/databaseService.ts';
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
@@ -17,6 +17,7 @@ import { notifyTelegramAdminSdFormSubmitted } from '../_shared/telegramAdmin.ts'
 import { isSdRefundBank, type SdRefundBank } from '../_shared/sdRefundBank.ts';
 import { antiSpamGate } from '../_shared/antiSpam.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
+import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 import {
   authorizeGuestBookingAccess,
   guestBookingAccessTokenFromRequest,
@@ -84,7 +85,7 @@ serve(async (req) => {
     const refund = body?.refund;
 
     // Anti-spam: bot heuristics → Turnstile → durable rate limit.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const antiSpamBlocked = await antiSpamGate(req, (body ?? {}) as Record<string, unknown>, {
       scope: 'submit-sd-form',
       rateLimit: { limit: 10, windowSec: 60 },
@@ -180,13 +181,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Thank you — we have received your security deposit refund information.',
+        message: 'Thank you. We have received your security deposit refund information.',
       }),
       { status: 200, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[submit-sd-form]', error);
-    await capturePostHogException(error, { logPrefix: 'submit-sd-form', request: req });
+    await captureFaultIfServerError(req, error, 'submit-sd-form');
     return new Response(JSON.stringify({ success: false, error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },

@@ -18,9 +18,18 @@ export type NotificationType =
   | 'calendar_conflict'
   | 'booking_external_imported'
   | 'booking_guest_form_completed'
+  | 'booking_cancellation_requested'
+  | 'booking_cancellation_request_resolved'
+  | 'booking_cancelled_by_guest'
+  | 'booking_refund_due'
   | 'smart_pricing_updated'
   | 'property_settings_copied'
-  | 'analytics_review_updated';
+  | 'analytics_review_updated'
+  | 'review_received'
+  | 'review_due'
+  | 'review_response_received'
+  | 'maintenance_guest_reported'
+  | 'guest_request_submitted';
 
 /** Legacy inbox rows stored this generic title before participant names shipped. */
 export const LEGACY_INBOX_NOTIFICATION_TITLE = 'New guest message';

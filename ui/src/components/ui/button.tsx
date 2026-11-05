@@ -24,12 +24,12 @@ const buttonVariants = cva(
         success: 'bg-success text-success-foreground hover:bg-success/90 shadow-sm hover:shadow-md',
         warning: 'bg-warning text-warning-foreground hover:bg-warning/90 shadow-sm hover:shadow-md',
         'outline-primary':
-          'border-primary text-primary hover:bg-primary hover:text-primary-foreground border-2 bg-transparent',
+          'border-primary text-brand-ink hover:bg-primary-strong hover:text-primary-foreground border-2 bg-transparent',
         'outline-destructive':
           'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground border-2 bg-transparent',
         'outline-success':
           'border-success text-success hover:bg-success hover:text-success-foreground border-2 bg-transparent',
-        soft: 'bg-primary/10 text-primary hover:bg-primary/20',
+        soft: 'bg-primary/10 text-brand-ink hover:bg-primary/20',
         'soft-destructive': 'bg-destructive/10 text-destructive hover:bg-destructive/20',
       },
       size: {

@@ -46,7 +46,7 @@ export function AdminMobileFilterButton({
     >
       <SlidersHorizontal className="size-4" aria-hidden />
       {count > 0 ? (
-        <span className="bg-primary text-primary-foreground absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums">
+        <span className="bg-primary-strong text-primary-foreground absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums">
           {count > 9 ? '9+' : count}
         </span>
       ) : null}
@@ -135,7 +135,7 @@ export function AdminListRefineSheet({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="bg-primary text-primary-foreground native-press flex min-h-[48px] w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors"
+            className="bg-primary-strong text-primary-foreground native-press flex min-h-[48px] w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors"
           >
             Done
           </button>

@@ -15,6 +15,7 @@ import {
   upsertPublicPageConfig,
 } from '../_shared/publicPageConfigs.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import type { TeamPermissionId } from '../_shared/propertyTeamPermissions.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
@@ -80,8 +81,17 @@ serveAuthenticated('public-page-configs', async (req, user) => {
       throw err;
     }
 
-    const row = await upsertPublicPageConfig(property.id, pageType, body.config);
     const publishing = isPublishingShowcase(pageType, body.config);
+    // Only the first publish counts, so read the prior state before writing. Done only when
+    // this save is publishing, so an ordinary autosave pays no extra query.
+    const wasPublished = publishing
+      ? isPublishingShowcase(
+          pageType,
+          (await getOrCreatePublicPageConfig(property.id, pageType)).config
+        )
+      : false;
+
+    const row = await upsertPublicPageConfig(property.id, pageType, body.config);
     await logAssetActivity({
       req,
       user,
@@ -95,6 +105,21 @@ serveAuthenticated('public-page-configs', async (req, user) => {
       targetLabel: property.name,
       metadata: { page: pageType },
     });
+    if (publishing && !wasPublished) {
+      const createdAt = Date.parse(access.org.created_at);
+      await capturePostHogEvent('listing_published', {
+        logPrefix: 'public-page-configs',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: access.org.id, property: property.id },
+        properties: {
+          property_id: property.id,
+          days_since_org_created: Number.isFinite(createdAt)
+            ? Math.max(0, Math.round((Date.now() - createdAt) / 86_400_000))
+            : null,
+        },
+      });
+    }
     return jsonSuccess(req, {
       pageType: row.pageType,
       config: row.config as PropertyShowcaseConfig | typeof row.config,

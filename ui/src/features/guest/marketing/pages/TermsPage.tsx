@@ -4,6 +4,7 @@ import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
 import {
   PLATFORM_APP_NAME,
   PLATFORM_CONTACT_EMAIL,
+  platformFormerNameNote,
   platformLegalIntro,
   platformLegalSubject,
 } from '@/lib/platformBranding';
@@ -25,6 +26,7 @@ export function TermsPage() {
           title: 'Who we are',
           paragraphs: [
             platformLegalIntro(),
+            `${platformFormerNameNote()} These terms were last updated on 3 November 2026.`,
             'These Terms apply to the marketing site, guest booking flows, guest portal accounts, and host dashboards. Individual properties may publish additional house rules; those rules apply to stays at that property.',
           ],
         },
@@ -47,6 +49,13 @@ export function TermsPage() {
           paragraphs: [
             'Payment proof, security deposits, and refund timing follow the property’s instructions and the booking workflow, including document review, check-in, check-out, and security-deposit refund steps when enabled.',
             `${legalSubject} provides software to collect information and run that workflow. We do not guarantee occupancy, payment-processor uptime, or that every third-party transfer will succeed on first attempt.`,
+          ],
+        },
+        {
+          title: 'Reviews',
+          paragraphs: [
+            'After check-out, guests and hosts may review each other during a 14-day window. Reviews stay hidden until both sides submit or the window closes. Do not offer money, refunds, discounts, or other value in exchange for a review or a rating.',
+            'Public review text and responses may not include phone numbers, emails, or URLs. Each side may post one public response. Either side may report a published review. Super-admin decides removals. Hosts may use published guest-reputation summaries when screening a booking from that guest.',
           ],
         },
         {

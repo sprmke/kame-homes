@@ -18,12 +18,35 @@ export type MarketingEditorMobileOverflowItem = {
   onSelect: () => void;
 };
 
-type Props = {
+export type MarketingEditorDockPanel = {
+  key: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+type SinglePanelProps = {
   /** Label for the primary panel toggle (e.g. "Templates", "Layers", "Scenes"). */
   panelLabel: string;
   panelIcon: ComponentType<{ className?: string }>;
   panelOpen: boolean;
   onTogglePanel: () => void;
+  panels?: never;
+  activePanel?: never;
+  onSelectPanel?: never;
+};
+
+type MultiPanelProps = {
+  /** Several sheets (Templates, Edit, AI…), one button each. */
+  panels: MarketingEditorDockPanel[];
+  activePanel: string | null;
+  onSelectPanel: (key: string | null) => void;
+  panelLabel?: never;
+  panelIcon?: never;
+  panelOpen?: never;
+  onTogglePanel?: never;
+};
+
+type Props = (SinglePanelProps | MultiPanelProps) & {
   /** Always-visible inline controls (zoom, undo/redo) — pass icon buttons ≥44px. */
   controls?: ReactNode;
   /** Secondary actions folded into a ··· choice sheet. */
@@ -44,6 +67,9 @@ export function MarketingEditorMobileToolbar({
   panelIcon: PanelIcon,
   panelOpen,
   onTogglePanel,
+  panels,
+  activePanel,
+  onSelectPanel,
   controls,
   overflowItems,
   overflowLabel = 'More editor actions',
@@ -71,23 +97,45 @@ export function MarketingEditorMobileToolbar({
       >
         <div className={cn(mobileFloatingDockClassName, 'px-3 py-2.5')}>
           <div className="pointer-events-auto flex items-center gap-2">
-            <Button
-              type="button"
-              variant={panelOpen ? 'default' : 'outline'}
-              className="min-h-[44px] flex-1 justify-start gap-2"
-              aria-pressed={panelOpen}
-              onClick={onTogglePanel}
-            >
-              <PanelIcon className="size-4 shrink-0" aria-hidden />
-              <span className="truncate">{panelLabel}</span>
-              <ChevronUp
-                className={cn(
-                  'ml-auto size-4 shrink-0 transition-transform',
-                  panelOpen && 'rotate-180'
-                )}
-                aria-hidden
-              />
-            </Button>
+            {panels ? (
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                {panels.map((panel) => {
+                  const Icon = panel.icon;
+                  const selected = activePanel === panel.key;
+                  return (
+                    <Button
+                      key={panel.key}
+                      type="button"
+                      variant={selected ? 'default' : 'ghost'}
+                      className="h-auto min-h-[44px] min-w-0 flex-1 flex-col gap-0.5 px-1 py-1 text-[10px] font-medium leading-tight"
+                      aria-pressed={selected}
+                      onClick={() => onSelectPanel(selected ? null : panel.key)}
+                    >
+                      <Icon className="size-[18px] shrink-0" aria-hidden />
+                      <span className="max-w-full truncate">{panel.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : PanelIcon ? (
+              <Button
+                type="button"
+                variant={panelOpen ? 'default' : 'outline'}
+                className="min-h-[44px] flex-1 justify-start gap-2"
+                aria-pressed={panelOpen}
+                onClick={onTogglePanel}
+              >
+                <PanelIcon className="size-4 shrink-0" aria-hidden />
+                <span className="truncate">{panelLabel}</span>
+                <ChevronUp
+                  className={cn(
+                    'ml-auto size-4 shrink-0 transition-transform',
+                    panelOpen && 'rotate-180'
+                  )}
+                  aria-hidden
+                />
+              </Button>
+            ) : null}
 
             {controls ? <div className="flex shrink-0 items-center gap-1">{controls}</div> : null}
 

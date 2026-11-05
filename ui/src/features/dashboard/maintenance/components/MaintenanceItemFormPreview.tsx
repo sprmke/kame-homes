@@ -62,7 +62,7 @@ export function MaintenanceItemFormPreview({
   showRepeat,
   className,
 }: Props) {
-  const dateLabel = values.scheduled_on ? formatIsoDateForDisplay(values.scheduled_on) : '—';
+  const dateLabel = values.scheduled_on ? formatIsoDateForDisplay(values.scheduled_on) : '-';
   const notes = values.notes?.trim() || null;
   const repeats = values.recurrence_interval !== 'none';
   const repeatLine = repeats
@@ -79,7 +79,7 @@ export function MaintenanceItemFormPreview({
     <div className={cn('space-y-4', className)}>
       <div className="rounded-lg border px-3 py-3">
         <p className="truncate text-sm font-medium">{values.label.trim() || 'Untitled'}</p>
-        <p className="text-muted-foreground mt-1 text-xs">{values.category.trim() || '—'}</p>
+        <p className="text-muted-foreground mt-1 text-xs">{values.category.trim() || '-'}</p>
       </div>
 
       <ul className="divide-border divide-y rounded-lg border">

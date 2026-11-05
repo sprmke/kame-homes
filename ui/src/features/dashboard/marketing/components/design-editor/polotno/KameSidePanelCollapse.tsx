@@ -9,7 +9,17 @@ type Props = {
   store: PolotnoStore;
 };
 
-const VISIBLE_PANEL_NAMES = new Set(['text', 'elements', 'upload', 'background', 'layers']);
+const VISIBLE_PANEL_NAMES = new Set([
+  'text',
+  'elements',
+  'upload',
+  'background',
+  'layers',
+  'kame-templates',
+  'kame-collage',
+  'kame-reviews',
+  'kame-ai',
+]);
 
 export const KameSidePanelCollapse = observer(function KameSidePanelCollapse({ store }: Props) {
   const opened = (store as { openedSidePanel?: string }).openedSidePanel ?? '';

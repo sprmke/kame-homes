@@ -14,9 +14,18 @@ export type NotificationType =
   | 'calendar_conflict'
   | 'booking_external_imported'
   | 'booking_guest_form_completed'
+  | 'booking_cancellation_requested'
+  | 'booking_cancellation_request_resolved'
+  | 'booking_cancelled_by_guest'
+  | 'booking_refund_due'
   | 'smart_pricing_updated'
   | 'property_settings_copied'
-  | 'analytics_review_updated';
+  | 'analytics_review_updated'
+  | 'review_received'
+  | 'review_due'
+  | 'review_response_received'
+  | 'maintenance_guest_reported'
+  | 'guest_request_submitted';
 
 export type NotificationRecord = {
   id: string;
@@ -32,10 +41,17 @@ export type NotificationRecord = {
   isRead: boolean;
 };
 
+export type NotificationsUnreadSummary = {
+  inbox: number;
+  bookings: number;
+  reviews: number;
+};
+
 export type NotificationsPage = {
   notifications: NotificationRecord[];
   nextCursor: string | null;
   unreadCount: number;
+  unreadSummary?: NotificationsUnreadSummary;
 };
 
 /** Raw `notifications` row from postgres realtime (DB columns, not the list API DTO). */

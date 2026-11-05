@@ -4,6 +4,7 @@
 
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import {
+  isHostAnnouncementLive,
   parseHostAnnouncements,
   stampHostAnnouncementsForSave,
   validateHostAnnouncements,
@@ -17,6 +18,7 @@ import {
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
 import { logSuperAdminAction } from '../_shared/superAdminAudit.ts';
 import { requireSuperAdminStepUp } from '../_shared/superAdminVerification.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 serveSuperAdmin('update-platform-host-settings', async (req, user) => {
   const stepUp = await requireSuperAdminStepUp(req, user, 'platform_host_settings');
@@ -78,6 +80,19 @@ serveSuperAdmin('update-platform-host-settings', async (req, user) => {
     summary: 'Updated platform host announcements',
     metadata: { count: announcements.length },
   });
+
+  const beforeLive = parseHostAnnouncements(existing?.announcements).filter((a) =>
+    isHostAnnouncementLive(a)
+  ).length;
+  const afterLive = (data.announcements ?? []).filter((a) => isHostAnnouncementLive(a)).length;
+  if (afterLive > beforeLive) {
+    await capturePostHogEvent('announcement_published', {
+      logPrefix: 'update-platform-host-settings',
+      request: req,
+      distinctId: user.id,
+      properties: { audience: 'guests', channel_count: afterLive - beforeLive },
+    });
+  }
 
   return jsonSuccess(req, {
     announcements: data.announcements ?? [],

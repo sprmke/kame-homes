@@ -26,14 +26,14 @@ Layout-matched loading for host dashboard, super-admin, and guest/marketing surf
 
 ## Known exceptions (not bugs)
 
-| Area                      | Treatment                                                                                                                                                                                |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SD form / payment wait    | Centered spinner while provider resolves                                                                                                                                                 |
-| Button / mutation pending | Inline `Loader2` on the control                                                                                                                                                          |
-| Some lazy chunks          | `Suspense fallback={null}` where chrome already covers the surface                                                                                                                       |
-| `AdminSkeletons.tsx`      | Still monolithic; domain files added alongside, split deferred                                                                                                                           |
-| Polotno / video editor    | Toolbar or canvas busy states, not full page skeletons                                                                                                                                   |
-| Phase 7 checklist doc     | [`07-loading-skeletons.md`](../planned/production-readiness-checklist/07-loading-skeletons.md) tracks broader anti-flash inventory; this overhaul is the route-level + high-traffic pass |
+| Area                      | Treatment                                                                                                                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SD form / payment wait    | Centered spinner while provider resolves                                                                                                                                                     |
+| Button / mutation pending | Inline `Loader2` on the control                                                                                                                                                              |
+| Some lazy chunks          | `Suspense fallback={null}` where chrome already covers the surface                                                                                                                           |
+| `AdminSkeletons.tsx`      | Still monolithic; domain files added alongside, split deferred                                                                                                                               |
+| Polotno / video editor    | Toolbar or canvas busy states, not full page skeletons                                                                                                                                       |
+| Phase 7 checklist doc     | [`07-loading-skeletons.md`](../in-progress/production-readiness/checklist/07-loading-skeletons.md) tracks broader anti-flash inventory; this overhaul is the route-level + high-traffic pass |
 
 ## Reference
 

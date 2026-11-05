@@ -3,6 +3,10 @@
  * Sends active today's bookings (check-ins and in-house multi-night stays) + next 3 days to the staff Telegram group.
  */
 
+import {
+  isTelegramFeatureUnavailableError,
+  mapTelegramSendErrorToNotifySkip,
+} from './featureAvailability.ts';
 import { createClient } from './supabaseJs.ts';
 import { verifyCronSecret } from './cronSecretGate.ts';
 import { DatabaseService } from './databaseService.ts';
@@ -308,6 +312,7 @@ export type StaffNotifySkip =
   | 'notify_off'
   | 'missing_env'
   | 'send_failed'
+  | 'feature_unavailable'
   | 'no_settings'
   | 'not_qualified'
   | 'already_sent';
@@ -343,7 +348,12 @@ export async function notifyTelegramStaffSameDayCheckIn(
   );
   const r = await sendStaffTelegramMessage(text.slice(0, 4096), propertyIdFromRow(booking));
   if (!r.ok) {
-    return { sent: false, skip: 'send_failed', telegramError: r.error };
+    const skip = mapTelegramSendErrorToNotifySkip(r.error);
+    return {
+      sent: false,
+      skip,
+      ...(skip === 'send_failed' ? { telegramError: r.error } : {}),
+    };
   }
   return { sent: true };
 }
@@ -475,6 +485,10 @@ async function sendStaffTelegramMessage(
   text: string,
   scope?: TelegramAssetScopeRef | string | null
 ): Promise<{ ok: boolean; error?: string }> {
+  const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
+  if (await telegramDeliveryUnavailable()) {
+    return { ok: false, error: 'feature_unavailable' };
+  }
   const creds = await resolveStaffTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-staff] credentials issue:', creds.error);
@@ -776,8 +790,12 @@ export async function runStaffDailySummary(opts?: {
     const r = await sendStaffTelegramMessage(noBookingMsg.slice(0, 4096), opts.propertyId);
     return {
       sent: r.ok,
-      mode: r.ok ? 'no_bookings_sent' : 'error',
-      detail: r.error,
+      mode: r.ok
+        ? 'no_bookings_sent'
+        : isTelegramFeatureUnavailableError(r.error)
+          ? 'skipped'
+          : 'error',
+      detail: isTelegramFeatureUnavailableError(r.error) ? 'feature_unavailable' : r.error,
       todayBookingCount: 0,
       nextDaysBookingCount: nextDaysCount,
       messagesSent: r.ok ? 1 : 0,
@@ -816,7 +834,7 @@ export async function runStaffDailySummary(opts?: {
     const r = await sendStaffTelegramMessage(text.slice(0, 4096), opts.propertyId);
     if (r.ok) {
       messagesSent++;
-    } else if (r.error) {
+    } else if (r.error && !isTelegramFeatureUnavailableError(r.error)) {
       errors.push(r.error);
     }
   }
@@ -874,24 +892,24 @@ export function serializeStaffSettings(row: TelegramStaffSettings) {
     dailySummaryTimeManila: slot,
     dailySummaryUtcCronPreview: `${utcM} ${utcH} * * *`,
     placeholdersReference: [
-      '{{check_in_date}} — check-in date',
-      '{{check_out_date}} — check-out date',
-      '{{check_in_time}} — check-in time',
-      '{{check_out_time}} — check-out time',
-      '{{nights}} — number of nights',
-      '{{pax}} — number of guests',
-      '{{primary_guest_name}} — primary guest name',
-      '{{guest_phone}} — guest phone',
-      '{{decor_status}} — decor: "🎉 Yes" or "No"',
-      '{{pet_status}} — pets: "🐶 Yes" or "No"',
-      '{{has_decor}} — plain "Yes" or "No" for decor labels',
-      '{{has_pets}} — plain "Yes" or "No" for pet labels',
-      '{{decor_flag}} — "🎉 Has decor" or empty',
-      '{{pet_flag}} — "🐶 Has pets" or empty',
-      '{{special_requests}} — guest requests or "None"',
-      '{{total_guest_balance}} — guest balance due (₱ formatted)',
-      '{{ai_stay_summary}} — AI stay-details summary or "Not yet reviewed"',
-      '{{next_bookings}} — next 3 days (decor + pet flags only)',
+      '{{check_in_date}}: check-in date',
+      '{{check_out_date}}: check-out date',
+      '{{check_in_time}}: check-in time',
+      '{{check_out_time}}: check-out time',
+      '{{nights}}: number of nights',
+      '{{pax}}: number of guests',
+      '{{primary_guest_name}}: primary guest name',
+      '{{guest_phone}}: guest phone',
+      '{{decor_status}}: "🎉 Yes" or "No" for decor',
+      '{{pet_status}}: "🐶 Yes" or "No" for pets',
+      '{{has_decor}}: plain "Yes" or "No" for decor labels',
+      '{{has_pets}}: plain "Yes" or "No" for pet labels',
+      '{{decor_flag}}: "🎉 Has decor" or empty',
+      '{{pet_flag}}: "🐶 Has pets" or empty',
+      '{{special_requests}}: guest requests or "None"',
+      '{{total_guest_balance}}: guest balance due (₱ formatted)',
+      '{{ai_stay_summary}}: AI stay-details summary or "Not yet reviewed"',
+      '{{next_bookings}}: next 3 days (decor + pet flags only)',
     ],
     scenarios: [
       {

@@ -193,6 +193,7 @@ export const PLAN_TIER_CARD_GAINS: Record<string, string[]> = {
     'Public pages editor',
     'Property showcase & stay guide access',
     'Airbnb calendar sync',
+    'Review automation',
     'Smart AI Pricing',
     'Copy property settings',
     'Analytics export and AI review',
@@ -278,6 +279,18 @@ function planTierCardGains(planCode: string): PlanFeatureChange[] {
  * Group sequence matches `buildPropertyNavSections` (plus Visibility / AI / Managed,
  * which are not sidebar items).
  */
+/** 100 MB, 500 MB, 3 GB … — no decimals unless a tier actually uses a fractional GB. */
+function formatMediaStorage(storageMb: number): string {
+  if (storageMb < 1024) return `${storageMb} MB`;
+  const gb = storageMb / 1024;
+  return `${gb % 1 === 0 ? gb : gb.toFixed(1)} GB`;
+}
+
+/** 2,000 rather than 2000, without depending on the runtime locale. */
+function formatCount(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
 export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
   boolRow('automatedBookingFlow', 'Automated booking emails', 'bookings'),
   boolRow('bookingImport', 'AI booking import', 'bookings'),
@@ -288,6 +301,7 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
   boolRow('maintenanceReporting', 'Maintenance reporting & export', 'maintenance'),
 
   boolRow('calendarSync', 'Airbnb calendar sync', 'pricing'),
+  boolRow('reviewAutomation', 'Review automation', 'bookings'),
   boolRow('smartPricing', 'Smart AI Pricing', 'pricing'),
 
   boolRow('analyticsInsights', 'Analytics export and AI review', 'analytics'),
@@ -375,6 +389,21 @@ export const PLAN_FEATURE_ROWS: PlanFeatureRow[] = [
     rank: (features) => features.aiMonthlyCreditAllowance,
     describe: (features) =>
       `${features.aiMonthlyCreditAllowance.toLocaleString()} AI credits per month`,
+  },
+
+  {
+    key: 'marketingMediaLibrary',
+    label: 'Media library storage',
+    group: 'marketing',
+    value: (features) =>
+      features.marketingMediaLibrary.maxFiles > 0
+        ? { kind: 'text', text: formatMediaStorage(features.marketingMediaLibrary.storageMb) }
+        : { kind: 'off' },
+    rank: (features) => features.marketingMediaLibrary.storageMb,
+    describe: (features) => {
+      const lib = features.marketingMediaLibrary;
+      return `${formatMediaStorage(lib.storageMb)} of media storage, ${formatCount(lib.maxFiles)} files, ${lib.maxVideoSec}s video`;
+    },
   },
 
   boolRow(
@@ -883,8 +912,7 @@ export function planTierPitch(plan: OrgBundlePlanDto): string | null {
   return tagline;
 }
 
-export const PLANS_PAGE_SUBTITLE =
-  'Manage your organization’s subscription. One plan covers every property you enroll.';
+export { PLANS_PAGE_SUBTITLE } from '@/features/dashboard/plans/lib/plansPageCopy';
 
 export type PlanFaqItem = {
   question: string;

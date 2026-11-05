@@ -241,3 +241,26 @@ export function normalizePosterSpec(input: unknown, facts: PosterFacts): PosterS
     label: cleanPosterCopy(raw.label, { words: 6, chars: 40 }) || copy.headline,
   };
 }
+
+/**
+ * Keeps only the photos a post uses (hero first) and re-points its indexes at them.
+ * A saved post carries its own photo list, so it must not drag the whole listing along.
+ */
+export function compactPosterPhotos(
+  spec: PosterSpec,
+  photoUrls: readonly string[]
+): { spec: PosterSpec; photoUrls: string[] } {
+  const used: string[] = [];
+  const photoIndexes: number[] = [];
+  for (const index of spec.photoIndexes) {
+    const url = photoUrls[index];
+    if (!url) continue;
+    let at = used.indexOf(url);
+    if (at === -1) {
+      used.push(url);
+      at = used.length - 1;
+    }
+    photoIndexes.push(at);
+  }
+  return { spec: { ...spec, photoIndexes }, photoUrls: used };
+}

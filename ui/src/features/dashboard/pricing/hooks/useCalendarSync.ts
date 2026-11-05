@@ -19,7 +19,13 @@ import {
   type CalendarSyncClientError,
   type FeedSyncResult,
 } from '@/features/dashboard/pricing/lib/calendarSyncApi';
+import { suppressCalendarConflictRealtimeToasts } from '@/features/dashboard/pricing/lib/calendarConflictToastGate';
 import { PROPERTY_PRICING_QUERY_KEY } from '@/features/dashboard/pricing/lib/propertyPricingApi';
+import { handleFeatureUnavailableMutationError } from '@/lib/featureAvailability/featureUnavailableError';
+
+function conflictLabel(count: number): string {
+  return count === 1 ? '1 conflict' : `${count} conflicts`;
+}
 
 function toastSyncResult(r: FeedSyncResult): void {
   if (!r.ok) {
@@ -30,13 +36,23 @@ function toastSyncResult(r: FeedSyncResult): void {
     toast.success('Already up to date');
     return;
   }
-  toast.success(
-    `Synced: ${r.blocksCreated} added, ${r.blocksUpdated} changed, ${r.blocksRemoved} removed` +
-      (r.conflicts ? `, ${r.conflicts} conflict(s)` : '')
-  );
+  const summary = `${r.blocksCreated} added, ${r.blocksUpdated} changed, ${r.blocksRemoved} removed`;
+  if (r.conflicts > 0) {
+    suppressCalendarConflictRealtimeToasts();
+    toast.warning(
+      `Synced: ${summary}. ${conflictLabel(r.conflicts)}. Check Notifications or Recent activity.`
+    );
+    return;
+  }
+  toast.success(`Synced: ${summary}`);
 }
 
-function handleCalendarSyncError(error: Error, fallback: string): void {
+function handleCalendarSyncError(
+  error: Error,
+  fallback: string,
+  queryClient: ReturnType<typeof useQueryClient>
+): void {
+  if (handleFeatureUnavailableMutationError(error, queryClient)) return;
   const err = error as CalendarSyncClientError;
   if (err.upgradeRequired) {
     const feature: PlanFeatureKey = err.feature ?? 'calendarSync';
@@ -68,10 +84,15 @@ function useInvalidateCalendarSync() {
 
 export function useAddCalendarFeed() {
   const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (input: { provider: CalendarFeedProvider; label?: string; icsUrl: string }) =>
       addCalendarFeed(propertyId!, input),
+    onMutate: () => {
+      // Cover the race where conflict notifications arrive over realtime before onSuccess.
+      suppressCalendarConflictRealtimeToasts();
+    },
     onSuccess: (data) => {
       invalidate();
       const sync = data.initialSync;
@@ -91,17 +112,23 @@ export function useAddCalendarFeed() {
         toast.success('Calendar connected');
         return;
       }
-      toast.success(
-        `Calendar connected: ${sync.blocksCreated} imported` +
-          (sync.conflicts ? `, ${sync.conflicts} conflict(s)` : '')
-      );
+      if (sync.conflicts > 0) {
+        suppressCalendarConflictRealtimeToasts();
+        toast.warning(
+          `Calendar connected: ${sync.blocksCreated} imported. ${conflictLabel(sync.conflicts)}. Check Notifications or Recent activity.`
+        );
+        return;
+      }
+      toast.success(`Calendar connected: ${sync.blocksCreated} imported`);
     },
-    onError: (error: Error) => handleCalendarSyncError(error, 'Could not connect calendar'),
+    onError: (error: Error) =>
+      handleCalendarSyncError(error, 'Could not connect calendar', queryClient),
   });
 }
 
 export function useUpdateCalendarFeed() {
   const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (input: { feedId: string; label?: string; icsUrl?: string; isActive?: boolean }) =>
@@ -110,12 +137,14 @@ export function useUpdateCalendarFeed() {
       invalidate();
       toast.success('Calendar updated');
     },
-    onError: (error: Error) => handleCalendarSyncError(error, 'Could not update calendar'),
+    onError: (error: Error) =>
+      handleCalendarSyncError(error, 'Could not update calendar', queryClient),
   });
 }
 
 export function useRemoveCalendarFeed() {
   const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (input: { feedId: string; deleteData: boolean }) =>
@@ -124,29 +153,36 @@ export function useRemoveCalendarFeed() {
       invalidate();
       toast.success('Calendar removed');
     },
-    onError: (error: Error) => handleCalendarSyncError(error, 'Could not remove calendar'),
+    onError: (error: Error) =>
+      handleCalendarSyncError(error, 'Could not remove calendar', queryClient),
   });
 }
 
 export function useSetExportEnabled() {
   const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (enabled: boolean) => setExportEnabled(propertyId!, enabled),
     onSuccess: () => invalidate(),
-    onError: (error: Error) => handleCalendarSyncError(error, 'Could not update export'),
+    onError: (error: Error) =>
+      handleCalendarSyncError(error, 'Could not update export', queryClient),
   });
 }
 
 export function useSyncFeedNow() {
   const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
     mutationFn: (feedId: string) => syncFeedNow(propertyId!, feedId),
+    onMutate: () => {
+      suppressCalendarConflictRealtimeToasts();
+    },
     onSuccess: (data) => {
       invalidate();
       toastSyncResult(data.result);
     },
-    onError: (error: Error) => handleCalendarSyncError(error, 'Sync failed'),
+    onError: (error: Error) => handleCalendarSyncError(error, 'Sync failed', queryClient),
   });
 }

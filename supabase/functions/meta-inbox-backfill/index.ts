@@ -9,7 +9,8 @@ import { resolveInboxAccess } from '../_shared/inboxAccess.ts';
 import { createServiceClient, verifyAuthenticatedUser } from '../_shared/orgAuth.ts';
 import { resolveSupabaseServiceRoleKey } from '../_shared/supabaseRuntimeEnv.ts';
 import type { SocialChannelConnectionRow } from '../_shared/socialInboxTypes.ts';
-import { capturePostHogException } from '../_shared/posthog.ts';
+import { isFeatureAvailable } from '../_shared/featureAvailability.ts';
+import { captureSentryException } from '../_shared/sentry.ts';
 
 function isServiceRoleRequest(req: Request): boolean {
   const auth = req.headers.get('Authorization') ?? '';
@@ -75,6 +76,17 @@ serve(async (req) => {
     return jsonError(req, 'No Meta connection', 404);
   }
 
+  if (!(await isFeatureAvailable('inbox.meta.sync'))) {
+    return jsonSuccess(req, {
+      done: true,
+      phase: 'complete',
+      nextUrl: null,
+      syncedInChunk: 0,
+      metaHasMore: false,
+      metaSyncPaused: true,
+    });
+  }
+
   try {
     const { backfillOrgMetaInboxChunk, finalizeMetaInboxSync } =
       await import('../_shared/metaInboxBackfill.ts');
@@ -99,7 +111,13 @@ serve(async (req) => {
     return jsonSuccess(req, result);
   } catch (e) {
     console.error('[meta-inbox-backfill]', e);
-    await capturePostHogException(e, { logPrefix: 'meta-inbox-backfill', request: req });
+    await captureSentryException(e, {
+      logPrefix: 'meta-inbox-backfill',
+      url: req.url,
+      method: req.method,
+      tags: { provider: 'meta' },
+      fingerprint: ['meta-inbox-backfill'],
+    });
     return jsonError(req, (e as Error).message, 500);
   }
 });

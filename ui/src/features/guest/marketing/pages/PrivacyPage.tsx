@@ -1,7 +1,7 @@
 import { LegalSimplePage } from '@/features/guest/marketing/legal/components/LegalSimplePage';
 
 import { publicPageTitle, usePageTitle } from '@/lib/pageTitle';
-import { PLATFORM_APP_NAME, PLATFORM_CONTACT_EMAIL } from '@/lib/platformBranding';
+import { PLATFORM_APP_NAME, PLATFORM_CONTACT_EMAIL, platformFormerNameNote } from '@/lib/platformBranding';
 
 const platformScopeLabel = PLATFORM_APP_NAME ? `${PLATFORM_APP_NAME} ` : '';
 
@@ -20,6 +20,7 @@ export function PrivacyPage() {
           title: 'Scope',
           paragraphs: [
             `This policy covers the ${platformScopeLabel}marketing site, guest booking and operational flows, guest portal, and host dashboards. Contact: ${PLATFORM_CONTACT_EMAIL} · Manila, Philippines.`,
+            `${platformFormerNameNote()} This policy was last updated on 3 November 2026.`,
             'Property-specific messages or house rules may add stay instructions; they do not replace this policy for how the platform processes data.',
           ],
         },
@@ -37,6 +38,14 @@ export function PrivacyPage() {
             'We use personal data to fulfill bookings, verify identity and documents, communicate about stays, process security-deposit refunds, operate host dashboards (availability calendar, email, messaging, finance, maintenance, marketing), and meet legal obligations.',
             'AI features (for example receipt or document validation, marketing caption suggestions, inbox reply suggestions, and voice receptionist where enabled) process relevant content to produce suggestions or checks for hosts. We do not sell personal information.',
             'When you start the voice receptionist, microphone audio is sent to Google Gemini for live processing. We do not store raw voice audio. Live captions may be stored as an unverified session transcript.',
+          ],
+        },
+        {
+          title: 'Reviews',
+          paragraphs: [
+            'Guests may leave a stay review (overall rating, category ratings, optional text, photos, and a private note to the host). Hosts may leave a guest review (overall and category ratings, would-host-again, optional text, a private note to the guest, and a team-only internal note).',
+            'Published guest reviews appear on the listing and org host page. Published host reviews of a guest are shown to that guest and to hosts at properties the guest later requests or books, for screening. Screening hosts see averages, tags, and recent review text with the authoring stay generalized to an area. Internal notes never leave the authoring organization.',
+            `You can read and respond to reviews about you from the guest Reviews page after they publish. Request a correction or removal by emailing ${PLATFORM_CONTACT_EMAIL} or by reporting the review in the app. Removed reviews drop out of public and screening aggregates. We keep published reviews while the property exists and purge removed reviews after 24 months.`,
           ],
         },
         {
@@ -64,8 +73,9 @@ export function PrivacyPage() {
         {
           title: 'Analytics and error reporting',
           paragraphs: [
-            'When enabled, we use PostHog (first-party analytics) to understand product usage, funnels, and client-side errors. Events use pseudonymous ids and avoid message bodies, government IDs, and payment account details. Host dashboards may include email on the person profile; guest account sessions do not.',
+            'When enabled, we use PostHog (first-party analytics) to understand product usage and funnels. Events use pseudonymous ids and avoid message bodies, government IDs, and payment account details. Host dashboards may include email on the person profile; guest account sessions do not. PostHog is not used for error reporting.',
             'We do not sell personal information or use ad-network pixels for retargeting.',
+            'We use Sentry as an error monitoring processor. When something breaks, it records the technical details of the failure, a pseudonymous user id, and the page it happened on. It does not store names, emails, phone numbers, message content, or IP addresses, and retention follows our Sentry plan (90 days by default).',
           ],
         },
         {

@@ -67,7 +67,7 @@ export function OperatingLineItemFormPreview({
 }: Props) {
   const kindLabel = values.kind === 'income' ? 'Income' : 'Expense';
   const amountLabel = formatMoney(values.amount);
-  const dateLabel = values.occurred_on ? formatIsoDateForDisplay(values.occurred_on) : '—';
+  const dateLabel = values.occurred_on ? formatIsoDateForDisplay(values.occurred_on) : '-';
   const notes = values.notes?.trim() || null;
   const repeats = values.recurrence_interval !== 'none';
   const repeatLine = repeats
@@ -90,7 +90,7 @@ export function OperatingLineItemFormPreview({
       </div>
 
       <ul className="divide-border divide-y rounded-lg border">
-        <PreviewRow label="Category" value={values.category.trim() || '—'} />
+        <PreviewRow label="Category" value={values.category.trim() || '-'} />
         <PreviewRow label="Date" value={dateLabel} />
         {showRepeat ? <PreviewRow label="Repeat" value={repeatLine} /> : null}
         {isEdit && isRecurringEdit ? (

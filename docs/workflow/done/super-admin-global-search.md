@@ -1,9 +1,9 @@
 ---
 stage: done
 title: 'Super Admin global search (⌘K)'
-status: in-progress
+status: done
 tags: [planning, planned-modules, super-admin, admin, search]
-updated: 2026-09-06
+updated: 2026-11-04
 ---
 
 ## Status (2026-09-05)

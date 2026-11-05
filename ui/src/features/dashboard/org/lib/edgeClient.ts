@@ -1,4 +1,5 @@
-import { captureAppEvent } from '@/lib/posthog/capture';
+import { newRequestId, readServerRequestId } from '@/lib/api/edgeRequestId';
+import { reportEdgeFailure } from '@/lib/api/reportEdgeFailure';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -132,24 +133,34 @@ async function callEdgeFunctionInner<T>(
 ): Promise<T> {
   const jwt = await getSessionJwt();
   const otpToken = readSuperAdminOtpToken();
-  const res = await fetch(`${FUNCTIONS_URL}/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      'Content-Type': 'application/json',
-      ...(otpToken ? { 'x-superadmin-otp': otpToken } : {}),
-      ...init?.headers,
-    },
-  });
+  const requestId = newRequestId();
+  let res: Response;
+  try {
+    res = await fetch(`${FUNCTIONS_URL}/${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+        'x-request-id': requestId,
+        ...(otpToken ? { 'x-superadmin-otp': otpToken } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch (error) {
+    // A dead request: no response to inspect, so report it here before rethrowing.
+    reportEdgeFailure({ path, status: 0, method: init?.method, requestId });
+    throw error;
+  }
   const json = await res.json().catch(() => ({}) as Record<string, unknown>);
 
   if (!res.ok || !json.success) {
-    if (res.status >= 500) {
-      captureAppEvent('edge_request_failed', {
-        edge_path: path.split('?')[0] ?? path,
-        http_status: res.status,
-      });
-    }
+    // 5xx and network faults are Sentry's; 4xx is the handler answering correctly.
+    reportEdgeFailure({
+      path,
+      status: res.status,
+      method: init?.method,
+      requestId: readServerRequestId(res, json) ?? requestId,
+    });
 
     if (
       !isStepUpRetry &&

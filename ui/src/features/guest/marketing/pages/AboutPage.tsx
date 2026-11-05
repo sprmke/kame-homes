@@ -66,7 +66,7 @@ export function AboutPage() {
         <div className="flex flex-wrap items-center justify-center gap-2.5 md:gap-3">
           <Button
             size="lg"
-            className="bg-primary hover:bg-primary/90 h-11 rounded-full px-5 text-[15px] font-semibold text-white md:h-12 md:px-8 md:text-base"
+            className="bg-primary-strong hover:bg-primary/90 h-11 rounded-full px-5 text-[15px] font-semibold text-white md:h-12 md:px-8 md:text-base"
             asChild
           >
             <Link to="/for-hosts">Become a host</Link>
@@ -110,12 +110,12 @@ export function AboutPage() {
             For product questions, host onboarding, or guest stay issues, email{' '}
             <a
               href={`mailto:${PLATFORM_CONTACT_EMAIL}`}
-              className="text-primary font-medium hover:underline"
+              className="text-brand-ink font-medium hover:underline"
             >
               {PLATFORM_CONTACT_EMAIL}
             </a>{' '}
             or use{' '}
-            <Link to="/contact" className="text-primary font-medium hover:underline">
+            <Link to="/contact" className="text-brand-ink font-medium hover:underline">
               Contact
             </Link>
             .

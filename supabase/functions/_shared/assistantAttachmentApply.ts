@@ -104,7 +104,7 @@ export async function downloadAssistantAttachment(input: {
   if (error || !data) {
     throw new Error(
       error?.message?.includes('not found') || error?.message?.includes('Object not found')
-        ? 'Attachment no longer available — please re-attach the file'
+        ? 'Attachment no longer available - please re-attach the file'
         : `Failed to load attachment: ${error?.message ?? 'unknown error'}`
     );
   }

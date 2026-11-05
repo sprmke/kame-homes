@@ -5,13 +5,14 @@
 
 import { expect, type Page, type Route } from '@playwright/test';
 
+import { featureAvailabilityBody } from '../../../shared/featureAvailabilityMocks';
 import { mockPublicPropertyBody } from '../../../shared/mockFixtures';
 import { PLAN_PRO, PLANS_E2E_CATALOG } from '../../plans/shared/orgPlanHarnessShared';
 
 const ORG_ID = 'org-team-e2e-001';
 export const TEAM_E2E_PROPERTY_ID = 'property-team-e2e-001';
 export const TEAM_E2E_PROPERTY_ID_2 = 'property-team-e2e-002';
-export const TEAM_E2E_ORG_SLUG = 'kame-homes-ph';
+export const TEAM_E2E_ORG_SLUG = 'sample-stays-ph';
 export const TEAM_E2E_PROPERTY_SLUG = 'solea-mactan';
 export const TEAM_E2E_PROPERTY_SLUG_2 = 'solea-cebu';
 export const TEAM_E2E_PROPERTY_NAME_2 = 'Solea Cebu';
@@ -38,6 +39,8 @@ export type PropertyTeamRbacMockOpts = {
   aiModeEnabled?: boolean;
   /** Server-saved dashboard mode returned by user-ui-preferences GET. */
   savedDashboardMode?: 'advanced' | 'ai';
+  /** Keys returned as unavailable from `get-feature-availability`. */
+  featureAvailabilityOff?: string[];
 };
 
 /** Last dashboard mode PATCHed to user-ui-preferences in this test (mock server state). */
@@ -81,6 +84,8 @@ export const FULL_ACCESS_PERMISSIONS = [
   'pricing.blocks:add',
   'pricing.blocks:delete',
   'pricing.smartPricing:edit',
+  'pricing.channels:view',
+  'pricing.channels:edit',
   'maintenance:view',
   'maintenance.reminders:add',
   'maintenance.reminders:edit',
@@ -126,6 +131,9 @@ export const FULL_ACCESS_PERMISSIONS = [
   'analytics.aiReview:add',
   'assistant:view',
   'activity:view',
+  'reviews:view',
+  'reviews.guests:edit',
+  'reviews.responses:edit',
 ] as const;
 
 /** Operations seeded template (ex-Staff) — includes Marketing; excludes Finance/Settings/Team manage. */
@@ -160,6 +168,9 @@ export const OPERATIONS_PERMISSIONS = [
   'analytics:view',
   'assistant:view',
   'activity:view',
+  'reviews:view',
+  'reviews.guests:edit',
+  'reviews.responses:edit',
 ] as const;
 
 /** Read Only seeded template — no Marketing, Finance, Settings. */
@@ -173,6 +184,7 @@ export const READ_ONLY_PERMISSIONS = [
   'team:view',
   'inbox:view',
   'activity:view',
+  'reviews:view',
 ] as const;
 
 export type TeamRbacTemplate = 'full_access' | 'operations' | 'read_only';
@@ -183,6 +195,9 @@ export const teamRbacPaths = {
   bookings: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/bookings`,
   finance: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/finance`,
   marketing: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/marketing`,
+  /** Straight into the Property colors workspace (skips the first-visit theme picker). */
+  marketingWorkspace: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/marketing?theme=property-colors`,
+  reviews: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/reviews`,
   settings: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/settings`,
   team: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/team`,
   publicPages: `/org/${TEAM_E2E_ORG_SLUG}/property/${TEAM_E2E_PROPERTY_SLUG}/public-pages`,
@@ -193,6 +208,7 @@ export const orgHubPaths = {
   dashboard: `/org/${TEAM_E2E_ORG_SLUG}/dashboard`,
   bookings: `/org/${TEAM_E2E_ORG_SLUG}/bookings`,
   properties: `/org/${TEAM_E2E_ORG_SLUG}/properties`,
+  reviews: `/org/${TEAM_E2E_ORG_SLUG}/reviews`,
   team: `/org/${TEAM_E2E_ORG_SLUG}/team`,
 } as const;
 
@@ -238,7 +254,7 @@ function organizationList() {
     organizations: [
       {
         id: ORG_ID,
-        name: 'Kame Homes PH',
+        name: 'Sample Stays PH',
         slug: TEAM_E2E_ORG_SLUG,
         description: null,
         logoUrl: null,
@@ -302,7 +318,7 @@ function propertyAccessPayload(permissions: readonly string[]) {
     memberId: 'member-team-e2e-001',
     propertyId: TEAM_E2E_PROPERTY_ID,
     orgSlug: TEAM_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     propertySlug: TEAM_E2E_PROPERTY_SLUG,
     propertyName: 'Solea Mactan',
     planLimited: false,
@@ -685,7 +701,7 @@ function orgAccessPayload(orgHub = false) {
       permissions: ['org:properties:view', 'org:bookings:view'] as string[],
       orgId: ORG_ID,
       orgSlug: TEAM_E2E_ORG_SLUG,
-      orgName: 'Kame Homes PH',
+      orgName: 'Sample Stays PH',
     };
   }
   return {
@@ -707,12 +723,13 @@ function orgAccessPayload(orgHub = false) {
       'org.analytics:view',
       'org.analytics:export',
       'org.activity:view',
+      'org.reviews:view',
     ],
     memberId: null,
     canListAllProperties: true,
     orgId: ORG_ID,
     orgSlug: TEAM_E2E_ORG_SLUG,
-    orgName: 'Kame Homes PH',
+    orgName: 'Sample Stays PH',
     canManageTeam: true,
     canInviteTeam: true,
     canCreateProperties: true,
@@ -1073,6 +1090,109 @@ function marketingGenerationJobFixture(overrides: Record<string, unknown> = {}) 
   };
 }
 
+type ReviewsTab = 'received' | 'written' | 'to_write' | 'properties';
+
+const REVIEW_CATEGORY_RATINGS = {
+  cleanliness: 5,
+  accuracy: 5,
+  check_in: 5,
+  communication: 5,
+  location: 5,
+  value: 5,
+};
+
+function reviewsSummary() {
+  return {
+    count: 1,
+    avgOverall: 5,
+    distribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 1 },
+    categoryAvgs: REVIEW_CATEGORY_RATINGS,
+    categorySample: 1,
+    responseRate: 0,
+    dueCount: 1,
+  };
+}
+
+function receivedReviewRow() {
+  return {
+    id: 'review-received-1',
+    bookingId: 'booking-review-1',
+    guestName: 'Maria Santos',
+    starRating: 5,
+    reviewText: 'Great stay.',
+    privateNote: null,
+    categoryRatings: REVIEW_CATEGORY_RATINGS,
+    feedbackTags: [],
+    mediaUrls: [],
+    responseText: null,
+    publishedAt: new Date(Date.now() - 86_400_000).toISOString(),
+    checkInDate: '2026-10-01',
+    checkOutDate: '2026-10-03',
+  };
+}
+
+function writtenReviewRow() {
+  return {
+    id: 'review-written-1',
+    bookingId: 'booking-written-1',
+    guestName: 'Maria Santos',
+    overallRating: 5,
+    reviewText: 'Lovely guest.',
+    status: 'published',
+    wouldHostAgain: true,
+    responseText: null,
+    closesAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    submittedAt: new Date(Date.now() - 86_400_000).toISOString(),
+  };
+}
+
+function toWriteReviewRow() {
+  return {
+    bookingId: 'booking-towrite-1',
+    guestName: 'Maria Santos',
+    closesAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    checkInDate: '2026-10-01',
+    checkOutDate: '2026-10-03',
+  };
+}
+
+function reviewsItems(tab: ReviewsTab) {
+  if (tab === 'to_write') return [toWriteReviewRow()];
+  if (tab === 'written') return [writtenReviewRow()];
+  return [receivedReviewRow()];
+}
+
+function propertyReviewsPage(tab: ReviewsTab) {
+  return {
+    tab: tab === 'properties' ? 'received' : tab,
+    summary: reviewsSummary(),
+    items: reviewsItems(tab),
+    total: 1,
+  };
+}
+
+function orgReviewsPage(tab: ReviewsTab) {
+  const listing = {
+    propertyId: TEAM_E2E_PROPERTY_ID,
+    propertySlug: TEAM_E2E_PROPERTY_SLUG,
+    propertyName: 'Solea Mactan',
+  };
+  return {
+    tab: tab === 'properties' ? 'received' : tab,
+    summary: {
+      ...reviewsSummary(),
+      properties: [{ ...listing, count: 1, avgOverall: 5, responseRate: 0, dueCount: 1 }],
+    },
+    items: reviewsItems(tab).map((item) => ({
+      ...item,
+      ...listing,
+      canRespond: true,
+      canWrite: true,
+    })),
+    total: 1,
+  };
+}
+
 export async function installPropertyTeamRbacMocks(
   page: Page,
   template: TeamRbacTemplate,
@@ -1088,6 +1208,7 @@ export async function installPropertyTeamRbacMocks(
   const customTemplateSeeded = Boolean(opts?.customTemplateSeeded);
   const crossPropertyBookingSeeded = Boolean(opts?.crossPropertyBookingSeeded);
   const aiModeEnabled = Boolean(opts?.aiModeEnabled);
+  const featureAvailabilityOff = opts?.featureAvailabilityOff ?? [];
   savedDashboardModeState = opts?.savedDashboardMode ?? 'advanced';
   let assistantTurn = 0;
   let orgSettingsState = orgSettingsPayload();
@@ -1231,6 +1352,29 @@ export async function installPropertyTeamRbacMocks(
         await fulfillJson(route, { success: true, data: rows, total: rows.length });
         return;
       }
+      case 'list-property-reviews': {
+        const tab = url.searchParams.get('tab') ?? 'received';
+        await fulfillJson(route, { success: true, data: propertyReviewsPage(tab as ReviewsTab) });
+        return;
+      }
+      case 'list-org-reviews': {
+        const tab = url.searchParams.get('tab') ?? 'received';
+        await fulfillJson(route, { success: true, data: orgReviewsPage(tab as ReviewsTab) });
+        return;
+      }
+      case 'respond-to-guest-review':
+      case 'submit-host-guest-review':
+        await fulfillJson(route, { success: true, data: { saved: true } });
+        return;
+      case 'report-review':
+        await fulfillJson(route, { success: true, data: { reported: true } });
+        return;
+      case 'get-guest-reputation':
+        await fulfillJson(route, {
+          success: true,
+          data: { hostReview: null, canHostReview: true, guest: { name: 'Maria Santos' } },
+        });
+        return;
       case 'notifications-list':
         await fulfillJson(route, {
           success: true,
@@ -1351,8 +1495,60 @@ export async function installPropertyTeamRbacMocks(
       case 'dashboard-assistant-confirm': {
         const body = route.request().postDataJSON() as {
           actionId?: string;
+          planId?: string;
           confirm?: boolean;
+          selectedStepIds?: string[];
         };
+        if (body.planId) {
+          const plan = assistantChatBlocks.find(
+            (block) => block.type === 'action_plan' && block.planId === body.planId
+          ) as (AssistantChatBlock & { steps?: Array<Record<string, unknown>> }) | undefined;
+          const steps = plan?.steps ?? [];
+          const selected = new Set(body.selectedStepIds ?? steps.map((s) => s.stepId as string));
+
+          let planStatus: 'completed' | 'partially_failed' | 'cancelled' = body.confirm
+            ? 'completed'
+            : 'cancelled';
+          const resultSteps = steps.map((step) => {
+            const stepId = step.stepId as string;
+            if (!body.confirm) {
+              return { ...step, status: 'denied', errorMessage: undefined };
+            }
+            if (!selected.has(stepId)) {
+              return { ...step, status: 'skipped', errorMessage: 'Not selected.' };
+            }
+            if (step._mockForceFail) {
+              planStatus = 'partially_failed';
+              return {
+                ...step,
+                status: 'failed',
+                errorMessage: (step._mockErrorMessage as string) ?? 'Mocked failure for this step.',
+              };
+            }
+            return { ...step, status: 'executed', errorMessage: undefined };
+          });
+
+          await fulfillJson(route, {
+            success: true,
+            data: {
+              status: planStatus,
+              steps: resultSteps.map((s) => ({
+                id: s.stepId,
+                toolName: s.toolName,
+                stepIndex: s.stepIndex,
+                status: s.status,
+                ok: s.status === 'executed',
+                error: s.status === 'failed' ? s.errorMessage : undefined,
+              })),
+              blocks: assistantChatBlocks.map((block) =>
+                block.type === 'action_plan' && block.planId === body.planId
+                  ? { ...block, status: planStatus, steps: resultSteps }
+                  : block
+              ),
+            },
+          });
+          return;
+        }
         await fulfillJson(route, {
           success: true,
           data: {
@@ -1412,6 +1608,26 @@ export async function installPropertyTeamRbacMocks(
       case 'maintenance-items':
         await fulfillJson(route, { success: true, data: [] });
         return;
+      case 'calendar-sync-settings':
+        await fulfillJson(route, {
+          success: true,
+          data: {
+            feeds: [],
+            export: {
+              enabled: false,
+              rotatedAt: null,
+              lastServedAt: null,
+              urls: {
+                all: 'https://example.com/ical/all',
+                airbnb: 'https://example.com/ical/airbnb',
+                booking_com: 'https://example.com/ical/booking-com',
+                vrbo: 'https://example.com/ical/vrbo',
+              },
+            },
+            recentEvents: [],
+          },
+        });
+        return;
       case 'property-pricing':
         await fulfillJson(route, {
           success: true,
@@ -1436,6 +1652,9 @@ export async function installPropertyTeamRbacMocks(
         return;
       case 'marketing-templates':
         await fulfillJson(route, { success: true, data: { templates: [] } });
+        return;
+      case 'marketing-themes':
+        await fulfillJson(route, { success: true, data: { themes: [], itemCounts: {} } });
         return;
       case 'org-team-members':
         await fulfillJson(route, { success: true, data: orgTeamMembersPayload() });
@@ -1535,6 +1754,12 @@ export async function installPropertyTeamRbacMocks(
           ];
           await fulfillJson(route, { success: true, data: { reference } });
         }
+        return;
+      case 'get-feature-availability':
+        await fulfillJson(
+          route,
+          featureAvailabilityBody(featureAvailabilityOff.map((key) => ({ key })))
+        );
         return;
       default:
         await fulfillJson(route, { success: true, data: {} });

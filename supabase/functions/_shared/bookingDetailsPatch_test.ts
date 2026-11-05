@@ -5,6 +5,7 @@ import {
   BOOKING_PATCH_COLUMN_PERMISSIONS,
   assertBookingPropertyScope,
   bookingAssetClearPatch,
+  assertStayDateOrder,
   canRescheduleBookingAtStatus,
   impliedBookingPatchColumns,
   requiredPermissionsForOperation,
@@ -30,7 +31,7 @@ Deno.test('requiredPermissionsForPatchColumns maps stay vs pricing leaves', () =
   );
 });
 
-Deno.test('requiredPermissionsForOperation — clear_asset uses asset leaf', () => {
+Deno.test('requiredPermissionsForOperation - clear_asset uses asset leaf', () => {
   assertEquals(
     requiredPermissionsForOperation('clear_asset', { assetType: 'valid_id' }),
     ['bookings.detail.guests:edit']
@@ -41,7 +42,7 @@ Deno.test('requiredPermissionsForOperation — clear_asset uses asset leaf', () 
   );
 });
 
-Deno.test('requiredPermissionsForOperation — reschedule requires stay edit', () => {
+Deno.test('requiredPermissionsForOperation - reschedule requires stay edit', () => {
   assertEquals(requiredPermissionsForOperation('reschedule', {}), [
     'bookings.detail.stay:edit',
   ]);
@@ -167,6 +168,23 @@ Deno.test('sanitizeBookingPatchPayload rejects invalid dates and non-finite mone
   assertEquals(sanitizeBookingPatchPayload({ balance: null }).balance, null);
 });
 
+Deno.test('sanitizeBookingPatchPayload allows a blank pet vaccination date', () => {
+  assertEquals(
+    sanitizeBookingPatchPayload({ pet_vaccination_date: null }).pet_vaccination_date,
+    null
+  );
+  assertEquals(sanitizeBookingPatchPayload({ pet_vaccination_date: '' }).pet_vaccination_date, null);
+  assertEquals(
+    sanitizeBookingPatchPayload({ pet_vaccination_date: '2026-01-10' }).pet_vaccination_date,
+    '2026-01-10'
+  );
+  assertThrows(
+    () => sanitizeBookingPatchPayload({ pet_vaccination_date: 'not-a-date' }),
+    Error,
+    'valid date'
+  );
+});
+
 Deno.test('sanitizeBookingPatchPayload validates settlement line items', () => {
   assertThrows(
     () =>
@@ -181,4 +199,12 @@ Deno.test('sanitizeBookingPatchPayload validates settlement line items', () => {
     Error,
     'must not be negative'
   );
+});
+
+Deno.test('assertStayDateOrder - same-day allowed, inverted rejected', () => {
+  assertStayDateOrder('2026-01-10', '2026-01-10');
+  assertStayDateOrder('2026-01-10', '2026-01-12');
+  assertStayDateOrder('01-10-2026', '01-10-2026');
+  assertThrows(() => assertStayDateOrder('2026-01-12', '2026-01-10'));
+  assertThrows(() => assertStayDateOrder('not-a-date', '2026-01-10'));
 });

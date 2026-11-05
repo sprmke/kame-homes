@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dashboardModeStorageKey,
   readCachedDashboardMode,
+  reconcileDashboardModeOnUserId,
   resolveDashboardModeAvailability,
   resolveEffectiveDashboardMode,
   writeCachedDashboardMode,
@@ -76,5 +77,47 @@ describe('resolveEffectiveDashboardMode', () => {
     expect(resolveEffectiveDashboardMode('ai', 'locked')).toBe('advanced');
     expect(resolveEffectiveDashboardMode('ai', 'hidden')).toBe('advanced');
     expect(resolveEffectiveDashboardMode('advanced', 'available')).toBe('advanced');
+  });
+});
+
+describe('reconcileDashboardModeOnUserId', () => {
+  it('keeps a ?mode= choice when auth userId first arrives', () => {
+    expect(
+      reconcileDashboardModeOnUserId({
+        previousUserId: null,
+        nextUserId: 'u1',
+        inSessionChoice: true,
+      })
+    ).toBe('keep-session');
+  });
+
+  it('hydrates from cache when there was no in-session override', () => {
+    expect(
+      reconcileDashboardModeOnUserId({
+        previousUserId: null,
+        nextUserId: 'u1',
+        inSessionChoice: false,
+      })
+    ).toBe('hydrate-cache');
+  });
+
+  it('treats a real user switch as a cache hydrate', () => {
+    expect(
+      reconcileDashboardModeOnUserId({
+        previousUserId: 'u1',
+        nextUserId: 'u2',
+        inSessionChoice: true,
+      })
+    ).toBe('hydrate-cache');
+  });
+
+  it('no-ops when the user id did not change', () => {
+    expect(
+      reconcileDashboardModeOnUserId({
+        previousUserId: 'u1',
+        nextUserId: 'u1',
+        inSessionChoice: true,
+      })
+    ).toBe('noop');
   });
 });

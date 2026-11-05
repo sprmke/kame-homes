@@ -19,6 +19,7 @@ import { createServiceClient, verifyPropertyAccess } from '../_shared/orgAuth.ts
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { readPropertyIdFromUrl, resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { rateLimitGate } from '../_shared/rateLimit.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 const ONE_DAY_SEC = 86_400;
@@ -59,6 +60,8 @@ serveAuthenticated('analytics-ai-review', async (req) => {
   const supabase = createServiceClient();
 
   if (req.method === 'GET') {
+    const featureBlocked = await featureUnavailableResponse(req, 'analytics.ai_review', { user });
+    if (featureBlocked) return featureBlocked;
     const { data, error } = await supabase
       .from('property_analytics_reviews')
       .select(
@@ -77,6 +80,15 @@ serveAuthenticated('analytics-ai-review', async (req) => {
 
   // Generating spends AI credits, so it needs the dedicated leaf, not just `analytics:view`.
   await verifyPropertyAccess(req, property.id, 'analytics.aiReview:add');
+
+  const regenerateBlocked = await featureUnavailableResponse(
+    req,
+    'analytics.ai_review.regenerate',
+    {
+      user,
+    }
+  );
+  if (regenerateBlocked) return regenerateBlocked;
 
   try {
     await requirePropertyFeature(property.id, 'analyticsInsights');

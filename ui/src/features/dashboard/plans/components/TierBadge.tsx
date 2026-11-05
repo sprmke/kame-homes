@@ -52,7 +52,7 @@ export function TierBadge({ feature, className, placement = 'inline' }: TierBadg
         <span
           data-tier-badge
           className={cn(
-            'bg-primary text-primary-foreground inline-flex shrink-0 cursor-help items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide',
+            'bg-primary-strong text-primary-foreground inline-flex shrink-0 cursor-help items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide',
             placement === 'corner' && 'absolute -right-1.5 -top-1.5 z-10',
             className
           )}
@@ -131,7 +131,7 @@ export function TeamInviteTierBadge({
         <span
           data-tier-badge
           className={cn(
-            'bg-primary text-primary-foreground inline-flex shrink-0 cursor-help items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide',
+            'bg-primary-strong text-primary-foreground inline-flex shrink-0 cursor-help items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide',
             placement === 'corner' && 'absolute -right-1.5 -top-1.5 z-10',
             className
           )}

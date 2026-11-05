@@ -176,7 +176,7 @@ function formatPaymentMethodsForAi(methods: PropertyPaymentMethod[]): {
   const acceptsCash = methods.some((method) => /cash/i.test(method.provider));
   let summary = `Payment methods for downpayment/balance: ${parts.join('; ')}.`;
   if (!acceptsCash) {
-    summary += ' Cash is not configured — use the listed digital/bank options.';
+    summary += ' Cash is not configured - use the listed digital/bank options.';
   }
 
   return { summary, accountNumbers };
@@ -299,7 +299,7 @@ async function renderInquiryFacts(
   if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
     return {
       lines: [
-        `Inquiry dates: ${checkIn} to ${checkOut} (invalid range — ask guest to confirm dates)`,
+        `Inquiry dates: ${checkIn} to ${checkOut} (invalid range - ask guest to confirm dates)`,
       ],
       extraPricingValues: [],
     };

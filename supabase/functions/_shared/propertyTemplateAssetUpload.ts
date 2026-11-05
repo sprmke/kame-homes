@@ -10,6 +10,7 @@ import {
 } from './propertyTemplates.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
 import { formatPublicUrl } from './utils.ts';
+import { assertUploadMatchesBytes } from './sniffMime.ts';
 
 const BUCKET = 'app-settings-assets';
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -65,6 +66,7 @@ export async function applyPropertyTemplateAssetFromBytes(
   if (!ALLOWED_MIME.has(mime)) {
     throw new Error('File must be JPEG, PNG, or WebP');
   }
+  assertUploadMatchesBytes(input.bytes, mime, ALLOWED_MIME);
 
   const file = new File([input.bytes], input.fileName || 'image.jpg', { type: mime });
   assertWithinUploadLimit(file, 'image');

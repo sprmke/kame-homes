@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
-import { Star, Users, Bed, Bath, Building2, Award, Shield, Clock, Home } from 'lucide-react';
+import { Star, Users, Bed, Bath, Building2, Award, Clock, Home } from 'lucide-react';
 
-import { resolveOrgDisplayName } from '@/features/guest/form/lib/guestFormBranding';
 import {
   developmentDetailPath,
   type ResolvedPublicDevelopment,
@@ -20,7 +19,7 @@ import { ListingRecommendedBadge } from '@/features/guest/marketing/shared/compo
 import { ListingStatItem } from '@/features/guest/marketing/shared/components/ListingStatItem';
 import { buildPropertyPlacementLabels } from '@/features/guest/marketing/shared/lib/listingPlacement';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
 
 interface PropertyOverviewProps {
   name: string;
@@ -102,16 +101,14 @@ export function PropertyOverview({
   const showFloors = shouldShowPropertyFloors(type, residenceName);
   const floorCount = stats.floors ?? 1;
 
-  const hostLabel = host?.ownerName || 'Host';
-  const rawOrg = host?.organizationName?.trim() || '';
-  const orgLabel = resolveOrgDisplayName(rawOrg, 'Host');
-  const hostAvatar = host?.ownerAvatarUrl || host?.organizationLogoUrl || null;
+  const orgName = host?.organizationName?.trim() || 'Host';
+  const hostAvatar = host?.organizationLogoUrl || host?.ownerAvatarUrl || null;
 
   const listingHost: ListingHostInfo | null = host
     ? {
-        organizationName: orgLabel,
+        organizationName: orgName,
         organizationSlug: host.organizationSlug,
-        ownerName: hostLabel,
+        ownerName: host.ownerName,
         ownerAvatarUrl: hostAvatar,
         organizationLogoUrl: host.organizationLogoUrl,
         isSuperhost,
@@ -126,29 +123,23 @@ export function PropertyOverview({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2 flex flex-wrap items-center gap-2"
+          className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5"
         >
-          <span className="bg-primary/10 text-primary @xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
+          <h1 className="text-foreground @xl:text-3xl @5xl:text-4xl min-w-0 break-words text-xl font-bold sm:text-2xl">
+            {name}
+          </h1>
+          <span className="bg-primary/10 text-brand-ink @xl:px-3 @xl:py-1 @xl:text-sm inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium">
             <Home className="h-3.5 w-3.5" />
             {propertyTypeLabels[type] || type}
           </span>
           {isSuperhost ? (
-            <span className="@xl:px-3 @xl:py-1 @xl:text-sm inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+            <span className="@xl:px-3 @xl:py-1 @xl:text-sm inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
               <Award className="h-3.5 w-3.5" />
               Superhost
             </span>
           ) : null}
           {recommendedBadge ? <ListingRecommendedBadge size="md" /> : null}
         </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="text-foreground @xl:text-3xl @5xl:text-4xl mb-2 break-words text-xl font-bold sm:text-2xl"
-        >
-          {name}
-        </motion.h1>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -178,12 +169,12 @@ export function PropertyOverview({
         </motion.div>
       </div>
 
-      {/* Stats Grid — container-aware so narrow preview/content columns never crush cells */}
+      {/* Stats Grid - container-aware so narrow preview/content columns never crush cells */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="border-border bg-card @md:gap-4 @md:px-4 @2xl:grid-cols-4 @2xl:px-6 grid grid-cols-2 gap-2 rounded-2xl border px-3 py-2.5 @md:py-3"
+        className="border-border bg-card @md:gap-4 @md:px-4 @2xl:grid-cols-4 @2xl:px-6 @md:py-3 grid grid-cols-2 gap-2 rounded-2xl border px-3 py-2.5"
       >
         {stats.maxGuests ? (
           <ListingStatItem icon={Users} value={stats.maxGuests} label="guests" />
@@ -216,7 +207,7 @@ export function PropertyOverview({
         <ListingHostCard host={listingHost} motionDelay={0.2} onContactHost={onContactHost} />
       ) : null}
 
-      {selfCheckIn || cancellationPolicy?.showListingHighlight || showMarketingFeatures ? (
+      {selfCheckIn || showMarketingFeatures ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -230,21 +221,14 @@ export function PropertyOverview({
               description="Check yourself in with the lockbox."
             />
           ) : null}
-          {cancellationPolicy?.showListingHighlight ? (
-            <ListingFeatureItem
-              icon={Shield}
-              title={cancellationPolicy.title}
-              description={cancellationPolicy.description}
-            />
-          ) : null}
           {showMarketingFeatures ? (
             <ListingFeatureItem
               icon={Award}
               title={isSuperhost ? 'Superhost' : 'Experienced host'}
               description={
                 isSuperhost
-                  ? `${orgLabel} is a Superhost with excellent reviews.`
-                  : `${hostLabel} has been hosting for over a year.`
+                  ? `${orgName} is a Superhost with excellent reviews.`
+                  : `${orgName} has been hosting for over a year.`
               }
             />
           ) : null}
@@ -255,6 +239,14 @@ export function PropertyOverview({
         checkInTime={checkInTime}
         checkOutTime={checkOutTime}
         motionDelay={0.3}
+        cancellation={
+          cancellationPolicy?.showListingHighlight
+            ? {
+                title: cancellationPolicy.title,
+                description: cancellationPolicy.description,
+              }
+            : null
+        }
       />
 
       {/* Description */}

@@ -1,5 +1,5 @@
 /**
- * Two surfaces, one core (docs/workflow/in-progress/ai-chat-mode.md §3a). Vitest runs in Node
+ * Two surfaces, one core (docs/workflow/done/ai-chat-mode.md §3a). Vitest runs in Node
  * without a DOM, so this checks the source contract: both containers render the shared pieces and
  * neither owns chat state or behavior itself.
  */
@@ -53,5 +53,22 @@ describe('assistant surface parity', () => {
 
   it('only the session provider calls the chat hook', () => {
     expect(read('AiAssistantSessionProvider.tsx')).toMatch(/useAiAssistantChat\(pageContext\)/);
+  });
+
+  it('ChatBlockRenderer registers every visual block on both surfaces', () => {
+    const renderer = read('ChatBlockRenderer.tsx');
+    for (const name of [
+      'ChartBlock',
+      'CalendarBlock',
+      'TimelineBlock',
+      'EntityCardBlock',
+      'CarouselBlock',
+      'KpiBlock',
+      'ComparisonBlock',
+      'ChecklistBlock',
+      'CalloutBlock',
+    ]) {
+      expect(renderer).toContain(name);
+    }
   });
 });

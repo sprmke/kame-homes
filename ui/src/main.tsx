@@ -9,15 +9,27 @@ import { PostHogProvider } from '@posthog/react';
 import { AppErrorBoundary } from '@/components/error/AppErrorBoundary';
 import { RouteErrorFallback } from '@/components/error/RouteErrorFallback';
 import { AppShell } from '@/components/routing/AppShell';
+import { installChunkErrorRecovery } from '@/lib/chunkReload';
 import { bootstrapPostHogTelemetry } from '@/lib/posthog/bootstrapTelemetry';
 import { posthog } from '@/lib/posthog/client';
+import { reactRootErrorHandlers } from '@/lib/sentry/capture';
+import { initSentry } from '@/lib/sentry/init';
+import { wrapRouterForSentry } from '@/lib/sentry/router';
+import { installServiceWorkerErrorBridge } from '@/lib/sentry/swBridge';
+import { installOrganizationJsonLd } from '@/lib/seo/organizationJsonLd';
 
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import '@/lib/pwa/installPrompt'; // capture beforeinstallprompt early
 import 'react-day-picker/dist/style.css';
 import './index.css';
 
+// First, so an error thrown while the rest of the app boots is still reported.
+initSentry();
+
 bootstrapPostHogTelemetry();
+installChunkErrorRecovery();
+installServiceWorkerErrorBridge();
+installOrganizationJsonLd();
 
 /**
  * Data router (not `<BrowserRouter>`) so `useBlocker` works for the global
@@ -25,11 +37,11 @@ bootstrapPostHogTelemetry();
  * `errorElement` is required: createBrowserRouter catches route render errors
  * itself and does not bubble them to the outer `AppErrorBoundary`.
  */
-const router = createBrowserRouter([
+const router = wrapRouterForSentry(createBrowserRouter)([
   { path: '*', element: <AppShell />, errorElement: <RouteErrorFallback /> },
 ]);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root')!, reactRootErrorHandlers()).render(
   <React.StrictMode>
     <AppErrorBoundary>
       <PostHogProvider client={posthog}>

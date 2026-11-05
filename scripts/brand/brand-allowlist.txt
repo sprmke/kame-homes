@@ -1,0 +1,114 @@
+# Class K (keep) allow-list for scripts/brand/check-brand.ts
+# Format: <path or dir/* or dir/**>[:line-regex]  # class K reason
+# See docs/workflow/planned/kamespace-03-rebrand-kame-homes-to-kame-space.md §5
+
+# K-1 review identity pepper fallback
+supabase/functions/_shared/guestIdentityKey.ts  # class K review identity pepper fallback
+
+# K-2 ICS UID domain (UID line must not change; PRODID line is changeable)
+ui/src/features/guest/trip/lib/guestTripCalendar.ts:UID:trip-  # class K ICS UID must not change
+
+# K-3 QR sentinel filename (matchers accept both old and new names)
+supabase/functions/_shared/appSettings.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/paymentMethods.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/emailService.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/functions/_shared/propertyTemplateEmailSections.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+ui/src/features/dashboard/lib/storedMediaDisplay.ts:kame-home-gcash-qr-payment  # class K QR sentinel
+scripts/preview/preview-emails-from-db.mjs:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/config.toml:kame-home-gcash-qr-payment  # class K QR sentinel
+supabase/migrations/20260707120000_app_settings_gcash_qr.sql  # class K shipped migration
+
+# K-4 shipped migrations (all)
+supabase/migrations/**  # class K shipped migrations, never edit
+
+# K-5 legacy-brand matchers (extend, never remove)
+supabase/functions/_shared/platformBrand.ts  # class K legacy brand matcher
+ui/src/lib/platformBranding.ts  # class K legacy brand matcher
+
+# K-8 historical records
+docs/archive/**  # class K historical records
+docs/workflow/done/**  # class K historical records
+docs/workflow/wont-do/**  # class K historical records
+
+# K-10 legacy-to-mt-prod migration scripts
+scripts/migrate/legacy-to-mt-prod/**  # class K describes legacy system
+
+# Plan docs that must quote the old name (rename series)
+docs/workflow/planned/kamespace-*.md  # class K rename series plan docs
+docs/workflow/in-progress/kamespace-*.md  # class K rename series plan docs
+docs/workflow/in-progress/ci-cd-environments/**  # class K infra tracking docs
+
+# tool cache
+.impeccable/**  # class K tool cache
+
+# K-11 local seed tenant identifiers (real local org/property slugs; renaming them
+# would break every QA script, seed and live-local harness that targets them)
+supabase/seed.sql  # local seed org/property
+scripts/dev/seed-*.sql  # local seed tenant slugs
+scripts/dev/seed-*.ts  # local seed tenant slugs
+scripts/dev/qa-*.mjs  # local QA scripts target the seed tenant
+scripts/dev/ai-qa-run.mjs  # local QA script targets the seed tenant
+scripts/dev/generate-mock-listings-seed.mjs  # local seed
+scripts/README.md  # documents the seed slugs
+supabase/functions/tests/_agentHarness.ts  # local seed tenant
+supabase/functions/tests/assistantParity*.ts  # local seed tenant
+supabase/functions/tests/reviewsLifecycleLocal.integration_test.ts  # local seed tenant
+ui/e2e/features/assistant/shared/assistantLiveLocalHarness.ts  # local seed tenant
+ui/e2e/features/parking/shared/parkingLiveLocalHarness.ts  # local seed tenant
+
+# K-12 legacy redirect / slug fixtures
+ui/vercel.json  # legacy slug redirect destinations
+ui/src/lib/legacyApexRedirects.test.ts  # legacy redirect fixture
+ui/src/features/guest/trip/lib/guestTripCalendar.test.ts:UID:trip-  # ICS UID
+
+# K-13 retired-name behavior (the guard must allow the tests that prove it works)
+supabase/functions/_shared/platformBrand_test.ts  # tests the retired-name list
+ui/src/lib/platformAppName.ts  # retired-name list
+ui/src/lib/platformAppName.test.ts  # tests the retired-name list
+ui/src/pwa/manifest.test.ts  # asserts the retired name is absent
+scripts/brand/**  # the guard itself
+
+# K-14 real mailboxes and vendor identifiers
+.cursor/rules/admin-auth.mdc:kamehome\.azurenorth  # real mailbox
+.cursor/write-env-files.sh:kamehome\.azurenorth  # real mailbox
+.cursor/rules/supabase-edge-functions.mdc:kame-home-gcash-qr-payment  # QR sentinel
+
+# K-15 docs that document retirement or quote the support mailbox
+docs/architecture/validation-and-env.md:retired label  # documents retired labels
+docs/workflow/in-progress/production-readiness/evidence/**  # audit evidence records
+docs/workflow/qa/**  # QA session records
+
+# K-16 repository, project and seed identifiers in records (not brand copy)
+README.md  # repo folder name in the clone instructions
+docs/guides/routes/org/property/marketing.md  # seed property slug
+docs/guides/routes/properties.md  # example org slug in a URL
+docs/guides/testing/parking-playwright.md  # seed org slug
+docs/guides/testing/reviews-manual.md  # seed property slug
+docs/workflow/for-testing/**  # test records quoting project names and paths
+docs/workflow/in-progress/production-readiness/audits/**  # readiness records
+docs/workflow/in-progress/production-readiness/checklist/**  # readiness records
+docs/workflow/in-progress/production-readiness/LEDGER.md  # readiness ledger
+docs/workflow/in-progress/marketing-studio-mobile-and-dashboard-responsive.md  # seed slug
+docs/workflow/in-progress/agentic-ai-assistants.md  # seed org reference
+docs/workflow/intake/**  # intake notes quoting project names
+docs/workflow/planned/marketing-studio-mobile-and-dashboard-responsive.md  # seed slug
+docs/workflow/done/observability-sentry-posthog-split/**  # project name references
+docs/workflow/planned/README.md  # plan filenames
+docs/workflow/planned/rebrand-kame-homes-to-kame-space.md  # stub links the live plan
+scripts/dev/batch-commit-run-*.sh  # historical batch scripts
+scripts/performance/load-test/public-api.js  # legacy host refusal regex
+
+# K-17 SEO continuity disclosure
+ui/index.html:alternateName  # documents the former product name for search engines
+
+# K-18 records and guard tests that must quote the retired name
+docs/workflow/in-progress/production-readiness/modules/**  # readiness audit records
+scripts/dev/capture-readme-extra.mjs  # seed property slug in screenshot URLs
+ui/e2e/features/brand/brandSmoke.spec.ts  # asserts the retired name is absent
+
+supabase/functions/_shared/emailBrandName_test.ts  # tests the retired-name list
+docs/GLOSSARY.md  # documents the former name and stable identifiers
+docs/guides/routes/legal.md  # documents the rename disclosure and structured data
+ui/src/lib/platformBranding.test.ts  # asserts the rename disclosure copy and legacy-name detector
+ui/src/lib/platformBranding.test.ts  # tests the retired-name disclosure
+docs/workflow/in-progress/README.md:kamespace-03-rebrand  # links the rename plan filename

@@ -6,7 +6,7 @@
  * relative path.
  */
 
-export const SITE_NAME = 'Kame Homes';
+export const SITE_NAME = 'Kame Space';
 export const DEFAULT_DESCRIPTION =
   'Book condos, homes, and parking across the Philippines. Browse by place, check dates, and reserve online.';
 export const MAX_DESCRIPTION_LENGTH = 160;
@@ -220,6 +220,7 @@ export const ROBOTS_DISALLOW = [
   '/search',
   '/explore-preview',
   '/for-hosts/preview',
+  '/for-hosts/v2',
   '/for-hosts/v3',
   '/parkings/requests/',
   '/*/form',
@@ -228,7 +229,26 @@ export const ROBOTS_DISALLOW = [
   '/*?*swLat=',
 ] as const;
 
-export function buildRobotsTxt(origin: string): string {
+/** Hosts that may be indexed. Anything else (dev, Vercel previews) gets `Disallow: /`. */
+export const DEFAULT_INDEXABLE_HOSTS: readonly string[] = [
+  // Current production domain (kamespace rebrand). Without these the production
+  // build served `Disallow: /` and Lighthouse SEO capped at 69.
+  'kamespace.com',
+  'www.kamespace.com',
+  'app.kamespace.com',
+  // Legacy production domain, kept while it still serves the app.
+  'app.kamehomes.space',
+  'kamehomes.space',
+  'www.kamehomes.space',
+];
+
+export function buildRobotsTxt(
+  origin: string,
+  indexableHosts: readonly string[] = DEFAULT_INDEXABLE_HOSTS
+): string {
+  if (!indexableHosts.includes(new URL(origin).hostname)) {
+    return ['User-agent: *', 'Disallow: /', ''].join('\n');
+  }
   return [
     'User-agent: *',
     'Allow: /',

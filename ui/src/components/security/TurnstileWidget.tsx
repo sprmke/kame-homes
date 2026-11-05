@@ -66,7 +66,7 @@ type Props = {
 
 /**
  * Cloudflare Turnstile, invisible-first.
- * Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md (Phase 1 / Phase 5)
+ * Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md (Phase 1 / Phase 5)
  *
  * `appearance="interaction-only"` → real users see nothing; a visible challenge
  * only renders when Turnstile scores the session as suspicious, and then it sits

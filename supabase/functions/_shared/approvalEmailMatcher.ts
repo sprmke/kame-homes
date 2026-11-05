@@ -90,7 +90,9 @@ export function extractEmailAddress(fromHeader: string): string {
 
 export async function isSenderAllowed(propertyId: string, fromHeader: string): Promise<boolean> {
   const allowed = await getApprovalSenderAllowList(propertyId);
-  if (allowed.length === 0) return true;
+  // Default-deny: a property with no configured Documents Approver must not
+  // accept inbound "approved" PDFs from anyone.
+  if (allowed.length === 0) return false;
   const sender = extractEmailAddress(fromHeader);
   return allowed.includes(sender);
 }

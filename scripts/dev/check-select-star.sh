@@ -31,11 +31,32 @@ cd "$ROOT"
 # (2026-09-17). Keep in sync with the grep this guard runs — if you narrow a
 # `select('*')` to explicit columns, remove that file from this list so the guard
 # actually protects the win. If you add a genuinely new `select('*')`, add it here
-# only after confirming (via docs/workflow/planned/production-readiness-checklist/
+# only after confirming (via docs/workflow/in-progress/production-readiness/checklist/
 # 13-compress-api-payloads.md's classification table) that the table is small/
 # narrow or the row is single-record — a list endpoint over a wide/growing table
 # should select explicit columns instead of being added here.
 ALLOWLIST=(
+  # Added 2026-10-19: insert/update-returning single rows (`.single()`/`.maybeSingle()`)
+  # on narrow tables; marketing_themes list is capped at 40 per property and every
+  # column is serialized; system_health_probe_results holds one row per probe id.
+  'marketing-themes/index.ts'
+  '_shared/supportTicketSubmitterActions.ts'
+  '_shared/inboxQuickReplyTemplates.ts'
+  '_shared/systemHealth/probes.ts'
+  # Weekly ops report: single-row reads of ops_reports by id; the full row includes
+  # the JSON summary and Markdown body. The list query uses explicit columns.
+  'ops-report/index.ts'
+  '_shared/opsReportRunner.ts'
+
+  # Two-way reviews: single-row reads of the full review/window row (status + notes).
+  '_shared/guestReviewService.ts'
+  '_shared/hostGuestReviewService.ts'
+  # Concurrent receptionist WIP: one latest booking for the signed-in guest.
+  '_shared/guestReceptionistTools.ts'
+  # Single-row booking read for chat-template placeholders; needs the same full
+  # booking row as the email placeholder helpers (finance/pet/vehicle fields).
+  '_shared/chatTemplateMessage.ts'
+
   '_shared/appSettings.ts'
   '_shared/approvalEmailMatcher.ts'
   '_shared/bookingAiReviewService.ts'

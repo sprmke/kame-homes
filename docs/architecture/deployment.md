@@ -13,51 +13,35 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 ## 12. Deployment
 
-### Dual-track (multi-tenant WIP) — agents read this first
+### One project, one pipeline (2026-11-02 cutover)
 
-Until multi-tenant cutover is complete, **two parallel stacks** (same git repo, **separate** Vercel + Supabase projects):
+The legacy dual-track is over. There is **one** Supabase project and **one** Vercel project
+for multi-tenant. Legacy `zftt…` is retired and must not be used.
 
-| Track                | Git branch (today)         | Vercel project                                                                                          | Supabase ref                                           |
-| -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Live users**       | **`main`** (hotfixes only) | **LEGACY** [`guest-form-management-app`](https://vercel.com/sprmkes-projects/guest-form-management-app) | **LEGACY_PROD** `zfttdwtceyqszyeyhilc`                 |
-| **Multi-tenant WIP** | **`develop`**              | **NEW** [`kame-homes`](https://vercel.com/kame-works/kame-homes) Preview                                | **MULTI_TENANT_DEV** `fwor…` only _(mt-prod deferred)_ |
+| Surface               | Value                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
+| Supabase              | `fworvijbrwpyngycotbz` — "Kame Space - Dev", **serves production** too                                   |
+| Vercel (multi-tenant) | `kame-homes` (team `kame-works`) — Preview on `develop`, Production on `main`                            |
+| Vercel (legacy)       | `guest-form-management-app` — retired, do not deploy to it                                               |
+| Public domain         | `kamespace.com` (production), `www.kamespace.com` (308 to apex). Preview deployments use `*.vercel.app`. |
+| Backend deploy        | `.github/workflows/cd-prod.yml` — the single pipeline, on `develop`                                      |
+| UI deploy             | Vercel (separate from the backend pipeline)                                                              |
 
-### Vercel project inventory (canonical)
+**Because one project serves both environments, a "dev deploy" is a production deploy.**
+That is why there is exactly one backend workflow: `cd-dev.yml`, `cd-preprod.yml` and the old
+gated `cd-prod.yml` all resolved to the same ref and each duplicated a quality gate.
 
-Each project’s **Production** environment (not Preview) is the deploy surface for that track.
+Consequences agents must respect:
 
-| Logical name            | Vercel project              | Team               | Production branch (configured)                                                 | Production env → Supabase                                            |
-| ----------------------- | --------------------------- | ------------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| **LEGACY_VERCEL**       | `guest-form-management-app` | `sprmkes-projects` | **`main`**                                                                     | LEGACY `zftt…`                                                       |
-| **MULTI_TENANT_VERCEL** | `kame-homes`                | `kame-works`       | Preview: **`develop`** · Production: **`main`** _(at release — not wired yet)_ | Preview → **fwor…** · Production → **mt-prod** _(create at release)_ |
+- A migration or edge-function deploy reaches real users. Treat `bun run deploy:supabase:dev`
+  as a production action.
+- Load / abuse / cost-probe scripts refuse this ref outright: there is no disposable target.
+  Stand up a throwaway project if you need to hammer something.
+- The deploy workflow takes a pre-deploy backup and publishes it as an artifact, and captures
+  a schema diff before pushing. Do not bypass them.
 
-Same monorepo is connected to **both** Vercel projects. Pushing to `main` deploys only the legacy project; pushing to the multi-tenant branch deploys only `kame-homes`.
-
-### Supabase project inventory (canonical)
-
-Project **refs** are public in API URLs; **keys** stay in gitignored env only.
-
-| Logical name          | Env var(s)                                          | Project ref                           | Host                               | Used for                                                                                       |
-| --------------------- | --------------------------------------------------- | ------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **LEGACY_PROD**       | `PROD_PROJECT_REF` (guard in `.env.dev.local`)      | `zfttdwtceyqszyeyhilc`                | `zfttdwtceyqszyeyhilc.supabase.co` | **`guest-form-management-app`** Production (`main`), live users                                |
-| **MULTI_TENANT_DEV**  | `DEV_PROJECT_REF` in `supabase/.env.dev.local`      | `fworvijbrwpyngycotbz`                | `fworvijbrwpyngycotbz.supabase.co` | **`kame-homes`** Preview / `develop` URL, `deploy:supabase:dev`, `cd-dev.yml`                  |
-| **MULTI_TENANT_PROD** | `MT_PROD_PROJECT_REF` in `supabase/.env.prod.local` | _(deferred — create at prod release)_ | —                                  | **`app.kamehomes.space`** after **`develop` → `main`**; legacy data migration from **`zftt…`** |
-
-Aliases: informal **NEW_PROD** in older docs meant **MULTI_TENANT_DEV** during early wiring — **mt-prod is now a separate project** (see [`multi-tenant-dev-prod-setup.md`](../archive/operations/multi-tenant-dev-prod-setup.md)).
-
-**Do not:**
-
-- Deploy multi-tenant migrations or Edge Functions to the **legacy production** Supabase until a planned cutover.
-- Point **`guest-form-management-app`** Production env at multi-tenant Supabase, or **`kame-homes`** at LEGACY Supabase.
-- Merge multi-tenant-only work into **`main`** until cutover readiness.
-
-**Do:**
-
-- Multi-tenant **dev** only for now: push **`develop`** → **`dev.kamehomes.space`** → **`fwor…`**.
-- **At prod release:** create mt-prod, migrate legacy data ([`legacy-to-mt-prod-migration.md`](../archive/operations/legacy-to-mt-prod-migration.md)), merge **`develop` → `main`**, wire **`app.kamehomes.space`** → mt-prod.
-- Legacy UI: push hotfixes to **`main`** → **`guest-form-management-app`** only.
-- Use `bun run deploy:supabase:dev` against **`fwor…`** only; mt-prod deploy manual until scripted.
-- Git branches: **`develop`** (mt-dev, daily work) · **`main`** (legacy live today; mt-prod UI at release after **`develop` → `main`** merge).
+`scripts/migrate/legacy-to-mt-prod/` is the completed migration's record. It is historical and
+must not be run.
 
 | Artifact                               | Doc                                                                                                                                                                                                                           |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -73,13 +57,13 @@ Aliases: informal **NEW_PROD** in older docs meant **MULTI_TENANT_DEV** during e
 
 ### Checklists
 
-| Environment       | Checklist / runbook                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Production**    | [`production-deployment.md`](../archive/operations/production-deployment.md) — backups, `db push`, secrets, Vercel Production (`kamewave` unlock for agents) |
-| **Dev / Preview** | [`dev-staging-environment.md`](../archive/operations/dev-staging-environment.md) — **`kame-homes`** + hosted dev Supabase, local mode picker                 |
-| **Migrations**    | [`migration-runbook.md`](../archive/operations/migration-runbook.md)                                                                                         |
+| Environment    | Checklist / runbook                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Production** | [`production-deployment.md`](../archive/operations/production-deployment.md) — backups, `db push`, secrets, Vercel Production (`kamewave` unlock for agents) |
+| **Preview**    | [`dev-staging-environment.md`](../archive/operations/dev-staging-environment.md) — retired as a hosted environment; use local or a Vercel preview URL        |
+| **Migrations** | [`migration-runbook.md`](../archive/operations/migration-runbook.md)                                                                                         |
 
-- `ui/vercel.json`: SPA rewrites to `index.html`, Vite build output `dist`. Headers (doc 16): hashed `/assets/*` is `immutable`; `/index.html` is `public, max-age=0, must-revalidate`; unhashed `ui/public` trees (`/icons`, `/favicon`, `/templates`, `/images`, `/marketing`, `/avatars`, `/fonts`, `/worklets`) use weekly `max-age` + `stale-while-revalidate` (never `immutable`); PWA files stay short/no-cache. Catch-all security headers: HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` (microphone + geolocation `self` only), `Content-Security-Policy-Report-Only` (doc 22; inventory `docs/architecture/third-party-origins.md`). Config guards: `scripts/dev/check-vercel-headers.sh`, `check-csp-theme-hash.sh`; post-deploy: `bun run verify:deployed-preview`.
+- `ui/vercel.json`: SPA rewrites to `index.html` for every path except `/assets/*` (a missing old chunk returns 404 instead of HTML cached as `immutable`), Vite build output `dist`. After a deploy, PWA navigation is network-first, so a plain reload always loads the current `index.html`; if a route still hits a removed chunk, `ui/src/lib/chunkReload.ts` (wired into `RouteErrorFallback`, `AppErrorBoundary` and `vite:preloadError`) reloads once, then unregisters the worker and reloads, and only then shows the error screen. Headers (doc 16): hashed `/assets/*` is `immutable`; `/index.html` is `public, max-age=0, must-revalidate`; unhashed `ui/public` trees (`/icons`, `/favicon`, `/templates`, `/images`, `/marketing`, `/avatars`, `/fonts`, `/worklets`) use weekly `max-age` + `stale-while-revalidate` (never `immutable`); PWA files stay short/no-cache. Catch-all security headers: HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` (microphone + geolocation `self` only), `Content-Security-Policy-Report-Only` (doc 22; inventory `docs/architecture/third-party-origins.md`). Config guards: `scripts/dev/check-vercel-headers.sh`, `check-csp-theme-hash.sh` (no inline scripts/handlers in `index.html`); post-deploy: `bun run verify:deployed-preview`.
 - **CDN purge:** Vercel invalidates static assets on each deploy. Storage objects do not purge on deploy — change the object key or wait out `cacheControl`. Do not put `immutable` on an unhashed file.
 - **PWA deploy:** the service worker + manifest ship with the normal Vercel UI build (nothing extra). Push needs Supabase migrations + secrets + Vault `push_fanout_secret` + `VITE_VAPID_PUBLIC_KEY` per Vercel project — full checklist in [`pwa.md`](pwa.md) §9. Kill-switch: [`pwa.md`](pwa.md) §10.
 - **Dev deploy:** `bun run deploy:supabase:dev` (reads `supabase/.env.dev.local`) — multi-tenant **dev** project, never assume it is Vercel Production.

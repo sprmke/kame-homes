@@ -92,7 +92,7 @@ export function PlanUpgradeSuccessModal({
                       opacity: 0,
                     }}
                   >
-                    <span className="bg-primary/10 text-primary mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
+                    <span className="bg-primary/10 text-brand-ink mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
                       <Check className="size-3" strokeWidth={2.5} aria-hidden />
                     </span>
                     <span className="text-foreground text-sm leading-snug">{gain.label}</span>

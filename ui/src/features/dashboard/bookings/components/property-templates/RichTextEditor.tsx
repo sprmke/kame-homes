@@ -408,6 +408,8 @@ type RichTextEditorProps = {
   className?: string;
   editable?: boolean;
   minHeight?: string;
+  /** Grow to the height of a flex parent instead of stopping at `minHeight`. */
+  fill?: boolean;
   onImageUpload?: (file: File) => Promise<string>;
   /** When set, only matching {{tokens}} are highlighted in edit mode. */
   validPlaceholderKeys?: ReadonlySet<string>;
@@ -809,6 +811,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       className,
       editable = true,
       minHeight = '280px',
+      fill = false,
       onImageUpload,
       validPlaceholderKeys,
     },
@@ -904,13 +907,24 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         <div
           className={cn(
             'border-border bg-card rounded-lg border',
+            /* Filling keeps the card the height of the pane; short content would
+             * otherwise leave the editor floating above dead space. */
+            fill && 'flex min-h-0 flex-1 flex-col',
             !editable && 'opacity-60',
             className
           )}
         >
           {editable ? <Toolbar editor={editor} onImageUpload={onImageUpload} /> : null}
-          <div className="property-template-editor bg-card min-w-0 overflow-x-auto">
-            <EditorContent editor={editor} />
+          <div
+            className={cn(
+              'property-template-editor bg-card min-w-0 overflow-x-auto',
+              fill && 'flex min-h-0 flex-1 flex-col'
+            )}
+          >
+            <EditorContent
+              editor={editor}
+              className={cn(fill && 'flex min-h-0 flex-1 flex-col [&>.ProseMirror]:flex-1')}
+            />
           </div>
         </div>
       </>

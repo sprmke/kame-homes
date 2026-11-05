@@ -275,7 +275,7 @@ export async function installVoucherRevealHostMocks(page: Page, host: VoucherHos
         memberId: null,
         propertyId: TEAM_E2E_PROPERTY_ID,
         orgSlug: TEAM_E2E_ORG_SLUG,
-        orgName: 'Kame Homes PH',
+        orgName: 'Sample Stays PH',
         propertySlug: TEAM_E2E_PROPERTY_SLUG,
         propertyName: 'Solea Mactan',
         planLimited: false,
@@ -336,7 +336,7 @@ export async function installVoucherRevealGuestMocks(page: Page, guest: VoucherG
         await fulfillJson(route, {
           success: true,
           data: {
-            organizationName: 'Kame Homes PH',
+            organizationName: 'Sample Stays PH',
             propertyName: 'Voucher E2E Solea',
             emailLogoUrl: null,
             brandColor: '#0f766e',

@@ -4,6 +4,7 @@ import { OtpCodeInput } from '@/features/guest/auth/components/OtpCodeInput';
 
 import {
   useSettingsVerification,
+  type SettingsVerificationAction,
   type SettingsVerificationScope,
 } from '@/features/dashboard/org/hooks/useSettingsVerification';
 
@@ -26,8 +27,12 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   scope: SettingsVerificationScope;
   patchFingerprint: string;
-  onVerified: (verificationToken: string) => void;
+  onVerified: (verificationToken: string, meta: { expiresAt: number }) => void;
   busy?: boolean;
+  verificationAction?: SettingsVerificationAction;
+  title?: string;
+  fingerprintMissingMessage?: string;
+  disclaimer?: string;
 };
 
 export function SensitiveSettingsOtpDialog({
@@ -37,8 +42,15 @@ export function SensitiveSettingsOtpDialog({
   patchFingerprint,
   onVerified,
   busy = false,
+  verificationAction = 'payment_settings',
+  title = 'Verify payment changes',
+  fingerprintMissingMessage = 'Missing payment change fingerprint',
+  disclaimer,
 }: Props) {
-  const { sendOtp, verifyOtp } = useSettingsVerification(scope);
+  const { sendOtp, verifyOtp } = useSettingsVerification(scope, verificationAction);
+  const resolvedDisclaimer =
+    disclaimer ??
+    `By saving, you confirm payment details are accurate. ${platformLegalSubject()} is not liable for losses from incorrect payment information.`;
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [ownerEmailMasked, setOwnerEmailMasked] = useState('');
   const [code, setCode] = useState('');
@@ -65,7 +77,7 @@ export function SensitiveSettingsOtpDialog({
 
   const dispatchOtp = useCallback(async () => {
     if (!patchFingerprint) {
-      setError('Missing payment change fingerprint');
+      setError(fingerprintMissingMessage);
       return;
     }
     setSending(true);
@@ -81,7 +93,7 @@ export function SensitiveSettingsOtpDialog({
     } finally {
       setSending(false);
     }
-  }, [patchFingerprint, sendOtp]);
+  }, [fingerprintMissingMessage, patchFingerprint, sendOtp]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -99,7 +111,7 @@ export function SensitiveSettingsOtpDialog({
     setError(null);
     try {
       const result = await verifyOtp(challengeId, trimmed);
-      onVerified(result.verificationToken);
+      onVerified(result.verificationToken, { expiresAt: result.expiresAt });
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Verification failed');
@@ -114,11 +126,11 @@ export function SensitiveSettingsOtpDialog({
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
       <ResponsiveModalContent
         sheetLayout="split"
-        className="max-w-[min(calc(100vw-1.5rem),32rem)] overflow-x-hidden sm:max-w-lg"
+        className="flex max-h-[min(90dvh,36rem)] max-w-[min(calc(100vw-1.5rem),32rem)] flex-col gap-0 overflow-hidden p-0 pb-0 pt-0 sm:max-w-lg sm:p-0"
         showCloseButton={false}
       >
-        <ResponsiveModalHeader className="min-w-0">
-          <ResponsiveModalTitle>Verify payment changes</ResponsiveModalTitle>
+        <ResponsiveModalHeader className="shrink-0 space-y-1 px-5 pb-1 pt-5 text-left sm:px-6">
+          <ResponsiveModalTitle>{title}</ResponsiveModalTitle>
           <ResponsiveModalDescription className="break-words">
             {otpSent && ownerEmailMasked
               ? `Enter the code sent to the org owner at ${ownerEmailMasked}.`
@@ -126,7 +138,7 @@ export function SensitiveSettingsOtpDialog({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-0.5 py-1">
+        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain px-5 py-4 sm:px-6">
           {otpSent ? (
             <div className="space-y-3">
               <Label className="sr-only">Verification code</Label>
@@ -153,13 +165,10 @@ export function SensitiveSettingsOtpDialog({
             </p>
           ) : null}
 
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            By saving, you confirm payment details are accurate. {platformLegalSubject()} is not
-            liable for losses from incorrect payment information.
-          </p>
+          <p className="text-muted-foreground text-xs leading-relaxed">{resolvedDisclaimer}</p>
         </div>
 
-        <ResponsiveModalFooter className="!flex-row flex-nowrap items-center justify-end gap-2">
+        <ResponsiveModalFooter className="border-border shrink-0 !flex-row flex-nowrap items-center justify-end gap-2 border-t px-5 py-3 sm:px-6">
           <Button
             type="button"
             variant="ghost"

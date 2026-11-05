@@ -260,7 +260,7 @@ export function PublishDialog({ open, onOpenChange, media }: Props) {
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
       <ResponsiveModalContent
         sheetLayout="split"
-        className="flex max-h-[min(90dvh,36rem)] max-w-[min(calc(100vw-1.5rem),28rem)] flex-col gap-0 overflow-hidden p-0"
+        className="flex max-h-[min(90dvh,36rem)] max-w-[min(calc(100vw-1.5rem),28rem)] flex-col gap-0 overflow-hidden p-0 pb-0 pt-0 sm:p-0"
       >
         <ResponsiveModalHeader className="shrink-0 px-6 pt-6">
           <ResponsiveModalTitle>{MARKETING_PUBLISH_META_LABEL}</ResponsiveModalTitle>

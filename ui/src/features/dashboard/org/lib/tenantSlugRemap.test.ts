@@ -34,8 +34,8 @@ describe('rememberTenantSlugChange', () => {
 describe('rewriteDashboardPathForSlugRemap', () => {
   it('rewrites property slug in path', () => {
     rememberTenantSlugChange('property', 'monaco-2612', 'monaco-2612-b');
-    expect(rewriteDashboardPathForSlugRemap('/org/kame-home/property/monaco-2612/bookings')).toBe(
-      '/org/kame-home/property/monaco-2612-b/bookings'
+    expect(rewriteDashboardPathForSlugRemap('/org/sample-org/property/monaco-2612/bookings')).toBe(
+      '/org/sample-org/property/monaco-2612-b/bookings'
     );
   });
 
@@ -55,7 +55,7 @@ describe('rewriteDashboardPathForSlugRemap', () => {
   });
 
   it('returns null when nothing remapped', () => {
-    expect(rewriteDashboardPathForSlugRemap('/org/kame-home/property/monaco/bookings')).toBeNull();
+    expect(rewriteDashboardPathForSlugRemap('/org/sample-org/property/monaco/bookings')).toBeNull();
   });
 
   it('returns null for non-org paths', () => {

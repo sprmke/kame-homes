@@ -14,9 +14,59 @@ const MAX_ATTEMPTS = 6;
 const RETRYABLE_STATUS = new Set([408, 425, 429]);
 const MAX_BACKOFF_MS = 60_000;
 
+/** Parse `{ error }` from a failed edge response body (e.g. FEATURE_UNAVAILABLE copy). */
+export function outboxErrorMessageFromResponseBody(body: string, fallback: string): string {
+  try {
+    const parsed = JSON.parse(body) as { error?: string };
+    if (parsed.error) return parsed.error;
+  } catch {
+    // keep fallback
+  }
+  return fallback;
+}
+
 let draining = false;
+let drainGeneration = 0;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let syncingWatchdog: ReturnType<typeof setTimeout> | null = null;
 let queryClientRef: QueryClient | null = null;
+
+const SYNCING_WATCHDOG_MS = 20_000;
+const OUTBOX_READ_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('outbox read timed out')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error('outbox read failed'));
+      }
+    );
+  });
+}
+
+function clearSyncingWatchdog() {
+  if (!syncingWatchdog) return;
+  clearTimeout(syncingWatchdog);
+  syncingWatchdog = null;
+}
+
+/** Drop an in-flight drain so a purge cannot leave the UI stuck on Syncing. */
+export function cancelOutboxDrain(): void {
+  drainGeneration += 1;
+  draining = false;
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+  clearSyncingWatchdog();
+  useOfflineSyncStore.getState().setSyncing(false);
+}
 
 function pushStoreSnapshot(items: OutboxItem[]) {
   useOfflineSyncStore.getState().setItems(
@@ -70,14 +120,35 @@ export async function drainOutbox(): Promise<void> {
     clearTimeout(retryTimer);
     retryTimer = null;
   }
+  const generation = drainGeneration;
   draining = true;
-  useOfflineSyncStore.getState().setSyncing(true);
 
   let backedOff = false;
   try {
     let token: string | null = null;
-    const items = (await outboxList()).filter((i) => i.status === 'pending');
+    let items: OutboxItem[] = [];
+    try {
+      items = (await withTimeout(outboxList(), OUTBOX_READ_MS)).filter(
+        (i) => i.status === 'pending'
+      );
+    } catch {
+      return;
+    }
+    if (generation !== drainGeneration) return;
+    // An empty outbox is not a user-visible sync. Setting the flag first left
+    // "Syncing" on screen whenever this read hung (for example after Clear
+    // offline data closed the database).
+    if (items.length === 0) return;
+
+    useOfflineSyncStore.getState().setSyncing(true);
+    clearSyncingWatchdog();
+    syncingWatchdog = setTimeout(() => {
+      if (generation !== drainGeneration) return;
+      useOfflineSyncStore.getState().setSyncing(false);
+    }, SYNCING_WATCHDOG_MS);
+
     for (const item of items) {
+      if (generation !== drainGeneration) return;
       if (typeof navigator !== 'undefined' && !navigator.onLine) break;
       if (!token) {
         try {
@@ -119,40 +190,46 @@ export async function drainOutbox(): Promise<void> {
 
       const attempts = item.attempts + 1;
       const body = await res.text().catch(() => '');
+      const errorFromBody = (fallback: string) =>
+        outboxErrorMessageFromResponseBody(body, fallback);
       if (RETRYABLE_STATUS.has(res.status) || res.status >= 500) {
+        const lastError = errorFromBody(`HTTP ${res.status}`);
         if (attempts >= MAX_ATTEMPTS) {
           await outboxUpdate(item.id, {
             status: 'failed',
             attempts,
-            lastError: `HTTP ${res.status}`,
+            lastError,
           });
           pwaTelemetry('sync-item-failed', { kind: item.kind, status: res.status });
         } else {
-          await outboxUpdate(item.id, { attempts, lastError: `HTTP ${res.status}` });
+          await outboxUpdate(item.id, { attempts, lastError });
           backedOff = true;
           break; // backoff — scheduleRetry() below picks it up
         }
       } else {
         // 4xx (conflict, validation, auth) — not going to succeed on retry.
-        let message = `HTTP ${res.status}`;
-        try {
-          const parsed = JSON.parse(body) as { error?: string };
-          if (parsed.error) message = parsed.error;
-        } catch {
-          // keep default
-        }
+        const message = errorFromBody(`HTTP ${res.status}`);
         await outboxUpdate(item.id, { status: 'failed', attempts, lastError: message });
         pwaTelemetry('sync-item-failed', { kind: item.kind, status: res.status });
         await invalidate(item.invalidateKeys); // surface the server's real state
       }
     }
   } finally {
-    draining = false;
-    useOfflineSyncStore.getState().setSyncing(false);
-    useOfflineSyncStore.getState().markSynced();
-    const remaining = await outboxList();
-    pushStoreSnapshot(remaining);
-    if (backedOff) scheduleRetry(remaining.filter((i) => i.status === 'pending'));
+    clearSyncingWatchdog();
+    if (generation === drainGeneration) {
+      draining = false;
+      useOfflineSyncStore.getState().setSyncing(false);
+      try {
+        const remaining = await withTimeout(outboxList(), OUTBOX_READ_MS);
+        if (generation === drainGeneration) {
+          useOfflineSyncStore.getState().markSynced();
+          pushStoreSnapshot(remaining);
+          if (backedOff) scheduleRetry(remaining.filter((i) => i.status === 'pending'));
+        }
+      } catch {
+        // The database did not answer. Leave the pill off and allow a later drain.
+      }
+    }
   }
 }
 

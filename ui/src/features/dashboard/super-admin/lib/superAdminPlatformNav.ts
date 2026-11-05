@@ -1,11 +1,13 @@
 import type { ComponentType } from 'react';
 
 import {
+  Activity,
   BadgeCheck,
   BookOpen,
   Building,
   Building2,
   CreditCard,
+  FileText,
   Gauge,
   HelpCircle,
   Landmark,
@@ -15,6 +17,7 @@ import {
   ScrollText,
   Settings,
   Sparkles,
+  ToggleRight,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -74,10 +77,17 @@ export const SUPER_ADMIN_NAV_GROUPS: SuperAdminPlatformNavGroup[] = [
   {
     label: 'Platform',
     items: [
+      { label: 'System health', href: superAdminPaths.health, Icon: Activity },
+      { label: 'Operations reports', href: superAdminPaths.opsReports, Icon: FileText },
       { label: 'AI', href: superAdminPaths.ai, Icon: Sparkles },
       { label: 'Rate limits', href: superAdminPaths.rateLimits, Icon: Gauge },
       { label: 'Audit log', href: superAdminPaths.audit, Icon: ScrollText },
       { label: 'Platform settings', href: superAdminPaths.platformSettings, Icon: Settings },
+      {
+        label: 'Feature availability',
+        href: superAdminPaths.featureAvailability,
+        Icon: ToggleRight,
+      },
     ],
   },
 ];

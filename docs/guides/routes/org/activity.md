@@ -2,7 +2,7 @@
 title: 'Activity — operator guide'
 status: active
 tags: [guides, routes, org, activity, audit-log]
-updated: 2026-09-27
+updated: 2026-11-04
 ---
 
 # Activity — operator guide
@@ -13,12 +13,12 @@ Route: `/org/:orgSlug/settings` → **Activity** section → **Manage** (modal).
 
 ## Progress overview
 
-| Section    | E2E save | Validation | Docs       | Notes                                                                                                                                                      |
-| ---------- | -------- | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Feed       | n/a      | n/a        | Documented | Read-only. Infinite scroll in the modal scrollport, keyset pagination, 90-day default, container-virtualized past ~30 rows, live-refreshes on new activity |
-| Filters    | n/a      | n/a        | Documented | Search + Filters (category / severity / dates) + Export; mobile: search + refine sheet + export icon; shared `AdminListDesktopToolbar`                     |
-| Detail     | n/a      | n/a        | Documented | Row → sheet with actor, changes diff, IP prefix, metadata. Summaries soft-replace plan UUIDs with names when metadata has `to_plan_name`                   |
-| Export CSV | n/a      | n/a        | Documented | Owner / org-admin only; `activityLogExport` plan gate (Starter+)                                                                                           |
+| Section    | E2E save | Validation | Docs       | Notes                                                                                                                                                                               |
+| ---------- | -------- | ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Feed       | n/a      | n/a        | Documented | Read-only. Infinite scroll in the modal scrollport, keyset pagination, 90-day default, container-virtualized past ~30 rows, live-refreshes on new activity                          |
+| Filters    | n/a      | n/a        | Documented | Search + Filters (category / severity / dates) + Export; mobile: search + refine sheet + export icon; shared `AdminListDesktopToolbar`                                              |
+| Detail     | n/a      | n/a        | Documented | Row → detail slides in over the feed inside the same modal; **Back** / Esc returns. No second dialog. Summaries soft-replace plan UUIDs with names when metadata has `to_plan_name` |
+| Export CSV | n/a      | n/a        | Documented | Owner / org-admin only; `activityLogExport` plan gate (Starter+)                                                                                                                    |
 
 ---
 
@@ -28,7 +28,24 @@ Org-wide **activity / audit timeline** — every meaningful action across the or
 
 Data is written **fire-and-forget** by `_shared/activityLog.ts` (never blocks a mutation) into the append-only `public.activity_log` table and read through `list-activity-log`. See `docs/workflow/in-progress/org-activity-audit-log.md` and `docs/architecture/data-model.md`.
 
-## Sections
+## Host-facing knowledge
+
+Activity is a read-only timeline of what happened across your organization: booking changes, team updates, pricing and settings edits, finance and maintenance activity, guest actions, and automated jobs. Open it from **Settings** → **Activity** → **Manage**.
+
+**Common host questions**
+
+- Q: Where do I find Activity?
+  A: Open **Settings**, find the **Activity** section, and choose **Manage**. The old direct Activity link opens the same modal.
+- Q: How far back does the timeline go?
+  A: The default window is the last 90 days. Use the date filter to look at a different range.
+- Q: Can I see activity for just one property or parking slot?
+  A: The org Activity view includes every listing. Each property and parking slot also has its own Activity view in Settings, limited to that listing.
+- Q: Who can export the activity log?
+  A: Owners and org admins can export the filtered view to CSV. On Starter and above the export is included; on Free the button offers an upgrade. Viewing the log is free on every plan.
+- Q: Does the feed update while I have it open?
+  A: Yes. New activity appears automatically without reloading the page.
+- Q: Can I edit or delete an entry?
+  A: No. Activity is an audit record and stays read-only, which is what makes it useful for checking who changed what.
 
 ### Feed
 
@@ -53,9 +70,13 @@ Data is written **fire-and-forget** by `_shared/activityLog.ts` (never blocks a 
   - **Date range** — one field that opens the shared range calendar (`mode="range"`, same pattern as bookings date filter). Default label **Any** (server still applies the 90-day window). Apply writes inclusive `dateFrom` / `dateTo`; Clear on the field or Clear in the Filters header resets it.
 - Empty state offers **Clear filters** when the current view has no rows (toolbar has no separate Clear all row).
 
-### Detail sheet
+### Detail
 
-Clicking a row opens a sheet with: severity, actor (display name / email + one role label), absolute timestamp, source (friendly label), target, the truncated client IP (`/24` or `/48`), device (browser + OS, not the raw user-agent), host-safe metadata facts (e.g. Plan name), and a **Changes** table when present. Internal refs (`related_event_ref`, plan UUIDs) and raw JSON are not shown. Plan UUIDs in summaries are resolved to plan names by `list-activity-log` when possible.
+Clicking a row slides the detail view in over the feed **inside the same modal** — there is no nested dialog. **Back** (top-left) or **Esc** slides it out and returns to the feed with the list, filters, and scroll position intact. The pane animates with a 300 ms ease-out enter and a faster 200 ms exit, and is disabled under `prefers-reduced-motion`. Focus moves to **Back** on open so keyboard users can return immediately.
+
+The detail shows: severity, actor (display name / email + one role label), absolute timestamp, source (friendly label), target, the truncated client IP (`/24` or `/48`), device (browser + OS, not the raw user-agent), host-safe metadata facts (e.g. Plan name), and a **Changes** table when present. Internal refs (`related_event_ref`, plan UUIDs) and raw JSON are not shown. Plan UUIDs in summaries are resolved to plan names by `list-activity-log` when possible.
+
+The same body is reused by the compact `ActivityDetailSheet` used on entity embeds (booking detail, team member, finance, maintenance) and the super-admin org hub, where a slide-in pane would not fit.
 
 ## Permissions
 

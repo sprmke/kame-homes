@@ -4,6 +4,14 @@
  */
 
 import type { GeminiContent } from './ai/llmTools.ts';
+import { recentToolNamesFromMessages } from './ai/agent/toolHistory.ts';
+import {
+  capEntityRefs,
+  dedupeEntityRefs,
+  formatKnownFactsSection,
+  parseEntityRefs,
+  type EntityRef,
+} from './dashboardAssistantEntityRefs.ts';
 
 export type ConversationMessageRow = {
   id: string;
@@ -12,6 +20,8 @@ export type ConversationMessageRow = {
   blocks?: unknown;
   attachments?: unknown;
   created_at?: string;
+  latency_breakdown?: unknown;
+  entity_refs?: unknown;
 };
 
 const MAX_PRIOR_MESSAGES = 16;
@@ -55,6 +65,21 @@ export function assistantBlocksToSnippet(blocks: unknown): string {
       const label = asText(rec.label);
       if (label) parts.push(`Location: ${label}`);
       else if (asText(rec.href)) parts.push(asText(rec.href));
+    } else if (
+      (rec.type === 'chart' ||
+        rec.type === 'calendar' ||
+        rec.type === 'timeline' ||
+        rec.type === 'carousel' ||
+        rec.type === 'comparison' ||
+        rec.type === 'checklist' ||
+        rec.type === 'kpi') &&
+      asText(rec.title ?? rec.label)
+    ) {
+      parts.push(asText(rec.title ?? rec.label));
+    } else if (rec.type === 'entity_card' && asText(rec.title)) {
+      parts.push(asText(rec.title));
+    } else if (rec.type === 'callout' && asText(rec.text)) {
+      parts.push(asText(rec.text));
     } else if (rec.type === 'booking_card') {
       const guest = asText(rec.guestName) || 'Guest';
       const status = asText(rec.status);
@@ -99,7 +124,7 @@ function attachmentPathsNote(attachments: unknown): string {
     const path = asText(rec.path);
     const mime = asText(rec.mimeType);
     if (!path) continue;
-    lines.push(`Attached earlier: ${name}${mime ? ` (${mime})` : ''} — attachmentPath: ${path}`);
+    lines.push(`Attached earlier: ${name}${mime ? ` (${mime})` : ''} - attachmentPath: ${path}`);
   }
   return lines.join('\n');
 }
@@ -154,7 +179,74 @@ export type LoadedConversationContext = {
   summary: string;
   priorHistory: GeminiContent[];
   recentMessages: ConversationMessageRow[];
+  /** Tool names used by this conversation's recent turns, oldest first — the router's follow-up
+   * signal. Prior turns reach the model as text only, so this is read from each assistant
+   * message's persisted `latency_breakdown.tools_ms`, not from the Gemini history. */
+  recentToolNames: string[];
+  /** Phase 4 working memory: prompt-ready "Known from earlier in this chat" section built from
+   * recent turns' persisted `entity_refs`. Empty string when nothing to carry forward. */
+  knownFactsText: string;
+  /** Phase 4 resumable turns: the most recent assistant message's unfinished `task_plan` block
+   * steps, when the last turn ended with open goals — null otherwise. Lets the "Continue" chip
+   * seed `TurnTaskPlanRecorder#resumeFrom` instead of starting goal-planning over. */
+  resumablePlanSteps: Array<{
+    id: string;
+    label: string;
+    status: 'pending' | 'running' | 'done' | 'failed';
+  }> | null;
 };
+
+type PersistedTaskPlanBlock = {
+  type: 'task_plan';
+  steps?: Array<{ id?: unknown; label?: unknown; status?: unknown }>;
+};
+
+function isPersistedTaskPlanBlock(block: unknown): block is PersistedTaskPlanBlock {
+  return (
+    !!block &&
+    typeof block === 'object' &&
+    (block as { type?: unknown }).type === 'task_plan' &&
+    Array.isArray((block as { steps?: unknown }).steps)
+  );
+}
+
+const OPEN_STATUSES = new Set(['pending', 'running']);
+
+/** The last assistant turn's `task_plan` block, if it left any step unfinished. */
+export function openPlanStepsFromLastAssistantMessage(
+  messages: readonly ConversationMessageRow[]
+): LoadedConversationContext['resumablePlanSteps'] {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const row = messages[i];
+    if (row?.role !== 'assistant') continue;
+    const blocks = Array.isArray(row.blocks) ? row.blocks : [];
+    const planBlock = blocks.find(isPersistedTaskPlanBlock);
+    if (!planBlock) return null;
+    const steps = (planBlock.steps ?? [])
+      .filter(
+        (s): s is { id: string; label: string; status: string } =>
+          typeof s.id === 'string' && typeof s.label === 'string' && typeof s.status === 'string'
+      )
+      .map((s) => ({
+        id: s.id,
+        label: s.label,
+        status: (OPEN_STATUSES.has(s.status)
+          ? 'pending'
+          : s.status === 'done'
+            ? 'done'
+            : 'failed') as 'pending' | 'done' | 'failed',
+      }));
+    const hasOpen = steps.some((s) => s.status !== 'done');
+    return hasOpen ? steps : null;
+  }
+  return null;
+}
+
+/** Flattens recent turns' `entity_refs`, freshest mention of each entity wins, capped. */
+export function collectKnownFacts(messages: readonly ConversationMessageRow[]): EntityRef[] {
+  const all = messages.flatMap((row) => parseEntityRefs(row.entity_refs));
+  return capEntityRefs(dedupeEntityRefs(all));
+}
 
 /**
  * Load prior messages for this conversation (excludes the current user row when provided).
@@ -167,7 +259,9 @@ export async function loadConversationContext(
 ): Promise<LoadedConversationContext> {
   const { data, error } = await sb
     .from('ai_dashboard_assistant_messages')
-    .select('id, role, content_text, blocks, attachments, created_at')
+    .select(
+      'id, role, content_text, blocks, attachments, created_at, latency_breakdown, entity_refs'
+    )
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: false })
     .limit(MAX_PRIOR_MESSAGES + 4);
@@ -186,11 +280,14 @@ export async function loadConversationContext(
     summary: buildConversationSummary(recent),
     priorHistory: priorMessagesToGeminiHistory(recent),
     recentMessages: recent,
+    recentToolNames: recentToolNamesFromMessages(recent),
+    knownFactsText: formatKnownFactsSection(collectKnownFacts(recent)),
+    resumablePlanSteps: openPlanStepsFromLastAssistantMessage(recent),
   };
 }
 
 /** System-prompt appendix so the model reuses prior thread context. */
 export function conversationContextPromptSection(summary: string): string {
   if (!summary.trim()) return '';
-  return `\n\nConversation so far (use for continuity — do not contradict prior facts unless a newer tool result updates them):\n${summary}`;
+  return `\n\nConversation so far (use for continuity, do not contradict prior facts unless a newer tool result updates them):\n${summary}`;
 }

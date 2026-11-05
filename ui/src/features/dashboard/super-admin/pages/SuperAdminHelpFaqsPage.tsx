@@ -68,8 +68,10 @@ function FaqRow({
   onDeleteRequest: () => void;
 }) {
   const updateFaq = useUpdateHelpCenterFaq();
+  const isSynced = faq.origin === 'synced';
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: faq.id,
+    disabled: isSynced,
   });
 
   return (
@@ -83,17 +85,26 @@ function FaqRow({
       )}
     >
       <div className="flex min-w-0 flex-1 gap-2">
-        <button
-          type="button"
-          aria-label="Drag to reorder"
-          className="text-muted-foreground hover:text-foreground -my-1 -ml-1.5 flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="size-4" aria-hidden />
-        </button>
+        {isSynced ? (
+          <span className="size-9 shrink-0" aria-hidden />
+        ) : (
+          <button
+            type="button"
+            aria-label="Drag to reorder"
+            className="text-muted-foreground hover:text-foreground -my-1 -ml-1.5 flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" aria-hidden />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="text-foreground text-sm font-medium">{faq.question}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-foreground text-sm font-medium">{faq.question}</p>
+            <span className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+              {isSynced ? 'Synced' : 'Manual'}
+            </span>
+          </div>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{faq.answer}</p>
         </div>
       </div>
@@ -239,6 +250,7 @@ export function SuperAdminHelpFaqsPage() {
     const targetSortOrders = list.map((faq) => faq.sort_order);
     const updates = reordered
       .map((faq, index) => ({ faq, sortOrder: targetSortOrders[index] }))
+      .filter(({ faq }) => faq.origin !== 'synced')
       .filter(({ faq, sortOrder }) => faq.sort_order !== sortOrder);
 
     try {
@@ -280,7 +292,10 @@ export function SuperAdminHelpFaqsPage() {
       />
 
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total FAQs', 'Published', 'Unpublished', 'Categories']}
+          view="grouped"
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load FAQs.</p>
       ) : (

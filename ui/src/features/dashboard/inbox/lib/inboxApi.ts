@@ -1,4 +1,7 @@
 import type {
+  ChatTemplateListItem,
+  GuestRequestDto,
+  GuestRequestStatus,
   InboxAutomationSettings,
   InboxConnection,
   InboxConversation,
@@ -16,6 +19,9 @@ import {
 } from '@/features/dashboard/org/lib/adminApiScope';
 import { throwIfAiQuota } from '@/features/dashboard/org/lib/aiQuotaToast';
 
+import type { ChatTemplateSnapshot } from '@/components/chat/chatTemplateSnapshot';
+import { EdgeResponseError } from '@/lib/api/edgeError';
+import { throwIfFeatureUnavailableBody } from '@/lib/featureAvailability/featureUnavailableError';
 import { supabase } from '@/lib/supabase/client';
 
 async function getJwt(): Promise<string> {
@@ -33,8 +39,11 @@ type EdgeJson = {
 };
 
 /** Edge functions return `{ success, data }`; unwrap for typed fields. */
-function unwrapEdgePayload(json: EdgeJson): Record<string, unknown> {
-  if (!json.success) throw new Error(json.error ?? 'Request failed');
+function unwrapEdgePayload(json: EdgeJson, status: number): Record<string, unknown> {
+  if (!json.success) {
+    throwIfFeatureUnavailableBody(json);
+    throw new EdgeResponseError(json.error ?? 'Request failed', status);
+  }
   const payload = json.data;
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     return payload;
@@ -89,7 +98,7 @@ export async function fetchInboxConnections(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     connections: (payload.connections as InboxConnection[] | undefined) ?? [],
     metaConfigured: !!payload.metaConfigured,
@@ -123,7 +132,7 @@ export async function startMetaInboxOAuth(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   if (typeof payload.url !== 'string') {
     throw new Error('Failed to start Meta connection');
   }
@@ -147,7 +156,7 @@ export async function disconnectMetaInbox(
     body: JSON.stringify({ platform, deleteMessages, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function resubscribeMetaInbox(
@@ -168,7 +177,7 @@ export async function resubscribeMetaInbox(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     verified: payload.verified === true,
     resubscribed: payload.resubscribed === true,
@@ -186,7 +195,7 @@ export async function fetchMetaOAuthPages(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return (payload.pages as MetaPagePickerOption[] | undefined) ?? [];
 }
 
@@ -207,7 +216,7 @@ export async function completeMetaOAuthPage(
     body: JSON.stringify({ pickerState, pageId, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return { pageName: typeof payload.pageName === 'string' ? payload.pageName : '' };
 }
 
@@ -248,7 +257,7 @@ export async function runMetaInboxBackfillChunk(
     }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     done: !!payload.done,
     phase:
@@ -289,7 +298,7 @@ export async function fetchInboxThreads(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     conversations: (payload.conversations as InboxConversation[] | undefined) ?? [],
     nextCursor: (payload.nextCursor as string | null | undefined) ?? null,
@@ -303,7 +312,12 @@ export async function fetchInboxMessages(
   conversationId: string,
   before?: string,
   scope?: InboxApiScope | null
-): Promise<{ conversation: InboxConversation; messages: InboxMessage[]; hasMore: boolean }> {
+): Promise<{
+  conversation: InboxConversation;
+  messages: InboxMessage[];
+  hasMore: boolean;
+  guestRequests: GuestRequestDto[];
+}> {
   const jwt = await getJwt();
   const base = withInboxScope(orgUrl('/social-inbox-messages', orgSlug, orgId), scope);
   const params = new URLSearchParams({ conversation_id: conversationId });
@@ -312,12 +326,33 @@ export async function fetchInboxMessages(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return {
     conversation: payload.conversation as InboxConversation,
     messages: (payload.messages as InboxMessage[] | undefined) ?? [],
     hasMore: !!payload.hasMore,
+    guestRequests: (payload.guestRequests as GuestRequestDto[] | undefined) ?? [],
   };
+}
+
+export async function resolveGuestRequest(
+  orgSlug: string | null,
+  orgId: string | null,
+  conversationId: string,
+  requestId: string,
+  status: Exclude<GuestRequestStatus, 'pending'>,
+  scope?: InboxApiScope | null
+): Promise<GuestRequestDto> {
+  const jwt = await getJwt();
+  const base = withInboxScope(orgUrl('/social-inbox-messages', orgSlug, orgId), scope);
+  const res = await fetch(`${base}&conversation_id=${encodeURIComponent(conversationId)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'resolve_guest_request', requestId, status }),
+  });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json, res.status);
+  return payload.request as GuestRequestDto;
 }
 
 export async function markInboxConversationRead(
@@ -343,6 +378,9 @@ export async function sendInboxReply(
     replyToMessageId?: string;
     useHumanAgentTag?: boolean;
     attachments?: Array<{ kind: 'image' | 'file'; url: string; label?: string }>;
+    templateKey?: string;
+    bookingId?: string | null;
+    aiDrafted?: boolean;
     scope?: InboxApiScope | null;
   }
 ): Promise<void> {
@@ -359,12 +397,51 @@ export async function sendInboxReply(
       text,
       replyToMessageId: opts?.replyToMessageId,
       useHumanAgentTag: opts?.useHumanAgentTag === true,
+      aiDrafted: opts?.aiDrafted === true,
       attachments: opts?.attachments,
+      templateKey: opts?.templateKey,
+      bookingId: opts?.bookingId ?? undefined,
       ...inboxScopeBody(scope),
     }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
+}
+
+/** Property templates available in the Inbox composer (email templates excluded). */
+export async function listChatTemplates(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope?: InboxApiScope | null
+): Promise<ChatTemplateListItem[]> {
+  const jwt = await getJwt();
+  const res = await fetch(withInboxScope(orgUrl('/chat-templates', orgSlug, orgId), scope), {
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json, res.status);
+  return (payload.templates as ChatTemplateListItem[] | undefined) ?? [];
+}
+
+/** Rendered template preview, with the conversation's guest/booking placeholders filled. */
+export async function fetchChatTemplatePreview(
+  orgSlug: string | null,
+  orgId: string | null,
+  scope: InboxApiScope | null | undefined,
+  templateKey: string,
+  opts?: { conversationId?: string | null; bookingId?: string | null }
+): Promise<ChatTemplateSnapshot> {
+  const jwt = await getJwt();
+  const url = new URL(withInboxScope(orgUrl('/chat-templates', orgSlug, orgId), scope));
+  url.searchParams.set('template_key', templateKey);
+  if (opts?.conversationId) url.searchParams.set('conversation_id', opts.conversationId);
+  if (opts?.bookingId) url.searchParams.set('booking_id', opts.bookingId);
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${jwt}` } });
+  const json = (await res.json()) as EdgeJson;
+  const payload = unwrapEdgePayload(json, res.status);
+  const snapshot = payload.snapshot as ChatTemplateSnapshot | undefined;
+  if (!snapshot) throw new Error('Template preview failed');
+  return snapshot;
 }
 
 /** Scoped `social-inbox-send` URL — for the offline outbox, which needs a concrete URL. */
@@ -383,6 +460,7 @@ export function inboxSendBody(
     text: string;
     replyToMessageId?: string;
     useHumanAgentTag?: boolean;
+    aiDrafted?: boolean;
   },
   scope?: InboxApiScope | null
 ): Record<string, unknown> {
@@ -391,6 +469,7 @@ export function inboxSendBody(
     text: input.text,
     replyToMessageId: input.replyToMessageId,
     useHumanAgentTag: input.useHumanAgentTag === true,
+    aiDrafted: input.aiDrafted === true,
     ...inboxScopeBody(scope),
   };
 }
@@ -415,7 +494,7 @@ export async function editInboxMessage(
     body: JSON.stringify({ messageId, text, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return payload.message as InboxMessage;
 }
 
@@ -438,7 +517,7 @@ export async function unsendInboxMessage(
     body: JSON.stringify({ action: 'unsend', messageId, ...inboxScopeBody(scope) }),
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function fetchInboxTemplates(
@@ -454,7 +533,7 @@ export async function fetchInboxTemplates(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   return (payload.templates as InboxTemplate[] | undefined) ?? [];
 }
 
@@ -478,7 +557,7 @@ export async function saveInboxTemplate(
     }
   );
   const json = (await res.json()) as EdgeJson;
-  const data = unwrapEdgePayload(json);
+  const data = unwrapEdgePayload(json, res.status);
   return data.template as InboxTemplate;
 }
 
@@ -495,7 +574,7 @@ export async function deleteInboxTemplate(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  unwrapEdgePayload(json);
+  unwrapEdgePayload(json, res.status);
 }
 
 export async function suggestInboxAiReply(
@@ -518,7 +597,7 @@ export async function suggestInboxAiReply(
   );
   const json = (await res.json()) as EdgeJson;
   throwIfAiQuota(json, res);
-  const payload = unwrapEdgePayload(json);
+  const payload = unwrapEdgePayload(json, res.status);
   if (typeof payload.suggestion !== 'string') {
     throw new Error('AI suggestion unavailable');
   }
@@ -555,7 +634,7 @@ export async function fetchInboxAutomationSettings(
     headers: { Authorization: `Bearer ${jwt}` },
   });
   const json = (await res.json()) as EdgeJson;
-  return parseAutomationSettings(unwrapEdgePayload(json));
+  return parseAutomationSettings(unwrapEdgePayload(json, res.status));
 }
 
 export async function patchInboxAutomationSettings(
@@ -575,7 +654,7 @@ export async function patchInboxAutomationSettings(
   });
   const json = (await res.json()) as EdgeJson;
   throwIfAiQuota(json, res);
-  return parseAutomationSettings(unwrapEdgePayload(json));
+  return parseAutomationSettings(unwrapEdgePayload(json, res.status));
 }
 
 export function useInboxOrgScope() {

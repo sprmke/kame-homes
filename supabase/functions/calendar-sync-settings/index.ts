@@ -19,12 +19,18 @@ import {
   type CalendarFeedProvider,
 } from '../_shared/calendarSyncService.ts';
 import { loadCalendarFeed, runFeedSync } from '../_shared/calendarSyncRun.ts';
+import {
+  buildCalendarExportUrls,
+  resolvePublicExportOrigin,
+} from '../_shared/calendarExportUrls.ts';
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '../_shared/secretsCrypto.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -79,14 +85,7 @@ async function ensureExportRow(
 }
 
 function exportUrls(req: Request, propertySlug: string, token: string): Record<string, string> {
-  const origin = new URL(req.url).origin;
-  const base = `${origin}/functions/v1/ical-export?property=${encodeURIComponent(propertySlug)}&token=${token}`;
-  return {
-    all: base,
-    airbnb: `${base}&as=airbnb`,
-    booking_com: `${base}&as=booking_com`,
-    vrbo: `${base}&as=vrbo`,
-  };
+  return buildCalendarExportUrls(resolvePublicExportOrigin(req), propertySlug, token);
 }
 
 serveAuthenticated('calendar-sync-settings', async (req) => {
@@ -166,6 +165,19 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
   const { property, user } = access;
   const body = await readJsonBody(req);
   const action = String(body.action ?? '');
+
+  const importActions = new Set(['addFeed', 'updateFeed', 'removeFeed', 'syncNow']);
+  if (importActions.has(action)) {
+    const blocked = await featureUnavailableResponse(req, 'pricing.channel_sync.import', {
+      user,
+    });
+    if (blocked) return blocked;
+  }
+  if (action === 'setExportEnabled' && body.enabled === true) {
+    const blocked = await featureUnavailableResponse(req, 'pricing.channel_sync', { user });
+    if (blocked) return blocked;
+  }
+
   const emitCalendarActivity = (
     calAction:
       'integrations.connected' | 'integrations.disconnected' | 'integrations.config_changed',
@@ -239,6 +251,17 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
           .select(FEED_COLUMNS)
           .single();
         if (error) throw new Error(error.message);
+
+        await capturePostHogEvent('calendar_sync_connected', {
+          logPrefix: 'calendar-sync-settings',
+          request: req,
+          distinctId: user.id,
+          groups: {
+            organization: property.organization_id,
+            property: property.id,
+          },
+          properties: { provider },
+        });
 
         let initialSync = null;
         const inserted = await loadCalendarFeed(supabase, data.id as string);

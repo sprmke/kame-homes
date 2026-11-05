@@ -1,19 +1,15 @@
-import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import posthogRollupPlugin, { type PostHogRollupPluginOptions } from '@posthog/rollup-plugin';
+import { readdirSync, rmSync } from 'node:fs';
+
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const require = createRequire(import.meta.url);
-/** Shared with scripts/pwa/check-precache-budget.mjs — edit the JSON, not here. */
-const precacheGlobs = require('../scripts/pwa/precache-globs.json') as {
-  globPatterns: string[];
-  globIgnores: string[];
-  budgetKiB: number;
-};
+import { resolvePlatformAppName } from './src/lib/platformAppName';
+import { buildWebAppManifest } from './src/pwa/manifest';
 
 import {
   buildScopedPolotnoBlueprintCss,
@@ -22,6 +18,7 @@ import {
   POLOTNO_BLUEPRINT_ENTRY,
   scopeBlueprintCss,
 } from './postcss.config.js';
+import { resolveReleaseId } from './vite-plugins/releaseId';
 import {
   patchOpenPolotnoHighlighter,
   openPolotnoHighlighterEsbuildPlugin,
@@ -41,43 +38,86 @@ const useSyncExternalStoreShimRoot = path.resolve(
 );
 const classnamesShim = path.resolve(__dirname, './src/lib/shims/classnames.ts');
 
-// Build-time only (Node context, never bundled into client code) — set these in
-// CI/Vercel to enable readable production stack traces in PostHog. Requires a
-// *personal* API key (error tracking write scope) — deliberately not named
-// POSTHOG_API_KEY, which is a different (project) key used by the edge runtime.
-// See docs/architecture/validation-and-env.md §11.1.
-const posthogSourceMapsEnabled = Boolean(
-  process.env.POSTHOG_PERSONAL_API_KEY && process.env.POSTHOG_PROJECT_ID
-);
+/**
+ * Source maps go to Sentry only (plan D5). Error grouping and a readable stack are the whole
+ * point of an error tracker; without maps every browser stack is minified.
+ *
+ * Enabled only when all three build-time vars are present. A missing token means "no maps",
+ * not "no build": local and fork builds must not need Sentry credentials.
+ */
+// Org and project are public identifiers, not secrets, so they default here. Only the auth
+// token has to be supplied: locally through `ui/.env.local` (Bun loads it into process.env),
+// on Vercel through the project's environment variables. One variable to forget, not three.
+// Read from `ui/.env.local` as well as the process environment. The build script is
+// `cd ui && bun run build`, and Bun's loaded .env values do not reach that nested process, so
+// a local build would otherwise skip the upload with no error. `loadEnv` with an empty prefix
+// reads the files directly; Vite still only exposes VITE_* to the client bundle.
+const fileEnv = loadEnv('production', __dirname, '');
+const sentryToken = process.env.SENTRY_AUTH_TOKEN ?? fileEnv.SENTRY_AUTH_TOKEN;
+const sentryOrg = process.env.SENTRY_ORG ?? fileEnv.SENTRY_ORG ?? 'kame-tech';
+const sentryProject = process.env.SENTRY_PROJECT ?? fileEnv.SENTRY_PROJECT ?? 'kame-space-web';
+const sentryMissingVars = sentryToken ? [] : ['SENTRY_AUTH_TOKEN'];
+const sentrySourceMapsEnabled = sentryMissingVars.length === 0;
+
+// A missing variable turns source-map upload off with no error, by design (local and fork
+// builds must not need Sentry credentials). On Vercel that silence hid a real gap: every
+// release existed but carried zero artifacts, so stacks stayed minified. Warn loudly there,
+// never fail the build.
+if (process.env.VERCEL && sentryMissingVars.length > 0) {
+  console.warn(
+    `[sentry] source-map upload is OFF for this Vercel build (missing ${sentryMissingVars.join(', ')}). ` +
+      'Sentry stack traces will be minified. Set these in Vercel → Settings → Environment Variables ' +
+      'for both Preview and Production, then redeploy.'
+  );
+}
 
 /**
- * `@posthog/rollup-plugin`'s `writeBundle` hook shells out to `posthog-cli sourcemap upload`
- * and rejects the whole build on any non-zero exit (bad/expired personal API key, network
- * blip, PostHog outage, rate limit) — see `spawnLocal` in `@posthog/plugin-utils`. That hook
- * runs *after* Rollup has already written the real JS/CSS bundle to disk, so a failed upload
- * has nothing left to roll back; the only loss is readable stack traces for this release.
- * Losing that must never block a production deploy (including an urgent hotfix), so this
- * wraps the hook to warn-and-continue instead of throwing.
+ * `@sentry/vite-plugin` uploads inside `writeBundle`, which runs *after* Rollup has already
+ * written the real JS/CSS to disk. A failed upload has nothing left to roll back: the only
+ * loss is readable stack traces for this release. That must never block a deploy, least of
+ * all an urgent hotfix, so the plugin is wrapped to warn-and-continue instead of throwing.
  */
-function resilientPosthogSourcemapsPlugin(options: PostHogRollupPluginOptions): Plugin {
-  const plugin = posthogRollupPlugin(options);
-  const writeBundle = plugin.writeBundle;
+function sentrySourceMapsPlugin(): Plugin[] {
+  const plugins = sentryVitePlugin({
+    org: sentryOrg,
+    project: sentryProject,
+    authToken: sentryToken!,
+    release: { name: appRelease },
+    sourcemaps: {
+      assets: './dist/**',
+      filesToDeleteAfterUpload: ['./dist/**/*.map'],
+    },
+    // Do not send build telemetry to Sentry from a customer repository.
+    telemetry: false,
+  });
 
-  if (writeBundle && typeof writeBundle === 'object' && 'handler' in writeBundle) {
-    const originalHandler = writeBundle.handler.bind(writeBundle);
-    writeBundle.handler = async (...args: Parameters<typeof originalHandler>) => {
+  // Upload failure never fails the build (verified: a bad token logs and the build still
+  // exits 0). What it *can* do is leave the maps on disk, and `sourcemap: 'hidden'` means
+  // they are one stray static-server change away from being public. So deletion is not
+  // left to the plugin: `closeBundle` runs after every `writeBundle`, and removes any map
+  // that survived, uploaded or not.
+  const cleanup: Plugin = {
+    name: 'delete-source-maps-after-build',
+    apply: 'build',
+    enforce: 'post',
+    closeBundle() {
+      const dir = path.resolve(__dirname, 'dist');
+      const walk = (current: string): void => {
+        for (const entry of readdirSync(current, { withFileTypes: true })) {
+          const full = path.join(current, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (entry.name.endsWith('.map')) rmSync(full, { force: true });
+        }
+      };
       try {
-        await originalHandler(...args);
+        walk(dir);
       } catch (error) {
-        console.warn(
-          '[posthog-rollup-plugin] source map upload failed; continuing build without readable production stack traces for this release.',
-          error
-        );
+        console.warn('[sentry-vite-plugin] could not remove source maps from dist', error);
       }
-    };
-  }
+    },
+  };
 
-  return plugin;
+  return [...(plugins as unknown as Plugin[]), cleanup];
 }
 
 let scopedPolotnoBlueprintCache: string | null = null;
@@ -140,9 +180,11 @@ function scopeBlueprintCssPlugin(): Plugin {
  * background-sync / kill-switch handlers `generateSW` can't express. See
  * docs/architecture/pwa.md.
  *
- * Precache = app shell + entry chunks only. The heavy feature-lazy chunks
- * (Polotno studio, mediabunny audio encoders, html2canvas) are excluded here and
- * runtime-cached on demand instead — keeps the install payload bounded.
+ * Precache is NOT globbed here. `scripts/pwa/generate-precache-tiers.mjs` splits
+ * the emitted bundle into a small shell tier (every visitor), a host tier warmed
+ * after sign-in, and on-demand chunks that are never precached, then writes
+ * `dist/precache-tiers.json`. The SW fetches that manifest once at install.
+ * Glob-precaching everything is what shipped 12 MiB to anonymous guests (P0-2).
  */
 function gfmPwaPlugin(): Plugin[] {
   return VitePWA({
@@ -161,81 +203,62 @@ function gfmPwaPlugin(): Plugin[] {
       navigateFallback: 'index.html',
     },
     injectManifest: {
-      globPatterns: precacheGlobs.globPatterns,
-      // Feature-lazy heavy chunks — runtime-cached on demand, never precached.
-      globIgnores: precacheGlobs.globIgnores,
-      // The app's main entry chunk is large; allow it past the 2 MB default.
-      // `scripts/pwa/check-precache-budget.mjs` guards the total in CI.
-      maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-    },
-    manifest: {
-      id: '/?app',
-      name: 'Kame Homes',
-      short_name: 'Kame Homes',
-      description:
-        'Manage bookings, guest messages, pricing and your property operations from one place.',
-      lang: 'en',
-      dir: 'ltr',
-      scope: '/',
-      start_url: '/?source=pwa',
-      display: 'standalone',
-      display_override: ['standalone', 'minimal-ui'],
-      orientation: 'portrait',
-      theme_color: '#f5f6f8',
-      background_color: '#f5f6f8',
-      categories: ['business', 'productivity'],
-      launch_handler: { client_mode: ['navigate-existing', 'auto'] },
-      icons: [
-        { src: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: '/icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-        {
-          src: '/icons/pwa-maskable-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
-          src: '/icons/pwa-maskable-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-      ],
-      shortcuts: [
-        {
-          name: 'Bookings',
-          short_name: 'Bookings',
-          url: '/?source=pwa&shortcut=bookings',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
-        {
-          name: 'Guest Inbox',
-          short_name: 'Inbox',
-          url: '/?source=pwa&shortcut=inbox',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
-        {
-          name: "Today's check-ins",
-          short_name: 'Check-ins',
-          url: '/?source=pwa&shortcut=checkins',
-          icons: [{ src: '/icons/pwa-192.png', sizes: '192x192' }],
-        },
+      // Tier manifests are generated after the bundle is written and fetched by
+      // the SW at install time; nothing is glob-precached any more. Dev mode
+      // (`VITE_PWA_DEV=true`) still gets a glob so local testing has a manifest.
+      globPatterns:
+        process.env.VITE_PWA_DEV === 'true' ? ['**/*.{js,css,html,woff2,svg,png,webmanifest}'] : [],
+      globIgnores: [
+        'assets/PolotnoDesignStudio-*.js',
+        'assets/PolotnoDesignStudio-*.css',
+        'assets/config-*.js',
+        'assets/mediabunny-*.js',
+        'assets/html2canvas*.js',
+        'assets/browser-image-compression-*.js',
+        'maintenance.html',
+        'worklets/**',
       ],
     },
+    manifest: buildWebAppManifest(platformAppName),
   }) as Plugin[];
 }
 
 /** Monotonic build id (epoch seconds) — the PWA kill-switch compares against it. */
 const pwaBuildId = String(Math.floor(Date.now() / 1000));
 
-const posthogReleaseName =
-  process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
-  process.env.GITHUB_SHA?.trim() ||
-  `guest-form-management-ui@${pwaBuildId}`;
+/** Single source of truth for the installed-app label (manifest, meta, copy). */
+const platformAppName = resolvePlatformAppName(process.env.VITE_PLATFORM_APP_NAME);
+
+/**
+ * Splits the emitted bundle into shell / host / on-demand precache tiers after
+ * Rollup has written `dist` (see `scripts/pwa/generate-precache-tiers.mjs`).
+ * Runs as a `closeBundle` hook so it always sees the final asset names.
+ */
+function pwaPrecacheTiersPlugin(): Plugin {
+  return {
+    name: 'gfm-pwa-precache-tiers',
+    apply: 'build',
+    async closeBundle() {
+      process.env.PWA_BUILD_ID = pwaBuildId;
+      const { generatePrecacheTiers } = await import('../scripts/pwa/generate-precache-tiers.mjs');
+      generatePrecacheTiers();
+    },
+  };
+}
+
+/**
+ * Shared with the edge `APP_RELEASE` secret and the PostHog `app_release` property, so a
+ * Sentry issue, a PostHog event and an edge error from the same deploy all carry the same
+ * id. See `vite-plugins/releaseId.ts`.
+ */
+const appRelease = resolveReleaseId();
 
 export default defineConfig({
   define: {
     __PWA_BUILD_ID__: JSON.stringify(pwaBuildId),
+    // Read by the Sentry client and the super-admin env registry. Injected here because
+    // nothing in the Vercel/CI setup exports it into `import.meta.env` on its own.
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appRelease),
   },
   // Strip dev-only code from production output (production-readiness doc 02,
   // Phase 2.2). Deliberately does NOT drop console.log/warn/error — those are
@@ -258,25 +281,18 @@ export default defineConfig({
     patchOpenPolotnoHighlighter(),
     scopeBlueprintCssPlugin(),
     react(),
+    pwaPrecacheTiersPlugin(),
     ...gfmPwaPlugin(),
-    ...(posthogSourceMapsEnabled
-      ? [
-          resilientPosthogSourcemapsPlugin({
-            personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
-            projectId: process.env.POSTHOG_PROJECT_ID!,
-            host: process.env.POSTHOG_HOST,
-            sourcemaps: {
-              releaseName: posthogReleaseName,
-              deleteAfterUpload: true,
-            },
-          }),
-        ]
-      : []),
+    ...(sentrySourceMapsEnabled ? sentrySourceMapsPlugin() : []),
   ],
   build: {
     // 'hidden' still generates + uploads maps but omits the sourceMappingURL
     // comment from shipped JS, so they aren't publicly fetchable.
-    sourcemap: posthogSourceMapsEnabled ? 'hidden' : false,
+    sourcemap: sentrySourceMapsEnabled ? 'hidden' : false,
+    // Read by the precache tier generator after the bundle is written: it maps
+    // each emitted chunk back to its source folder so `features/guest/**` lands
+    // in the shell tier and `features/dashboard/**` in the host tier.
+    manifest: true,
     // Explicit (production-readiness doc 02, Phase 2.1) — these already match
     // Vite 4's defaults, but pinning them means a future debugging change
     // (e.g. `minify: false`) can never ship to production silently. esbuild
@@ -473,5 +489,18 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    // Playwright sets E2E_WARMUP: pre-transform the heaviest routes at dev-server start so the
+    // first test to open them (with parallel CI workers) does not outlast its timeout.
+    warmup: process.env.E2E_WARMUP
+      ? {
+          clientFiles: [
+            './src/features/dashboard/marketing/pages/MarketingStudioPage.tsx',
+            './src/features/dashboard/bookings/pages/BookingsListPage.tsx',
+            './src/features/dashboard/bookings/components/AdminLayout.tsx',
+            './src/features/dashboard/org/components/OrgAdminShell.tsx',
+            './src/features/dashboard/org/components/PropertyAdminShell.tsx',
+          ],
+        }
+      : undefined,
   },
 });

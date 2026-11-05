@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PARKINGS_QUERY_KEY } from '@/features/dashboard/org/hooks/useParkings';
 import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 import type { Parking } from '@/features/dashboard/org/types';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 export function useUpdateParking(orgSlug: string) {
   const queryClient = useQueryClient();
@@ -14,6 +15,7 @@ export function useUpdateParking(orgSlug: string) {
         body: JSON.stringify(payload),
       }),
     onSuccess: () => {
+      captureAppEvent('settings_saved', { section: 'parking_profile' });
       void queryClient.invalidateQueries({ queryKey: PARKINGS_QUERY_KEY });
       void queryClient.invalidateQueries({ queryKey: [...PARKINGS_QUERY_KEY, orgSlug] });
     },

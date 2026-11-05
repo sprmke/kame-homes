@@ -150,18 +150,43 @@ run_backup_if_needed() {
 }
 
 run_db_push() {
-  local -a push_args=(db push)
+  # `db push` is LOCAL by default in current CLI versions ("Local by default. Pass --remote
+  # for the linked project"). `--linked` is not a flag this CLI accepts. Without `--remote`
+  # a deploy pushes migrations at 127.0.0.1:54322: a no-op on a CI runner, and the wrong
+  # database on a developer machine that then reports a successful deploy.
+  local -a push_args=(db push --remote --yes)
+  if [[ -n "${SUPABASE_DB_PASSWORD:-}" ]]; then
+    push_args+=(--password "$SUPABASE_DB_PASSWORD")
+  fi
   if [[ "$INCLUDE_ALL" == true ]]; then
     push_args+=(--include-all)
   fi
-  echo "→ supabase ${push_args[*]}"
+  print_masked_command "${push_args[@]}"
   "${SUPABASE[@]}" "${push_args[@]}"
 }
 
 run_functions_deploy() {
   assert_functions_match_db_schema
+  sync_release_secret
   echo "→ supabase functions deploy"
-  "${SUPABASE[@]}" functions deploy
+  # Non-interactive CI: the hosted CLI now requires an explicit yes.
+  "${SUPABASE[@]}" functions deploy --yes
+}
+
+# Stamps every function with the commit it was built from, so a Sentry issue can be tied to
+# a deploy. A failure here only costs release tagging, so it warns and continues: telemetry
+# metadata must never block a deploy (observability plan D11).
+sync_release_secret() {
+  local release
+  release="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+  if [[ -z "$release" ]]; then
+    echo "⚠️  Could not resolve git HEAD — APP_RELEASE not updated." >&2
+    return 0
+  fi
+  echo "→ supabase secrets set APP_RELEASE=$release"
+  if ! "${SUPABASE[@]}" secrets set --yes "APP_RELEASE=$release" >/dev/null; then
+    echo "⚠️  APP_RELEASE not updated; edge errors will not carry this deploy's release id." >&2
+  fi
 }
 
 run_backup_if_needed

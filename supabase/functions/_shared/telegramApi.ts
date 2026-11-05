@@ -1,3 +1,4 @@
+import { captureSentryMessage } from './sentry.ts';
 export function formatTelegramNetworkError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (/tls handshake|connect error|connection reset|timed out|dns|network/i.test(message)) {

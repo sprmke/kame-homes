@@ -14,6 +14,7 @@ import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpRespon
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { assertWithinUploadLimit } from '../_shared/uploadLimits.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
+import { assertUploadMatchesBytes } from '../_shared/sniffMime.ts';
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -58,6 +59,11 @@ serveAuthenticated('upload-org-verification-asset', async (req) => {
   const mime = (file.type || '').toLowerCase();
   if (!ALLOWED_MIME.has(mime)) {
     return jsonError(req, 'File must be JPEG, PNG, WebP, or PDF');
+  }
+  try {
+    assertUploadMatchesBytes(new Uint8Array(await file.arrayBuffer()), mime, ALLOWED_MIME);
+  } catch (e) {
+    return jsonError(req, (e as Error).message);
   }
   assertWithinUploadLimit(file, mime === 'application/pdf' ? 'pdf' : 'document');
 

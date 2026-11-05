@@ -39,6 +39,9 @@ print_linked_project() {
 
   dev_ref="$(read_env_file_var "$env_file" "DEV_PROJECT_REF")"
   prod_ref="$(read_env_file_var "$env_file" "PROD_PROJECT_REF")"
+  local mt_prod_ref
+  mt_prod_ref="$(read_env_file_var "$_CHECK_LINKED_PROJECT_ROOT/supabase/.env.prod.local" "MT_PROD_PROJECT_REF")"
+  [[ -z "$mt_prod_ref" ]] && mt_prod_ref="fworvijbrwpyngycotbz"
 
   if [[ ! -f "$ref_file" ]]; then
     echo "You are linked to: (nothing — run 'bunx supabase@latest link --project-ref <ref>')"
@@ -47,13 +50,40 @@ print_linked_project() {
 
   LINKED_PROJECT_REF="$(tr -d '[:space:]' <"$ref_file")"
 
-  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" ]]; then
+  # `fwor…` is both the dev target and production (one project since 2026-10-27) and is
+  # classified **prod** on purpose: it holds the live dataset, so prod semantics are the safe
+  # default. The deploy scripts pass `--expect-ref`, which is what keeps the label from
+  # blocking a legitimate deploy; `backup-supabase.sh dev` is no longer used by CI.
+  if [[ -n "$dev_ref" && "$LINKED_PROJECT_REF" == "$dev_ref" && "$LINKED_PROJECT_REF" != "$mt_prod_ref" ]]; then
     LINKED_PROJECT_KIND="dev"
   elif [[ -n "$prod_ref" && "$LINKED_PROJECT_REF" == "$prod_ref" ]]; then
+    LINKED_PROJECT_KIND="prod"
+  elif [[ "$LINKED_PROJECT_REF" == "$mt_prod_ref" ]]; then
     LINKED_PROJECT_KIND="prod"
   fi
 
   echo "You are linked to: $LINKED_PROJECT_REF ($LINKED_PROJECT_KIND)"
+}
+
+# Print a command line with any `--password <value>` masked. Deploy output is routinely
+# pasted into issues and chat; the database password must never appear in it.
+print_masked_command() {
+  local -a shown=()
+  local mask_next=0 arg
+  for arg in "$@"; do
+    if [[ "$mask_next" == "1" ]]; then
+      shown+=("***")
+      mask_next=0
+      continue
+    fi
+    if [[ "$arg" == "--password" ]]; then
+      shown+=("--password")
+      mask_next=1
+      continue
+    fi
+    shown+=("$arg")
+  done
+  printf '→ supabase %s\n' "${shown[*]}"
 }
 
 log_deploy() {

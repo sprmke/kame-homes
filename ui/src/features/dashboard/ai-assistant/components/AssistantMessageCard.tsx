@@ -4,6 +4,7 @@ import { ChatBlockRenderer } from '@/features/dashboard/ai-assistant/components/
 import type {
   ChatBlock,
   ConfirmActionResponse,
+  ConfirmPlanResponse,
 } from '@/features/dashboard/ai-assistant/lib/aiAssistantApi';
 import { partitionAssistantBlocks } from '@/features/dashboard/ai-assistant/lib/partitionAssistantBlocks';
 
@@ -12,6 +13,11 @@ import { cn } from '@/lib/utils';
 type Props = {
   blocks: ChatBlock[];
   onResolveAction: (actionId: string, confirm: boolean) => Promise<ConfirmActionResponse | null>;
+  onResolvePlan: (
+    planId: string,
+    confirm: boolean,
+    selectedStepIds?: string[]
+  ) => Promise<ConfirmPlanResponse | null>;
   onRunQuickAction?: (action: { label: string; prompt: string }) => void;
   quickActionsDisabled?: boolean;
   onOpenCanvas?: (block: ChatBlock) => void;
@@ -28,6 +34,7 @@ type Props = {
 export function AssistantMessageCard({
   blocks,
   onResolveAction,
+  onResolvePlan,
   onRunQuickAction,
   quickActionsDisabled,
   onOpenCanvas,
@@ -44,6 +51,7 @@ export function AssistantMessageCard({
 
   return (
     <div
+      data-testid="assistant-message"
       className={cn(
         unboxed
           ? 'w-full max-w-full'
@@ -63,6 +71,7 @@ export function AssistantMessageCard({
           <ChatBlockRenderer
             blocks={content}
             onResolveAction={onResolveAction}
+            onResolvePlan={onResolvePlan}
             onRunQuickAction={onRunQuickAction}
             quickActionsDisabled={quickActionsDisabled}
             onOpenCanvas={onOpenCanvas}

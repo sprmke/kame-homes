@@ -1,23 +1,44 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
 import { Navigate, Route, useParams } from 'react-router-dom';
 
-import { SuperAdminHostShell } from '@/features/dashboard/super-admin/components/super-admin-hosts/SuperAdminHostShell';
-import { SuperAdminOrgShell } from '@/features/dashboard/super-admin/components/super-admin-orgs/SuperAdminOrgShell';
-import { SuperAdminShell } from '@/features/dashboard/super-admin/components/SuperAdminShell';
 import { superAdminPaths } from '@/features/dashboard/super-admin/lib/superAdminPaths';
 
+import { RouteGuardSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { RouteSkeletonBoundary } from '@/components/skeletons/RouteSkeleton';
 import {
-  GenericAdminRouteSkeleton,
+  SuperAdminAiRouteSkeleton,
   SuperAdminAuditRouteSkeleton,
+  SuperAdminDevelopmentDetailRouteSkeleton,
+  SuperAdminHealthRouteSkeleton,
   SuperAdminHostShellRouteSkeleton,
   SuperAdminListRouteSkeleton,
+  SuperAdminOpsReportDetailRouteSkeleton,
+  SuperAdminOpsReportsRouteSkeleton,
   SuperAdminOrgShellRouteSkeleton,
   SuperAdminOverviewRouteSkeleton,
+  SuperAdminParkingPayoutsRouteSkeleton,
+  SuperAdminRateLimitsRouteSkeleton,
   SuperAdminSettingsRouteSkeleton,
 } from '@/components/skeletons/RouteSkeletons';
+
+/** Shells pull in approval dialogs (pdf.js) and the admin layout; keep them out of the guest entry chunk. */
+const SuperAdminShell = lazy(() =>
+  import('@/features/dashboard/super-admin/components/SuperAdminShell').then((m) => ({
+    default: m.SuperAdminShell,
+  }))
+);
+const SuperAdminHostShell = lazy(() =>
+  import('@/features/dashboard/super-admin/components/super-admin-hosts/SuperAdminHostShell').then(
+    (m) => ({ default: m.SuperAdminHostShell })
+  )
+);
+const SuperAdminOrgShell = lazy(() =>
+  import('@/features/dashboard/super-admin/components/super-admin-orgs/SuperAdminOrgShell').then(
+    (m) => ({ default: m.SuperAdminOrgShell })
+  )
+);
 
 const SuperAdminAiPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminAiPage').then((m) => ({
@@ -47,6 +68,21 @@ const SuperAdminDevelopmentDetailPage = lazy(() =>
 const SuperAdminDevelopmentsPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminDevelopmentsPage').then((m) => ({
     default: m.SuperAdminDevelopmentsPage,
+  }))
+);
+const SuperAdminHealthPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminHealthPage').then((m) => ({
+    default: m.SuperAdminHealthPage,
+  }))
+);
+const SuperAdminOpsReportsPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminOpsReportsPage').then((m) => ({
+    default: m.SuperAdminOpsReportsPage,
+  }))
+);
+const SuperAdminOpsReportDetailPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminOpsReportDetailPage').then((m) => ({
+    default: m.SuperAdminOpsReportDetailPage,
   }))
 );
 const SuperAdminHelpFaqsPage = lazy(() =>
@@ -94,6 +130,11 @@ const SuperAdminPlatformSettingsPage = lazy(() =>
     default: m.SuperAdminPlatformSettingsPage,
   }))
 );
+const SuperAdminFeatureAvailabilityPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminFeatureAvailabilityPage').then((m) => ({
+    default: m.SuperAdminFeatureAvailabilityPage,
+  }))
+);
 const SuperAdminPlaybookArticlesPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminPlaybookArticlesPage').then((m) => ({
     default: m.SuperAdminPlaybookArticlesPage,
@@ -134,52 +175,151 @@ function superAdminRoute(page: ReactNode, skeleton: ReactNode) {
 }
 
 export const superAdminRoutes: ReactNode = (
-  <Route path="/admin" element={<SuperAdminShell />}>
+  <Route
+    path="/admin"
+    element={
+      <Suspense fallback={<RouteGuardSkeleton fullScreen />}>
+        <SuperAdminShell />
+      </Suspense>
+    }
+  >
     <Route
       index
       element={superAdminRoute(<SuperAdminOverviewPage />, <SuperAdminOverviewRouteSkeleton />)}
     />
     <Route
       path="developments"
-      element={superAdminRoute(<SuperAdminDevelopmentsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminDevelopmentsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Developments"
+          subtitle="Buildings and developments on the platform."
+          withActions={1}
+          metricTitles={['Total developments', 'Active', 'Linked properties', 'Linked parking']}
+        />
+      )}
     />
     <Route
       path="developments/:developmentSlug"
-      element={superAdminRoute(<SuperAdminDevelopmentDetailPage />, <GenericAdminRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminDevelopmentDetailPage />,
+        <SuperAdminDevelopmentDetailRouteSkeleton />
+      )}
     />
     <Route
       path="approvals"
-      element={superAdminRoute(<SuperAdminApprovalsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminApprovalsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Approvals"
+          subtitle="Review host verification requests."
+          metricTitles={['In review', 'Org verifications', 'Listing verifications', 'Reviews']}
+        />
+      )}
     />
     <Route
       path="support"
-      element={superAdminRoute(<SuperAdminSupportPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminSupportPage />,
+        <SuperAdminListRouteSkeleton
+          title="Support tickets"
+          subtitle="Host bug reports, suggestions, and inquiries."
+          metricTitles={['Total tickets', 'Open', 'In progress', 'Resolved']}
+        />
+      )}
     />
     <Route
       path="support/faqs"
-      element={superAdminRoute(<SuperAdminHelpFaqsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminHelpFaqsPage />,
+        <SuperAdminListRouteSkeleton
+          title="FAQs"
+          subtitle="Curated FAQs shown to hosts."
+          withActions={1}
+          metricTitles={['Total FAQs', 'Published', 'Unpublished', 'Categories']}
+          view="grouped"
+        />
+      )}
     />
     <Route
       path="playbook"
-      element={superAdminRoute(<SuperAdminPlaybookArticlesPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminPlaybookArticlesPage />,
+        <SuperAdminListRouteSkeleton
+          title="Improvement Playbook"
+          subtitle="Curated tips matched against Analytics and linked from the AI Performance Review."
+          withActions={1}
+          metricCount={0}
+          metricTitles={[]}
+          view="grouped"
+        />
+      )}
     />
     <Route
       path="announcements"
-      element={superAdminRoute(<SuperAdminAnnouncementsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminAnnouncementsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Announcements"
+          subtitle="Platform-wide notices shown to every signed-in host."
+          withActions={1}
+          metricTitles={['Total announcements', 'Active', 'Critical', 'Warning']}
+        />
+      )}
     />
     <Route
       path="hosts"
-      element={superAdminRoute(<SuperAdminHostsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminHostsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Hosts"
+          subtitle="All hosts on the platform."
+          metricTitles={['Total hosts', 'Organizations', 'Properties', 'Parking slots']}
+        />
+      )}
     />
     <Route
       path="ai"
-      element={superAdminRoute(<SuperAdminAiPage />, <SuperAdminSettingsRouteSkeleton />)}
+      element={superAdminRoute(<SuperAdminAiPage />, <SuperAdminAiRouteSkeleton />)}
     />
     <Route path="settings" element={<Navigate to={superAdminPaths.aiTab('controls')} replace />} />
     <Route path="ai-usage" element={<Navigate to={superAdminPaths.aiTab('usage')} replace />} />
     <Route
       path="rate-limits"
-      element={superAdminRoute(<SuperAdminRateLimitsPage />, <SuperAdminSettingsRouteSkeleton />)}
+      element={superAdminRoute(<SuperAdminRateLimitsPage />, <SuperAdminRateLimitsRouteSkeleton />)}
+    />
+    <Route
+      path="health"
+      element={superAdminRoute(<SuperAdminHealthPage />, <SuperAdminHealthRouteSkeleton />)}
+    />
+    <Route
+      path="health/:section"
+      element={superAdminRoute(<SuperAdminHealthPage />, <SuperAdminHealthRouteSkeleton />)}
+    />
+    <Route
+      path="ops-reports"
+      element={superAdminRoute(<SuperAdminOpsReportsPage />, <SuperAdminOpsReportsRouteSkeleton />)}
+    />
+    <Route
+      path="ops-reports/:reportId"
+      element={superAdminRoute(
+        <SuperAdminOpsReportDetailPage />,
+        <SuperAdminOpsReportDetailRouteSkeleton />
+      )}
+    />
+    <Route
+      path="ops-reports"
+      element={superAdminRoute(
+        <SuperAdminOpsReportsPage />,
+        <SuperAdminOpsReportsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="ops-reports/:reportId"
+      element={superAdminRoute(
+        <SuperAdminOpsReportDetailPage />,
+        <SuperAdminOpsReportDetailRouteSkeleton />
+      )}
     />
     <Route
       path="audit"
@@ -189,36 +329,73 @@ export const superAdminRoutes: ReactNode = (
       path="platform-settings"
       element={superAdminRoute(
         <SuperAdminPlatformSettingsPage />,
-        <SuperAdminSettingsRouteSkeleton />
+        <SuperAdminSettingsRouteSkeleton
+          title="Platform settings"
+          subtitle="Operational knobs for the whole platform. Changes take effect on the next request that reads them."
+        />
+      )}
+    />
+    <Route
+      path="feature-availability"
+      element={superAdminRoute(
+        <SuperAdminFeatureAvailabilityPage />,
+        <SuperAdminSettingsRouteSkeleton
+          title="Feature availability"
+          subtitle="Turn product areas off for hosts with a reason, optional banner, and super-admin bypass."
+          cards={4}
+        />
       )}
     />
     <Route
       path="pricing/plans"
-      element={superAdminRoute(<SuperAdminPricingPlansPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminPricingPlansPage />,
+        <SuperAdminListRouteSkeleton
+          title="Pricing plans"
+          subtitle="Subscription tier catalog for host Plans & Billing."
+          metricTitles={['Total plans', 'Host tiers', 'Active plans', 'Default plan']}
+        />
+      )}
     />
     <Route
       path="pricing/payment-settings"
       element={superAdminRoute(
         <SuperAdminPaymentSettingsPage />,
-        <SuperAdminSettingsRouteSkeleton />
+        <SuperAdminSettingsRouteSkeleton
+          title="Payment settings"
+          subtitle="Subscription checkout rails and renewal timing for host billing."
+          cards={1}
+        />
       )}
     />
     <Route
       path="pricing/subscriptions"
-      element={superAdminRoute(<SuperAdminOrgSubscriptionsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminOrgSubscriptionsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Org subscriptions"
+          subtitle="Assign plans to organizations across the platform. Covers every property they own."
+          withActions={2}
+          metricTitles={['Organizations', 'Assigned', 'Unassigned', 'Properties']}
+        />
+      )}
     />
     <Route
       path="parking/payouts"
       element={superAdminRoute(
         <SuperAdminParkingPayoutsPage />,
-        <SuperAdminSettingsRouteSkeleton />
+        <SuperAdminParkingPayoutsRouteSkeleton />
       )}
     />
     <Route
       path="properties"
       element={superAdminRoute(
         <SuperAdminPlatformPropertiesPage />,
-        <SuperAdminListRouteSkeleton />
+        <SuperAdminListRouteSkeleton
+          title="Properties"
+          subtitle="All properties across the platform."
+          metricTitles={['Total properties', 'Active', 'Linked developments', 'Organizations']}
+        />
       )}
     />
     <Route
@@ -228,9 +405,16 @@ export const superAdminRoutes: ReactNode = (
     <Route path="hosts/:hostId/*" element={<SuperAdminHostLegacySubrouteRedirect />} />
     <Route
       path="orgs"
-      element={superAdminRoute(<SuperAdminOrgsPage />, <SuperAdminListRouteSkeleton />)}
+      element={superAdminRoute(
+        <SuperAdminOrgsPage />,
+        <SuperAdminListRouteSkeleton
+          title="Organizations"
+          subtitle="Every organization on the platform. Open one to manage its subscription, listings, team, approvals, and support."
+          metricTitles={['Organizations', 'With a plan', 'Properties', 'Parkings']}
+        />
+      )}
     />
-    {/* Single-page hub — sections are in-page anchors (`#section-x`), not routes. */}
+    {/* Single-page hub - sections are in-page anchors (`#section-x`), not routes. */}
     <Route
       path="orgs/:orgSlug"
       element={superAdminRoute(<SuperAdminOrgShell />, <SuperAdminOrgShellRouteSkeleton />)}

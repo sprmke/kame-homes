@@ -9,7 +9,7 @@ kind: plan
 
 # Org Activity & Audit Log — follow-ups
 
-**Split from** [`../in-progress/org-activity-audit-log.md`](../in-progress/org-activity-audit-log.md) on 2026-09-10 so the core plan (Phases 0–6) can close to `for-testing`. **None of these block the feature.** The always-on `audit-logging` rule + skill keep coverage from rotting — any _new_ change to the surfaces below must still emit or mark N/A.
+**Split from** [`../in-progress/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md) on 2026-09-10 so the core plan (Phases 0–6) can close to `for-testing`. **None of these block the feature.** The always-on `audit-logging` rule + skill keep coverage from rotting — any _new_ change to the surfaces below must still emit or mark N/A.
 
 ## Items
 
@@ -65,6 +65,6 @@ Catalog entries exist; handlers are intentionally unwired.
 
 ## Related
 
-- Parent: [`../in-progress/org-activity-audit-log.md`](../in-progress/org-activity-audit-log.md)
+- Parent: [`../in-progress/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md)
 - Governance: `audit-logging` skill · `.cursor/rules/audit-logging.mdc`
 - `docs/architecture/data-model.md` (`activity_log`) · `docs/architecture/plans-feature-matrix.md` (`activityLogExport`)

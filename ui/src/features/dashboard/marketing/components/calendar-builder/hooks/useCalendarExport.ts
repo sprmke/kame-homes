@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 
 import { marketingHtmlToImageOptions } from '@/features/dashboard/marketing/lib/marketingHtmlToImageOptions';
 
+import { captureError } from '@/lib/sentry/capture';
+
 import { useCalendarBuilderStore } from '../stores/calendarBuilderStore';
 
 export function useCalendarExport(
@@ -50,6 +52,11 @@ export function useCalendarExport(
       toast.success('Calendar downloaded!', { id: 'export' });
     } catch (error) {
       console.error('Export error:', error);
+      captureError(error, {
+        level: 'warning',
+        tags: { media_export: 'calendar' },
+        fingerprint: ['media_export', 'calendar'],
+      });
       toast.error('Failed to export calendar', { id: 'export' });
     } finally {
       setIsExporting(false);
@@ -74,6 +81,11 @@ export function useCalendarExport(
       );
     } catch (error) {
       console.error('Export error:', error);
+      captureError(error, {
+        level: 'warning',
+        tags: { media_export: 'calendar' },
+        fingerprint: ['media_export', 'calendar'],
+      });
       return null;
     } finally {
       setIsExporting(false);

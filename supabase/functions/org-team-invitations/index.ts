@@ -22,6 +22,7 @@ import {
   resendOrgInvitation,
 } from '../_shared/orgTeamService.ts';
 import { catchPlanFeatureError } from '../_shared/planEntitlements.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { identityFromRequest, rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
@@ -42,7 +43,7 @@ serveAuthenticated('org-team-invitations', async (req, user) => {
     const action = parseAction(body);
 
     // Durable rate limit on invite/resend — per user + org.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const isResend = action === 'resend';
     const limited = await rateLimitGate(req, {
       scope: `org-team-invitations:${isResend ? 'resend' : 'invite'}`,
@@ -73,6 +74,16 @@ serveAuthenticated('org-team-invitations', async (req, user) => {
     });
     try {
       const invitation = await createOrgInvitation(ctx, body);
+      await capturePostHogEvent('team_invite_sent', {
+        logPrefix: 'org-team-invitations',
+        request: req,
+        distinctId: user.id,
+        groups: { organization: ctx.org.id },
+        properties: {
+          scope: 'org',
+          role: typeof body.roleId === 'string' ? body.roleId.trim() : 'unknown',
+        },
+      });
       return jsonSuccess(req, { invitation });
     } catch (e) {
       const planErr = catchPlanFeatureError(req, e);

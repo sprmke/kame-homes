@@ -105,6 +105,8 @@ export function ParkingPanel({
           <DocPreview
             label="Endorsement"
             url={booking.parking_endorsement_url}
+            bookingId={booking.id}
+            propertyId={booking.property_id ?? null}
             onPreview={onPreview}
           />
         </BookingDetailRowBlock>

@@ -8,13 +8,15 @@ updated: 2026-09-02
 
 # PWA — installable app, native push, offline access + sync
 
-> **Implementation status (2026-09-02):** Phases 0–7 built in one pass. Installable PWA + Workbox SW + kill-switch, offline read (query-persist allowlist), cross-platform Web Push wired to the Notification Center, offline write/sync (inbox text replies) with server idempotency, install prompt / shortcuts / periodic sync / share util, guest-portal offline read, and the full doc set — all shipped. `type-check` / `lint` / `test` / `build` / `check:filenames` / precache-budget all green. **Not verified (needs a deploy):** the `@negrel/webpush` server send path, and real-device install/push/offline/update QA — see Phase 7 + `docs/architecture/pwa.md` §9. **Deferred follow-ups** (documented per phase): per-event-type push matrix, offline booking-status transitions (WorkflowPanel refactor), Tier B guest push (needs a guest notification model), Web Share Target, booking-form offline draft wiring.
+> **Implementation status (2026-09-02):** Phases 0–7 built in one pass. Installable PWA + Workbox SW + kill-switch, offline read (query-persist allowlist), cross-platform Web Push wired to the Notification Center, offline write/sync (inbox text replies) with server idempotency, install prompt / shortcuts / periodic sync / share util, guest-portal offline read, and the full doc set — all shipped. `type-check` / `lint` / `test` / `build` / `check:filenames` / precache-budget all green. **Not verified (needs a deploy):** the `@negrel/webpush` server send path, and real-device install/push/offline/update QA — see Phase 7 + `docs/architecture/pwa.md` §9.
+
+> **Superseded for follow-ups (2026-11-02):** the deferred items above shipped or were decided in [`pwa-v2-native-app-experience.md`](./pwa-v2-native-app-experience.md) (per-event push preferences + quiet hours, booking-form and parking drafts, guest offline messages; Tier B guest push split out; Web Share Target accepted as a non-goal in `pwa.md` §15). Use that plan's §16 as the current status.
 
 **Not a single implementation PR.** This was the full phase map + locked decisions for turning the GFM SPA into a production-grade, installable, offline-capable Progressive Web App with cross-platform push. Every architectural decision here is settled (see "Locked decisions"); "✅ IMPLEMENTED" markers on each phase below record what actually shipped.
 
 Source intake: user request 2026-09-02 — "make our web app installable on iOS/Android, full PWA features, native push notifications on desktop/Android/iOS, offline access with online↔offline sync … production ready and optimized, support as many PWA features as possible, complete coverage." Follow-up: user delegated all open decisions — "choose the best approach … production-ready and standard PWA support."
 
-Related: [`../in-progress/mobile-native-redesign.md`](../in-progress/mobile-native-redesign.md) deferred "PWA installability (manifest, service worker, offline shell) … a future phase." **This is that phase.** Its shipped mobile primitives (`ui/src/components/mobile/*`, bottom tab bar, safe-area handling, `useIsMobile`, `useMediaQuery`) are the UI substrate this builds on.
+Related: [`../in-progress/mobile-native-redesign.md`](mobile-native-redesign.md) deferred "PWA installability (manifest, service worker, offline shell) … a future phase." **This is that phase.** Its shipped mobile primitives (`ui/src/components/mobile/*`, bottom tab bar, safe-area handling, `useIsMobile`, `useMediaQuery`) are the UI substrate this builds on.
 
 ---
 

@@ -1,6 +1,6 @@
 /**
  * list-help-center-faqs-admin — GET all FAQ items, published or not (super admin editor).
- * Docs: docs/workflow/in-progress/help-support-center.md, Module 4.
+ * Docs: docs/workflow/for-testing/help-support-center.md, Module 4.
  */
 
 import { createServiceClient } from '../_shared/orgAuth.ts';

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -53,7 +53,9 @@ import { useFeatureGate } from '@/features/dashboard/plans/hooks/useFeatureGate'
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
+import { FeatureUnavailablePanel } from '@/components/feature-availability/FeatureUnavailablePanel';
 import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
+import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionMenu } from '@/components/mobile/MobileHeroActionButton';
 import { PropertyAnalyticsSkeleton } from '@/components/skeletons/AnalyticsSkeleton';
@@ -66,6 +68,7 @@ import { detectPresetFromRange, fromIsoDate, formatDateRangeDisplay } from '@/li
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { pdfPropertyScope } from '@/lib/pdf/pdfScopeLabel';
 import { usePdfBrandColor } from '@/lib/pdf/usePdfBrandColor';
+import { captureAppEvent } from '@/lib/posthog/capture';
 
 const SECTION_GAP = 'flex flex-col gap-2.5 sm:gap-3 lg:gap-4';
 
@@ -75,6 +78,10 @@ export function PropertyAnalyticsPage() {
   const compactChrome = useDashboardCompactChrome();
   const reducedMotion = usePrefersReducedMotion();
   const [section, setSection] = useState<AnalyticsSection>('overview');
+
+  // One event per section visit. `report` is the tab key rather than a remapped label, so
+  // the funnel matches the UI a host actually sees.
+  const reportedSectionRef = useRef<string | null>(null);
   const [openPlaybookSlug, setOpenPlaybookSlug] = useState<string | null>(null);
 
   const period = useMemo(() => resolveAnalyticsPeriod(searchParams), [searchParams]);
@@ -105,6 +112,19 @@ export function PropertyAnalyticsPage() {
 
   useSyncDateRangeWithQuery(dateNav, period.from, period.to, patchPeriod);
 
+  useEffect(() => {
+    const key = `${section}:${dateNav.datePreset}`;
+    if (reportedSectionRef.current === key) return;
+    reportedSectionRef.current = key;
+    captureAppEvent('analytics_module_viewed', {
+      report: section,
+      range: dateNav.datePreset,
+    });
+    if (section === 'ai-review') {
+      captureAppEvent('analytics_ai_review_opened', { period: dateNav.datePreset });
+    }
+  }, [dateNav.datePreset, section]);
+
   const handleClearDate = useCallback(() => {
     dateNav.setDatePreset('month');
   }, [dateNav]);
@@ -123,7 +143,11 @@ export function PropertyAnalyticsPage() {
   const { canUse: canInsightsByPlan, isLoading: insightsPlanLoading } =
     useFeatureGate('analyticsInsights');
   const { open: openUpgradeModal } = useUpgradeModal();
-  const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview();
+  const aiReviewAvailability = useFeatureAvailability('analytics.ai_review');
+  const aiReviewQueryEnabled = aiReviewAvailability.available && !aiReviewAvailability.isLoading;
+  const { data: aiReview, isLoading: isAiReviewLoading } = useAnalyticsAiReview({
+    enabled: aiReviewQueryEnabled,
+  });
   const regenerateAiReview = useRegenerateAnalyticsAiReview();
   const orgContext = useOptionalOrgContext();
   const brandColor = usePdfBrandColor();
@@ -271,6 +295,7 @@ export function PropertyAnalyticsPage() {
   return (
     <AdminMobilePage
       title="Analytics"
+      subtitle="Track revenue, occupancy, and guest trends for this property."
       heroTrailing={heroActions}
       overlap={overlapControls}
       desktopActions={desktopActions}
@@ -336,19 +361,29 @@ export function PropertyAnalyticsPage() {
 
             {section === 'ai-review' ? (
               <div className={SECTION_GAP}>
-                <AiPerformanceReviewCard
-                  review={aiReviewPeriod.applicable ? (aiReview ?? null) : null}
-                  isLoading={aiReviewPeriod.applicable && isAiReviewLoading}
-                  applicable={aiReviewPeriod.applicable}
-                  periodKind={aiReviewPeriod.applicable ? aiReviewPeriod.kind : null}
-                  reviewMatchesPeriod={aiReviewPeriod.applicable && reviewMatchesPeriod}
-                  playbookArticles={data.playbook}
-                  onOpenPlaybook={handleOpenPlaybook}
-                  onRefresh={canRefreshAiReview ? handleRefreshAiReview : undefined}
-                  isRefreshing={regenerateAiReview.isPending}
-                  refreshUsedToday={refreshUsedToday}
-                  enoughHistory={data.sufficiency.enough}
-                />
+                {!aiReviewAvailability.available && !aiReviewAvailability.isLoading ? (
+                  <FeatureUnavailablePanel
+                    label={aiReviewAvailability.label}
+                    message={aiReviewAvailability.message}
+                    expectedBackLabel={aiReviewAvailability.expectedBackLabel}
+                    reason={aiReviewAvailability.reason}
+                    tone={aiReviewAvailability.tone}
+                  />
+                ) : (
+                  <AiPerformanceReviewCard
+                    review={aiReviewPeriod.applicable ? (aiReview ?? null) : null}
+                    isLoading={aiReviewPeriod.applicable && isAiReviewLoading}
+                    applicable={aiReviewPeriod.applicable}
+                    periodKind={aiReviewPeriod.applicable ? aiReviewPeriod.kind : null}
+                    reviewMatchesPeriod={aiReviewPeriod.applicable && reviewMatchesPeriod}
+                    playbookArticles={data.playbook}
+                    onOpenPlaybook={handleOpenPlaybook}
+                    onRefresh={canRefreshAiReview ? handleRefreshAiReview : undefined}
+                    isRefreshing={regenerateAiReview.isPending}
+                    refreshUsedToday={refreshUsedToday}
+                    enoughHistory={data.sufficiency.enough}
+                  />
+                )}
                 <PlaybookList
                   articles={data.playbook}
                   openSlug={openPlaybookSlug}

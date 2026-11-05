@@ -37,7 +37,13 @@ Guests can message Kame from the public Contact page after signing in with their
 - Q: Will a guest’s Contact ticket appear in my org Help & Support?
   A: No. Explore Contact tickets are guest-channel. Super-admins still see them on `/admin/support` labeled Explore guest.
 - Q: Can hosts still file tickets from the dashboard?
-  A: Yes — Help & Support → Tickets is unchanged and stays org-scoped.
+  A: Yes. Help & Support → Tickets is unchanged and stays org-scoped.
+- Q: How does a guest start a ticket?
+  A: They open the public Contact page, choose a category, and sign in when prompted. The ticket then appears under their account Tickets.
+- Q: Can a guest attach screenshots or files?
+  A: Yes. Tickets accept up to 3 files, including images and short videos, within the size limits shown on the form.
+- Q: How does a guest know when there is a reply?
+  A: We send an email, and the latest status and full conversation stay available under Tickets.
 
 ---
 

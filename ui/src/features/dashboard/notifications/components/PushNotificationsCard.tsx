@@ -8,6 +8,9 @@ import { Switch } from '@/components/ui/switch';
  * Per-device OS push opt-in. Web Push works on desktop Chrome/Edge/Firefox and
  * Android; on iOS/iPadOS it needs the app installed to the Home Screen first
  * (`needsInstallFirst`).
+ *
+ * Collapses to a single row once this device is subscribed — the switch already
+ * says it is on, so the explainer only earns its space when something is off.
  */
 export function PushNotificationsCard() {
   const { supported, needsInstallFirst, permission, subscribed, busy, enable, disable } =
@@ -15,7 +18,7 @@ export function PushNotificationsCard() {
 
   const blocked = permission === 'denied';
 
-  let status: string;
+  let status: string | null;
   if (needsInstallFirst) {
     status = 'Add this app to your Home Screen, then turn on notifications from the installed app.';
   } else if (!supported) {
@@ -23,16 +26,16 @@ export function PushNotificationsCard() {
   } else if (blocked) {
     status = 'Notifications are blocked. Enable them for this site in your browser settings.';
   } else if (subscribed) {
-    status = 'This device will receive notifications even when the app is closed.';
+    status = null;
   } else {
     status = 'Get booking, message, and workflow alerts on this device when the app is closed.';
   }
 
   return (
     <div className="border-border bg-card rounded-xl border px-3 py-3 sm:p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-2.5">
-          <span className="bg-primary/10 text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
             {needsInstallFirst ? (
               <Smartphone className="size-3.5" />
             ) : (
@@ -43,7 +46,7 @@ export function PushNotificationsCard() {
             <p className="text-foreground text-[13px] font-semibold leading-tight sm:text-sm">
               Notifications on this device
             </p>
-            <p className="text-card-description mt-0.5">{status}</p>
+            {status ? <p className="text-card-description mt-0.5">{status}</p> : null}
           </div>
         </div>
         <Switch

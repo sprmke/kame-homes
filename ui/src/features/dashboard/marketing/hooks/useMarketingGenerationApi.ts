@@ -17,6 +17,11 @@ import { getSessionJwt } from '@/features/dashboard/org/lib/edgeClient';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
 import { friendlyToastError } from '@/lib/feedback/toastMessages';
+import {
+  FeatureUnavailableMutationError,
+  throwIfFeatureUnavailableBody,
+  toastFeatureUnavailable,
+} from '@/lib/featureAvailability/featureUnavailableError';
 
 const DEFAULT_QUOTA_FEATURE: PlanFeatureKey = 'aiMarketingImageGeneration';
 
@@ -27,6 +32,32 @@ export class GenerationRetryableError extends Error {
     super(message);
     this.name = 'GenerationRetryableError';
   }
+}
+
+/** A request the server refused or failed, with whatever row it saved (failed jobs). */
+export class GenerationRequestError extends Error {
+  readonly data: unknown;
+  readonly status: number;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = 'GenerationRequestError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+/** The failed job a generate request still saved (a new conversation exists then too). */
+export function failedJobFromError(
+  error: unknown
+): { id: string; sessionId?: string | null } | null {
+  if (!(error instanceof GenerationRequestError)) return null;
+  const job = (error.data as { job?: { id?: unknown; sessionId?: unknown } } | undefined)?.job;
+  if (!job || typeof job.id !== 'string') return null;
+  return {
+    id: job.id,
+    sessionId: typeof job.sessionId === 'string' ? job.sessionId : null,
+  };
 }
 
 type EdgeEnvelope = {
@@ -61,6 +92,10 @@ export async function generationFetch<T>(
 
   const json = (await res.json().catch(() => ({}))) as EdgeEnvelope;
 
+  if (res.status === 503) {
+    throwIfFeatureUnavailableBody(json);
+  }
+
   if (res.status === 429) {
     if (json.upgradeHook) {
       throw new AiQuotaExceededClientError(json.error, feature);
@@ -68,12 +103,20 @@ export async function generationFetch<T>(
     throw new GenerationRetryableError(json.error ?? 'Too many requests. Try again shortly.');
   }
   if (!res.ok || !json.success) {
-    throw new Error(json.error ?? `Request failed (${res.status})`);
+    throw new GenerationRequestError(
+      json.error ?? `Request failed (${res.status})`,
+      res.status,
+      json.data
+    );
   }
   return json.data as T;
 }
 
 export function handleGenerationError(error: Error): void {
+  if (error instanceof FeatureUnavailableMutationError) {
+    toastFeatureUnavailable(error.payload.error);
+    return;
+  }
   if (error instanceof AiQuotaExceededClientError) {
     toastAiQuotaExceeded(error.message, { feature: error.feature ?? DEFAULT_QUOTA_FEATURE });
     return;
@@ -82,5 +125,6 @@ export function handleGenerationError(error: Error): void {
 }
 
 export const MARKETING_GENERATIONS_QUERY_KEY = 'marketing-generations';
+export const MARKETING_AI_SESSIONS_QUERY_KEY = 'marketing-ai-sessions';
 export const MARKETING_GENERATION_JOB_QUERY_KEY = 'marketing-generation-job';
 export const MARKETING_GENERATION_REFERENCES_QUERY_KEY = 'marketing-generation-references';

@@ -20,13 +20,13 @@ export const ASSISTANT_QUESTIONS: AssistantSuggestion[] = [
   { id: 'q-10', kind: 'question', prompt: 'What does Pending Documents mean?' },
   { id: 'q-11', kind: 'question', prompt: 'Why is this booking stuck?' },
   { id: 'q-12', kind: 'question', prompt: 'What can I do next with this booking?' },
-  { id: 'q-13', kind: 'question', prompt: 'Tell me about this booking' },
+  { id: 'q-13', kind: 'question', prompt: 'Show this booking' },
   { id: 'q-14', kind: 'question', prompt: 'How many check-ins are coming this week?' },
   { id: 'q-15', kind: 'question', prompt: 'Which bookings are ready for check-in?' },
   { id: 'q-16', kind: 'question', prompt: "What's the maintenance summary this month?" },
   { id: 'q-17', kind: 'question', prompt: "Show this month's finance by booking" },
   { id: 'q-18', kind: 'question', prompt: 'What statuses can this booking move to?' },
-  { id: 'q-19', kind: 'question', prompt: 'How does the booking workflow work?' },
+  { id: 'q-19', kind: 'question', prompt: 'Explain the booking workflow' },
   { id: 'q-20', kind: 'question', prompt: 'Which bookings are ready for check-out?' },
   { id: 'q-21', kind: 'question', prompt: "Guide me through this booking's remaining steps" },
   { id: 'q-22', kind: 'question', prompt: 'Which parking stays are waiting to be claimed?' },
@@ -34,8 +34,8 @@ export const ASSISTANT_QUESTIONS: AssistantSuggestion[] = [
   { id: 'q-24', kind: 'question', prompt: 'What marketing templates do I have?' },
   { id: 'q-25', kind: 'question', prompt: "Who's on this property team?" },
   { id: 'q-26', kind: 'question', prompt: "What's the nightly rate this weekend?" },
-  { id: 'q-27', kind: 'question', prompt: 'How do Help & Support tickets work?' },
-  { id: 'q-28', kind: 'question', prompt: 'How do Telegram staff alerts work?' },
+  { id: 'q-27', kind: 'question', prompt: 'Explain Help & Support tickets' },
+  { id: 'q-28', kind: 'question', prompt: 'Explain Telegram staff alerts' },
 ];
 
 /**

@@ -205,18 +205,30 @@ export function PropertyShowcasePageEditor({
   });
 
   const previewPending = previewJwt === null || previewQuery.isLoading;
-  if (configQuery.isLoading || previewPending || !hydrated) {
+  if (
+    (configQuery.isLoading && !configQuery.data) ||
+    previewPending ||
+    (!hydrated && !configQuery.isError)
+  ) {
     return (
-      <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+      <AdminMobilePage
+        title="Showcase"
+        subtitle="Design the public showcase page for this property."
+        titleId="showcase-editor-heading"
+      >
         <PageEditorSkeleton />
       </AdminMobilePage>
     );
   }
 
-  if (previewQuery.isError || !previewQuery.data) {
+  if (configQuery.isError || previewQuery.isError || !previewQuery.data) {
     return (
-      <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
-        <p className="text-muted-foreground px-4 py-8 sm:py-12 text-center text-sm">
+      <AdminMobilePage
+        title="Showcase"
+        subtitle="Design the public showcase page for this property."
+        titleId="showcase-editor-heading"
+      >
+        <p className="text-muted-foreground px-4 py-16 text-center text-sm">
           Could not load this showcase.
         </p>
       </AdminMobilePage>
@@ -224,7 +236,11 @@ export function PropertyShowcasePageEditor({
   }
 
   return (
-    <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+    <AdminMobilePage
+      title="Showcase"
+      subtitle="Design the public showcase page for this property."
+      titleId="showcase-editor-heading"
+    >
       <PageEditorShell
         canUndo={historyIndex > 0}
         canRedo={historyIndex < historyLength - 1}

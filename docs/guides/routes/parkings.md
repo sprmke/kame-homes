@@ -52,17 +52,17 @@ Guests browse standalone parking slots by city or building, open a slot detail p
 - Q: Do blocked dates hide my slot from date searches?
   A: Yes. Slots with a booking or a blocked date in the guest's range are hidden for those dates.
 - Q: Is parking booking fully self-serve for guests today?
-  A: Yes — a guest can browse, request, get matched, and pay online without anyone doing manual work. They must be signed in to submit a request.
+  A: Yes. A guest can browse, request, get matched, and pay online without anyone doing manual work. They must be signed in to submit a request.
 - Q: Where does my parking slot show up besides the public Parkings browse pages?
   A: On your development's parking list, your public host page, and cross-links from related property listings when configured.
 - Q: What happens when a guest taps Reserve on a parking slot?
-  A: The parking request form opens in a modal right on the slot page (dates carried over from the picker when present) instead of navigating to a separate page — same pattern as the property Reserve flow. Guests without a session are prompted to sign in first and land back in the open modal afterward — signing in is required, not just a courtesy prompt. Submitting it creates a real parking request, not a mock lead form.
+  A: The parking request form opens in a modal right on the slot page (dates carried over from the picker when present) instead of navigating to a separate page - same pattern as the property Reserve flow. Guests without a session are prompted to sign in first and land back in the open modal afterward - signing in is required, not just a courtesy prompt. Submitting it creates a real parking request, not a mock lead form.
 - Q: Does every eligible host get notified about a new request at once?
-  A: No — only if the guest requested one specific listing directly. For an org-wide search, the request goes first to the cheapest few eligible hosts. If none of them respond in time, it automatically moves on to the next few, and so on, until it's matched or every eligible host has had a turn.
+  A: No. Only if the guest requested one specific listing directly. For an org-wide search, the request goes first to the cheapest few eligible hosts. If none of them respond in time, it automatically moves on to the next few, and so on, until it's matched or every eligible host has had a turn.
 - Q: How does the guest know if a host accepted the request?
-  A: After submit, the guest is sent to a request-status page that shows whether the request is still waiting, awaiting the guest's payment, already confirmed, cancelled, or ended with no host available. Once a host accepts, the guest sees a "Pay Now" button and has a time window to pay — the booking is only truly confirmed (and the host's access note shown) once payment succeeds.
+  A: After submit, the guest is sent to a request-status page that shows whether the request is still waiting, awaiting the guest's payment, already confirmed, cancelled, or ended with no host available. Once a host accepts, the guest sees a "Pay Now" button and has a time window to pay - the booking is only truly confirmed (and the host's access note shown) once payment succeeds.
 - Q: Can a guest change their mind?
-  A: Yes, any time before they pay — while still searching or while their payment window is open. Once paid, the reservation is final and not self-service cancellable.
+  A: Yes, any time before they pay - while still searching or while their payment window is open. Once paid, the reservation is final and not self-service cancellable.
 
 ---
 

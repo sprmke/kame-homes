@@ -2,7 +2,7 @@
 title: "Won't do"
 status: active
 tags: [workflow, wont-do]
-updated: 2026-08-19
+updated: 2026-11-04
 stage: wont-do
 kind: reference
 ---
@@ -11,13 +11,14 @@ kind: reference
 
 Explicit **cancelled** or **rejected** plans — kept for history, not implementation.
 
-| Doc                                                                                    | Reason                                                                                                                                                             |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`dashboard-ground-up-redesign.md`](./dashboard-ground-up-redesign.md)                 | Cancelled; incremental dashboard polish only — no dedicated ground-up pass scoped from public pages                                                                |
-| [`dashboard-top-header-bar.md`](./dashboard-top-header-bar.md)                         | Profile, theme toggle, and mode switch stay in sidebar footer                                                                                                      |
-| [`listing-authorization.md`](./listing-authorization.md)                               | Never started; superseded by [`../done/verification-scope-split.md`](../done/verification-scope-split.md)                                                          |
-| [`google-oauth-verification.md`](./google-oauth-verification.md)                       | Gmail CASA / OAuth verification pivot — superseded by Resend inbound approvals ([`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md))    |
-| [`property-public-pages-shell-redesign.md`](./property-public-pages-shell-redesign.md) | Never started; superseded by [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md), which owns `PropertyDetailPage.tsx` section-config work |
+| Doc                                                                                    | Reason                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`dashboard-ground-up-redesign.md`](./dashboard-ground-up-redesign.md)                 | Cancelled; incremental dashboard polish only — no dedicated ground-up pass scoped from public pages                                                                     |
+| [`dashboard-top-header-bar.md`](./dashboard-top-header-bar.md)                         | Profile, theme toggle, and mode switch stay in sidebar footer                                                                                                           |
+| [`listing-authorization.md`](./listing-authorization.md)                               | Never started; superseded by [`../done/verification-scope-split.md`](../for-testing/verification-scope-split.md)                                                        |
+| [`google-oauth-verification.md`](./google-oauth-verification.md)                       | Gmail CASA / OAuth verification pivot — superseded by Resend inbound approvals ([`remove-google-calendar-sheets.md`](../done/remove-google-calendar-sheets.md))         |
+| [`property-public-pages-shell-redesign.md`](./property-public-pages-shell-redesign.md) | Never started; superseded by [`../done/page-editor-public-pages.md`](../done/page-editor-public-pages.md), which owns `PropertyDetailPage.tsx` section-config work      |
+| [`module-status-management.md`](./module-status-management.md)                         | Superseded by [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) (shipped 2026-10-29). Kept for history; do not build the registry. |
 
 Move plans here with **`/workflow-wont-do`** or `bash scripts/dev/workflow-move.sh wont-do <slug>`. Scratchpad item → **❌** + `→ **Won't do:**` link (sync runs automatically).
 

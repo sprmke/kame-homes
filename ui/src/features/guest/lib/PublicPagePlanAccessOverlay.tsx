@@ -30,7 +30,7 @@ export function PublicPagePlanAccessOverlay({ pageLabel }: Props) {
         </p>
         <Link
           to="/"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors"
+          className="bg-primary-strong text-primary-foreground hover:bg-primary-strong/90 mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors"
         >
           Home
         </Link>

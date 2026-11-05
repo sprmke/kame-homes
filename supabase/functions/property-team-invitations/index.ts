@@ -13,6 +13,7 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { catchPlanFeatureError, requireTeamInviteAllowed } from '../_shared/planEntitlements.ts';
+import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { TEAM_API_PERMISSIONS } from '../_shared/propertyTeamPermissions.ts';
 import {
   cancelPropertyInvitation,
@@ -46,7 +47,7 @@ serveAuthenticated('property-team-invitations', async (req, user) => {
     const action = parseAction(body);
 
     // Durable rate limit on invite/resend — per user + property.
-    // Plan: docs/workflow/for-testing/captcha-anti-spam-hardening.md
+    // Plan: docs/workflow/in-progress/production-readiness/audits/captcha-anti-spam-hardening.md
     const isResend = action === 'resend';
     const limited = await rateLimitGate(req, {
       scope: `property-team-invitations:${isResend ? 'resend' : 'invite'}`,
@@ -93,6 +94,16 @@ serveAuthenticated('property-team-invitations', async (req, user) => {
         targetType: 'invitation',
         targetId: (invitation as { id?: string })?.id ?? null,
         targetLabel: (invitation as { email?: string })?.email ?? null,
+      });
+      await capturePostHogEvent('team_invite_sent', {
+        logPrefix: 'property-team-invitations',
+        request: req,
+        distinctId: ctx.user.id,
+        groups: { organization: ctx.org.id, property: ctx.property.id },
+        properties: {
+          scope: 'property',
+          role: typeof body.roleId === 'string' ? body.roleId.trim() : 'unknown',
+        },
       });
       return jsonSuccess(req, { invitation });
     } catch (e) {

@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { GUEST_MESSAGES_QUERY_KEY } from '@/features/guest/account/lib/guestAccountApi';
 import {
   editGuestChatMessage,
   fetchGuestChatMessages,
   fetchGuestWebChatResume,
+  guestChatMessagesUrl,
   markGuestChatRead,
   sendGuestChatMessage,
+  submitGuestChatAiFeedback,
   unsendGuestChatMessage,
   uploadGuestChatAttachment,
   startGuestWebChat,
@@ -27,6 +30,7 @@ import {
 } from '@/lib/chat/chatMessageCache';
 import { normalizeChatReplyStatus, type ChatReplyStatus } from '@/lib/chat/chatReplyStatus';
 import { useChatReadReceiptSync } from '@/lib/chat/useChatReadReceiptSync';
+import { runOfflineMutation } from '@/lib/pwa/offlineMutation';
 import { supabase } from '@/lib/supabase/client';
 
 export const GUEST_CHAT_START_KEY = 'guest-chat-start';
@@ -218,10 +222,46 @@ export function useGuestChatMessages(conversationId: string | null) {
     });
   }, [conversationId, query.isLoading, qc, notifyPeerRead]);
 
+  const [assistantTyping, setAssistantTyping] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<Record<string, 1 | -1>>({});
+  const typingTimerRef = useRef<number | null>(null);
+
+  const clearAssistantTyping = useCallback(() => {
+    setAssistantTyping(false);
+    if (typingTimerRef.current) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+  }, []);
+
   const send = useMutation({
-    mutationFn: (input: GuestChatSendInput | string) => {
+    mutationFn: async (input: GuestChatSendInput | string) => {
       const { text, replyToMessageId, attachments } = normalizeSendInput(input);
-      return sendGuestChatMessage(conversationId!, text, { replyToMessageId, attachments });
+      // Attachments need an upload first, so they stay online-only. A text-only
+      // message goes through the durable outbox and lands when the guest is back
+      // online (server-side idempotency keeps a retry from double-sending).
+      if (attachments?.length) {
+        const online = await sendGuestChatMessage(conversationId!, text, {
+          replyToMessageId,
+          attachments,
+        });
+        return { ...online, queued: false };
+      }
+      const result = await runOfflineMutation<{ assistantWillReply?: boolean }>(
+        {
+          kind: 'guest-chat-message',
+          label: 'Message the host',
+          url: guestChatMessagesUrl(),
+          body: { conversationId, text, replyToMessageId },
+          invalidateKeys: [GUEST_CHAT_MESSAGES_KEY],
+        },
+        qc
+      );
+      if (result.queued) return { assistantWillReply: false, queued: true };
+      return {
+        assistantWillReply: result.data?.assistantWillReply === true,
+        queued: false,
+      };
     },
     onMutate: async (input) => {
       if (!conversationId) return undefined;
@@ -253,8 +293,16 @@ export function useGuestChatMessages(conversationId: string | null) {
         delivery_status: 'failed',
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       if (!conversationId) return;
+      if (result.queued) {
+        toast.success('Will send when you are back online.');
+      }
+      if (result.assistantWillReply) {
+        setAssistantTyping(true);
+        if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = window.setTimeout(() => setAssistantTyping(false), 12_000);
+      }
       void qc.invalidateQueries({ queryKey: messagesQueryKey(conversationId) });
       void qc.invalidateQueries({ queryKey: GUEST_MESSAGES_QUERY_KEY });
     },
@@ -308,6 +356,40 @@ export function useGuestChatMessages(conversationId: string | null) {
 
   const messages: GuestChatMessage[] = query.data?.pages.flatMap((page) => page.messages) ?? [];
 
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (last?.direction === 'outbound' && last.is_ai_generated) {
+      clearAssistantTyping();
+    }
+  }, [messages, clearAssistantTyping]);
+
+  useEffect(() => () => clearAssistantTyping(), [clearAssistantTyping, conversationId]);
+
+  const submitAiFeedback = useCallback(
+    async (messageId: string, rating: 1 | -1) => {
+      if (!conversationId) return;
+      const prev = aiFeedback[messageId];
+      const next = prev === rating ? 0 : rating;
+      setAiFeedback((current) => {
+        const copy = { ...current };
+        if (next === 0) delete copy[messageId];
+        else copy[messageId] = next;
+        return copy;
+      });
+      try {
+        await submitGuestChatAiFeedback({ conversationId, messageId, rating: next });
+      } catch {
+        setAiFeedback((current) => {
+          const copy = { ...current };
+          if (prev) copy[messageId] = prev;
+          else delete copy[messageId];
+          return copy;
+        });
+      }
+    },
+    [aiFeedback, conversationId]
+  );
+
   return {
     ...query,
     messages,
@@ -317,6 +399,9 @@ export function useGuestChatMessages(conversationId: string | null) {
     unsend,
     uploadAttachment,
     retryFailedMessage,
+    assistantTyping,
+    aiFeedback,
+    submitAiFeedback,
   };
 }
 
@@ -382,34 +467,31 @@ function useGuestChatRealtime(
 
       channel = supabase
         .channel(`guest-chat-${conversationId}`)
+        // INSERT + UPDATE share one binding. Every `postgres_changes` binding is
+        // its own Realtime subscription polled against WAL, so merging them
+        // cuts guest-chat Realtime load by a third.
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'social_messages',
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            const row = payload.new as { direction?: string };
-            if (row.direction === 'outbound') {
-              patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'replied');
-              void onPeerMessageReceivedRef.current?.();
-            } else if (row.direction === 'inbound') {
-              patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'pending');
+            if (payload.eventType === 'INSERT') {
+              const row = payload.new as { direction?: string };
+              if (row.direction === 'outbound') {
+                patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'replied');
+                void onPeerMessageReceivedRef.current?.();
+              } else if (row.direction === 'inbound') {
+                patchGuestChatReplyStatusInCache(qc, messagesQueryKey(conversationId), 'pending');
+              }
+              invalidate();
+              return;
             }
-            invalidate();
+            if (payload.eventType === 'UPDATE') patchFromUpdate(payload);
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'social_messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          patchFromUpdate
         )
         .on(
           'postgres_changes',

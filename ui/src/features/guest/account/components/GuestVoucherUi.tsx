@@ -50,7 +50,7 @@ export function GuestVoucherSelectOption({
         className={cn(
           'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors',
           selected
-            ? 'border-primary/30 bg-primary text-primary-foreground'
+            ? 'border-primary/30 bg-primary-strong text-primary-foreground'
             : 'border-border/80 bg-muted/50 text-muted-foreground group-hover:border-primary/20 group-hover:text-primary'
         )}
         aria-hidden

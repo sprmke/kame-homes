@@ -27,13 +27,41 @@ targets=(
   get-sd-form/index.ts
   list-public-properties/index.ts
   update-booking-details/index.ts
+  # Public page editors — added after the 2026-11-04 boot error (duplicate `const row`)
+  # left Stay Guide / Showcase stuck on the skeleton.
+  public-page-configs/index.ts
   _shared/bookingAssetTypes.ts
   _shared/bookingDetailsPatch.ts
   _shared/cors.ts
   _shared/propertyScope.ts
   _shared/publicEndpointRateLimit.ts
   _shared/webCryptoKey.ts
+  # Cron / automation graph — added after the 2026-11-02 review-lifecycle failure
+  # (missing import shipped because these modules were not in the launch surface).
+  review-lifecycle-cron/index.ts
+  review-automation-settings/index.ts
+  _shared/reviewLifecycle.ts
+  _shared/reviewAutomation.ts
+  _shared/propertyAutomationToggles.ts
+  send-parking-reminders/index.ts
+  _shared/parkingReminderCron.ts
+  _shared/parkingReminderEligibility.ts
+  # Marketing media library — added after the 2026-11-04 deploy caught a
+  # missing activity-log action key that only the bundler type-checks.
+  marketing-media/index.ts
+  marketing-media-sweeper/index.ts
+  _shared/marketingMediaStorage.ts
+  _shared/marketingMediaIngest.ts
+  _shared/marketingMediaSweeper.ts
+  # Weekly operations report — super-admin console, cron, and the shared health collector.
+  ops-report/index.ts
+  ops-report-cron/index.ts
+  _shared/opsReport.ts
+  _shared/opsReportSentry.ts
+  _shared/opsReportRunner.ts
+  _shared/systemHealth/collect.ts
+  super-admin-system-health/index.ts
 )
 
-echo "→ deno check (${#targets[@]} launch-surface edge modules)"
+echo "→ deno check (${#targets[@]} launch and cron edge modules)"
 deno check --allow-import "${targets[@]}"

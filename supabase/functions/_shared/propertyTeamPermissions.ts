@@ -28,6 +28,9 @@ export const TEAM_PERMISSION_IDS = [
   'bookings.detail.pets:edit',
   'bookings.detail.pricing:edit',
   'bookings.detail.workflow:edit',
+  'reviews:view',
+  'reviews.guests:edit',
+  'reviews.responses:edit',
   'finance:view',
   'finance.transactions:add',
   'finance.transactions:edit',
@@ -54,6 +57,8 @@ export const TEAM_PERMISSION_IDS = [
   'marketing.generate:add',
   'marketing.generate.image:add',
   'marketing.generate.video:add',
+  'marketing.media:add',
+  'marketing.media:delete',
   'marketing.publish:add',
   'notifications:view',
   'notifications.chat:edit',
@@ -117,7 +122,7 @@ const TEAM_PERMISSION_ID_SET = new Set<string>(TEAM_PERMISSION_IDS);
 
 /** Invite email copy when role_id is ADMIN without a named template label at send time. */
 export const PROPERTY_ADMIN_EMAIL_DESCRIPTION =
-  'Admins have the permissions assigned on this property — use a template or customize access in Team settings.';
+  'Admins have the permissions assigned on this property - use a template or customize access in Team settings.';
 
 export type PropertyCustomRoleRow = {
   id: string;

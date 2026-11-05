@@ -446,3 +446,15 @@ export function isGuestTripTimeRule(text: string): boolean {
     text
   );
 }
+
+/**
+ * Coarse stage for `trip_hub_opened`. The timing kind is finer than analytics needs, and
+ * `checkout_day` is still an on-trip day for the guest rather than a past stay.
+ */
+export type TripHubStage = 'upcoming' | 'in_stay' | 'past';
+
+export function tripHubStage(timing: GuestTripTiming): TripHubStage {
+  if (timing.kind === 'upcoming') return 'upcoming';
+  if (timing.kind === 'past') return 'past';
+  return 'in_stay';
+}

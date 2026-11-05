@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -28,7 +28,7 @@ import { GuestFormBrandHeader } from '@/components/branding/GuestFormBrandHeader
 import { CalendarPageSkeleton } from '@/components/skeletons/GuestPageSkeletons';
 import { Button } from '@/components/ui/button';
 import { captureAppEvent } from '@/lib/posthog/capture';
-import { dateToString } from '@/utils/format/dates';
+import { dateToString, parseGuestInquiryDateRange } from '@/utils/format/dates';
 
 export function CalendarPage() {
   const navigate = useNavigate();
@@ -38,10 +38,23 @@ export function CalendarPage() {
   const scopedSearchParams = useGuestPropertySearchParams();
   const { data: guestBrand = DEFAULT_GUEST_PAYMENT_INFO } = useGuestPaymentInfo();
   const brandHeader = pickGuestBrandHeaderProps(guestBrand);
-  const [checkIn, setCheckIn] = useState<Date | null>(null);
-  const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const rawCheckIn = searchParams.get('checkInDate');
+  const rawCheckOut = searchParams.get('checkOutDate');
+  const initialRange = useMemo(
+    () => parseGuestInquiryDateRange(rawCheckIn, rawCheckOut),
+    [rawCheckIn, rawCheckOut]
+  );
+  const [checkIn, setCheckIn] = useState<Date | null>(() => initialRange?.checkIn ?? null);
+  const [checkOut, setCheckOut] = useState<Date | null>(() => initialRange?.checkOut ?? null);
   const { isLoading: calendarLoading } = useGuestBookedDates(propertySlug);
   const calendarOpenedRef = useRef(false);
+
+  // Shared calendar links carry stay dates so the guest lands on the same range.
+  useEffect(() => {
+    if (!initialRange) return;
+    setCheckIn(initialRange.checkIn);
+    setCheckOut(initialRange.checkOut);
+  }, [initialRange]);
 
   useEffect(() => {
     if (calendarLoading || calendarOpenedRef.current) return;
@@ -115,6 +128,7 @@ export function CalendarPage() {
           <PublicPropertyCalendar
             propertyName={guestBrand.propertyName || propertySlug}
             propertySlug={propertySlug}
+            initialMonth={initialRange?.checkIn}
             value={{ checkIn, checkOut }}
             onDatesChange={handleDatesChange}
             showBookingAction={false}

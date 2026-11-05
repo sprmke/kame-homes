@@ -49,7 +49,8 @@ export function BookingKanbanWorkflowModal({
     isLoading,
     error,
   } = useBooking(open ? (bookingId ?? undefined) : undefined);
-  const { previewAsset, previewLoading, handlePreview, closePreview } = useBookingAssetPreview();
+  const { previewAsset, previewLoading, handlePreview, closePreview } =
+    useBookingAssetPreview(bookingId);
   const displayRow = booking ?? previewRow ?? null;
   const isDropTransition = !!targetStatus;
   const shellVisible = open && !(isDropTransition && dropShellHidden);

@@ -2,7 +2,7 @@
 title: 'Guest landing — operator guide'
 status: active
 tags: [guides, routes]
-updated: 2026-09-11
+updated: 2026-11-04
 ---
 
 # Guest landing — operator guide
@@ -30,7 +30,7 @@ Route: `/`
 
 Public **guest explore home**. Wrapped in **`MarketingLayoutShell`** (nav, footer, theme toggle). Operational booking calendar lives at **`/properties/:propertySlug/calendar`**.
 
-**Browser tab title:** `Kame Homes - Home`. The HTML fallback before React hydrates is `Kame Homes` (never `Stays`).
+**Browser tab title:** `Kame Space - Home`. The HTML fallback before React hydrates is `Kame Space` (never `Stays`).
 
 **Mobile shell (2026-09-10):** `MarketingLayoutShell` renders a 5-tab `BottomTabBar` (Explore/Properties/Parkings/Account/More, via `MarketingBottomNav.tsx`) on phone/tablet, replacing the old hamburger + full-screen overlay menu. **More** opens `MarketingMoreSheet` (Explore/For hosts/Company/Legal links, contact email and phone, socials, copyright, theme toggle, `ModeSwitcher`, **Dashboard** when signed in, sign out). `MarketingFooter` is desktop-only (`lg+`); phones have no page footer, the More sheet replaces it (both share `marketingSiteLinks.ts`). Top header stays fixed but is logo-only below `lg` — nav links/CTA/account move into the tab bar + sheet. This shell applies uniformly across every route under `MarketingLayoutShell` (this landing page, `/for-hosts*`, `/properties*`, `/parkings*`, `/developments*`, `/services`, `/about`, `/contact`, `/support`, legal pages, `/account/*`) — see [for-hosts.md](./for-hosts.md) and the `mobile-responsive` skill/rule §2b for the full pattern rather than repeating it on every page.
 
@@ -43,7 +43,7 @@ Inspired by Airbnb/Agoda search-first patterns, but avoids common pain points:
 - **Search is primary** — no promo banners blocking the hero
 - **Progressive disclosure** — fewer sections; no long how-it-works / testimonial carousel on home
 - **Visual hierarchy** — photography-led cards, horizontal scroll for stays (scan-friendly)
-- **Optional dates** — guests can search by destination only
+- **Optional dates** — guests can search by destination only. Picking a single day counts as a one-night stay, so the calendar never submits a range the edge rejects.
 - **Light + dark** — semantic tokens + theme-aware hero canvas
 
 ---
@@ -69,14 +69,14 @@ This is the main guest homepage: search, featured stays, and destination tiles t
 
 ## Sections
 
-| Section        | Component             | Behavior                                                                                                                                                       |
-| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up |
-| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack; animation and card rotation pause while the hero is off screen                                                           |
-| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                         |
-| Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                      |
-| Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                        |
-| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote                                                                                                                                |
+| Section        | Component             | Behavior                                                                                                                                                                                                                         |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero           | `GuestHero`           | Split layout: search + category chips. Chips are a horizontal snap-scroll strip below `sm` (hidden scrollbar, `snap-x`) and wrap to multiple rows from `sm` up                                                                   |
+| Hero animation | `HeroCanvas`          | Pointer-reactive canvas + card stack; animation and card rotation pause while the hero is off screen; card photos use `MarketingImage` (srcset sized to the ≤384px card, front card eager + `fetchpriority=high`, the rest lazy) |
+| Search bar     | `HeroSearch`          | Where / dates / guests → `/properties`                                                                                                                                                                                           |
+| Featured stays | `FeaturedProperties`  | Live catalog in a horizontal snap-scroll; hidden if empty                                                                                                                                                                        |
+| Destinations   | `PopularDestinations` | 3 large editorial tiles                                                                                                                                                                                                          |
+| Trust + review | `LandingSocialProof`  | Compact stats + one guest quote                                                                                                                                                                                                  |
 
 Removed from home (still in codebase for reuse): `HowItWorks`, `Testimonials`, `TrustIndicators`, `FeaturedDevelopments`.
 

@@ -1,3 +1,4 @@
+import { EdgeResponseError } from '@/lib/api/edgeError';
 import { prepareUpload } from '@/lib/media/prepareUpload';
 import { supabase } from '@/lib/supabase/client';
 
@@ -10,8 +11,8 @@ type EdgeJson = {
   data?: Record<string, unknown>;
 };
 
-function unwrapEdgePayload(json: EdgeJson): Record<string, unknown> {
-  if (!json.success) throw new Error(json.error ?? 'Request failed');
+function unwrapEdgePayload(json: EdgeJson, status: number): Record<string, unknown> {
+  if (!json.success) throw new EdgeResponseError(json.error ?? 'Request failed', status);
   const payload = json.data;
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     return payload;
@@ -22,7 +23,8 @@ function unwrapEdgePayload(json: EdgeJson): Record<string, unknown> {
 async function guestJwt(): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  if (!token) throw new Error('Sign in required.');
+  // 401 so the query reporter treats "not signed in" as an outcome, not a fault.
+  if (!token) throw new EdgeResponseError('Sign in required.', 401);
   return token;
 }
 
@@ -36,7 +38,7 @@ async function guestEdgeGet(path: string, search?: URLSearchParams) {
     },
   });
   const json = (await res.json()) as EdgeJson;
-  return unwrapEdgePayload(json);
+  return unwrapEdgePayload(json, res.status);
 }
 
 async function guestEdgePatch(path: string, body: Record<string, unknown>) {
@@ -51,7 +53,7 @@ async function guestEdgePatch(path: string, body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
   const json = (await res.json()) as EdgeJson;
-  return unwrapEdgePayload(json);
+  return unwrapEdgePayload(json, res.status);
 }
 
 async function guestEdgePostForm(path: string, formData: FormData) {
@@ -65,7 +67,7 @@ async function guestEdgePostForm(path: string, formData: FormData) {
     body: formData,
   });
   const json = (await res.json()) as EdgeJson;
-  return unwrapEdgePayload(json);
+  return unwrapEdgePayload(json, res.status);
 }
 
 export type GuestProfileDto = {

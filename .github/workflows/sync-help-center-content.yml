@@ -1,18 +1,20 @@
-name: Sync Help Center content (dev)
+name: Sync support content
 
-# Push to `develop` touching docs/guides/routes/**/*.md → re-run
-# scripts/sync-ai-knowledge-base.ts against MULTI_TENANT_DEV so the AI
-# assistant's knowledge base + the Help Center Documentation module never go
-# stale. Content-only sync (already-reviewed markdown) — not a schema/function
-# deploy, so it does not need the "no prod deploy without kamewave" gate.
+# Push to `develop` touching support sources -> re-run the docs sync so the AI
+# assistant's knowledge base, the Help Center Guides tab, and `help_center_faqs`
+# never go stale.
 #
-# Prod (main) is intentionally NOT wired here yet: mt-prod doesn't exist —
-# see cd-prod.yml's cutover gate. Add a mirrored `main` job once that lands.
+# Sources:
+#   - docs/guides/routes/**/*.md  (Host-facing knowledge Q&A -> knowledge base)
+#   - docs/guides/support/faqs.md (curated FAQs -> help_center_faqs, origin=synced)
 #
-# Requires a `DEV_SUPABASE_SERVICE_ROLE_KEY` secret in the `development`
-# GitHub Environment (not currently set by any other workflow — cd-dev.yml's
-# deploy job only uses SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF via the
-# Supabase CLI, no service-role key). Add it before this workflow can run.
+# There is one Supabase project (`fwor…`) serving both develop and production,
+# so a separate `main` job would sync the same database twice. The single job
+# below is the whole pipeline. Content-only sync (already-reviewed markdown),
+# not a schema/function deploy.
+#
+# Requires `DEV_SUPABASE_SERVICE_ROLE_KEY` in the `development` GitHub
+# Environment, plus `SUPABASE_PROJECT_REF` for the project URL.
 
 on:
   push:
@@ -20,6 +22,7 @@ on:
       - develop
     paths:
       - 'docs/guides/routes/**/*.md'
+      - 'docs/guides/support/**/*.md'
 
 concurrency:
   group: help-center-sync-dev
@@ -30,16 +33,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: development
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Sync knowledge base (MULTI_TENANT_DEV)
+      - name: Validate support content
+        run: |
+          bun scripts/check-support-content.ts
+          bun scripts/check-ai-knowledge-coverage.ts
+
+      - name: Sync knowledge base and curated FAQs
         env:
           DEV_SUPABASE_URL: https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co
           DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}

@@ -1,47 +1,115 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+
 
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useOfflineSync } from '@/features/dashboard/offline/hooks/useOfflineSync';
+import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
+import { useOfflineSyncStore } from '@/features/dashboard/offline/store/offlineSyncStore';
 
-import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { useUnsavedChangesContext } from '@/components/forms/unsavedChangesContext';
+import { FirstLaunchWelcome } from '@/components/pwa/FirstLaunchWelcome';
+import { ForceUpdateSheet } from '@/components/pwa/ForceUpdateSheet';
+import { InstallOfferSheet } from '@/components/pwa/InstallOfferSheet';
+import { LegacyOriginNotice } from '@/components/pwa/LegacyOriginNotice';
 import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { UpdatePrompt } from '@/components/pwa/UpdatePrompt';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { getPwaCapabilities, isStandalone, requestPersistentStorage } from '@/lib/pwa/capabilities';
+import { useInstallOffer } from '@/components/pwa/useInstallOffer';
+import { usePwaEnvironment } from '@/components/pwa/usePwaEnvironment';
+import { getPwaCapabilities, requestPersistentStorage } from '@/lib/pwa/capabilities';
+import { initConnectivityListeners } from '@/lib/pwa/connectivity';
+import { hasHostInstall } from '@/lib/pwa/installMemory';
 import { purgeOfflineState } from '@/lib/pwa/purgeOfflineState';
+import { resyncPushSubscription } from '@/lib/pwa/push';
+import {
+  activePwaSurface,
+  PWA_SURFACE_PRIORITY,
+  usePwaSurfaceStore,
+} from '@/lib/pwa/pwaSurfaceStore';
 import { pwaTelemetry } from '@/lib/pwa/pwaTelemetry';
-import { pingVersionCheck, setSwRegistration } from '@/lib/pwa/swRegistration';
+import { setSwRegistration } from '@/lib/pwa/swRegistration';
 import { initSyncEngine } from '@/lib/pwa/syncEngine';
 import { useRegisterSW } from '@/lib/pwa/useRegisterSW';
+import { captureError } from '@/lib/sentry/capture';
+import { supabase } from '@/lib/supabase/client';
 
-import { SW_MESSAGE } from '@/pwa/shared';
+import { PERIODIC_REFRESH_TAG, SW_MESSAGE } from '@/pwa/shared';
 
 const SW_UPDATE_POLL_MS = 60 * 60 * 1000; // hourly: re-check for a new deployed SW
+const RESUME_REFRESH_MS = 60 * 1000;
+const WARM_FLAG_KEY = 'gfm:pwa:host-tier-warmed';
 
 /**
- * Owns the service-worker lifecycle for the whole app:
- *  - registers the SW and publishes the registration to `swRegistration`
- *  - polls for new deployments and surfaces a non-blocking update prompt
- *  - renders the offline / sync banner
- *  - reacts to the SW kill-switch (`KILLED`) by purging caches + hard-reloading
- *  - requests durable storage so offline data isn't evicted
+ * Owns the service-worker lifecycle and every PWA surface for the whole app:
+ *  - registers the SW, publishes the registration, keeps it updating
+ *  - decides when a waiting update may apply (never over unsaved work)
+ *  - renders the connectivity strip, update prompt, force-update sheet,
+ *    first-launch welcome and the install offer, one floating surface at a time
+ *  - recovers after the app resumes (session, realtime socket, active queries)
+ *  - warms the host precache tier after a host signs in
  *
  * Mount once, near the app root, inside the router + query providers.
  */
 export function PwaProvider() {
-  const online = useOnlineStatus();
   const navigate = useNavigate();
-  const { pendingCount, syncing } = useOfflineSync();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const unsaved = useUnsavedChangesContext();
+  const { status: adminStatus } = useAdminSession();
+  const { platform, standalone } = usePwaEnvironment();
+  const installOffer = useInstallOffer();
+  const claimed = usePwaSurfaceStore((s) => s.claimed);
   const [killed, setKilled] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const swUpdatePollIdRef = useRef<number | null>(null);
-  const queryClient = useQueryClient();
+  const hiddenSinceRef = useRef<number | null>(null);
 
-  // Belt-and-suspenders: clear the SW-update poll interval on unmount even though
-  // this component is meant to mount once near the app root.
+  const activeSurface = activePwaSurface(claimed);
+
+  // ── service worker lifecycle ──────────────────────────────────────────────
+  const {
+    needRefresh: [needRefresh],
+    forceUpdate: [forceUpdate],
+    updateServiceWorker,
+    snoozeUpdate,
+    markForceUpdate,
+    notifyRouteChange,
+  } = useRegisterSW({
+    getGuardSnapshot: () => ({
+      dirtyGuards: unsaved?.registry.hasBlocking() ? 1 : 0,
+      overlayOpen: false, // filled in by the controller's DOM probe
+      outboxDraining: useOfflineSyncStore.getState().syncing,
+      taskInFlight: false,
+    }),
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      registrationRef.current = registration;
+      setSwRegistration(registration);
+      // Poll for a freshly deployed SW while the app stays open. Clear any prior
+      // interval first — `onRegisteredSW` can fire more than once and would
+      // otherwise stack.
+      if (swUpdatePollIdRef.current != null) window.clearInterval(swUpdatePollIdRef.current);
+      swUpdatePollIdRef.current = window.setInterval(() => {
+        registration.update().catch(() => {});
+      }, SW_UPDATE_POLL_MS);
+    },
+    onRegisterError(error) {
+      // eslint-disable-next-line no-console
+      console.error('[pwa] service worker registration failed', error);
+      // Automated browsers (Playwright, Lighthouse) block service worker registration. That
+      // is the harness, not a dead worker for a real user, and it can never be fixed here.
+      if (typeof navigator !== 'undefined' && navigator.webdriver) return;
+      // A dead service worker silently loses push notifications and offline reads for this
+      // user until they clear site data. Nothing else reports it.
+      captureError(error, {
+        level: 'warning',
+        tags: { runtime: 'service_worker' },
+        fingerprint: ['service_worker', 'registration'],
+      });
+    },
+  });
+
   useEffect(() => {
     return () => {
       if (swUpdatePollIdRef.current != null) {
@@ -51,64 +119,91 @@ export function PwaProvider() {
     };
   }, []);
 
-  // Offline write queue — listeners for online/foreground/background-sync + an
-  // initial drain.
+  // Route changes are the safest auto-apply point for a waiting update.
+  useEffect(() => {
+    notifyRouteChange();
+  }, [location.pathname, location.search, notifyRouteChange]);
+
+  // ── boot: connectivity model + offline outbox ────────────────────────────
+  useEffect(() => {
+    initConnectivityListeners();
+  }, []);
+
   useEffect(() => {
     initSyncEngine(queryClient);
   }, [queryClient]);
 
-  const {
-    needRefresh: [needRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegisteredSW(_swUrl, registration) {
-      if (!registration) return;
-      registrationRef.current = registration;
-      setSwRegistration(registration);
-      // Poll for a freshly deployed SW while the app stays open. Clear any prior
-      // interval first — `onRegisteredSW` can fire more than once (React Strict
-      // Mode double-invoke, or a rare re-registration) and would otherwise stack.
-      if (swUpdatePollIdRef.current != null) window.clearInterval(swUpdatePollIdRef.current);
-      swUpdatePollIdRef.current = window.setInterval(() => {
-        registration.update().catch(() => {});
-      }, SW_UPDATE_POLL_MS);
-    },
-    onRegisterError(error) {
-      // eslint-disable-next-line no-console
-      console.error('[pwa] service worker registration failed', error);
-    },
-  });
-
-  // Service-worker → app messages: kill-switch, push-notification click-through,
-  // and cache revalidation. Handled here (mounted app-wide inside the router) so
-  // a push click navigates regardless of which surface the open tab is on.
+  // ── SW → app messages ────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { type?: string; path?: string; keys?: string[] } | undefined;
-      if (data?.type === SW_MESSAGE.KILLED) {
+      const data = event.data as
+        | { type?: string; path?: string; keys?: string[]; markReadId?: string }
+        | undefined;
+      if (!data?.type) return;
+
+      if (data.type === SW_MESSAGE.KILLED) {
         setKilled(true);
         pwaTelemetry('kill-switch');
         void purgeOfflineState().finally(() => {
           window.location.reload();
         });
-      } else if (data?.type === SW_MESSAGE.NOTIFICATION_CLICK && data.path) {
+        return;
+      }
+      if (data.type === SW_MESSAGE.FORCE_UPDATE) {
+        markForceUpdate();
+        return;
+      }
+      if (data.type === SW_MESSAGE.NOTIFICATION_CLICK && data.path) {
         // Only same-origin, app-relative targets (belt-and-suspenders — the SW
         // already sanitises before posting).
         if (data.path.startsWith('/') && !data.path.startsWith('//')) navigate(data.path);
-      } else if (data?.type === SW_MESSAGE.REVALIDATE && Array.isArray(data.keys)) {
+        return;
+      }
+      if (data.type === SW_MESSAGE.PUSH_RESYNC) {
+        void resyncPushSubscription();
+        return;
+      }
+      if (data.type === SW_MESSAGE.REVALIDATE && Array.isArray(data.keys)) {
         for (const key of data.keys) void queryClient.invalidateQueries({ queryKey: [key] });
       }
     };
     navigator.serviceWorker.addEventListener('message', onMessage);
     return () => navigator.serviceWorker.removeEventListener('message', onMessage);
-  }, [navigate, queryClient]);
+  }, [navigate, queryClient, markForceUpdate]);
+
+  // ── resume: session, realtime socket, active queries (5.5) ──────────────
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') hiddenSinceRef.current = Date.now();
+    };
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const awayFor = hiddenSinceRef.current === null ? 0 : Date.now() - hiddenSinceRef.current;
+      hiddenSinceRef.current = null;
+      if (awayFor < RESUME_REFRESH_MS) return;
+      try {
+        // iOS drops sockets and lets tokens expire in the background; refresh both
+        // before touching any data.
+        await supabase.auth.getSession();
+        supabase.realtime.connect();
+      } catch {
+        // offline: the next successful request repairs the session
+      }
+      await queryClient.invalidateQueries({ refetchType: 'active' });
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [queryClient]);
 
   // Fast update + kill-switch reaction whenever the app is foregrounded.
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      pingVersionCheck();
       registrationRef.current?.update().catch(() => {});
     };
     document.addEventListener('visibilitychange', onVisible);
@@ -119,59 +214,97 @@ export function PwaProvider() {
     };
   }, []);
 
-  // Ask for durable storage once the app is idle — but only for a committed
-  // operator (installed, or has granted notifications), so a casual browser visit
-  // is never nagged (Firefox is the only engine that prompts here; Chromium /
-  // Safari decide silently).
+  // ── durable storage ──────────────────────────────────────────────────────
+  // Asked for when the user is committed (installed, or notifications granted) so a
+  // casual browser visit is never prompted; Firefox is the only engine that shows a
+  // prompt here, Chromium/Safari decide silently.
   useEffect(() => {
     const committed =
-      isStandalone() ||
+      standalone ||
       (typeof Notification !== 'undefined' && Notification.permission === 'granted');
     if (!committed) return;
-    const run = () => {
-      void requestPersistentStorage();
-    };
     const w = window as unknown as { requestIdleCallback?: (cb: () => void) => number };
-    if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(run);
-    else window.setTimeout(run, 3000);
-  }, []);
+    if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(() => void requestPersistentStorage());
+    else window.setTimeout(() => void requestPersistentStorage(), 3000);
+  }, [standalone]);
 
-  // Periodic Background Sync (Chromium installed) — background cache refresh.
+  // ── periodic background sync (Chromium installed) ────────────────────────
   useEffect(() => {
     if (!getPwaCapabilities().periodicSync) return;
     const id = window.setTimeout(async () => {
       try {
-        const reg = registrationRef.current;
         const status = await navigator.permissions?.query({
           name: 'periodic-background-sync' as PermissionName,
         });
         if (status && status.state !== 'granted') return;
         await (
-          reg as unknown as {
+          registrationRef.current as unknown as {
             periodicSync?: { register: (t: string, o: { minInterval: number }) => Promise<void> };
           }
-        )?.periodicSync?.register('gfm-periodic-refresh', { minInterval: 6 * 60 * 60 * 1000 });
+        )?.periodicSync?.register(PERIODIC_REFRESH_TAG, { minInterval: 6 * 60 * 60 * 1000 });
       } catch {
-        // no-op
+        // unsupported / denied — no-op
       }
     }, 5000);
     return () => window.clearTimeout(id);
   }, []);
 
+  // ── host precache warming (1.6 / 1.8 / D8) ───────────────────────────────
+  const warmHostTier = useCallback(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    try {
+      if (window.sessionStorage.getItem(WARM_FLAG_KEY) === '1') return;
+    } catch {
+      // ignore
+    }
+    const connection = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    if (connection?.saveData) return;
+    if (connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') return;
+    // Only a host device (or an install) is worth the background download.
+    if (!standalone && !hasHostInstall()) return;
+    navigator.serviceWorker.controller?.postMessage({ type: SW_MESSAGE.WARM_HOST_TIER });
+    try {
+      window.sessionStorage.setItem(WARM_FLAG_KEY, '1');
+    } catch {
+      // ignore
+    }
+  }, [standalone]);
+
+  useEffect(() => {
+    if (adminStatus !== 'admin') return;
+    const id = window.setTimeout(warmHostTier, 8000);
+    return () => window.clearTimeout(id);
+  }, [adminStatus, warmHostTier]);
+
   if (killed) return null;
+
+  // A higher-priority surface (offline strip, kill notice) owns the screen; the
+  // update prompt waits instead of stacking on top of it.
+  const higherPrioritySurface =
+    activeSurface !== null && PWA_SURFACE_PRIORITY[activeSurface] > PWA_SURFACE_PRIORITY.update;
+  const updateVisible = needRefresh && !higherPrioritySurface;
 
   return (
     <>
-      <OfflineBanner online={online} pendingCount={pendingCount} syncing={syncing} />
-      <InstallPrompt />
-      {needRefresh && (
+      <OfflineBanner />
+      {forceUpdate ? (
+        <ForceUpdateSheet onUpdate={() => void updateServiceWorker(true)} />
+      ) : needRefresh && updateVisible ? (
         <UpdatePrompt
           onReload={() => {
             pwaTelemetry('update-applied');
-            updateServiceWorker(true);
+            void updateServiceWorker(true);
           }}
+          onLater={snoozeUpdate}
         />
-      )}
+      ) : null}
+      <InstallOfferSheet offer={installOffer} platform={platform} />
+      <FirstLaunchWelcome />
+      <LegacyOriginNotice />
     </>
   );
 }

@@ -181,6 +181,20 @@ export function buildStructuredImagePrompt(input: {
   return parts.filter(Boolean).join('\n\n');
 }
 
+/**
+ * AI Studio refinement of a photo: the current version is the first reference image.
+ * The free-form rewrite would describe a new scene and lose the photo, so an edit is
+ * a fixed instruction around the host's words instead.
+ */
+export function buildImageEditPrompt(input: { instruction: string; aspectRatio: string }): string {
+  return [
+    'Edit the first reference image. It is the photo being refined.',
+    `Change only this: ${input.instruction.trim()}`,
+    'Keep the room, furniture, layout, camera angle, framing and everything not mentioned exactly as in that image. Photorealistic, natural light, no added text or people.',
+    resolvePlatformIntent(input.aspectRatio).framing,
+  ].join('\n\n');
+}
+
 export type EnhanceMarketingImagePromptInput = {
   organizationId: string;
   propertyId: string;
@@ -226,7 +240,7 @@ export async function enhanceMarketingImagePrompt(
     'subject and action, setting, lighting, camera angle and lens, in flowing sentences ' +
     '(not a keyword list). Stay under 120 words. Do not invent people, brand names, or ' +
     "text to render. Do not contradict the host's request. Output only the finished " +
-    'scene description, nothing else — no preamble, no quotes, no labels.'
+    'scene description, nothing else. No preamble, no quotes, no labels.'
   );
 
   const userPrompt = [
@@ -234,7 +248,7 @@ export async function enhanceMarketingImagePrompt(
     platformLine,
     propertyLine,
     input.hasReferenceImages
-      ? 'Reference images are attached separately for style/subject guidance — describe the scene, do not describe the reference images themselves.'
+      ? 'Reference images are attached separately for style/subject guidance. Describe the scene, do not describe the reference images themselves.'
       : null,
   ]
     .filter(Boolean)

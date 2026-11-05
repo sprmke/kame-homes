@@ -4,9 +4,10 @@ import {
 } from '@/features/dashboard/bookings/lib/unitTypes';
 import { slugifyOrgName } from '@/features/dashboard/org/lib/orgSettingsForm';
 import {
+  cancellationPolicyEqual,
   readCancellationPolicyFromSettings,
-  type CancellationPolicySettings,
-} from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+  type CancellationPolicy,
+} from '@/features/dashboard/org/lib/cancellationPolicy';
 import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import {
   INITIAL_ENABLED_HOUSE_RULES,
@@ -15,6 +16,7 @@ import {
 import {
   readNullableLatitude,
   readNullableLongitude,
+  canonicalPropertyResidenceName,
   withAzureNorthLocationDefaultsIfEmpty,
 } from '@/features/dashboard/org/lib/propertyLocation';
 import { normalizePropertyMediaDraft } from '@/features/dashboard/org/lib/propertyMedia';
@@ -28,6 +30,7 @@ import {
 import {
   formatTowerAndUnit,
   isPropertyTowerForResidence,
+  parseTowerAndUnitFromLegacy,
   type PropertyTower,
 } from '@/features/dashboard/org/lib/propertyTowerUnit';
 import type { Property } from '@/features/dashboard/org/types';
@@ -72,7 +75,7 @@ export type PropertyProfileDraft = {
   customAmenities: CustomAmenity[];
   enabledHouseRules: string[];
   customHouseRules: CustomHouseRule[];
-  cancellationPolicy: CancellationPolicySettings;
+  cancellationPolicy: CancellationPolicy | null;
   allowPets: boolean;
   allowParking: boolean;
   allowSurpriseDecor: boolean;
@@ -188,10 +191,21 @@ export function propertyGuestCapacityTotal(maxAdults: number, maxChildren: numbe
 
 export function propertyProfileDraftFromProperty(property: Property): PropertyProfileDraft {
   const settings = property.settings ?? {};
-  const residenceName = property.residenceName?.trim() || DEFAULT_RESIDENCE_NAME;
+  const residenceName = canonicalPropertyResidenceName(
+    property.residenceName?.trim() || DEFAULT_RESIDENCE_NAME
+  );
+  let towerRaw = property.tower?.trim() ?? '';
+  let unitNumber = property.unitNumber?.trim() ?? '';
+  if (!towerRaw && property.towerAndUnit?.trim()) {
+    const parsed = parseTowerAndUnitFromLegacy(property.towerAndUnit);
+    if (parsed) {
+      towerRaw = parsed.tower;
+      if (!unitNumber) unitNumber = parsed.unitNumber;
+    }
+  }
   const tower =
-    property.tower && isPropertyTowerForResidence(property.tower, residenceName)
-      ? (property.tower as PropertyTower)
+    towerRaw && isPropertyTowerForResidence(towerRaw, residenceName)
+      ? (towerRaw as PropertyTower)
       : '';
 
   const contactRoleRaw = readSettingsString(settings, 'contactRole');
@@ -221,8 +235,8 @@ export function propertyProfileDraftFromProperty(property: Property): PropertyPr
     contactPhone: readSettingsString(settings, 'contactPhone'),
     contactEmail: readSettingsString(settings, 'contactEmail'),
     tower,
-    unitNumber: property.unitNumber ?? '',
-    residenceName: property.residenceName?.trim() ?? '',
+    unitNumber,
+    residenceName,
     address: property.address ?? '',
     city: readSettingsString(settings, 'city'),
     province: readSettingsString(settings, 'province'),
@@ -315,7 +329,7 @@ export function propertyProfileExtendedDirty(
     JSON.stringify(draft.customAmenities) !== JSON.stringify(baseline.customAmenities) ||
     JSON.stringify(draft.enabledHouseRules) !== JSON.stringify(baseline.enabledHouseRules) ||
     JSON.stringify(draft.customHouseRules) !== JSON.stringify(baseline.customHouseRules) ||
-    JSON.stringify(draft.cancellationPolicy) !== JSON.stringify(baseline.cancellationPolicy) ||
+    !cancellationPolicyEqual(draft.cancellationPolicy, baseline.cancellationPolicy) ||
     draft.allowPets !== baseline.allowPets ||
     draft.allowParking !== baseline.allowParking ||
     draft.allowSurpriseDecor !== baseline.allowSurpriseDecor ||

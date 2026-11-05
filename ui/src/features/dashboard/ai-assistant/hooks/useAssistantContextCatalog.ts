@@ -18,6 +18,7 @@ import {
   CONTEXT_CATALOG_GROUPS,
 } from '@/features/dashboard/ai-assistant/lib/contextPickerRegistry';
 import { useBookings } from '@/features/dashboard/bookings/hooks/useBookings';
+import { usePropertyTemplates } from '@/features/dashboard/bookings/hooks/usePropertyTemplates';
 import { DEFAULT_BOOKINGS_QUERY } from '@/features/dashboard/bookings/lib/types';
 import {
   useCustomPages,
@@ -31,6 +32,7 @@ import { platformLabel } from '@/features/dashboard/inbox/lib/inboxFormat';
 import { useMaintenanceItems } from '@/features/dashboard/maintenance/hooks/useMaintenanceItems';
 import { DEFAULT_MAINTENANCE_QUERY } from '@/features/dashboard/maintenance/lib/types';
 import { useMarketingTemplates } from '@/features/dashboard/marketing/hooks/useMarketingTemplates';
+import { useMarketingThemes } from '@/features/dashboard/marketing/hooks/useMarketingThemes';
 import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
 import {
   useOrgIdParam,
@@ -47,6 +49,12 @@ import { usePropertyTeam } from '@/features/dashboard/team/hooks/usePropertyTeam
 import type { OrgTeamMember } from '@/features/dashboard/team/types/orgTeam';
 import type { TeamMember } from '@/features/dashboard/team/types/propertyTeam';
 
+import { usePropertyReviews } from '@/features/reviews/hooks/usePropertyReviews';
+import {
+  defaultReviewsQuery,
+  type ReceivedReviewItem,
+} from '@/features/reviews/lib/propertyReviewsApi';
+
 import { formatMoney } from '@/utils/format/currency';
 
 const PAGE_LABELS: Record<CustomPageType, string> = {
@@ -55,6 +63,9 @@ const PAGE_LABELS: Record<CustomPageType, string> = {
 };
 
 const CATALOG_LIMIT = 40;
+
+/** The catalog only needs the newest page of published reviews. */
+const RECEIVED_PAGE_QUERY = defaultReviewsQuery('received');
 
 export type AssistantCatalogEntry = {
   item: AttachedContextItem;
@@ -123,8 +134,11 @@ export function useAssistantContextCatalog(): {
     { propertyId, parkingId }
   );
   const marketing = useMarketingTemplates();
+  const themes = useMarketingThemes();
+  const reviews = usePropertyReviews('received', RECEIVED_PAGE_QUERY);
   const pages = useCustomPages();
   const tickets = useSupportTickets();
+  const propertyTemplates = usePropertyTemplates();
 
   const isLoading =
     bookings.isLoading ||
@@ -136,8 +150,11 @@ export function useAssistantContextCatalog(): {
     (Boolean(propertyId) && maintenance.isLoading) ||
     inbox.isLoading ||
     (Boolean(propertyId) && marketing.isLoading) ||
+    (Boolean(propertyId) && themes.isLoading) ||
+    (Boolean(propertyId) && reviews.isLoading) ||
     (Boolean(propertyId) && pages.isLoading) ||
-    tickets.isLoading;
+    tickets.isLoading ||
+    (Boolean(propertyId) && propertyTemplates.isLoading);
 
   const groups = useMemo((): AssistantCatalogGroup[] => {
     const byType = new Map<AttachedContextItem['type'], AssistantCatalogEntry[]>();
@@ -281,6 +298,38 @@ export function useAssistantContextCatalog(): {
       });
     }
 
+    for (const theme of take(themes.data?.themes ?? [])) {
+      push({
+        item: {
+          type: 'marketing_theme',
+          id: theme.id,
+          propertyId,
+          label: theme.name,
+        },
+        subtitle: theme.source,
+        keywords: `${theme.name} ${theme.source}`,
+        visual: { kind: 'module-icon', icon: 'marketing_theme', tone: 'primary' },
+      });
+    }
+
+    const receivedReviews = take(
+      (reviews.data?.items ?? []).filter((item): item is ReceivedReviewItem => 'starRating' in item)
+    );
+    for (const review of receivedReviews) {
+      const guestName = review.guestName?.trim() || 'Guest';
+      push({
+        item: {
+          type: 'review',
+          id: review.id,
+          propertyId,
+          label: guestName,
+        },
+        subtitle: `${review.starRating} stars`,
+        keywords: `${guestName} ${review.reviewText ?? ''}`,
+        visual: { kind: 'module-icon', icon: 'review', tone: 'primary' },
+      });
+    }
+
     for (const id of ASSISTANT_NOTIFICATION_MODULE_IDS) {
       const label = ASSISTANT_NOTIFICATION_MODULE_LABELS[id] ?? id;
       push({
@@ -322,6 +371,22 @@ export function useAssistantContextCatalog(): {
       });
     }
 
+    for (const template of take(
+      (propertyTemplates.data?.templates ?? []).filter((row) => row.category !== 'email')
+    )) {
+      push({
+        item: {
+          type: 'property_template',
+          id: template.templateKey,
+          propertyId,
+          label: template.name,
+        },
+        subtitle: template.category === 'custom' ? 'Custom template' : 'Stay guide',
+        keywords: `${template.name} ${template.category} template`,
+        visual: { kind: 'module-icon', icon: 'property_template', tone: 'primary' },
+      });
+    }
+
     return CONTEXT_CATALOG_GROUPS.map((group) => {
       const items = take(byType.get(group.type) ?? []);
       const totalCount =
@@ -340,6 +405,8 @@ export function useAssistantContextCatalog(): {
     maintenance.data,
     marketing.data,
     orgTeam.data,
+    reviews.data,
+    themes.data,
     pages.data,
     parkingId,
     parkingTeam.data,
