@@ -506,7 +506,6 @@ export function PropertyOperationalSettingsSections({
           markFieldInteracted={markFieldInteracted}
           onChange={onChange}
           onAutomationToggleChange={onAutomationToggleChange}
-          issueSectionIds={issueSectionIds}
         />
       ) : null}
 
