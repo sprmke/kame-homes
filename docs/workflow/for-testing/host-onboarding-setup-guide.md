@@ -514,7 +514,7 @@ final "You're all set" step once. Optional steps (pricing, team, Get Recommended
 | Org section completeness                        | `ui/src/features/dashboard/org/lib/orgSettingsCompletion.ts`, `orgSettingsFieldError.ts`, `orgSettingsSave.ts`                |
 | Shared field rules (name, PH phone, email, URL) | `ui/src/lib/validation/fieldValidation.ts` (+ edge mirror `supabase/functions/_shared/fieldValidation.ts`)                    |
 | Payment                                         | `ui/src/features/dashboard/org/lib/paymentProviders.ts`, `paymentMethods.ts`                                                  |
-| Cancellation policy                             | `ui/src/features/dashboard/org/lib/propertyCancellationPolicy.ts`                                                             |
+| Cancellation policy                             | `ui/src/features/dashboard/org/lib/cancellationPolicy.ts`                                                                     |
 | Pricing patch                                   | `ui/src/features/dashboard/pricing/lib/pricingSave.ts`, `pricingDefaults.ts`                                                  |
 | Cleaning buffer                                 | `ui/src/lib/cleaningBuffer.ts` (+ `_shared/cleaningBuffer.ts`)                                                                |
 | Verification files + status                     | `ui/src/features/dashboard/org/lib/orgVerification.ts`, `orgVerificationTiers.ts`                                             |

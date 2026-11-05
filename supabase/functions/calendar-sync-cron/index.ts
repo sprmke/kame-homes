@@ -161,6 +161,10 @@ serve(async (req) => {
       blocksCreated: 0,
       blocksRemoved: 0,
       blocksUpdated: 0,
+      bookingsCreated: 0,
+      bookingsUpdated: 0,
+      bookingsCancelled: 0,
+      bookingsLinked: 0,
       conflicts: 0,
       errors: 0,
       skippedNoEntitlement: 0,
@@ -197,6 +201,10 @@ serve(async (req) => {
         summary.blocksCreated += res.blocksCreated;
         summary.blocksRemoved += res.blocksRemoved;
         summary.blocksUpdated += res.blocksUpdated;
+        summary.bookingsCreated += res.bookingsCreated;
+        summary.bookingsUpdated += res.bookingsUpdated;
+        summary.bookingsCancelled += res.bookingsCancelled;
+        summary.bookingsLinked += res.bookingsLinked;
         summary.conflicts += res.conflicts;
         if (!res.ok) summary.errors++;
       } catch (err) {

@@ -3,7 +3,7 @@ stage: in-progress
 title: 'AI Studio example gallery: generate the photo and clip sample assets'
 status: in-progress
 tags: [workflow, in-progress, marketing, ai-studio]
-updated: 2026-11-03
+updated: 2026-11-06
 kind: plan
 ---
 

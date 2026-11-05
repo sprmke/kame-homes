@@ -178,6 +178,7 @@ function collectSessionContext(root: string): string {
       'API/env/architecture → docs/PROJECT.md.',
       'Plans/tiers → docs/architecture/plans-feature-matrix.md + Plans guides.',
       'New host capabilities → decide Plans + Team RBAC (or N/A) via plans-and-permissions skill.',
+      'Support content → Host-facing knowledge + docs/guides/support/faqs.md via support-content skill.',
       'Booking/auth invariants → .cursor/rules/booking-workflow.mdc or admin-auth.mdc.',
       'Invoke documentation-maintenance skill before claiming done.',
       'Canonical: CLAUDE.md § Docs are the source of truth · .cursor/rules/documentation-maintenance.mdc.',

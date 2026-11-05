@@ -8,10 +8,7 @@ import {
   validateFullPersonName,
   validatePhilippineMobilePhone,
 } from './fieldValidation.ts';
-import {
-  normalizeCancellationPolicySettings,
-  validateCancellationPolicySettings,
-} from './propertyCancellationPolicy.ts';
+import { validateCancellationPolicy } from './cancellationPolicy.ts';
 import { validatePropertyDetailsForResidence } from './propertyResidenceDefaults.ts';
 
 export function validatePropertySettingsPatch(
@@ -79,9 +76,7 @@ export function validatePropertySettingsPatch(
   }
 
   if (incoming.cancellationPolicy !== undefined) {
-    const policyErr = validateCancellationPolicySettings(
-      normalizeCancellationPolicySettings(incoming.cancellationPolicy)
-    );
+    const policyErr = validateCancellationPolicy(incoming.cancellationPolicy);
     if (policyErr) return policyErr;
   }
 

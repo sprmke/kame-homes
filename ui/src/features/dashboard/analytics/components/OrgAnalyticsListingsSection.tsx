@@ -124,7 +124,7 @@ export function OrgAnalyticsListingsSection({ rows }: Props) {
       </FloatingToolbar>
 
       {visible.length === 0 ? (
-        <p className="text-muted-foreground surface-card py-10 text-center text-sm">
+        <p className="text-muted-foreground surface-card py-8 sm:py-12 text-center text-sm">
           {filtered ? 'No listings match your filters' : 'No listings yet'}
         </p>
       ) : (

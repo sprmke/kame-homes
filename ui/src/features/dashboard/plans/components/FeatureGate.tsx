@@ -54,7 +54,7 @@ export function FeatureGate({
           }}
         >
           <span
-            className="text-muted-foreground/40 pointer-events-none select-none text-4xl font-bold uppercase tracking-widest sm:text-5xl"
+            className="text-muted-foreground/40 pointer-events-none select-none text-3xl font-bold uppercase tracking-widest sm:text-5xl"
             aria-hidden
           >
             Preview

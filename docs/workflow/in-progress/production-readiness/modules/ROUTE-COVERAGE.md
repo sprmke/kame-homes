@@ -1,7 +1,7 @@
 ---
 title: 'Route coverage map'
 status: active
-updated: 2026-11-04
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 readiness: unverified

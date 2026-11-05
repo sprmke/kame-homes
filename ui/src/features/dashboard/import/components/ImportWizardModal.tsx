@@ -326,7 +326,7 @@ function AutoMapStep({
               />
             ))
           ) : (
-            <div className="border-border/70 flex flex-col items-center gap-2 rounded-xl border py-10 text-center">
+            <div className="border-border/70 flex flex-col items-center gap-2 rounded-xl border py-8 sm:py-12 text-center">
               <CheckCircle2 className="text-primary size-6" aria-hidden />
               <p className="text-foreground text-sm font-medium">No columns need input</p>
             </div>
@@ -350,7 +350,7 @@ function AutoMapStep({
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground border-border/70 rounded-xl border py-10 text-center text-sm">
+            <p className="text-muted-foreground border-border/70 rounded-xl border py-8 sm:py-12 text-center text-sm">
               No automatic matches.
             </p>
           )}

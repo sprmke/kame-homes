@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Super Admin: System health module'
 status: in-progress
 tags: [planning, super-admin, admin, observability, health, env, integrations, cron]
-updated: 2026-10-22
+updated: 2026-11-06
 ---
 
 # Super Admin: System health module

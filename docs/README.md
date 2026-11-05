@@ -2,7 +2,7 @@
 title: 'Documentation index'
 status: active
 tags: [docs]
-updated: 2026-08-18
+updated: 2026-11-05
 ---
 
 # Documentation index
@@ -53,6 +53,7 @@ See epics #101–#119 in historical [`archive/todos/BACKLOG_DRAFT.md`](./archive
 | [`architecture/feature-availability.md`](./architecture/feature-availability.md)     | Super-admin platform feature on/off catalog, server 503 gates, UI hooks       |
 | [`architecture/pwa.md`](./architecture/pwa.md)                                       | PWA — service worker, Web Push, offline read + outbox, kill-switch            |
 | [`architecture/unsaved-changes.md`](./architecture/unsaved-changes.md)               | Unsaved-changes guard — leave / close confirmation for every editable form    |
+| [`architecture/contextual-help.md`](./architecture/contextual-help.md)               | Contextual help — InfoHint, How it works panels, intro cards, copy registry   |
 
 ## Guides (live — per-route behavior)
 

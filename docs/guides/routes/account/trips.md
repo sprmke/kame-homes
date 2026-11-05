@@ -31,6 +31,14 @@ can open each one to check status, documents, payment and your contact details.
 
 - Q: My guest says a booking is missing from Trips.
   A: They need to sign in with the same email they used on the booking form.
+- Q: Which bookings appear under Trips?
+  A: Property stays only. Parking marketplace bookings are not listed in the guest Trips area.
+- Q: What does the status on a trip mean?
+  A: It matches the stage of your booking workflow, from review through check-in, check-out, and any deposit refund.
+- Q: Why is a checked-out stay still in Upcoming?
+  A: A stay stays in Upcoming while it is waiting on a security-deposit refund. It moves to Past once that is finished.
+- Q: Where does a guest see documents and payment details?
+  A: Opening the trip shows the booking details, submitted documents, payment information, and your contact details.
 
 ---
 

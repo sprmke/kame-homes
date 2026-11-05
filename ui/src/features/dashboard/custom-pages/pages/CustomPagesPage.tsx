@@ -1,6 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
+import { absoluteGuestPath } from '@/features/guest/lib/guestPublicPaths';
+
+import {
+  BookingLinkPickerModal,
+  type BookingLinkKind,
+} from '@/features/dashboard/custom-pages/components/BookingLinkPickerModal';
+import { CopyLinksMenu } from '@/features/dashboard/custom-pages/components/CopyLinksMenu';
 import { PublicPageCard } from '@/features/dashboard/custom-pages/components/PublicPageCard';
+import {
+  StayDatesLinkModal,
+  type StayDatesLinkPage,
+} from '@/features/dashboard/custom-pages/components/StayDatesLinkModal';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { orgPropertyCardModel } from '@/features/dashboard/org/lib/orgPropertyCardModel';
@@ -10,9 +21,11 @@ import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPer
 
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 
-/** Shared card grid: 1 col mobile, 2 from sm, 3 from lg — both gallery sections. */
+/** Shared card grid: 1 col mobile, 2 from sm, 3 from lg — every gallery section. */
 const PUBLIC_PAGE_CARD_GRID_CLASS =
   'grid list-none gap-3 p-0 sm:grid-cols-2 sm:items-stretch sm:gap-4 lg:grid-cols-3';
+
+const SECTION_HEADING_CLASS = 'text-foreground mb-3 text-sm font-semibold tracking-tight sm:mb-4';
 
 export function CustomPagesPage() {
   const orgContext = useOptionalOrgContext();
@@ -24,6 +37,9 @@ export function CustomPagesPage() {
   const canEditListing = hasPropertyPermission(access?.permissions, 'publicPages.property:edit');
   const canEditStayGuide = hasPropertyPermission(access?.permissions, 'publicPages.stayGuide:edit');
   const canEditShowcase = hasPropertyPermission(access?.permissions, 'publicPages.showcase:edit');
+
+  const [bookingLink, setBookingLink] = useState<BookingLinkKind | null>(null);
+  const [datesLink, setDatesLink] = useState<StayDatesLinkPage | null>(null);
 
   function canEditPage(pageId: string): boolean {
     if (pageId === 'listing') return canEditListing;
@@ -37,22 +53,43 @@ export function CustomPagesPage() {
     return buildPropertyGuestPublicPages(propertySlug, propertyId);
   }, [propertyId, propertySlug]);
 
-  const editablePages = useMemo(() => pages.filter((page) => page.editable), [pages]);
-  const staticPages = useMemo(() => pages.filter((page) => !page.editable), [pages]);
+  const editablePages = useMemo(() => pages.filter((page) => page.group === 'design'), [pages]);
+  const sharePages = useMemo(() => pages.filter((page) => page.group === 'share'), [pages]);
+  const bookingPages = useMemo(() => pages.filter((page) => page.group === 'booking'), [pages]);
+
+  const copyMenuItems = useMemo(
+    () =>
+      sharePages.map((page) => ({
+        key: page.id,
+        label: page.label,
+        href: absoluteGuestPath(page.path),
+        Icon: page.icon,
+      })),
+    [sharePages]
+  );
+
+  /** Copy opens the matching picker; pages without one copy straight away in the card. */
+  function copyHandlerFor(pageId: string) {
+    const page = pages.find((candidate) => candidate.id === pageId);
+    if (!page?.copyPicker) return undefined;
+    if (page.copyPicker === 'stay-dates') {
+      return () => setDatesLink(pageId as StayDatesLinkPage);
+    }
+    return () => setBookingLink(page.copyPicker as BookingLinkKind);
+  }
 
   return (
     <AdminMobilePage
       title="Public Pages"
       subtitle="Every guest URL for this listing."
       titleId="public-pages-heading"
+      heroTrailing={<CopyLinksMenu items={copyMenuItems} variant="hero" />}
+      desktopActions={<CopyLinksMenu items={copyMenuItems} variant="desktop" />}
     >
       <div className="flex flex-col gap-8 sm:gap-10">
         {editablePages.length > 0 ? (
           <section aria-labelledby="public-pages-design-heading">
-            <h2
-              id="public-pages-design-heading"
-              className="text-foreground mb-3 text-sm font-semibold tracking-tight sm:mb-4"
-            >
+            <h2 id="public-pages-design-heading" className={SECTION_HEADING_CLASS}>
               Design your pages
             </h2>
             <ul className={PUBLIC_PAGE_CARD_GRID_CLASS}>
@@ -71,22 +108,41 @@ export function CustomPagesPage() {
           </section>
         ) : null}
 
-        {staticPages.length > 0 ? (
-          <section aria-labelledby="public-pages-other-heading">
-            <h2
-              id="public-pages-other-heading"
-              className="text-foreground mb-3 text-sm font-semibold tracking-tight sm:mb-4"
-            >
-              Other guest pages
+        {sharePages.length > 0 ? (
+          <section aria-labelledby="public-pages-share-heading">
+            <h2 id="public-pages-share-heading" className={SECTION_HEADING_CLASS}>
+              Share links
             </h2>
             <ul className={PUBLIC_PAGE_CARD_GRID_CLASS}>
-              {staticPages.map((page) => (
+              {sharePages.map((page) => (
                 <li key={page.id} className="h-full">
                   <PublicPageCard
                     page={page}
                     propertyName={propertyName}
                     coverUrl={coverUrl}
                     variant="static"
+                    onCopy={copyHandlerFor(page.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {bookingPages.length > 0 ? (
+          <section aria-labelledby="public-pages-booking-heading">
+            <h2 id="public-pages-booking-heading" className={SECTION_HEADING_CLASS}>
+              Booking links
+            </h2>
+            <ul className={PUBLIC_PAGE_CARD_GRID_CLASS}>
+              {bookingPages.map((page) => (
+                <li key={page.id} className="h-full">
+                  <PublicPageCard
+                    page={page}
+                    propertyName={propertyName}
+                    coverUrl={coverUrl}
+                    variant="static"
+                    onCopy={copyHandlerFor(page.id)}
                   />
                 </li>
               ))}
@@ -94,6 +150,23 @@ export function CustomPagesPage() {
           </section>
         ) : null}
       </div>
+
+      <BookingLinkPickerModal
+        open={bookingLink !== null}
+        onOpenChange={(open) => {
+          if (!open) setBookingLink(null);
+        }}
+        propertySlug={propertySlug}
+        kind={bookingLink ?? 'sd-refund'}
+      />
+      <StayDatesLinkModal
+        open={datesLink !== null}
+        onOpenChange={(open) => {
+          if (!open) setDatesLink(null);
+        }}
+        propertySlug={propertySlug}
+        pageId={datesLink ?? 'calendar'}
+      />
     </AdminMobilePage>
   );
 }

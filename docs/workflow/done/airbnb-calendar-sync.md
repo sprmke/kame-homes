@@ -879,3 +879,29 @@ Per `documentation-maintenance` + `route-guides` (both always-on Cursor rules):
 - `docs/archive/operations/migration-runbook.md` — migration execute order + the
   `unblock_property_blocked_dates` signature change.
 - Move this file to `docs/workflow/in-progress/` via `/workflow-start` when Phase 1 begins.
+
+---
+
+## Post-ship follow-up — booking ingestion is now on by default (2026-11-05)
+
+The Phase 2 engine shipped behind an unexposed `create_bookings` column. This follow-up makes the
+host flow usable end to end without touching the database:
+
+- **New feeds default `create_bookings = true`**; existing feeds keep their stored value until the
+  host flips the new **Create bookings** switch in Pricing → Channel sync. Turning it on runs an
+  immediate sync so bookings appear without waiting for the 30-minute sweep.
+- **Duplicate safety:** `_shared/externalBookingIngest.ts` adds pure matching rules. A manually
+  entered Airbnb stay with the same property/dates/source is adopted (`booking_linked`) instead
+  of duplicated; a removed and reconnected feed relinks its orphaned rows by `external_uid`; a
+  reservation whose checkout is already past is skipped (`past_stay`).
+- **Migration `20261319120000_calendar_sync_booking_linked_event.sql`** widens the
+  `calendar_sync_events.action` CHECK with `booking_linked`.
+- **Copy from the calendar:** `PricingCalendarBookingModal` now offers **Copy guest form link**
+  (`bookings.detail.workflow:edit`; mints through `issue-guest-form-completion-token`) and
+  **Open in Airbnb** (reservation URL parsed from the feed DESCRIPTION, host-only).
+- **Sync modal UX:** From Airbnb carries a short three-step explainer and a per-feed
+  **Create bookings** switch.
+- **Tests:** `_shared/externalBookingIngest_test.ts` (pure rules), `calendarSyncService_test.ts`
+  (reservation URL), `importedBooking.test.ts` (eligibility), plus three integration cases
+  (past skip, manual adoption, reconnect relink) — all 12 integration tests pass against local
+  Postgres.

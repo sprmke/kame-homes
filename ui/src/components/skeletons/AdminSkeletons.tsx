@@ -14,7 +14,9 @@ import {
   Clock3,
   DollarSign,
   FileText,
+  HelpCircle,
   Layers,
+  LayoutGrid,
   ListChecks,
   Mail,
   PencilLine,
@@ -23,8 +25,10 @@ import {
   Quote,
   Receipt,
   Reply,
+  Shield,
   ShieldCheck,
   Star,
+  UserCheck,
   TrendingUp,
   Users,
   Wallet,
@@ -35,6 +39,10 @@ import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/component
 
 import { AppLoader } from '@/components/branding/AppLoader';
 import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
+import {
+  PlansTabsListSkeleton,
+  SlidingTabsListSkeleton,
+} from '@/components/skeletons/SlidingTabsListSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -479,6 +487,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Net Profit',
     icon: Wallet,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-blue-600 dark:text-blue-400',
     iconBgClassName: 'bg-blue-100 dark:bg-blue-900/30',
   },
@@ -486,6 +495,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Total Income',
     icon: ArrowUpRight,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-emerald-600 dark:text-emerald-400',
     iconBgClassName: 'bg-emerald-100 dark:bg-emerald-900/30',
   },
@@ -493,6 +503,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Total Expenses',
     icon: ArrowDownRight,
     showTrend: true,
+    hasHint: true,
     iconClassName: 'text-red-600 dark:text-red-400',
     iconBgClassName: 'bg-red-100 dark:bg-red-900/30',
   },
@@ -500,6 +511,7 @@ const FINANCE_KPI_CARDS = [
     title: 'Pending Payments',
     icon: Clock,
     showTrend: false,
+    hasHint: true,
     iconClassName: 'text-amber-600 dark:text-amber-400',
     iconBgClassName: 'bg-amber-100 dark:bg-amber-900/30',
   },
@@ -517,6 +529,9 @@ function FinanceKpiGridSkeleton() {
           iconBgClassName={card.iconBgClassName}
           showTrend={card.showTrend}
           changeLabel="vs last period"
+          titleAdornment={
+            card.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+          }
           style={{ opacity: 1 - i * 0.05 } as CSSProperties}
         />
       ))}
@@ -533,10 +548,10 @@ export function FinanceOverviewSkeleton() {
 }
 
 const MAINTENANCE_KPI_CARDS = [
-  { title: 'Total', icon: ListChecks },
-  { title: 'Telegram enabled', icon: Bell },
-  { title: 'Completed', icon: CheckCircle2 },
-  { title: 'Pending', icon: Clock3 },
+  { title: 'Total', icon: ListChecks, hasHint: false },
+  { title: 'Telegram enabled', icon: Bell, hasHint: true },
+  { title: 'Completed', icon: CheckCircle2, hasHint: false },
+  { title: 'Pending', icon: Clock3, hasHint: true },
 ] as const;
 
 export function MaintenanceOverviewSkeleton() {
@@ -552,6 +567,9 @@ export function MaintenanceOverviewSkeleton() {
           key={card.title}
           title={card.title}
           icon={card.icon}
+          titleAdornment={
+            card.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+          }
           style={{ opacity: 1 - i * 0.05 } as CSSProperties}
         />
       ))}
@@ -585,16 +603,14 @@ export function PlansPageSkeleton() {
       </div>
 
       <div className="min-w-0">
-        <div className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-md p-1 sm:w-auto lg:h-11">
-          {['Billing', 'Plans', 'Compare', 'FAQs'].map((label) => (
-            <span
-              key={label}
-              className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-sm px-2 text-[13px] font-medium sm:w-20 sm:flex-none lg:h-9 lg:w-24"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <PlansTabsListSkeleton
+          items={[
+            { label: 'Billing', icon: Receipt },
+            { label: 'Plans', icon: LayoutGrid },
+            { label: 'Compare', icon: FileText },
+            { label: 'FAQs', icon: HelpCircle },
+          ]}
+        />
 
         <div className="surface-card mt-3 p-4 md:p-5">
           <Skeleton className="mb-3 h-5 w-24 sm:mb-4" />
@@ -909,7 +925,13 @@ function DashboardChartCardHeaderSkeleton({
 
 function DashboardTrendStatCardSkeleton({ title, icon }: { title: string; icon: LucideIcon }) {
   return (
-    <AdminMetricCardSkeleton title={title} icon={icon} showTrend changeLabel="vs last period" />
+    <AdminMetricCardSkeleton
+      title={title}
+      icon={icon}
+      showTrend
+      changeLabel="vs last period"
+      titleAdornment={<span aria-hidden className="h-4 w-6 shrink-0" />}
+    />
   );
 }
 
@@ -1410,18 +1432,18 @@ export function MediaPreviewSkeleton({ className }: { className?: string } = {})
 }
 
 /** Team page (org/parking/property) — stat card strip + tab row + member list card. */
-const DEFAULT_TEAM_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const DEFAULT_TEAM_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total Members', icon: Users },
-  { title: 'Team access', icon: ShieldCheck },
+  { title: 'Team access', icon: ShieldCheck, hasHint: true },
   { title: 'Pending Invites', icon: Mail },
-  { title: 'From Organization', icon: Building2 },
+  { title: 'From Organization', icon: Building2, hasHint: true },
 ];
 
-const ORG_TEAM_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const ORG_TEAM_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total Members', icon: Users },
-  { title: 'Full Access', icon: ShieldCheck },
-  { title: 'Operations', icon: ShieldCheck },
-  { title: 'Read Only', icon: ShieldCheck },
+  { title: 'Full Access', icon: ShieldCheck, hasHint: true },
+  { title: 'Operations', icon: ShieldCheck, hasHint: true },
+  { title: 'Read Only', icon: ShieldCheck, hasHint: true },
   { title: 'Pending Invites', icon: Mail },
 ];
 
@@ -1449,20 +1471,20 @@ export function TeamPageSkeleton({
             key={metric.title}
             title={metric.title}
             icon={metric.icon}
+            titleAdornment={
+              metric.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+            }
             style={{ opacity: 1 - i * 0.05 } as CSSProperties}
           />
         ))}
       </div>
-      <div className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-lg p-1 sm:w-auto">
-        {['Members', 'Invitations', 'Permissions'].map((label) => (
-          <span
-            key={label}
-            className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 text-[13px] font-medium sm:w-24 sm:flex-none"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+      <SlidingTabsListSkeleton
+        items={[
+          { label: 'Members', icon: Users, labelClassName: 'hidden sm:inline' },
+          { label: 'Invitations', icon: Mail, labelClassName: 'hidden sm:inline' },
+          { label: 'Permissions', icon: Shield, labelClassName: 'hidden sm:inline' },
+        ]}
+      />
       <div className="border-border/50 bg-card rounded-xl border">
         <div className="space-y-0 p-4 pb-2 sm:p-6 sm:pb-2">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -1579,6 +1601,14 @@ export function ReviewsPageSkeleton({
 }: {
   tabs?: string[];
 } = {}) {
+  const tabItems = tabs.map((label) => {
+    if (label === 'From guests') return { label, icon: Quote };
+    if (label === 'To write') return { label, icon: PencilLine };
+    if (label === 'About guests') return { label, icon: UserCheck };
+    if (label === 'By property') return { label, icon: Building2 };
+    return { label };
+  });
+
   return (
     <div
       role="status"
@@ -1599,19 +1629,7 @@ export function ReviewsPageSkeleton({
           />
         ))}
       </div>
-      <div
-        className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-lg p-1 sm:w-auto"
-        aria-hidden
-      >
-        {tabs.map((label) => (
-          <span
-            key={label}
-            className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 text-[13px] font-medium sm:w-24 sm:flex-none"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+      <SlidingTabsListSkeleton items={tabItems} />
       <div className="hidden lg:block" aria-hidden>
         <FinanceStaysTableSkeleton />
       </div>

@@ -37,14 +37,20 @@ function toastSyncResult(r: FeedSyncResult): void {
     return;
   }
   const summary = `${r.blocksCreated} added, ${r.blocksUpdated} changed, ${r.blocksRemoved} removed`;
+  const bookingBits: string[] = [];
+  if (r.bookingsCreated) bookingBits.push(`${r.bookingsCreated} created`);
+  if (r.bookingsUpdated) bookingBits.push(`${r.bookingsUpdated} updated`);
+  if (r.bookingsCancelled) bookingBits.push(`${r.bookingsCancelled} cancelled`);
+  if (r.bookingsLinked) bookingBits.push(`${r.bookingsLinked} linked`);
+  const bookings = bookingBits.length > 0 ? `, bookings: ${bookingBits.join(', ')}` : '';
   if (r.conflicts > 0) {
     suppressCalendarConflictRealtimeToasts();
     toast.warning(
-      `Synced: ${summary}. ${conflictLabel(r.conflicts)}. Check Notifications or Recent activity.`
+      `Synced: ${summary}${bookings}. ${conflictLabel(r.conflicts)}. Check Notifications or Recent activity.`
     );
     return;
   }
-  toast.success(`Synced: ${summary}`);
+  toast.success(`Synced: ${summary}${bookings}`);
 }
 
 function handleCalendarSyncError(
@@ -115,11 +121,12 @@ export function useAddCalendarFeed() {
       if (sync.conflicts > 0) {
         suppressCalendarConflictRealtimeToasts();
         toast.warning(
-          `Calendar connected: ${sync.blocksCreated} imported. ${conflictLabel(sync.conflicts)}. Check Notifications or Recent activity.`
+          `Calendar connected: ${sync.blocksCreated} dates imported. ${conflictLabel(sync.conflicts)}. Check Notifications or Recent activity.`
         );
         return;
       }
-      toast.success(`Calendar connected: ${sync.blocksCreated} imported`);
+      const bookings = sync.bookingsCreated > 0 ? `, ${sync.bookingsCreated} bookings created` : '';
+      toast.success(`Calendar connected: ${sync.blocksCreated} dates imported${bookings}`);
     },
     onError: (error: Error) =>
       handleCalendarSyncError(error, 'Could not connect calendar', queryClient),
@@ -131,14 +138,49 @@ export function useUpdateCalendarFeed() {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateCalendarSync();
   return useMutation({
-    mutationFn: (input: { feedId: string; label?: string; icsUrl?: string; isActive?: boolean }) =>
-      updateCalendarFeed(propertyId!, input),
+    mutationFn: (input: {
+      feedId: string;
+      label?: string;
+      icsUrl?: string;
+      isActive?: boolean;
+      createBookings?: boolean;
+    }) => updateCalendarFeed(propertyId!, input),
     onSuccess: () => {
       invalidate();
       toast.success('Calendar updated');
     },
     onError: (error: Error) =>
       handleCalendarSyncError(error, 'Could not update calendar', queryClient),
+  });
+}
+
+/** Turn OTA reservation ingestion on or off for one feed. Enabling runs a sync now. */
+export function useSetCreateBookings() {
+  const propertyId = usePropertyIdParam();
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateCalendarSync();
+  return useMutation({
+    mutationFn: (input: { feedId: string; enabled: boolean }) =>
+      updateCalendarFeed(propertyId!, { feedId: input.feedId, createBookings: input.enabled }),
+    onSuccess: (data, variables) => {
+      invalidate();
+      if (!variables.enabled) {
+        toast.success('Airbnb stays will stop creating bookings');
+        return;
+      }
+      const sync = data.sync;
+      if (sync?.ok && sync.bookingsCreated > 0) {
+        toast.success(`${sync.bookingsCreated} Airbnb bookings imported`);
+        return;
+      }
+      if (sync?.ok && sync.bookingsLinked > 0) {
+        toast.success(`${sync.bookingsLinked} Airbnb bookings linked`);
+        return;
+      }
+      toast.success('Airbnb bookings on');
+    },
+    onError: (error: Error) =>
+      handleCalendarSyncError(error, 'Could not update Airbnb bookings', queryClient),
   });
 }
 

@@ -60,7 +60,9 @@ Property Settings is where you complete operational setup: basic info, capacity,
 - Q: What's the difference between Archive and Delete?
   A: Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it's blocked if any bookings exist, so use Archive instead for units with past stays.
 - Q: Where do guests see my cancellation policy and house rules?
-  A: House rules and cancellation policy appear on your public property listing. Automated email wording is edited separately on the Templates page.
+  A: House rules and cancellation policy appear on your public property listing. The booking form also shows the policy with the exact deadline dates for the stay and asks the guest to agree to it. After booking, the trip page shows the policy that applied when they booked, plus their refund if they cancel. Automated email wording is edited separately on the Templates page.
+- Q: If I change my cancellation policy, do existing bookings change too?
+  A: No. The policy is copied onto each booking when the guest books, so a change only applies to new bookings. Property Settings shows how many upcoming bookings keep their current policy before you save.
 - Q: Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
   A: Document requirements are set at the **development** level by the platform team (Super Admin → Developments → Document Requirements). All properties in that development inherit the same list.
 - Q: Where is the PMO / documents-approver email set?
@@ -251,7 +253,13 @@ Public exposure: resolved via **`get-guest-payment-info`** (same request as paym
 
 ## Cancellation policy
 
-Compact card on Property Settings: guest preview of the resolved policy with **Manage** beside the preview. Opens a `ResponsiveModal` with the full preset picker, option fields, and live guest preview. Stored in `properties.settings.cancellationPolicy`. Changes update the page draft live; persist with the page **Save**. Page Editor (`embedded`) still shows the full form inline. Also editable in the listing Page Editor.
+Compact card on Property Settings with the guest preview and **Manage**. The Manage sheet has preset cards (Flexible, Moderate, Limited, Firm, Strict, Non-refundable, Custom), a live timeline preview with a sample check-in, an optional free-cancellation window (hours + minimum lead days), fee rules for pet/additional fees, and the guest cancellation mode (**Cancel right away** vs **Ask me first**). **Custom** adds a tier builder (up to 5 rows, days 0–365, refund 0–100, sorted, validated).
+
+Stored in `properties.settings.cancellationPolicy` (v2 shape) with the current version id at `properties.settings.cancellationPolicyVersionId`. Every change appends a row to `property_cancellation_policy_versions` and logs `property.cancellation_policy_updated`. Saving while live bookings exist asks **"Apply to new bookings only?"** with the count from `cancellation-policy-impact`; existing bookings keep their snapshot.
+
+Legacy v1 shapes are mapped on read (no data migration): `grace_period` → grace-only custom, `full_before_checkin(N)` → 100% at N days, `moderate(h,N)` → grace + 100% at N days, `partial_before_checkin(N,p)` → p% at N days, `non_refundable` → Non-refundable, free text → custom with `needsReview` and request mode. A property with no saved policy resolves to **unset** (listing says "Ask the host about cancellation") instead of a silent default.
+
+Page Editor (`embedded`) shows the same controls inline. Closing the Manage sheet with unsaved edits prompts Save / Discard / Keep editing.
 
 ## Location
 

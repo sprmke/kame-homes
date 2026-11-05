@@ -43,6 +43,10 @@ Guests have one **Stays** inbox that lists every conversation they've had with a
   A: No, there's one thread per guest-and-property pair.
 - Q: Can a guest have more than one thread with the same parking slot?
   A: No, there's one thread per guest-and-parking-slot pair (`web:parking:{parkingId}:{guestUserId}`).
+- Q: Does Stays include conversations about parking?
+  A: Yes. The guest's Stays list includes both property and parking conversations in one place.
+- Q: Can a guest edit or unsend a message?
+  A: Yes, until the host has read it or replied. After that the message is locked as sent.
 
 ---
 

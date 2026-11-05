@@ -53,7 +53,7 @@ function BillingEmptyState() {
       <h2 id="plans-billing-heading" className={planTabCardHeadingClass}>
         {PLANS_TAB_SECTION_TITLES.billing}
       </h2>
-      <div className="flex flex-col items-center gap-3 px-2 py-10 text-center sm:py-12">
+      <div className="flex flex-col items-center gap-3 px-2 py-8 text-center sm:py-12">
         <div className="bg-muted flex size-12 items-center justify-center rounded-full">
           <Receipt className="text-muted-foreground size-5" aria-hidden />
         </div>

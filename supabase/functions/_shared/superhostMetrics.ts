@@ -62,6 +62,8 @@ export type SuperhostMetricsInput = {
     checkInDate: string;
     /** OTA calendar sync auto-cancel (feed drop) — excluded from cancellation rate. */
     otaFeedDropCancel?: boolean;
+    /** Who cancelled. Only host cancellations count toward the host rate. */
+    cancelledBy?: 'guest' | 'host' | 'ota' | 'system' | null;
   }[];
   asOfIso: string;
 };
@@ -207,7 +209,14 @@ export function computeCancellationRateMetric(
       sampleSize: 0,
     };
   }
-  const cancelled = inWindow.filter((b) => b.status === 'CANCELLED').length;
+  const cancelled = inWindow.filter(
+    (b) =>
+      b.status === 'CANCELLED' &&
+      // Legacy rows predate `cancelled_by`; count them as host cancellations so
+      // history is not silently rewritten. Guest / OTA / system cancels never
+      // count against the host.
+      (b.cancelledBy == null || b.cancelledBy === 'host')
+  ).length;
   const value = Math.round((cancelled / sampleSize) * 10000) / 10000;
   return {
     value,
@@ -341,12 +350,13 @@ export async function loadOrgSuperhostMetricsInput(
             check_out_date: string;
             check_in_date: string;
             number_of_nights: number | null;
+            cancelled_by: string | null;
           }[]
         )
       : selectInIdChunks(propertyIds, (chunk) =>
           supabase
             .from('guest_submissions')
-            .select('id, status, check_out_date, check_in_date, number_of_nights')
+            .select('id, status, check_out_date, check_in_date, number_of_nights, cancelled_by')
             .in('property_id', chunk)
             .in('status', ['COMPLETED', 'CANCELLED'])
         );
@@ -390,6 +400,13 @@ export async function loadOrgSuperhostMetricsInput(
       checkInDate: String(b.check_in_date ?? ''),
       numberOfNights: b.number_of_nights == null ? null : Number(b.number_of_nights),
       otaFeedDropCancel: otaFeedDropIds.has(String(b.id)),
+      cancelledBy:
+        b.cancelled_by === 'guest' ||
+        b.cancelled_by === 'host' ||
+        b.cancelled_by === 'ota' ||
+        b.cancelled_by === 'system'
+          ? b.cancelled_by
+          : null,
     })),
     asOfIso,
   };

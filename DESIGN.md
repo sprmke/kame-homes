@@ -63,7 +63,42 @@ Settings surfaces (org / property / parking) must use `settings-action` for Mana
 
 Teal hero trailing icons must use `MobileHeroActionButton` (never raw `size-11` circles) so Bookings / Inbox / Pricing / Settings stay even.
 
-Canonical table: `.cursor/rules/mobile-responsive.mdc` §4. Marketing display heroes may stay large; do not apply that display scale to admin chrome.
+Canonical table: `.cursor/rules/mobile-responsive.mdc` §4.
+
+**Shared base (dashboard = public).** Both surfaces use the same primitives and the same base numbers; only headings change by role. Native reference: iOS HIG (16pt margins, 44pt targets, 17pt fields, 10pt tab labels) and Material 3 (16dp margins, 40dp buttons, 32dp chips).
+
+| Element                | Phone                              | `sm`+ / desktop            | Source of truth                                   |
+| ---------------------- | ---------------------------------- | -------------------------- | ------------------------------------------------- |
+| Body / UI text         | 14px                               | 14px                       | `text-sm`, `text-ui`                              |
+| Caption / meta         | 12px                               | 12–13px                    | `text-xs`, `text-meta`                            |
+| Page side margin       | 16px                               | 16 / 24 (`md`) / 32 (`lg`) | `.admin-mobile-main-shell`, `container px-4`      |
+| Card padding           | 16px                               | 24px                       | `Card`, `public-card-pad`                         |
+| Button (inline)        | 40px                               | 40px                       | `Button` default                                  |
+| Full-width primary bar | 48px                               | 44px                       | `native-cta`, auth submit                         |
+| Text field / select    | 40px, 14px text (16px on iOS)      | 44px (`lg`)                | `Input`, `SelectTrigger`, iOS rule in `index.css` |
+| Chip / segment         | 32–34px visual, 44px hit           | 36px                       | `SegmentedControl dense`, `public-chip`           |
+| Small icon action      | 32–36px visual, 44px hit           | same                       | `admin-overflow-trigger`, `mobile-hero-action`    |
+| Bottom tab bar         | shared `BottomTabBar`, 10px labels | hidden `lg+`               | `components/mobile/BottomTabBar.tsx`              |
+| Top bar                | 56px                               | 64px / 80px public desktop | `--public-nav-h`, admin topbar `min-h-14`         |
+| Sheets / modals        | bottom sheet                       | centered dialog `lg+`      | `ResponsiveModal`                                 |
+
+Headings by role: dashboard page title 18 → 24px (`text-admin-page-title`), dashboard section band 14px (`text-section-title`); public hero 28 → 44px (`public-display`), public section 20 → 30px (`public-section-title`).
+
+**Public pages (native density):** marketing, listings, listing detail, auth, account and guest flows use the `public-*` tokens instead of raw display sizes:
+
+| Role                    | Token                  | Phone → tablet → desktop     |
+| ----------------------- | ---------------------- | ---------------------------- |
+| Hero headline           | `public-display`       | 28 → 36 → 44px               |
+| Section title           | `public-section-title` | 20 → 24 → 30px               |
+| Card title              | `public-card-title`    | 15 → 16 → 17px               |
+| Lead copy               | `public-lead`          | 15 → 16 → 18px               |
+| Section padding         | `public-section-y`     | 32 → 48 → 72px               |
+| Card padding            | `public-card-pad`      | 16 → 24 → 24px               |
+| Pill / filter chip      | `public-chip`          | 34px visual + 44px hit pad   |
+| Inline CTA              | `public-cta`           | 44 → 44 → 48px               |
+| Content under fixed nav | `public-page-top`      | `--public-nav-h` + 12 / 16px |
+
+`--public-nav-h` (56 / 64 / 80px) is the single source for the fixed public nav height. Do not apply the public display scale to admin chrome.
 
 **`cn()` / `tailwind-merge`:** custom type tokens are named `text-*` (e.g. `text-stat-value`). Default `twMerge` treats those as text-color utilities and can drop them when a color class follows — wiping size/weight. `ui/src/lib/utils.ts` registers the type-scale tokens so they compose with colors. Always pass color overrides _after_ the token via `cn('text-stat-value', 'text-emerald-600')`, never replace the token with a color-only class.
 

@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Cost/abuse/security — pending from operator (Michael)'
 status: active
 tags: [security, cost, operator, pending]
-updated: 2026-09-12
+updated: 2026-11-06
 parent: cost-abuse-security-production-readiness.md
 origin_stage: in-progress
 readiness: unverified

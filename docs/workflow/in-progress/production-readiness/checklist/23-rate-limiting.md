@@ -2,7 +2,7 @@
 title: 'Rate limiting'
 status: active
 tags: [workflow, planned, production-readiness, security, rate-limit, cost]
-updated: 2026-09-27
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

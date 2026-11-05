@@ -14,8 +14,8 @@ export function HelpEmptyState({ icon: Icon, title, action, compact = false }: P
     <div
       className={
         compact
-          ? 'flex flex-col items-center justify-center px-4 py-10 text-center sm:py-12'
-          : 'flex flex-col items-center justify-center px-6 py-16 text-center sm:py-20'
+          ? 'flex flex-col items-center justify-center px-4 py-8 text-center sm:py-12'
+          : 'flex flex-col items-center justify-center px-4 sm:px-6 py-8 text-center sm:py-20'
       }
     >
       <div className="bg-primary/10 text-primary mb-4 flex size-14 items-center justify-center rounded-2xl">

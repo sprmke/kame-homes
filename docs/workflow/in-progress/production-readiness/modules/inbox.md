@@ -2,7 +2,7 @@
 title: 'Module: Inbox Meta + web + AI'
 status: active
 tags: [workflow, production-readiness, module]
-updated: 2026-11-03
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 readiness: verified

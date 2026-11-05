@@ -2,7 +2,7 @@
 title: 'Unused dependencies'
 status: active
 tags: [workflow, planned, production-readiness, dependencies, supply-chain]
-updated: 2026-09-16
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

@@ -102,7 +102,7 @@ export function TeamInvitationsTab({
             ))}
           </div>
         ) : (
-          <div className="py-10 text-center sm:py-12">
+          <div className="py-8 text-center sm:py-12">
             <Mail className="text-muted-foreground mx-auto size-11" aria-hidden />
             <h3 className="text-card-title mt-4">No pending invitations</h3>
             {canInvite ? (

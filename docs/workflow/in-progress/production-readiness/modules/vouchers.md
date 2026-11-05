@@ -2,7 +2,7 @@
 title: 'Module: Vouchers claim/wallet/reveal/redeem'
 status: active
 tags: [workflow, production-readiness, module]
-updated: 2026-10-19
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 readiness: unverified

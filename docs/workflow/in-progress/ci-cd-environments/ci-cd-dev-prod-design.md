@@ -4,7 +4,7 @@ status: active
 stage: in-progress
 kind: design
 tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, operations, multi-tenancy]
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # CI/CD to dev and production — Design

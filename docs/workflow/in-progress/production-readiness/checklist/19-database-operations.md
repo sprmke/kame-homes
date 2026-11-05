@@ -2,7 +2,7 @@
 title: 'Database operations'
 status: active
 tags: [workflow, planned, production-readiness, database, migrations]
-updated: 2026-09-17
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

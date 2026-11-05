@@ -23,7 +23,7 @@ Decisions locked in with the user:
 
 1. **Ticket replies** = in-app + one-way email notify (no new inbound-email pipeline — the existing Resend inbound webhook is narrowly scoped to GAF/pet approvals and extending it for generic two-way threading is out of scope for v1).
 2. **Documentation content** = Host-facing Q&A sections only (already vetted, no audit pass needed).
-3. **FAQs** = one-time AI-curated seed (20–50 items) **plus** a super-admin CRUD editor for ongoing curation.
+3. **FAQs** = docs-driven curated layer (`docs/guides/support/faqs.md` → `help_center_faqs`, `origin = 'synced'`) **plus** a super-admin CRUD editor for manual rows (`origin = 'manual'`). The original one-time SQL seed is superseded; the sync preserves `is_published` and never touches manual rows. See [`../in-progress/support-content-and-faq-sync.md`](../in-progress/support-content-and-faq-sync.md).
 4. **Sync automation** = CI-triggered auto-sync on `docs/guides/routes/**/*.md` changes merging to `develop`/`main`, so the knowledge base and Documentation content never go stale.
 
 ## Content pipeline (shared foundation for Documentation + AI Chat + FAQ seeding)

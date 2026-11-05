@@ -2,7 +2,7 @@
 title: 'Production readiness audit and remediation'
 status: active
 tags: [planning, production-readiness, security, testing, cost]
-updated: 2026-09-12
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: for-testing

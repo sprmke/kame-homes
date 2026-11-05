@@ -38,7 +38,7 @@ if [[ "$is_code_path" -eq 0 ]]; then
   exit 0
 fi
 
-MSG="Docs sync reminder: you edited ${file_path}. If this changes behavior/API/UX, update matching docs in this same change (documentation-maintenance + route-guides skills). Route guides → docs/guides/routes/; API/env → docs/PROJECT.md. Do not claim done with docs deferred."
+MSG="Docs sync reminder: you edited ${file_path}. If this changes behavior/API/UX, update matching docs in this same change (documentation-maintenance + route-guides + support-content skills). Route guides → docs/guides/routes/; cross-cutting FAQs → docs/guides/support/faqs.md; API/env → docs/PROJECT.md. Do not claim done with docs deferred."
 
 if command -v jq >/dev/null 2>&1; then
   jq -n --arg msg "$MSG" \

@@ -518,6 +518,7 @@ Notes:
 | `20261214120000_calendar_sync_external_bookings.sql`         | `guest_submissions` **ADD** `external_source` (CHECK airbnb/booking_com/vrbo/other), `external_uid`, `external_feed_id` (FK SET NULL), `external_raw` jsonb + unique partial index `(external_feed_id, external_uid)`. Rows created by `calendar-sync-cron` when `property_calendar_feeds.create_bookings = true`. | Yes — drop the columns/indexes; ordinary submissions never set them. |
 | `20261214120100_calendar_sync_guest_form_token.sql`          | `guest_submissions` **ADD** `guest_form_token` (unique partial index), `guest_form_token_issued_at`, `guest_form_completed_at`. Backs `<origin>/form?complete=<token>`.                                                                                                                                            | Yes — drop the columns/index.                                        |
 | `20261214120200_calendar_sync_phase2_notification_types.sql` | `notifications_type_check` **DROP + re-add** with `booking_external_imported` + `booking_guest_form_completed` alongside the Phase 1 set.                                                                                                                                                                          | Yes — re-add the prior CHECK.                                        |
+| `20261319120000_calendar_sync_booking_linked_event.sql`      | `calendar_sync_events.action` CHECK **DROP + re-add** with `booking_linked` (manual adoption / reconnect relink). Idempotent (`DO` block finds the existing action CHECK).                                                                                                                                         | Yes — re-add the Phase 2 CHECK without `booking_linked`.             |
 
 Notes:
 
@@ -787,3 +788,16 @@ Adds `ai_platform_global_settings.voice_receptionist_rollout_percentage` (INT 0-
 ### Marketing themes (`20261316127000_marketing_themes.sql`)
 
 Adds `marketing_themes` (property-scoped host themes: `name`, `tokens` JSONB, `source`, `source_ref`; RLS on, `service_role` only, anon/authenticated revoked) and `marketing_templates.theme_key` (TEXT, no FK: built-in key `property-colors` / `starter:<id>` or a `marketing_themes.id`) with index `(property_id, theme_key)`. **No backfill:** rows without `theme_key` are read as Property colors, except calendars whose `designJson.sourcePresetId` is a designer look, which belong to `starter:<presetId>` (same rule in `marketing-themes` GET and the client). Deleting a theme row sets nothing on templates by itself; the edge function moves items to another key first. Verify: `GET marketing-themes` returns `{ themes: [], itemCounts }` for an existing property; `POST` a theme and see it in the list.
+
+### Help Center FAQ sync provenance (`20261318183000_help_center_faqs_sync_provenance.sql`)
+
+Adds `help_center_faqs.origin` (`synced` | `manual`, default `manual`), `audience` (`host` | `guest` | `public`, default `host`), and a unique `content_key`; backfills seeded rows to `origin = 'synced'` with a deterministic `category--question` key; adds `(audience, is_published, category, sort_order)` for the public read. Additive and safe to apply before the sync script deploy.
+
+One-time follow-up after the migration: run `bun run sync:support-content` against the target project so `docs/guides/support/faqs.md` owns the synced rows. The sync never reads, updates, or deletes `origin = 'manual'` rows and preserves `is_published` on updates. Verify:
+
+```sql
+SELECT origin, count(*) FROM public.help_center_faqs GROUP BY origin;
+SELECT count(*) FROM public.help_center_faqs WHERE content_key IS NULL AND origin = 'synced'; -- 0
+```
+
+Remote writes need `kamewave`. Never run the sync against production without a backup.

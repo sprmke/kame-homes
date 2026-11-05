@@ -518,7 +518,7 @@ export function PropertyDetailPage() {
 
           {similarProperties.length > 0 ? (
             <div className="@xl:mt-16 mt-10 min-w-0">
-              <hr className="border-border @xl:mb-16 mb-10" />
+              <hr className="border-border @xl:mb-10 mb-7" />
               <SimilarProperties
                 properties={similarProperties}
                 currentPropertyId={propertySlugForActions}

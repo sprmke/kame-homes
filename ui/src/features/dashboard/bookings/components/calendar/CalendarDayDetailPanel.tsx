@@ -54,7 +54,7 @@ export function CalendarDayDetailPanel({
 
 function CalendarEmptyDetail({ title, caption }: { title: string; caption: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 py-8 sm:py-12 text-center">
       <CalendarCheck className="text-muted-foreground/40 size-9" aria-hidden />
       <div>
         <p className="text-muted-foreground text-[13px] font-semibold">{title}</p>

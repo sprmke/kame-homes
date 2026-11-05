@@ -2,7 +2,7 @@
 title: 'Availability and recovery'
 status: active
 tags: [workflow, planned, production-readiness, availability, backup, incident]
-updated: 2026-11-04
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

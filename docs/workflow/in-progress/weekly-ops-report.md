@@ -2,7 +2,7 @@
 title: 'Weekly operations report and remaining capacity follow-ups'
 status: in_progress
 tags: [observability, ops, super-admin, supabase, sentry, capacity]
-updated: 2026-11-05
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 readiness: in-progress

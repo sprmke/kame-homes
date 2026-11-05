@@ -47,6 +47,13 @@ function formatChange(change: number, isPoints: boolean): string {
   return `${sign}${change.toFixed(1)}%`;
 }
 
+const OVERLAY_CLASS =
+  'absolute inset-0 z-10 rounded-[inherit] focus-visible:ring-primary/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none';
+
+/**
+ * Some cards navigate as a whole. A stretched overlay keeps the card a real
+ * link/button without nesting the title hint (or any other control) inside it.
+ */
 export function StatCard({
   title,
   titleAdornment,
@@ -78,11 +85,29 @@ export function StatCard({
     interactive && 'native-press',
     'sm:hover:shadow-elevated-lg sm:hover:-translate-y-0.5',
     interactive &&
-      'focus-visible:ring-primary/40 text-left focus-visible:outline-none focus-visible:ring-2',
+      'focus-within:ring-primary/40 text-left focus-within:outline-none focus-within:ring-2',
     active &&
       'border-primary/50 bg-primary/[0.06] shadow-card-hover ring-primary/40 ring-2 ring-inset sm:hover:translate-y-0',
     className
   );
+
+  const overlay = to ? (
+    <Link
+      to={to}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${title}: ${value}`}
+      className={OVERLAY_CLASS}
+    />
+  ) : null;
 
   const body = (
     <>
@@ -95,7 +120,7 @@ export function StatCard({
       >
         <div className="flex w-full items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
-            <div className="flex items-start gap-0.5">
+            <div className="flex items-center gap-0.5">
               <p
                 className={cn(
                   'text-muted-foreground line-clamp-2 font-medium leading-snug',
@@ -104,7 +129,9 @@ export function StatCard({
               >
                 {title}
               </p>
-              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
+              {titleAdornment ? (
+                <span className="relative z-20 flex shrink-0">{titleAdornment}</span>
+              ) : null}
             </div>
             <p
               className={cn(
@@ -165,28 +192,12 @@ export function StatCard({
     </>
   );
 
-  if (to) {
-    return (
-      <Link
-        to={to}
-        onClick={onClick}
-        aria-current={active ? 'page' : undefined}
-        className={shellClassName}
-      >
-        {body}
-      </Link>
-    );
-  }
-
-  if (interactive) {
-    return (
-      <button type="button" onClick={onClick} aria-pressed={active} className={shellClassName}>
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={shellClassName}>{body}</div>;
+  return (
+    <div className={shellClassName}>
+      {body}
+      {overlay}
+    </div>
+  );
 }
 
 type StatCardSkeletonProps = {
@@ -227,7 +238,7 @@ export function StatCardSkeleton({
       <div className={cn('flex flex-col', (showStatusFooter || footer) && 'lg:gap-2.5')}>
         <div className="flex items-start justify-between gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
-            <div className="flex items-start gap-0.5">
+            <div className="flex items-center gap-0.5">
               {title ? (
                 <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
                   {title}
@@ -235,7 +246,7 @@ export function StatCardSkeleton({
               ) : (
                 <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
               )}
-              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
+              {titleAdornment ? <span className="flex shrink-0">{titleAdornment}</span> : null}
             </div>
             <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
             {showTrend ? (

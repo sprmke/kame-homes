@@ -31,6 +31,10 @@ import {
 import { catchPlanFeatureError, requirePropertyFeature } from '../_shared/planEntitlements.ts';
 import { updatePropertyPatchPermissions } from '../_shared/settingsPatchPermissions.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import {
+  cancellationPolicyEqual,
+  normalizeCancellationPolicy,
+} from '../_shared/cancellationPolicy.ts';
 
 serveAuthenticated('update-property', async (req) => {
   requireHttpMethod(req, 'PATCH');
@@ -161,6 +165,44 @@ serveAuthenticated('update-property', async (req) => {
 
   const supabase = createServiceClient();
 
+  // ── Cancellation policy versioning ────────────────────────────────────────
+  // Append-only history + current version id. "Applies to new bookings only":
+  // existing bookings keep their snapshot, so no booking rows are touched here.
+  let cancellationPolicyChanged = false;
+  let cancellationPolicyVersionId: string | null = null;
+  if (patch.settings && typeof patch.settings === 'object') {
+    const nextSettings = patch.settings as Record<string, unknown>;
+    if (Object.prototype.hasOwnProperty.call(nextSettings, 'cancellationPolicy')) {
+      const currentSettings =
+        property.settings &&
+        typeof property.settings === 'object' &&
+        !Array.isArray(property.settings)
+          ? (property.settings as Record<string, unknown>)
+          : {};
+      const before = normalizeCancellationPolicy(currentSettings.cancellationPolicy);
+      const after = normalizeCancellationPolicy(nextSettings.cancellationPolicy);
+      if (!cancellationPolicyEqual(before, after)) {
+        cancellationPolicyChanged = true;
+        const { data: version, error: versionError } = await supabase
+          .from('property_cancellation_policy_versions')
+          .insert({
+            property_id: property.id,
+            policy: after,
+            created_by: propertyAccess.user.id,
+          })
+          .select('id')
+          .maybeSingle();
+        if (versionError) {
+          console.error('[update-property] policy version insert failed:', versionError.message);
+          return jsonError(req, 'Could not save the cancellation policy. Try again.', 500);
+        }
+        cancellationPolicyVersionId = version?.id ? String(version.id) : null;
+        nextSettings.cancellationPolicyVersionId = cancellationPolicyVersionId;
+        nextSettings.cancellationPolicy = after;
+      }
+    }
+  }
+
   const resultingStatus = String(
     (patch.status as string | undefined) ?? property.status ?? 'ACTIVE'
   ).toUpperCase();
@@ -230,6 +272,20 @@ serveAuthenticated('update-property', async (req) => {
       { include: Object.keys(patch), exclude: ['slug', 'updated_at'] }
     ),
   });
+
+  if (cancellationPolicyChanged) {
+    await logActivity({
+      action: 'property.cancellation_policy_updated',
+      organizationId: property.organization_id,
+      propertyId: property.id,
+      scope: 'property',
+      actor: buildActorContext('dashboard', { propertyAccess }, req),
+      targetType: 'property',
+      targetId: property.id,
+      targetLabel: (data.name as string | undefined) ?? property.name,
+      metadata: { version_id: cancellationPolicyVersionId },
+    });
+  }
 
   return jsonSuccess(req, { property: serializeProperty(data) });
 });

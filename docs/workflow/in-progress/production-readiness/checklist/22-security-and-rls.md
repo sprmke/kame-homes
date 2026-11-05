@@ -2,7 +2,7 @@
 title: 'Security and RLS'
 status: active
 tags: [workflow, planned, production-readiness, security, rls, privacy]
-updated: 2026-10-30
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

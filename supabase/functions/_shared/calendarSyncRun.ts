@@ -7,8 +7,9 @@
  * applies block create/update/remove, runs a conflict pass, persists feed health, and writes
  * a `calendar_sync_events` audit row per action.
  *
- * Phase 1: availability only — `create_bookings` is ignored here (forced off by the settings
- * endpoint). Phase 2 adds `guest_submissions` orchestration in this same wrapper.
+ * Availability blocks are applied on every run. Reservation ingestion (`create_bookings`)
+ * additionally creates / relinks / adopts `guest_submissions` rows in PENDING_REVIEW, and its
+ * cancellation + reschedule reconciliation keeps running even when ingestion is turned off.
  */
 
 import type { SupabaseClient } from './supabaseJs.ts';
@@ -17,7 +18,14 @@ import { resolveAppSettings } from './appSettings.ts';
 import { addDaysYmd, manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { createNotification } from './notificationService.ts';
-import { buildActorContext } from './activityLog.ts';
+import { buildActorContext, logActivity, type ActorContext } from './activityLog.ts';
+import {
+  findAdoptableManualBooking,
+  findRelinkableBooking,
+  isAirbnbBookingSource,
+  isPastReservation,
+  type IngestBookingRow,
+} from './externalBookingIngest.ts';
 import { resolveOrganizationIdForProperty } from './propertyScope.ts';
 import {
   buildExportCalendar, // re-exported for the ical-export function's convenience
@@ -42,6 +50,7 @@ import { resolveGuestFormSettings } from './guestFormSettings.ts';
 import { decryptIntegrationSecret } from './secretsCrypto.ts';
 import { DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME, occupiedStayNights } from './utils.ts';
 import { WorkflowOrchestrator } from './workflowOrchestrator.ts';
+import { buildCancellationPolicySnapshot } from './cancellationPolicy.ts';
 
 export { buildExportCalendar };
 
@@ -142,6 +151,8 @@ export interface RunFeedResult {
   bookingsCreated: number;
   bookingsUpdated: number;
   bookingsCancelled: number;
+  /** Existing rows that gained feed provenance (manual adoption or feed reconnect). */
+  bookingsLinked: number;
   conflicts: number;
   error?: string;
 }
@@ -459,6 +470,8 @@ export async function runFeedSync(
     supabase?: SupabaseClient;
     /** Test seam — defaults to the SSRF-guarded `fetchExternalIcs`. */
     fetchIcs?: IcsFetcher;
+    /** Host who triggered the sync. Defaults to the cron actor. */
+    actor?: ActorContext;
   } = {
     runId: crypto.randomUUID(),
   }
@@ -466,6 +479,7 @@ export async function runFeedSync(
   const supabase = opts.supabase ?? createServiceClient();
   const fetchIcs = opts.fetchIcs ?? fetchExternalIcs;
   const runId = opts.runId;
+  const actor = opts.actor ?? buildActorContext('cron', { cron: 'calendar-sync-cron' });
   const base: RunFeedResult = {
     feedId: feed.id,
     runId,
@@ -477,6 +491,7 @@ export async function runFeedSync(
     bookingsCreated: 0,
     bookingsUpdated: 0,
     bookingsCancelled: 0,
+    bookingsLinked: 0,
     conflicts: 0,
   };
 
@@ -710,20 +725,29 @@ export async function runFeedSync(
   //     Only when the feed opted in. Each row is created/rescheduled in PENDING_REVIEW and
   //     never auto-advanced; cancellations route through WorkflowOrchestrator with a
   //     past-check-in guard so completed stays that Airbnb drops don't flip to CANCELLED.
-  if (feed.create_bookings) {
-    try {
-      await reconcileExternalBookings(supabase, feed, runId, parsed.events, result);
-    } catch (err) {
-      console.error('[calendarSyncRun] external booking reconcile failed (non-fatal):', err);
-      await writeEvent(supabase, {
-        feedId: feed.id,
-        runId,
-        action: 'error',
-        detail: {
-          reason: `booking reconcile: ${err instanceof Error ? err.message : String(err)}`,
-        },
-      });
-    }
+  // Reservation reconciliation runs even when ingestion is off: an existing imported
+  // booking must still cancel/reschedule when Airbnb does. `allowCreate` gates new rows.
+  try {
+    await reconcileExternalBookings(
+      supabase,
+      feed,
+      runId,
+      parsed.events,
+      result,
+      actor,
+      feed.create_bookings
+    );
+    await logBookingIngestActivity(feed, result, actor);
+  } catch (err) {
+    console.error('[calendarSyncRun] external booking reconcile failed (non-fatal):', err);
+    await writeEvent(supabase, {
+      feedId: feed.id,
+      runId,
+      action: 'error',
+      detail: {
+        reason: `booking reconcile: ${err instanceof Error ? err.message : String(err)}`,
+      },
+    });
   }
 
   // 6. Persist feed health
@@ -739,13 +763,12 @@ export async function runFeedSync(
 
 // ─── Phase 2: reservation → guest_submissions ────────────────────────────────
 
-interface ExternalBookingRow {
-  id: string;
+interface ExternalBookingRow extends IngestBookingRow {
   external_uid: string;
-  status: string;
-  check_in_date: string;
-  check_out_date: string;
 }
+
+/** Statuses where a feed reschedule may still rewrite dates (before the host reviews). */
+const PRE_REVIEW_STATUSES = ['PENDING_REVIEW', 'PENDING_DOCUMENTS', 'PENDING_GAF'] as const;
 
 /** Statuses at/after check-in — a feed drop here is a stale completed stay, not a cancel. */
 const PAST_CHECKIN_STATUSES = new Set([
@@ -755,25 +778,37 @@ const PAST_CHECKIN_STATUSES = new Set([
   'COMPLETED',
 ]);
 
-async function loadExternalBookings(
+/**
+ * Every non-cancelled booking on the property. Small per-property set; loading it once
+ * lets the sync relink orphaned feed rows and adopt manually entered Airbnb stays
+ * without one query per reservation.
+ */
+async function loadPropertyBookingRows(
   supabase: SupabaseClient,
-  feedId: string
-): Promise<ExternalBookingRow[]> {
+  propertyId: string
+): Promise<IngestBookingRow[]> {
   const { data, error } = await supabase
     .from('guest_submissions')
-    .select('id, external_uid, status, check_in_date, check_out_date')
-    .eq('external_feed_id', feedId)
-    .neq('status', 'CANCELLED');
-  if (error) throw new Error(`load external bookings: ${error.message}`);
-  return (data ?? [])
-    .filter((r) => typeof r.external_uid === 'string' && r.external_uid)
-    .map((r) => ({
-      id: r.id as string,
-      external_uid: r.external_uid as string,
-      status: String(r.status ?? ''),
-      check_in_date: String(r.check_in_date ?? ''),
-      check_out_date: String(r.check_out_date ?? ''),
-    }));
+    .select(
+      'id, external_uid, external_feed_id, status, check_in_date, check_out_date, booking_source'
+    )
+    .eq('property_id', propertyId)
+    .neq('status', 'CANCELLED')
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(`load property bookings: ${error.message}`);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    external_uid: typeof r.external_uid === 'string' ? r.external_uid : null,
+    external_feed_id: typeof r.external_feed_id === 'string' ? r.external_feed_id : null,
+    status: String(r.status ?? ''),
+    check_in_date: String(r.check_in_date ?? ''),
+    check_out_date: String(r.check_out_date ?? ''),
+    booking_source: r.booking_source != null ? String(r.booking_source) : null,
+  }));
+}
+
+function isBookingForFeed(row: IngestBookingRow, feedId: string): row is ExternalBookingRow {
+  return !!row.external_uid && row.external_feed_id === feedId;
 }
 
 async function emitExternalImportedNotification(
@@ -805,19 +840,186 @@ async function emitExternalImportedNotification(
   }
 }
 
+async function relinkExternalBooking(
+  supabase: SupabaseClient,
+  feed: CalendarFeedRow,
+  runId: string,
+  ev: ParsedCalendarEvent,
+  row: IngestBookingRow
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('guest_submissions')
+    .update({
+      external_source: feed.provider,
+      external_feed_id: feed.id,
+      external_uid: ev.uid,
+      external_raw: ev.raw,
+    })
+    .eq('id', row.id)
+    .is('external_feed_id', null)
+    .select('id');
+  if (error) {
+    await writeEvent(supabase, {
+      feedId: feed.id,
+      runId,
+      action: 'error',
+      externalUid: ev.uid,
+      detail: { reason: `relink booking: ${error.message}` },
+    });
+    return false;
+  }
+  if ((data?.length ?? 0) === 0) {
+    await writeEvent(supabase, {
+      feedId: feed.id,
+      runId,
+      action: 'skipped',
+      externalUid: ev.uid,
+      detail: { reason: 'relink_race', booking_id: row.id },
+    });
+    return false;
+  }
+
+  // Feed dates are authoritative. Only pre-review rows may move; a reviewed stay keeps
+  // its stored dates and the host decides what to do with the change.
+  const curStart = toYmd(row.check_in_date);
+  const curEnd = toYmd(row.check_out_date);
+  if (curStart !== ev.startDate || curEnd !== ev.endDate) {
+    const startMdy = ymdToMmDdYyyy(ev.startDate);
+    const endMdy = ymdToMmDdYyyy(ev.endDate);
+    const { data: updated, error: updateErr } = await supabase
+      .from('guest_submissions')
+      .update({
+        check_in_date: startMdy,
+        check_out_date: endMdy,
+        number_of_nights: occupiedStayNights(startMdy, endMdy),
+        external_raw: ev.raw,
+        status: 'PENDING_REVIEW',
+        status_updated_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+      .in('status', PRE_REVIEW_STATUSES)
+      .select('id');
+    if (updateErr) {
+      await writeEvent(supabase, {
+        feedId: feed.id,
+        runId,
+        action: 'error',
+        externalUid: ev.uid,
+        detail: { reason: `relink reschedule: ${updateErr.message}` },
+      });
+    } else if ((updated?.length ?? 0) === 0) {
+      await writeEvent(supabase, {
+        feedId: feed.id,
+        runId,
+        action: 'skipped',
+        externalUid: ev.uid,
+        detail: { reason: 'reschedule_after_review', booking_id: row.id },
+      });
+    }
+  }
+  return true;
+}
+
+async function adoptManualBooking(
+  supabase: SupabaseClient,
+  feed: CalendarFeedRow,
+  runId: string,
+  ev: ParsedCalendarEvent,
+  row: IngestBookingRow
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('guest_submissions')
+    .update({
+      external_source: feed.provider,
+      external_feed_id: feed.id,
+      external_uid: ev.uid,
+      external_raw: ev.raw,
+    })
+    .eq('id', row.id)
+    .is('external_uid', null)
+    .select('id');
+  if (error) {
+    await writeEvent(supabase, {
+      feedId: feed.id,
+      runId,
+      action: 'error',
+      externalUid: ev.uid,
+      detail: { reason: `adopt booking: ${error.message}` },
+    });
+    return false;
+  }
+  if ((data?.length ?? 0) === 0) {
+    await writeEvent(supabase, {
+      feedId: feed.id,
+      runId,
+      action: 'skipped',
+      externalUid: ev.uid,
+      detail: { reason: 'adopt_race', booking_id: row.id },
+    });
+    return false;
+  }
+  return true;
+}
+
+async function logBookingIngestActivity(
+  feed: CalendarFeedRow,
+  result: RunFeedResult,
+  actor: ActorContext
+): Promise<void> {
+  const count =
+    result.bookingsCreated +
+    result.bookingsUpdated +
+    result.bookingsCancelled +
+    result.bookingsLinked;
+  if (count === 0) return;
+  try {
+    const organizationId = await resolveOrganizationIdForProperty(feed.property_id);
+    if (!organizationId) return;
+    await logActivity({
+      action: 'system.cron_run',
+      organizationId,
+      propertyId: feed.property_id,
+      actor,
+      metadata: {
+        message: 'Airbnb calendar sync updated bookings',
+        count,
+        bookings_created: result.bookingsCreated,
+        bookings_updated: result.bookingsUpdated,
+        bookings_cancelled: result.bookingsCancelled,
+        bookings_linked: result.bookingsLinked,
+        feed_id: feed.id,
+      },
+    });
+  } catch (err) {
+    console.error('[calendarSyncRun] booking activity log failed (non-fatal):', err);
+  }
+}
+
 async function reconcileExternalBookings(
   supabase: SupabaseClient,
   feed: CalendarFeedRow,
   runId: string,
   events: ParsedCalendarEvent[],
-  result: RunFeedResult
+  result: RunFeedResult,
+  actor: ActorContext,
+  allowCreate: boolean
 ): Promise<void> {
   const feedLabel = feed.label ?? feed.provider;
   const reservations = events.filter((e) => e.kind === 'reservation');
   const byUid = new Map(reservations.map((e) => [e.uid, e]));
 
-  const current = await loadExternalBookings(supabase, feed.id);
+  const allRows = await loadPropertyBookingRows(supabase, feed.property_id);
+  const current = allRows.filter((row): row is ExternalBookingRow =>
+    isBookingForFeed(row, feed.id)
+  );
+  // Ingestion off + nothing ever imported: no booking work to do.
+  if (!allowCreate && current.length === 0) return;
+
   const currentByUid = new Map(current.map((r) => [r.external_uid, r]));
+  const manualCandidates = allRows.filter(
+    (row) => !row.external_uid && isAirbnbBookingSource(row.booking_source)
+  );
+  const today = manilaTodayYmd();
 
   const [formSettings, appSettings] = await Promise.all([
     resolveGuestFormSettings(feed.property_id).catch(() => null),
@@ -844,6 +1046,78 @@ async function reconcileExternalBookings(
     const nights = occupiedStayNights(startMdy, endMdy);
 
     if (!existing) {
+      // Ingestion off: leave existing rows alone, but never create/adopt a new one.
+      if (!allowCreate) continue;
+
+      // A row already carries this UID but lost its feed (feed removed then reconnected).
+      const relink = findRelinkableBooking(allRows, ev.uid, feed.id);
+      if (relink) {
+        if (relink.external_feed_id) {
+          // The same reservation is attached to a different active feed. Never duplicate it.
+          await writeEvent(supabase, {
+            feedId: feed.id,
+            runId,
+            action: 'skipped',
+            externalUid: ev.uid,
+            detail: { reason: 'uid_on_other_feed', booking_id: relink.id },
+          });
+          continue;
+        }
+        const linked = await relinkExternalBooking(supabase, feed, runId, ev, relink);
+        if (linked) {
+          result.bookingsLinked++;
+          await writeEvent(supabase, {
+            feedId: feed.id,
+            runId,
+            action: 'booking_linked',
+            externalUid: ev.uid,
+            startDate: ev.startDate,
+            endDate: ev.endDate,
+            summary: ev.summary,
+            detail: { booking_id: relink.id, relinked: true },
+          });
+        }
+        continue;
+      }
+
+      // Host already entered this Airbnb stay by hand. Attach provenance, do not duplicate.
+      const adoptable = findAdoptableManualBooking(manualCandidates, {
+        checkInYmd: ev.startDate,
+        checkOutYmd: ev.endDate,
+        bookingSource: 'Airbnb',
+      });
+      if (adoptable) {
+        const adopted = await adoptManualBooking(supabase, feed, runId, ev, adoptable);
+        if (adopted) {
+          result.bookingsLinked++;
+          await writeEvent(supabase, {
+            feedId: feed.id,
+            runId,
+            action: 'booking_linked',
+            externalUid: ev.uid,
+            startDate: ev.startDate,
+            endDate: ev.endDate,
+            summary: ev.summary,
+            detail: { booking_id: adoptable.id, adopted_manual: true },
+          });
+        }
+        continue;
+      }
+
+      // Old reservations can linger in the feed. Never create a ghost booking for them.
+      if (isPastReservation(ev.endDate, today)) {
+        await writeEvent(supabase, {
+          feedId: feed.id,
+          runId,
+          action: 'skipped',
+          externalUid: ev.uid,
+          startDate: ev.startDate,
+          endDate: ev.endDate,
+          detail: { reason: 'past_stay' },
+        });
+        continue;
+      }
+
       const displayName = ev.confirmationCode
         ? `Airbnb ${ev.confirmationCode}`
         : ev.phoneLast4
@@ -860,6 +1134,12 @@ async function reconcileExternalBookings(
           external_uid: ev.uid,
           external_feed_id: feed.id,
           external_raw: ev.raw,
+          booked_at: new Date().toISOString(),
+          cancellation_policy_snapshot: buildCancellationPolicySnapshot({
+            policy: null,
+            capturedFrom: 'external',
+            externalSource: feed.provider,
+          }),
           primary_guest_name: displayName,
           guest_facebook_name: displayName,
           guest_email: null,
@@ -880,8 +1160,27 @@ async function reconcileExternalBookings(
         .select('id')
         .maybeSingle();
       if (error) {
-        // 23505 — a concurrent run already inserted it; skip.
-        if (error.code !== '23505') {
+        if (error.code === '23505') {
+          // A cancelled or concurrently inserted row already owns this UID. Surface it
+          // instead of silently skipping, so a stale cancellation is diagnosable.
+          const { data: existingRow } = await supabase
+            .from('guest_submissions')
+            .select('id,status')
+            .eq('external_feed_id', feed.id)
+            .eq('external_uid', ev.uid)
+            .maybeSingle();
+          await writeEvent(supabase, {
+            feedId: feed.id,
+            runId,
+            action: 'skipped',
+            externalUid: ev.uid,
+            detail: {
+              reason: 'uid_already_exists',
+              booking_id: existingRow?.id ?? null,
+              status: existingRow?.status ?? null,
+            },
+          });
+        } else {
           await writeEvent(supabase, {
             feedId: feed.id,
             runId,
@@ -966,7 +1265,6 @@ async function reconcileExternalBookings(
   }
 
   // Cancellations — UID gone from a healthy feed.
-  const today = manilaTodayYmd();
   for (const row of current) {
     if (byUid.has(row.external_uid)) continue;
 
@@ -988,7 +1286,14 @@ async function reconcileExternalBookings(
       await WorkflowOrchestrator.transition(
         row.id,
         'CANCELLED',
-        {},
+        {
+          cancellation: {
+            initiator: 'ota',
+            reasonCode: 'other',
+            reasonNote: 'Removed from the channel feed.',
+            notifyGuest: false,
+          },
+        },
         {},
         false,
         buildActorContext('cron', { cron: 'calendar-sync-cron' })

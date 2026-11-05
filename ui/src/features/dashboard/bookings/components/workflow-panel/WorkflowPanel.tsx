@@ -75,6 +75,7 @@ import {
 import { useUpdateBooking } from '@/features/dashboard/bookings/hooks/useUpdateBooking';
 import { useWorkflowActions } from '@/features/dashboard/bookings/hooks/useWorkflowActions';
 import { useWorkflowSubFormDrafts } from '@/features/dashboard/bookings/hooks/useWorkflowSubFormDrafts';
+import { CancelBookingSheet } from '@/features/dashboard/bookings/components/workflow-panel/CancelBookingSheet';
 import { offerAiVerdictOverride } from '@/features/dashboard/bookings/lib/aiVerdictOverride';
 import { resolveBookingPropertySlug } from '@/features/dashboard/bookings/lib/bookingListNavigation';
 import { shouldWarnPastBookingStayForProceed } from '@/features/dashboard/bookings/lib/bookingPastPipelineManila';
@@ -113,7 +114,6 @@ import {
 } from '@/features/dashboard/bookings/lib/workflowActionButtonStyles';
 import { buildWorkflowStageDeck } from '@/features/dashboard/bookings/lib/workflowStageDeck';
 import {
-  workflowCancelEffectLines,
   workflowTransitionEffectLines,
   workflowTransitionEmailEffects,
   workflowWouldEmailOnPaidPlan,
@@ -754,15 +754,15 @@ function WorkflowPanelInner({
     }
   }
 
-  async function handleCancel() {
-    setCancelConfirm(false);
+  async function handleCancel(input: Parameters<typeof cancelMut.mutateAsync>[0]) {
     try {
-      await cancelMut.mutateAsync({ bookingId: booking.id });
+      await cancelMut.mutateAsync(input);
       captureAppEvent('booking_workflow_cta_clicked', {
         previous_status: status,
         outcome: 'cancel_success',
       });
       toast.success('Booking cancelled');
+      setCancelConfirm(false);
     } catch (err: any) {
       toast.error(friendlyToastError(err, 'Could not cancel booking'));
     }
@@ -1113,15 +1113,18 @@ function WorkflowPanelInner({
         : null}
 
       {cancelConfirm && (
-        <WorkflowConfirmModal
-          title="Cancel Booking"
-          secondaryLabel="Keep booking"
-          description="This cannot be undone."
-          effectLines={workflowCancelEffectLines()}
+        <CancelBookingSheet
+          open={cancelConfirm}
+          onOpenChange={setCancelConfirm}
+          booking={booking as unknown as Record<string, unknown>}
+          checkInTime={
+            String(
+              (orgContext?.property?.settings as Record<string, unknown> | undefined)?.checkInTime ??
+                '14:00'
+            ) || '14:00'
+          }
+          isPending={cancelMut.isPending}
           onConfirm={handleCancel}
-          onCancel={() => setCancelConfirm(false)}
-          isLoading={cancelMut.isPending}
-          destructive
         />
       )}
 

@@ -82,6 +82,7 @@ export function BookingsStageSummarySkeleton({
             icon={meta.icon}
             iconClassName={styles.iconClassName}
             iconBgClassName={styles.iconBgClassName}
+            titleAdornment={<span aria-hidden className="h-4 w-6 shrink-0" />}
             footer={
               hideStatusFooter ? undefined : <StatusFooter statuses={statusesForStage(stage)} />
             }

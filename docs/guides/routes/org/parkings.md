@@ -29,6 +29,10 @@ This is your parking inventory hub, showing every slot your organization offers,
   A: Tap **Add parking** (or use the **+** menu in the sidebar switcher), then complete setup on the new slot’s settings page.
 - Q: What do the revenue and occupancy numbers mean?
   A: They reflect reservation activity for each slot. Full reservation booking flows are still rolling out, so treat dashboard-style metrics as previews until reservation data is connected end to end.
+- Q: Why can't I see the Add parking button?
+  A: Adding a parking slot needs the Add parking permission. Owners always have it, and invited members only when their org role includes it.
+- Q: Can I hide a parking slot without deleting it?
+  A: Yes. Open the slot's Settings and use Archive in the Danger Zone. It stops showing on your public parking page but keeps its reservations and settings, and you can restore it later.
 
 ---
 

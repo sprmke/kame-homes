@@ -9,6 +9,8 @@ import {
   MapPin,
   Percent,
   PieChart,
+  Sparkles,
+  TrendingUp,
   Users,
   UsersRound,
 } from 'lucide-react';
@@ -20,6 +22,7 @@ import { AdminSurfaceCardHeader } from '@/components/shared/AdminSurfaceCardHead
 import { StatCardSkeleton } from '@/components/shared/StatCard';
 import { AdminListToolbarSkeleton } from '@/components/skeletons/AdminSkeletons';
 import { OrgListingViewSkeleton } from '@/components/skeletons/OrgListingSkeleton';
+import { SlidingTabsListSkeleton } from '@/components/skeletons/SlidingTabsListSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import type { LucideIcon } from 'lucide-react';
@@ -31,7 +34,12 @@ const ANALYTICS_KPI_METRICS: Array<{ title: string; icon: LucideIcon }> = [
   { title: 'Bookings', icon: CalendarCheck },
 ];
 
-const ANALYTICS_TABS = ['Overview', 'Trends', 'Guests', 'AI review'];
+const ANALYTICS_TAB_ITEMS = [
+  { label: 'Overview', icon: Gauge },
+  { label: 'Trends', icon: TrendingUp },
+  { label: 'Guests', icon: Users },
+  { label: 'AI review', icon: Sparkles },
+] as const;
 
 const PROPERTY_OVERVIEW_HEADERS: Array<{ title: string; icon: LucideIcon }> = [
   { title: 'Guest age', icon: Users },
@@ -64,18 +72,7 @@ export function AnalyticsKpiStripSkeleton() {
 
 /** Matches `AnalyticsSectionTabs` primary sliding tabs. */
 export function AnalyticsSectionTabsSkeleton() {
-  return (
-    <div className="bg-muted inline-flex h-9 w-full max-w-full items-center gap-1 rounded-lg p-1 sm:w-auto">
-      {ANALYTICS_TABS.map((label) => (
-        <span
-          key={label}
-          className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 text-[13px] font-medium sm:min-w-[5.5rem] sm:flex-none"
-        >
-          {label}
-        </span>
-      ))}
-    </div>
-  );
+  return <SlidingTabsListSkeleton items={[...ANALYTICS_TAB_ITEMS]} />;
 }
 
 /** Org analytics: `OrgAnalyticsKpiCards` (trend StatCards), then the listings section

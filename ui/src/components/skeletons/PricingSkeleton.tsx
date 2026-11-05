@@ -17,11 +17,11 @@ import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
 const PROPERTY_STATS = [
-  { title: 'Base Rate', icon: DollarSign },
-  { title: 'Weekend Premium', icon: TrendingUp },
-  { title: 'Custom Dates', icon: Calendar },
-  { title: 'Fixed Fees', icon: Tag },
-  { title: 'Smart Pricing', icon: Wand2 },
+  { title: 'Base Rate', icon: DollarSign, hasHint: false },
+  { title: 'Weekend Premium', icon: TrendingUp, hasHint: true },
+  { title: 'Custom Dates', icon: Calendar, hasHint: true },
+  { title: 'Fixed Fees', icon: Tag, hasHint: true },
+  { title: 'Smart Pricing', icon: Wand2, hasHint: true },
 ] as const;
 
 const PARKING_STATS = PROPERTY_STATS.slice(0, 3);
@@ -279,6 +279,9 @@ export function PricingPageBodySkeleton({
               key={metric.title}
               title={metric.title}
               icon={metric.icon}
+              titleAdornment={
+                metric.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+              }
               style={{ opacity: 1 - index * 0.05 }}
             />
           ))}

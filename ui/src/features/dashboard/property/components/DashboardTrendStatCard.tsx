@@ -1,24 +1,15 @@
-import type { ReactNode } from 'react';
-
 import { TrendingDown, TrendingUp } from 'lucide-react';
 
+import { InfoHint } from '@/components/help/InfoHint';
 import { StatCard, type StatCardProps } from '@/components/shared/StatCard';
+import { METRIC_DEFINITIONS } from '@/lib/help/metricDefinitions';
 import { cn } from '@/lib/utils';
 
 import type { LucideIcon } from 'lucide-react';
 
-type Props = {
-  title: string;
+type Props = Omit<StatCardProps, 'value' | 'icon'> & {
   value: string;
-  change?: number;
-  changeLabel?: string;
-  changeIsPoints?: boolean;
   icon: LucideIcon;
-  iconClassName?: string;
-  iconBgClassName?: string;
-  valueClassName?: string;
-  className?: string;
-  footer?: ReactNode;
 };
 
 export function DashboardTrendStatCard(props: Props) {
@@ -93,9 +84,16 @@ export function DashboardOccupancyRingCard({
         </span>
       </div>
       <div className="space-y-1">
-        <p className="text-muted-foreground text-[11px] font-medium leading-tight">
-          Occupancy Rate
-        </p>
+        <div className="flex items-center justify-center gap-1">
+          <p className="text-muted-foreground text-[11px] font-medium leading-tight">
+            Occupancy Rate
+          </p>
+          <InfoHint
+            label="Occupancy Rate"
+            text={METRIC_DEFINITIONS.propertyOccupancyRate.text}
+            variant="metric"
+          />
+        </div>
         {hasChange ? (
           <div className="flex flex-wrap items-center justify-center gap-1">
             <span

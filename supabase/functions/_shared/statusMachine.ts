@@ -47,6 +47,35 @@ export function isBookingStatus(value: string): value is BookingStatus {
   return (BOOKING_STATUSES as ReadonlyArray<string>).includes(value);
 }
 
+/**
+ * Guest-initiated cancel: before check-in only. Mirrors
+ * `ui/.../bookings/lib/bookingStatus.ts#CANCELLABLE_STATUSES`.
+ */
+export const GUEST_CANCELLABLE_STATUSES: ReadonlySet<BookingStatus> = new Set<BookingStatus>([
+  'PENDING_REVIEW',
+  'PENDING_DOCUMENTS',
+  'PENDING_GAF',
+  'PENDING_PARKING_REQUEST',
+  'PENDING_PET_REQUEST',
+  'READY_FOR_CHECKIN',
+]);
+
+/**
+ * Host-initiated cancel: any live booking, including after check-in (emergency /
+ * no-show / early departure). Refund after check-in defaults to 0 and needs an
+ * explicit override. `COMPLETED`, `CANCELLED` and `IMPORTED` are excluded.
+ */
+export const HOST_CANCELLABLE_STATUSES: ReadonlySet<BookingStatus> = new Set<BookingStatus>([
+  'PENDING_REVIEW',
+  'PENDING_DOCUMENTS',
+  'PENDING_GAF',
+  'PENDING_PARKING_REQUEST',
+  'PENDING_PET_REQUEST',
+  'READY_FOR_CHECKIN',
+  'READY_FOR_CHECKOUT',
+  'PENDING_SD_REFUND',
+]);
+
 /** Statuses at or after Ready for Check-in (parent Pending Documents is behind). */
 export const POST_PENDING_DOCUMENTS_STATUSES: readonly BookingStatus[] = [
   'READY_FOR_CHECKIN',

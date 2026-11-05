@@ -2,7 +2,7 @@
 title: 'Performance optimization for production readiness'
 status: active
 tags: [performance, planning, production-readiness, caching]
-updated: 2026-11-03
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: for-testing

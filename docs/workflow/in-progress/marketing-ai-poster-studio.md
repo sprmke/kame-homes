@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Marketing AI Poster Studio: from AI photo to postable designed posts'
 status: in-progress
 tags: [workflow, planned, marketing, ai, image-generation, polotno, design]
-updated: 2026-11-03
+updated: 2026-11-06
 kind: plan
 ---
 

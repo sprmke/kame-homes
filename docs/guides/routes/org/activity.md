@@ -28,7 +28,24 @@ Org-wide **activity / audit timeline** — every meaningful action across the or
 
 Data is written **fire-and-forget** by `_shared/activityLog.ts` (never blocks a mutation) into the append-only `public.activity_log` table and read through `list-activity-log`. See `docs/workflow/in-progress/org-activity-audit-log.md` and `docs/architecture/data-model.md`.
 
-## Sections
+## Host-facing knowledge
+
+Activity is a read-only timeline of what happened across your organization: booking changes, team updates, pricing and settings edits, finance and maintenance activity, guest actions, and automated jobs. Open it from **Settings** → **Activity** → **Manage**.
+
+**Common host questions**
+
+- Q: Where do I find Activity?
+  A: Open **Settings**, find the **Activity** section, and choose **Manage**. The old direct Activity link opens the same modal.
+- Q: How far back does the timeline go?
+  A: The default window is the last 90 days. Use the date filter to look at a different range.
+- Q: Can I see activity for just one property or parking slot?
+  A: The org Activity view includes every listing. Each property and parking slot also has its own Activity view in Settings, limited to that listing.
+- Q: Who can export the activity log?
+  A: Owners and org admins can export the filtered view to CSV. On Starter and above the export is included; on Free the button offers an upgrade. Viewing the log is free on every plan.
+- Q: Does the feed update while I have it open?
+  A: Yes. New activity appears automatically without reloading the page.
+- Q: Can I edit or delete an entry?
+  A: No. Activity is an audit record and stays read-only, which is what makes it useful for checking who changed what.
 
 ### Feed
 

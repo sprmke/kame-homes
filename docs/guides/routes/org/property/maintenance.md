@@ -58,6 +58,10 @@ This page helps you track upkeep for your property: cleaning schedules, applianc
   A: Yes, use the status filter to show only pending or completed reminders, then sort by date to see what's due soonest.
 - Q: What does the calendar view show?
   A: It lays out your maintenance reminders on a monthly calendar so you can spot busy weeks at a glance.
+- Q: Can a maintenance reminder repeat on a schedule?
+  A: Yes. When you add or edit a reminder, set it as a recurring series. One-off tasks and completed history stay separate.
+- Q: Is exporting a maintenance report included on my plan?
+  A: Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
 
 ---
 

@@ -39,7 +39,7 @@ export function RequirePropertyFeature({ feature, children }: Props) {
 
   if (!allowed) {
     return (
-      <FloatingPanel padding="lg" className="py-16 text-center">
+      <FloatingPanel padding="lg" className="py-8 sm:py-12 text-center">
         <p className="text-foreground text-sm font-semibold">{copy.title}</p>
         <p className="text-caption mx-auto mt-1 max-w-sm">
           <PlanGatedText text={copy.description} feature={feature} />

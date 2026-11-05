@@ -3,7 +3,7 @@ title: 'Marketing themes: theme-first Marketing Studio'
 stage: in-progress
 status: in-progress
 tags: [marketing, ux, themes, calendar, polotno, remotion, ai]
-updated: 2026-10-22
+updated: 2026-11-06
 kind: plan
 ---
 

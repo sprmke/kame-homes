@@ -1,7 +1,7 @@
 ---
 title: 'Phase 0 snapshot — baseline before re-verification'
 stage: in-progress
-updated: 2026-10-19
+updated: 2026-11-06
 kind: evidence
 ---
 

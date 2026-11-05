@@ -200,6 +200,42 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'booking',
     summary: (c) => `${c.actorName} cancelled ${label(c, 'a booking')}`,
   },
+  'booking.cancellation_requested': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} requested to cancel ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_approved': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} approved the cancellation of ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_declined': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} declined the cancellation of ${label(c, 'a booking')}`,
+  },
+  'booking.cancellation_request_withdrawn': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} withdrew the cancellation request for ${label(c, 'a booking')}`,
+  },
+  'booking.refund_recorded': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} recorded a refund for ${label(c, 'a booking')}`,
+  },
+  'booking.refund_sent': {
+    category: 'booking',
+    severity: 'info',
+    targetType: 'booking',
+    summary: (c) => `${c.actorName} marked a refund as sent for ${label(c, 'a booking')}`,
+  },
   'booking.custom_template_sent': {
     category: 'booking',
     severity: 'info',
@@ -515,6 +551,12 @@ export const ACTIVITY_ACTION_CATALOG = {
     severity: 'destructive',
     targetType: 'property',
     summary: (c) => `${c.actorName} deleted the property ${label(c, 'a property')}`,
+  },
+  'property.cancellation_policy_updated': {
+    category: 'property',
+    severity: 'notice',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} updated the cancellation policy for ${label(c, 'a property')}`,
   },
   'parking.created': {
     category: 'parking',

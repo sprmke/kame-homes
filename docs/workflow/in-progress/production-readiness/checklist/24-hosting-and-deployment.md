@@ -2,7 +2,7 @@
 title: 'Hosting and deployment'
 status: active
 tags: [workflow, planned, production-readiness, deployment, vercel, supabase]
-updated: 2026-11-03
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: planned

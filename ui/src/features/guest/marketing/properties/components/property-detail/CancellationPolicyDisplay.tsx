@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
 
 import { cn } from '@/lib/utils';
 
@@ -44,6 +44,26 @@ export function CancellationPolicyDisplay({
         <div className="min-w-0">
           <p className={cn('font-medium', titleClasses)}>{policy.title}</p>
           <p className={cn('mt-1 text-sm', descriptionClasses)}>{policy.description}</p>
+          {policy.timeline.length > 0 ? (
+            <ul className={cn('mt-2 space-y-1 text-sm', descriptionClasses)}>
+              {policy.timeline.map((row) => (
+                <li key={row.daysBefore} className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'size-1.5 shrink-0 rounded-full',
+                      row.refundPercent >= 100
+                        ? 'bg-emerald-500'
+                        : row.refundPercent > 0
+                          ? 'bg-amber-500'
+                          : 'bg-muted-foreground/50'
+                    )}
+                    aria-hidden
+                  />
+                  {row.refundPercent}% refund at least {row.label}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
     </div>

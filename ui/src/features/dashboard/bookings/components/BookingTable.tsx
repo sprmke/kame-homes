@@ -163,6 +163,11 @@ function BookingTableRow({
           status={row.status}
           parkingBroadcastExpiresAt={row.parking_broadcast_expires_at}
         />
+        {row.cancellation_requested_at ? (
+          <span className="mt-1 inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+            Cancellation requested
+          </span>
+        ) : null}
       </td>
 
       {showProperty ? (

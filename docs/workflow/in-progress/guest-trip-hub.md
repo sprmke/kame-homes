@@ -2,7 +2,7 @@
 title: 'Guest trip hub (one page per booking)'
 status: in-progress
 tags: [workflow, guest, booking]
-updated: 2026-11-04
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 ---

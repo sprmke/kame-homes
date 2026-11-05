@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Agentic AI: dashboard assistant + guest receptionist'
 status: in-progress
 tags: [workflow, planned, ai, safety]
-updated: 2026-11-03
+updated: 2026-11-06
 kind: plan
 ---
 

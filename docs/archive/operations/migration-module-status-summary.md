@@ -11,18 +11,18 @@ updated: 2026-11-01
 
 ## Phase checklist
 
-| Phase                             | Status           | Notes                                                                                                                                                                                            |
-| --------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **0** Inventory                   | **Done**         | Counts, link inventory, schema drift doc                                                                                                                                                         |
-| **1** Prod wiring                 | **Done**         | GitHub secrets, Vercel → fwor, Auth on `kamespace.com`, extensions + 26 crons, Production branch `main` (prod OAuth client deferred to plan 05)                                                       |
-| **2** Tooling                     | **Done**         | `migrate.sh`, verify scripts, guards, Storage sync, cron + cleanup SQL                                                                                                                           |
-| **3** Shaping                     | **Done** on fwor | Kame Homes org, Monaco property, owner, comped plan                                                                                                                                              |
-| **4** Rehearsals                  | **Done**         | R1/R2/R3 automated + host walkthrough; rollback dry-run documented                                                                                                                              |
-| **5** App prep                    | **Done** (code)  | Redirects, resolver, watermarks, maintenance page                                                                                                                                                |
-| **6** Integrations                | **Done**         | Resend sending + inbound verified; Telegram admin/staff/finance/maintenance migrated; PostHog/Gemini/VAPID set. **PayMongo deferred** pending approval                                     |
-| **7** Repo                        | **Done**         | `legacy-final` tagged; `develop` → `main` fast-forwarded 2026-11-03; legacy Vercel Git disconnected                                                                                            |
-| **8** T0 cutover                  | **Done**         | Measured delta synced, apex moved, crons flipped, Auth/Resend switched, production verified                                                                                                     |
-| **9–10** Hypercare / decommission | **After T0**     | 30d monitoring, then retire zftt + legacy Vercel                                                                                                                                                 |
+| Phase                             | Status           | Notes                                                                                                                                                  |
+| --------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **0** Inventory                   | **Done**         | Counts, link inventory, schema drift doc                                                                                                               |
+| **1** Prod wiring                 | **Done**         | GitHub secrets, Vercel → fwor, Auth on `kamespace.com`, extensions + 26 crons, Production branch `main` (prod OAuth client deferred to plan 05)        |
+| **2** Tooling                     | **Done**         | `migrate.sh`, verify scripts, guards, Storage sync, cron + cleanup SQL                                                                                 |
+| **3** Shaping                     | **Done** on fwor | Kame Homes org, Monaco property, owner, comped plan                                                                                                    |
+| **4** Rehearsals                  | **Done**         | R1/R2/R3 automated + host walkthrough; rollback dry-run documented                                                                                     |
+| **5** App prep                    | **Done** (code)  | Redirects, resolver, watermarks, maintenance page                                                                                                      |
+| **6** Integrations                | **Done**         | Resend sending + inbound verified; Telegram admin/staff/finance/maintenance migrated; PostHog/Gemini/VAPID set. **PayMongo deferred** pending approval |
+| **7** Repo                        | **Done**         | `legacy-final` tagged; `develop` → `main` fast-forwarded 2026-11-03; legacy Vercel Git disconnected                                                    |
+| **8** T0 cutover                  | **Done**         | Measured delta synced, apex moved, crons flipped, Auth/Resend switched, production verified                                                            |
+| **9–10** Hypercare / decommission | **After T0**     | 30d monitoring, then retire zftt + legacy Vercel                                                                                                       |
 
 ## Verify anytime
 

@@ -1,7 +1,7 @@
 ---
 title: 'Operator actions for launch'
 status: active
-updated: 2026-10-19
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 readiness: operator-blocked

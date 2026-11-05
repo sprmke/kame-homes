@@ -2,7 +2,7 @@
 title: 'Supabase capacity and operational readiness'
 status: in_progress
 tags: [supabase, capacity, performance, security, production-readiness, observability]
-updated: 2026-11-05
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 readiness: partial

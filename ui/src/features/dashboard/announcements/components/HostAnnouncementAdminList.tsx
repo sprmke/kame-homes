@@ -72,7 +72,7 @@ export function HostAnnouncementAdminList({
 }: HostAnnouncementAdminListProps) {
   if (announcements.length === 0) {
     return (
-      <div className="surface-card text-muted-foreground flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+      <div className="surface-card text-muted-foreground flex flex-col items-center justify-center gap-3 px-4 sm:px-6 py-8 sm:py-12 text-center">
         <Megaphone className="text-muted-foreground/50 size-8 stroke-[1.25]" aria-hidden />
         <p className="text-sm">{emptyMessage}</p>
       </div>

@@ -61,6 +61,71 @@ export type GuestTrip = {
     isAirbnb: boolean;
   };
   refund: { amount: number | null; settledAt: string | null };
+  cancellation: {
+    policy: {
+      title: string;
+      description: string;
+      shortLabel: string;
+      timeline: Array<{ daysBefore: number; refundPercent: number; label: string }>;
+      fallbackRefundPercent: number;
+      needsReview: boolean;
+      unset: boolean;
+      capturedFrom: string | null;
+    };
+    outcome: {
+      mode:
+        | 'computed'
+        | 'host_decides'
+        | 'external'
+        | 'after_checkin'
+        | 'not_cancellable';
+      refundPercent: number | null;
+      checkInInstantIso: string;
+      graceUntilIso: string | null;
+      cancellableUntilIso: string;
+      deadlines: Array<{
+        daysBefore: number;
+        refundPercent: number;
+        deadlineIso: string;
+        label: string;
+      }>;
+      nextDeadline: {
+        daysBefore: number;
+        refundPercent: number;
+        deadlineIso: string;
+        label: string;
+      } | null;
+      amountPaidPhp: number;
+      policyBasePhp: number;
+      retainedPhp: number;
+      refundDuePhp: number;
+      appliedRule: { kind: string; label: string; deadlineIso?: string } | null;
+      warnings: string[];
+      lines: Array<{
+        kind: string;
+        label: string;
+        amountPhp: number;
+        note?: string;
+      }>;
+    };
+    canCancel: boolean;
+    canRequest: boolean;
+    canWithdraw: boolean;
+    request: {
+      id: string;
+      status: string;
+      reasonCode: string;
+      requestedAt: string;
+      hostMessage: string | null;
+    } | null;
+    refund: {
+      amountPhp: number;
+      status: 'not_due' | 'awaiting_guest_details' | 'pending' | 'sent' | 'cancelled';
+      sentAt: string | null;
+      method: string | null;
+      proofUrl: string | null;
+    } | null;
+  };
   documents: GuestTripDocument[];
   actions: {
     canEditBooking: boolean;
@@ -136,4 +201,98 @@ export async function fetchGuestTrip(bookingId: string, propertySlug: string): P
   // Signed-in owners get a token so SD form / review / edit links work in this tab.
   if (json.data.accessToken) storeGuestBookingAccessToken(id, json.data.accessToken);
   return json.data;
+}
+
+// ─── Cancellation actions ────────────────────────────────────────────────────
+
+export class GuestCancellationError extends Error {
+  readonly code: string;
+  readonly status: number;
+  constructor(code: string, message: string, status: number) {
+    super(message);
+    this.name = 'GuestCancellationError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
+async function postGuestCancellation<T>(
+  functionName: string,
+  body: Record<string, unknown>
+): Promise<T> {
+  const res = await fetch(`${FUNCTIONS_URL}/${functionName}`, {
+    method: 'POST',
+    headers: { ...(await guestEdgeAuthHeaders()), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    error?: string;
+    message?: string;
+    data?: T;
+  };
+  if (!res.ok || !json.success) {
+    throw new GuestCancellationError(
+      json.error ?? 'unknown',
+      json.message ?? json.error ?? 'Something went wrong. Try again.',
+      res.status
+    );
+  }
+  return json.data as T;
+}
+
+export type CancellationActionInput = {
+  bookingId: string;
+  reasonCode: string;
+  reasonNote?: string;
+};
+
+export async function cancelGuestBooking(input: CancellationActionInput) {
+  return postGuestCancellation<{ cancelled: boolean; outcome: GuestTrip['cancellation']['outcome'] }>(
+    'guest-cancel-booking',
+    {
+      bookingId: input.bookingId,
+      accessToken: readGuestBookingAccessToken(input.bookingId) ?? undefined,
+      reasonCode: input.reasonCode,
+      reasonNote: input.reasonNote ?? '',
+      confirm: true,
+    }
+  );
+}
+
+export async function requestGuestCancellation(input: CancellationActionInput) {
+  return postGuestCancellation<{ request: { id: string } }>('guest-cancellation-request', {
+    bookingId: input.bookingId,
+    accessToken: readGuestBookingAccessToken(input.bookingId) ?? undefined,
+    action: 'create',
+    reasonCode: input.reasonCode,
+    reasonNote: input.reasonNote ?? '',
+  });
+}
+
+export async function withdrawGuestCancellationRequest(bookingId: string) {
+  return postGuestCancellation<{ withdrawn: boolean }>('guest-cancellation-request', {
+    bookingId,
+    accessToken: readGuestBookingAccessToken(bookingId) ?? undefined,
+    action: 'withdraw',
+  });
+}
+
+export async function submitGuestRefundDetails(input: {
+  bookingId: string;
+  method: 'same_phone' | 'other_bank' | 'cash';
+  bank?: string;
+  accountName?: string;
+  accountNumber?: string;
+  phone?: string;
+}) {
+  return postGuestCancellation<{ refund: Record<string, unknown> }>('submit-guest-refund-details', {
+    bookingId: input.bookingId,
+    accessToken: readGuestBookingAccessToken(input.bookingId) ?? undefined,
+    method: input.method,
+    bank: input.bank,
+    accountName: input.accountName,
+    accountNumber: input.accountNumber,
+    phone: input.phone,
+  });
 }

@@ -32,6 +32,7 @@ import { createServiceClient } from '../_shared/orgAuth.ts';
 import { capturePostHogEvent } from '../_shared/posthog.ts';
 import { occupiedStayNights } from '../_shared/utils.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
+import { buildCancellationPolicySnapshot } from '../_shared/cancellationPolicy.ts';
 
 /** previewed = normal path; failed = retry after a prior commit attempt inserted nothing. */
 const COMMIT_ALLOWED_STATUSES: ReadonlyArray<ImportBatchStatus> = ['previewed', 'failed'];
@@ -73,6 +74,12 @@ function buildSubmissionRow(
     status: commitStatus,
     imported_from_batch_id: batchId,
     status_updated_at: now,
+    booked_at: now,
+    cancellation_policy_snapshot: buildCancellationPolicySnapshot({
+      policy: null,
+      capturedFrom: 'import',
+      capturedAt: now,
+    }),
   };
 
   for (const [fieldId, rawValue] of Object.entries(mappedData)) {

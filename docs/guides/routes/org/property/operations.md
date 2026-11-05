@@ -31,6 +31,10 @@ Operations Telegram settings have moved to the Notifications page. Opening the o
   A: Booking workflow notifications, things like new bookings, status changes, and other admin alerts your team wants in Telegram.
 - Q: Is this different from Staff or Marketing notifications?
   A: Yes. Operations is specifically for workflow alerts, while Staff and Marketing have their own modules on the same Notifications page, each with separate templates and schedules.
+- Q: Can I test the Operations bot before relying on it?
+  A: Yes. Use **Save and test** in the Operations section. It checks the bot and chat setup before you turn alerts on.
+- Q: Who can change these alert settings?
+  A: Team members with edit access to Operations notifications. Other roles can still see the settings without changing them.
 
 ## Implementation map
 

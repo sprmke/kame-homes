@@ -4,11 +4,14 @@
  *
  * GET   ?property=<id|slug>  → { feeds[], export{}, recentEvents[] }   (pricing.channels:view)
  * PATCH { action, ... }                                                 (pricing.channels:edit + calendarSync plan)
- *   addFeed         { provider?: 'airbnb', label?, icsUrl }  — Airbnb only for new feeds
- *   updateFeed      { feedId, label?, icsUrl?, isActive? }
+ *   addFeed         { provider?: 'airbnb', label?, icsUrl, createBookings? }
+ *   updateFeed      { feedId, label?, icsUrl?, isActive?, createBookings? }
  *   removeFeed      { feedId, deleteData?: boolean }
  *   setExportEnabled { enabled: boolean }
  *   syncNow         { feedId }
+ *
+ * New Airbnb feeds create booking rows by default (`create_bookings = true`). Existing
+ * feeds keep their stored value until the host flips the toggle.
  */
 
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
@@ -19,6 +22,7 @@ import {
   type CalendarFeedProvider,
 } from '../_shared/calendarSyncService.ts';
 import { loadCalendarFeed, runFeedSync } from '../_shared/calendarSyncRun.ts';
+import type { RunFeedResult } from '../_shared/calendarSyncRun.ts';
 import {
   buildCalendarExportUrls,
   resolvePublicExportOrigin,
@@ -29,6 +33,7 @@ import { decryptIntegrationSecret, encryptIntegrationSecret } from '../_shared/s
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { logAssetActivity } from '../_shared/assetActivity.ts';
+import { buildActorContext } from '../_shared/activityLog.ts';
 import { featureUnavailableResponse } from '../_shared/featureAvailability.ts';
 import { capturePostHogEvent } from '../_shared/posthog.ts';
 
@@ -163,6 +168,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
   // ── PATCH ───────────────────────────────────────────────────────────────
   const access = await resolveScopedPropertyAccess(req, 'pricing.channels:edit');
   const { property, user } = access;
+  const actor = buildActorContext('dashboard', { propertyAccess: access }, req);
   const body = await readJsonBody(req);
   const action = String(body.action ?? '');
 
@@ -246,6 +252,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
             provider,
             label,
             ics_url_encrypted: await encryptIntegrationSecret(icsUrl),
+            create_bookings: body.createBookings !== false,
             created_by: user.id,
           })
           .select(FEED_COLUMNS)
@@ -271,6 +278,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
               runId: crypto.randomUUID(),
               force: true,
               supabase,
+              actor,
             });
           } catch (syncErr) {
             console.error('[calendar-sync-settings] initial sync failed (non-fatal):', syncErr);
@@ -285,6 +293,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
               bookingsCreated: 0,
               bookingsUpdated: 0,
               bookingsCancelled: 0,
+              bookingsLinked: 0,
               conflicts: 0,
               error: syncErr instanceof Error ? syncErr.message : String(syncErr),
             };
@@ -309,6 +318,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
         const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (typeof body.label === 'string') patch.label = body.label.trim().slice(0, 120) || null;
         if (typeof body.isActive === 'boolean') patch.is_active = body.isActive;
+        if (typeof body.createBookings === 'boolean') patch.create_bookings = body.createBookings;
         if (typeof body.icsUrl === 'string' && body.icsUrl.trim()) {
           const icsUrl = assertExternalIcsUrlShape(body.icsUrl, existing.provider);
           patch.ics_url_encrypted = await encryptIntegrationSecret(icsUrl);
@@ -330,7 +340,28 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
           feed_id: feedId,
           fields: Object.keys(patch).filter((k) => k !== 'updated_at'),
         });
-        return jsonSuccess(req, { feed: data });
+
+        // Turning ingestion on should populate bookings now, not on the next 30-minute sweep.
+        let sync: RunFeedResult | null = null;
+        if (patch.create_bookings === true && !existing.create_bookings) {
+          const updatedFeed = await loadCalendarFeed(supabase, feedId);
+          if (updatedFeed) {
+            try {
+              sync = await runFeedSync(updatedFeed, {
+                runId: crypto.randomUUID(),
+                force: true,
+                supabase,
+                actor,
+              });
+            } catch (syncErr) {
+              console.error(
+                '[calendar-sync-settings] enable-ingest sync failed (non-fatal):',
+                syncErr
+              );
+            }
+          }
+        }
+        return jsonSuccess(req, { feed: data, sync });
       }
 
       case 'removeFeed': {
@@ -384,6 +415,7 @@ serveAuthenticated('calendar-sync-settings', async (req) => {
           runId: crypto.randomUUID(),
           force: true,
           supabase,
+          actor,
         });
         return jsonSuccess(req, { result });
       }

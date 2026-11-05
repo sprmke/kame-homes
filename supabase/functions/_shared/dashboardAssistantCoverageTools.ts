@@ -510,24 +510,54 @@ async function toolSearchHelpCenter(
     const safe = sanitizeHelpQuery(str(args, 'query'));
     if (!safe) return { ok: false, error: 'query is required' };
     const sb = createServiceClient();
-    const { data, error } = await sb
-      .from('ai_dashboard_assistant_knowledge_base')
-      .select('route_guide_path, route_guide_title, route_path, question, answer')
-      .ilike('question', `%${safe}%`)
+
+    // The curated FAQ layer is the reviewed cross-cutting source. Search it
+    // first, then fill the remaining slots from the per-guide knowledge base.
+    const { data: faqRows, error: faqError } = await sb
+      .from('help_center_faqs')
+      .select('category, question, answer, source_route_guide_path')
+      .eq('is_published', true)
+      .neq('audience', 'guest')
+      .or(`question.ilike.%${safe}%,answer.ilike.%${safe}%`)
+      .order('sort_order', { ascending: true })
       .limit(8);
-    if (error) return { ok: false, error: error.message };
+    if (faqError) return { ok: false, error: faqError.message };
+
+    const faqItems = (faqRows ?? []).map((row) => ({
+      title: row.category,
+      question: row.question,
+      answer: row.answer,
+      routePath: null,
+      hostLabel: row.question,
+    }));
+
+    let articleItems: Array<{
+      title: string;
+      question: string;
+      answer: string;
+      routePath: string | null;
+      hostLabel: string;
+    }> = [];
+    if (faqItems.length < 8) {
+      const { data, error } = await sb
+        .from('ai_dashboard_assistant_knowledge_base')
+        .select('route_guide_path, route_guide_title, route_path, question, answer')
+        .or(`question.ilike.%${safe}%,answer.ilike.%${safe}%`)
+        .limit(8 - faqItems.length);
+      if (error) return { ok: false, error: error.message };
+      articleItems = (data ?? []).map((row) => ({
+        title: row.route_guide_title ?? row.route_guide_path,
+        question: row.question,
+        answer: row.answer,
+        routePath: row.route_path,
+        hostLabel: row.question,
+      }));
+    }
+
     return {
       ok: true,
       riskTier: 'tier0_read',
-      data: {
-        items: (data ?? []).map((row) => ({
-          title: row.route_guide_title ?? row.route_guide_path,
-          question: row.question,
-          answer: row.answer,
-          routePath: row.route_path,
-          hostLabel: row.question,
-        })),
-      },
+      data: { items: [...faqItems, ...articleItems] },
     };
   } catch (err) {
     return restricted(err);
@@ -720,7 +750,8 @@ export const COVERAGE_TOOL_DECLARATIONS = [
   },
   {
     name: 'search_help_center',
-    description: 'Search host Help Center articles (complements search_knowledge_base).',
+    description:
+      'Search the curated Help Center FAQs and guide articles (complements search_knowledge_base).',
     parameters: {
       type: 'object',
       properties: { query: { type: 'string' } },

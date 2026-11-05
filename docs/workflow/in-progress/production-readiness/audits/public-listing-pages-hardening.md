@@ -2,7 +2,7 @@
 title: 'Public listing pages hardening (landing, developments, properties, parkings, search)'
 status: active
 tags: [planning, performance, search, marketing, pagination, caching, seo]
-updated: 2026-10-04
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 origin_stage: for-testing

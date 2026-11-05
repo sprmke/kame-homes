@@ -5,7 +5,7 @@ import { StyleSection } from '@/features/dashboard/marketing/components/calendar
 import { PropertyCancellationPolicySection } from '@/features/dashboard/org/components/property-settings/PropertyCancellationPolicySection';
 import { PropertyMediaUpload } from '@/features/dashboard/org/components/property-settings/PropertyMediaUpload';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
-import type { CancellationPolicySettings } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { CancellationPolicy } from '@/features/dashboard/org/lib/cancellationPolicy';
 import type { CustomHouseRule } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
 import type {
   CustomAmenity,
@@ -33,7 +33,7 @@ export type LandingProfileContent = {
   customAmenities: CustomAmenity[];
   enabledHouseRules: string[];
   customHouseRules: CustomHouseRule[];
-  cancellationPolicy: CancellationPolicySettings;
+  cancellationPolicy: CancellationPolicy | null;
 };
 
 type Props = {

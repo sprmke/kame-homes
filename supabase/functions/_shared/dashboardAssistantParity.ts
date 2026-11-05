@@ -145,7 +145,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'list-bookings': read,
   'list-developments': read,
   'list-help-center-articles': tool('search_help_center'),
-  'list-help-center-faqs': read,
+  'list-help-center-faqs': tool('search_help_center'),
   'list-host-announcements': read,
   'list-host-organizations': read,
   'list-host-properties': read,
@@ -178,6 +178,12 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   // ── Host writes done in chat ──────────────────────────────────────────────────────────────
   'calendar-sync-settings': tool('get_channel_sync_status', 'propose_run_channel_sync'),
   'cancel-booking': tool('propose_cancel_booking'),
+  'cancellation-policy-impact': read,
+  'record-booking-refund': excluded('property.booking', 'Refund sent / proof recording'),
+  'respond-cancellation-request': handoff(
+    'property.booking',
+    'Guest cancellation request review'
+  ),
   'claim-parking-booking': tool('propose_claim_parking_booking'),
   'decline-parking-booking': tool('propose_decline_parking_booking'),
   'finance-line-items': tool(

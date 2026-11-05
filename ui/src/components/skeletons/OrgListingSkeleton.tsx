@@ -198,18 +198,18 @@ export function OrgListingViewSkeleton({
   return <OrgInventoryListSkeleton label={label} />;
 }
 
-const PROPERTY_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const PROPERTY_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total properties', icon: Building2 },
-  { title: 'Total revenue', icon: Coins },
-  { title: 'Avg monthly revenue', icon: Calendar },
-  { title: 'Avg occupancy', icon: Percent },
+  { title: 'Total revenue', icon: Coins, hasHint: true },
+  { title: 'Avg monthly revenue', icon: Calendar, hasHint: true },
+  { title: 'Avg occupancy', icon: Percent, hasHint: true },
 ];
 
-const PARKING_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon }> = [
+const PARKING_SUMMARY_METRICS: Array<{ title: string; icon: LucideIcon; hasHint?: boolean }> = [
   { title: 'Total parkings', icon: Car },
-  { title: 'Total revenue', icon: Coins },
-  { title: 'Avg monthly revenue', icon: Calendar },
-  { title: 'Avg occupancy', icon: Percent },
+  { title: 'Total revenue', icon: Coins, hasHint: true },
+  { title: 'Avg monthly revenue', icon: Calendar, hasHint: true },
+  { title: 'Avg occupancy', icon: Percent, hasHint: true },
 ];
 
 /** Org Properties / Parkings page body: summary KPIs, list toolbar, listings in `view`. */
@@ -232,6 +232,9 @@ export function OrgListingPageSkeleton({
             key={metric.title}
             title={metric.title}
             icon={metric.icon}
+            titleAdornment={
+              metric.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+            }
             style={{ opacity: 1 - i * 0.05 }}
           />
         ))}

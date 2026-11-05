@@ -4,7 +4,9 @@ import {
   formatReviewAverage,
   type PropertyReviewSummary,
 } from '@/features/reviews/lib/propertyReviewsApi';
+import { REVIEWS_HELP_COPY } from '@/features/reviews/lib/reviewsHelpCopy';
 
+import { InfoHint } from '@/components/help/InfoHint';
 import { StatCard, StatCardGrid, StatCardSkeleton } from '@/components/shared/StatCard';
 
 /** Response rate is meaningless without reviews — show a dash, not 0%. */
@@ -14,17 +16,24 @@ function formatResponseRate(summary: PropertyReviewSummary): string {
 }
 
 const REVIEW_METRICS = [
-  { title: 'Average rating', icon: Star },
-  { title: 'Reviews', icon: Quote },
-  { title: 'Responded', icon: Reply },
-  { title: 'To write', icon: PencilLine },
+  { title: 'Average rating', icon: Star, hasHint: false },
+  { title: 'Reviews', icon: Quote, hasHint: false },
+  { title: 'Responded', icon: Reply, hasHint: true },
+  { title: 'To write', icon: PencilLine, hasHint: true },
 ];
 
 export function ReviewsSummaryCardsSkeleton() {
   return (
     <StatCardGrid>
       {REVIEW_METRICS.map((metric) => (
-        <StatCardSkeleton key={metric.title} title={metric.title} icon={metric.icon} />
+        <StatCardSkeleton
+          key={metric.title}
+          title={metric.title}
+          icon={metric.icon}
+          titleAdornment={
+            metric.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
+          }
+        />
       ))}
     </StatCardGrid>
   );
@@ -62,6 +71,9 @@ export function ReviewsSummaryCards({
         title="Responded"
         value={summary ? formatResponseRate(summary) : '–'}
         icon={Reply}
+        titleAdornment={
+          <InfoHint label="Responded" text={REVIEWS_HELP_COPY.responded.hint} variant="metric" />
+        }
       />
       <StatCard
         title="To write"
@@ -70,6 +82,9 @@ export function ReviewsSummaryCards({
         valueClassName={dueCount > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
         onClick={onShowToWrite}
         active={toWriteActive}
+        titleAdornment={
+          <InfoHint label="To write" text={REVIEWS_HELP_COPY.toWrite.hint} variant="metric" />
+        }
       />
     </StatCardGrid>
   );

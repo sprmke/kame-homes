@@ -2,7 +2,7 @@
 title: 'In-progress module disposition'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-04
+updated: 2026-11-06
 stage: in-progress
 kind: reference
 origin_stage: in-progress
