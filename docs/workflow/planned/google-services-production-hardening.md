@@ -42,14 +42,17 @@ split_from: kamespace-05-google-services-verification
 
 ### Phase 1: Billing and Maps spend controls
 
-- [ ] **H-01** Cloud Billing → confirm the account linked to project `967953419734` is an **active paid account**, not an expired trial. Upgrade if prompted. Record the upgrade date.
+- [x] **H-01** Cloud Billing → confirm the account linked to project `967953419734` is an **active paid account**, not an expired trial. Upgrade if prompted. Record the upgrade date.
+  - **Done 2026-11-05:** project `967953419734` is linked to active billing account `018005-834EF9-A2DB34` (`billingEnabled: true`). The closed free-trial account `01B239-2BCD82-EB49F8` is no longer used.
 - [ ] **H-02** APIs & Services → Credentials → the production Maps key:
   - Application restrictions: HTTP referrers, `https://kamespace.com/*` and `https://www.kamespace.com/*` only. Remove localhost; the dev key keeps it.
   - API restrictions: Maps JavaScript, Places, Geocoding, Maps Embed, Maps Static.
+  - **Referrers verified 2026-11-05:** the production key accepts `https://kamespace.com/*` and `https://www.kamespace.com/*`, and rejects localhost and unknown origins.
 - [ ] **H-03** Google Maps Platform → Quotas: set daily caps. Suggested start: JavaScript 2,000 map loads, Places 1,000, Geocoding 500, Embed 1,000, Static 500. Raise after a week of real traffic if needed.
 - [ ] **H-04** Billing → Budgets & alerts: $25/month scoped to `967953419734`, alerts at 50 / 90 / 100%, email to billing admins.
 - [ ] **H-05** Write the Maps ToS conclusion in `google-services-approval.md`: attribution visible, no Google-derived coordinate caching beyond the limits.
-- [ ] **H-06** Probe the key from a non-allowed referrer; expect `REQUEST_DENIED`. Confirm maps still render on a property page and the settings picker.
+- [x] **H-06** Probe the key from a non-allowed referrer; expect `REQUEST_DENIED`. Confirm maps still render on a property page and the settings picker.
+  - **Verified 2026-11-05:** unknown referrers return `REQUEST_DENIED`; the property map renders in light and dark with no development watermark or error dialog; Places Autocomplete and Geocoder return `OK` in the browser.
 
 ### Phase 2: Gemini, fonts, support
 
