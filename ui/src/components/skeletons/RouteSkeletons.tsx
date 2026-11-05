@@ -5,6 +5,7 @@
 import { useLocation, useSearchParams } from 'react-router-dom';
 
 import { HOST_ANNOUNCEMENTS_PAGE_SUBTITLE } from '@/features/dashboard/announcements/lib/hostAnnouncementCopy';
+import { AdminPageHeader } from '@/features/dashboard/bookings/components/AdminPageHeader';
 import { helpSupportSectionFromPath } from '@/features/dashboard/help-support/lib/helpSupportPaths';
 import { useOrgListingSkeletonView } from '@/features/dashboard/org/hooks/useOrgListingSkeletonView';
 import { PLANS_PAGE_SUBTITLE } from '@/features/dashboard/plans/lib/plansPageCopy';
@@ -60,6 +61,7 @@ import {
   SuperAdminOverviewBodySkeleton,
 } from '@/components/skeletons/SuperAdminSkeletons';
 import { TemplateWorkbenchSkeleton } from '@/components/skeletons/TemplateWorkbenchSkeleton';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** `BookingDateRangeFilter` in the hero overlap (phone). */
@@ -437,6 +439,73 @@ export function SuperAdminAuditRouteSkeleton() {
 
 export function SuperAdminSettingsRouteSkeleton() {
   return <SectionContentSkeleton rows={6} />;
+}
+
+/** Weekly ops report list: real title and action, five card rows. */
+export function SuperAdminOpsReportsRouteSkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader
+        title="Operations reports"
+        actions={
+          <Button type="button" variant="outline" size="sm" disabled>
+            Generate now
+          </Button>
+        }
+      />
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div
+            key={index}
+            className="surface-card flex items-center gap-3 px-3 py-3 sm:px-4"
+            aria-hidden
+          >
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex gap-1.5">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full max-w-64" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+            <Skeleton className="size-4 shrink-0 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One ops report: real title, back link, and the four fixed severity labels. */
+export function SuperAdminOpsReportDetailRouteSkeleton() {
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <AdminPageHeader title="Operations report" />
+      <Skeleton className="h-4 w-24" />
+      <div className="surface-card flex items-center gap-2 px-3 py-3 sm:px-4" aria-hidden>
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {['Critical', 'High', 'Medium', 'Low'].map((label) => (
+          <div key={label} className="surface-card px-3 py-3">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">{label}</p>
+            <Skeleton className="mt-2 h-6 w-10" />
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="surface-card space-y-2 px-3 py-3" aria-hidden>
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-4 w-full max-w-lg" />
+            <Skeleton className="h-3 w-full max-w-sm" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function SuperAdminHostShellRouteSkeleton() {

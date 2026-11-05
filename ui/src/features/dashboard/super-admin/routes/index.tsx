@@ -12,6 +12,8 @@ import {
   SuperAdminAuditRouteSkeleton,
   SuperAdminHostShellRouteSkeleton,
   SuperAdminListRouteSkeleton,
+  SuperAdminOpsReportDetailRouteSkeleton,
+  SuperAdminOpsReportsRouteSkeleton,
   SuperAdminOrgShellRouteSkeleton,
   SuperAdminOverviewRouteSkeleton,
   SuperAdminSettingsRouteSkeleton,
@@ -67,6 +69,16 @@ const SuperAdminDevelopmentsPage = lazy(() =>
 const SuperAdminHealthPage = lazy(() =>
   import('@/features/dashboard/super-admin/pages/SuperAdminHealthPage').then((m) => ({
     default: m.SuperAdminHealthPage,
+  }))
+);
+const SuperAdminOpsReportsPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminOpsReportsPage').then((m) => ({
+    default: m.SuperAdminOpsReportsPage,
+  }))
+);
+const SuperAdminOpsReportDetailPage = lazy(() =>
+  import('@/features/dashboard/super-admin/pages/SuperAdminOpsReportDetailPage').then((m) => ({
+    default: m.SuperAdminOpsReportDetailPage,
   }))
 );
 const SuperAdminHelpFaqsPage = lazy(() =>
@@ -220,6 +232,20 @@ export const superAdminRoutes: ReactNode = (
     <Route
       path="health/:section"
       element={superAdminRoute(<SuperAdminHealthPage />, <SuperAdminSettingsRouteSkeleton />)}
+    />
+    <Route
+      path="ops-reports"
+      element={superAdminRoute(
+        <SuperAdminOpsReportsPage />,
+        <SuperAdminOpsReportsRouteSkeleton />
+      )}
+    />
+    <Route
+      path="ops-reports/:reportId"
+      element={superAdminRoute(
+        <SuperAdminOpsReportDetailPage />,
+        <SuperAdminOpsReportDetailRouteSkeleton />
+      )}
     />
     <Route
       path="audit"

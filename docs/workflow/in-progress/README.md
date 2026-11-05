@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-04
+updated: 2026-11-05
 stage: in-progress
 kind: reference
 ---
@@ -16,6 +16,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
 **Moved in 2026-11-04:** [`supabase-capacity-and-operational-readiness.md`](./supabase-capacity-and-operational-readiness.md) — first slice shipped (bookings-list RPC, RLS init-plan rewrite, duplicate index drop, retention, Realtime binding merge, capture scripts, drift gate). Remaining: compute upgrade, continuous alerts, large-tenant seed, load tests, public cache, dashboard/finance aggregates. Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
+
+**Moved in 2026-11-05:** [`weekly-ops-report.md`](./weekly-ops-report.md) — weekly operations report across Supabase, Sentry, database metrics, and delivery health. Super-admin list/detail, manual generate, idempotent email, Monday cron, and the agent handoff prompt. Architecture: [`../architecture/ops-reports.md`](../architecture/ops-reports.md).
 
 **Moved out 2026-11-03:** [`kamespace-02-legacy-prod-to-mt-prod-cutover.md`](../done/kamespace-02-legacy-prod-to-mt-prod-cutover.md) and [`kamespace-01-legacy-prod-config-secrets-backup.md`](../done/kamespace-01-legacy-prod-config-secrets-backup.md) → **done**. Legacy data, storage, auth, domains, email and repo are on the new stack; the secrets backup is closed with its optional tails deferred. Deferred in 02: Maps Embed API, property photos, PayMongo approval, 30-day decommission.
 

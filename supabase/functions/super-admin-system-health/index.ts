@@ -14,22 +14,11 @@
 import { createServiceClient } from '../_shared/orgAuth.ts';
 import { jsonError, jsonSuccess, readJsonBody } from '../_shared/httpResponse.ts';
 import { serveSuperAdmin } from '../_shared/serveEdge.ts';
-import { evaluateEdgeEnv } from '../_shared/systemHealth/envRegistry.ts';
-import { evaluateJobs, jobsToChecks } from '../_shared/systemHealth/jobsRegistry.ts';
+import { collectSystemHealthChecks } from '../_shared/systemHealth/collect.ts';
 import { PROBES, probesToChecks, runProbes } from '../_shared/systemHealth/probes.ts';
-import {
-  evaluateAiProviders,
-  evaluateDatabase,
-  evaluateEmailTraffic,
-  evaluatePayments,
-  evaluatePlatformPosture,
-  evaluateTenantIntegrations,
-  type SystemHealthSnapshot,
-} from '../_shared/systemHealth/snapshotChecks.ts';
+import type { SystemHealthSnapshot } from '../_shared/systemHealth/snapshotChecks.ts';
 import {
   isProductionEnv,
-  supabaseDashboardUrl,
-  supabaseProjectRef,
   worstStatus,
   type HealthCategory,
   type HealthCheck,
@@ -87,28 +76,11 @@ serveSuperAdmin('super-admin-system-health', async (req) => {
     if (error) return jsonError(req, error.message, 500);
     const snapshot = data as SystemHealthSnapshot;
 
-    const projectRef = supabaseProjectRef(getEnv);
-    const evaluated = evaluateJobs({
-      cronJobs: snapshot.cron_jobs,
-      heartbeats: snapshot.heartbeats ?? [],
+    const { checks, jobs, sqlOnlyJobs, projectRef } = collectSystemHealthChecks({
+      snapshot,
+      get: getEnv,
       isProd,
     });
-    const jobs = evaluated.jobs.map((job) => ({
-      ...job,
-      logsHref: supabaseDashboardUrl(projectRef, `functions/${job.fn}/logs`),
-    }));
-
-    const checks: HealthCheck[] = [
-      ...evaluateEdgeEnv(getEnv, isProd),
-      ...evaluatePlatformPosture(snapshot, isProd),
-      ...evaluateDatabase(snapshot, getEnv, isProd),
-      ...jobsToChecks(jobs),
-      ...probesToChecks(getEnv, snapshot.probes ?? []),
-      ...evaluateAiProviders(snapshot),
-      ...evaluateEmailTraffic(snapshot, getEnv),
-      ...evaluatePayments(snapshot, getEnv),
-      ...evaluateTenantIntegrations(snapshot, isProd),
-    ];
 
     const probesLastRunAt =
       (snapshot.probes ?? [])
@@ -122,7 +94,7 @@ serveSuperAdmin('super-admin-system-health', async (req) => {
       ...summarize(checks),
       checks,
       jobs,
-      sqlOnlyJobs: evaluated.sqlOnlyJobs,
+      sqlOnlyJobs,
       probesLastRunAt,
       projectRef,
       vapidPublicKey: vapidPublicKey(getEnv),

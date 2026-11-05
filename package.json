@@ -102,6 +102,7 @@
     "perf:supabase:metrics": "node scripts/performance/capture-supabase-metrics.mjs",
     "perf:supabase:advisors": "node scripts/performance/capture-supabase-advisors.mjs",
     "perf:supabase:snapshot": "bun run perf:supabase:metrics && bun run perf:supabase:advisors",
+    "perf:seed-large-tenant": "bash scripts/performance/seed-large-tenant.sh",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --project=chromium-ci --project=mobile-chromium-smoke --project=tablet-chromium-smoke --grep @smoke",
     "test:e2e:ci": "playwright test --project=chromium-ci --grep @ci",

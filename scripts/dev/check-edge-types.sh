@@ -53,6 +53,14 @@ targets=(
   _shared/marketingMediaStorage.ts
   _shared/marketingMediaIngest.ts
   _shared/marketingMediaSweeper.ts
+  # Weekly operations report — super-admin console, cron, and the shared health collector.
+  ops-report/index.ts
+  ops-report-cron/index.ts
+  _shared/opsReport.ts
+  _shared/opsReportSentry.ts
+  _shared/opsReportRunner.ts
+  _shared/systemHealth/collect.ts
+  super-admin-system-health/index.ts
 )
 
 echo "→ deno check (${#targets[@]} launch and cron edge modules)"

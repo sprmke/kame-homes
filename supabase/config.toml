@@ -1315,3 +1315,9 @@ verify_jwt = false
 
 [functions.chat-templates]
 verify_jwt = false
+
+[functions.ops-report]
+verify_jwt = false
+
+[functions.ops-report-cron]
+verify_jwt = false
