@@ -2,7 +2,7 @@
 title: 'Architecture overview'
 status: active
 tags: [architecture]
-updated: 2026-09-21
+updated: 2026-11-05
 ---
 
 # Architecture overview
@@ -379,6 +379,7 @@ Full local stack needs Docker (~2–4 GB). Use `--ui-only` when you only need th
 | Deploy / dual-track           | [`deployment.md`](deployment.md)                         |
 | PWA                           | [`pwa.md`](pwa.md)                                       |
 | Unsaved-changes guard         | [`unsaved-changes.md`](unsaved-changes.md)               |
+| Contextual help               | [`contextual-help.md`](contextual-help.md)               |
 | Plans / entitlements          | [`plans-feature-matrix.md`](plans-feature-matrix.md)     |
 | Feature availability (global) | [`feature-availability.md`](feature-availability.md)     |
 | AI platform (gateway, evals)  | [`ai-platform.md`](ai-platform.md)                       |

@@ -2,7 +2,7 @@
 title: 'Guest Form Management — Project Documentation'
 status: active
 tags: [docs]
-updated: 2026-09-01
+updated: 2026-11-05
 ---
 
 # Guest Form Management — Project Documentation
@@ -32,6 +32,7 @@ This document is the entry point for the **guest-form-management** architecture 
 | PWA — installable app, service worker, Web Push, offline read + outbox, kill-switch       | [`docs/architecture/pwa.md`](architecture/pwa.md)                                       |
 | Skeleton loaders — route registry, chrome invariant, module map                           | [`docs/architecture/skeleton-loaders.md`](architecture/skeleton-loaders.md)             |
 | Unsaved-changes guard — Save & leave / Discard / Keep editing on any dirty form or modal  | [`docs/architecture/unsaved-changes.md`](architecture/unsaved-changes.md)               |
+| Contextual help — InfoHint, How it works panels, intro cards, copy registry               | [`docs/architecture/contextual-help.md`](architecture/contextual-help.md)               |
 
 For booking status/transition/side-effect specifics, start at `.cursor/rules/booking-workflow.mdc` instead — it supersedes this doc for anything already implemented per that spec. See [`docs/README.md`](README.md) for the full documentation index.
 
