@@ -21,7 +21,7 @@ import {
   withEmailShellStyleVars,
 } from './renderEmailHtml.ts';
 import type { GuestFormData, GuestSubmission } from './types.ts';
-import { computeTotalGuestBalanceFromBooking } from './totalGuestBalance.ts';
+import { computeTotalGuestBalanceFromBooking, isAirbnbBookingSource } from './totalGuestBalance.ts';
 import { countStayNights, formatDateForEmail, formatTimeForDisplay } from './utils.ts';
 import { formatReceiptVerdictLabel } from './receiptValidationService.ts';
 
@@ -605,15 +605,25 @@ export function buildPaymentBreakdownSectionFromBooking(
       : '';
 
   const totalBalanceDue = pesoFormat(totalDueAtCheckin);
+  const tableOpen = `<table role="presentation" class="data-table data-table-payment" width="100%" cellspacing="0" cellpadding="0" border="0" style="${paymentBreakdownTableStyle()}">
+  <colgroup><col width="28%"/><col width="22%"/><col width="50%"/></colgroup>`;
+  const totalRow = `<tr class="tbl-row-emphasis fee-addon-row"><td class="tbl-label" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-weight:600;color:#78350f;vertical-align:top;">Total balance</td><td class="tbl-num" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;text-align:right;color:#b45309;font-weight:700;vertical-align:top;">${totalBalanceDue}</td><td class="tbl-note" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-size:12px;color:#92400e;line-height:1.45;vertical-align:top;"><em class="italic-note">Payable on or before check-in. Please pay via online or bank transfer.</em></td></tr>`;
 
-  return `${notifySectionTitle('Payment breakdown', brandColor)}<table role="presentation" class="data-table data-table-payment" width="100%" cellspacing="0" cellpadding="0" border="0" style="${paymentBreakdownTableStyle()}">
-  <colgroup><col width="28%"/><col width="22%"/><col width="50%"/></colgroup>
+  if (isAirbnbBookingSource(booking.booking_source)) {
+    return `${notifySectionTitle('Payment breakdown', brandColor)}${tableOpen}
+  <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Stay</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">Paid</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;">Paid through Airbnb</td></tr>
+  ${parkingPaymentRow}${petPaymentRow}${additionalFeeRow}
+  ${totalRow}
+</table>`;
+  }
+
+  return `${notifySectionTitle('Payment breakdown', brandColor)}${tableOpen}
   <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Booking rate</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.booking_rate as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
   <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Down payment paid</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.down_payment as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
   <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Booking rate balance</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(balance as number)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"></td></tr>
   <tr><td class="tbl-label" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;vertical-align:top;">Security deposit</td><td class="tbl-num" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;text-align:right;color:#333333;vertical-align:top;">${pesoFormat(booking.security_deposit as number | null)}</td><td class="tbl-note" style="padding:12px 16px;background-color:#ffffff;border-bottom:1px solid #e2e8f0;font-size:12px;color:#555555;line-height:1.45;vertical-align:top;"><em class="italic-note">Refundable after check-out</em></td></tr>
   ${parkingPaymentRow}${petPaymentRow}${additionalFeeRow}
-  <tr class="tbl-row-emphasis fee-addon-row"><td class="tbl-label" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-weight:600;color:#78350f;vertical-align:top;">Total balance</td><td class="tbl-num" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;text-align:right;color:#b45309;font-weight:700;vertical-align:top;">${totalBalanceDue}</td><td class="tbl-note" style="padding:12px 16px;background-color:#fffbeb;border-bottom:none;font-size:12px;color:#92400e;line-height:1.45;vertical-align:top;"><em class="italic-note">Payable on or before check-in. Please pay via online or bank transfer.</em></td></tr>
+  ${totalRow}
 </table>`;
 }
 
