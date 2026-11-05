@@ -24,6 +24,8 @@ import {
   sendEmail,
   sendPetEmail,
   sendBookingAcknowledgement,
+  sendBookingCancelledGuest,
+  sendBookingCancelledHost,
   sendReadyForCheckin,
   sendSdRefundFormRequest,
 } from './emailService.ts';
@@ -128,6 +130,21 @@ export type TransitionPayload = {
    */
   document_completion_target?:
     'PENDING_GAF' | 'PENDING_PARKING_REQUEST' | 'PENDING_PET_REQUEST' | string;
+
+  /**
+   * Cancellation metadata for any `→ CANCELLED` transition. Written in the same
+   * update as the status change so a cancellation never exists without a record
+   * of who asked and why.
+   */
+  cancellation?: {
+    initiator: 'guest' | 'host' | 'ota' | 'system';
+    reasonCode: string;
+    reasonNote?: string | null;
+    refundDuePhp?: number | null;
+    refundPercent?: number | null;
+    notifyGuest?: boolean;
+    policyTitle?: string | null;
+  };
 };
 
 /**
@@ -754,6 +771,26 @@ export class WorkflowOrchestrator {
       workflowFields.document_requirement_completions = completionsMap;
     }
 
+    // Cancellation metadata is part of the same write as the status change.
+    if (toStatus === 'CANCELLED') {
+      const cancellation = payload.cancellation;
+      const actorType = actor?.actorType;
+      const defaultInitiator =
+        actorType === 'guest' || actorType === 'public'
+          ? 'guest'
+          : actorType === 'cron' || actorType === 'system'
+            ? 'system'
+            : 'host';
+      workflowFields.cancelled_at = new Date().toISOString();
+      workflowFields.cancelled_by = cancellation?.initiator ?? defaultInitiator;
+      if (cancellation?.reasonCode) {
+        workflowFields.cancellation_reason_code = cancellation.reasonCode;
+      }
+      if (cancellation?.reasonNote !== undefined) {
+        workflowFields.cancellation_reason_note = cancellation.reasonNote ?? null;
+      }
+    }
+
     // 5. Persist workflow fields + update status
     if (flag(devControls, 'saveToDatabase')) {
       if (Object.keys(workflowFields).length > 0) {
@@ -1207,6 +1244,79 @@ export class WorkflowOrchestrator {
       }
     }
 
+    // ── Cancellation emails ──────────────────────────────────────────────────
+    // `payload.cancellation` is set by every cancel path. OTA feed drops pass
+    // `notifyGuest: false`; the channel already told the guest.
+    if (toStatus === 'CANCELLED' && payload.cancellation) {
+      const cancellation = payload.cancellation;
+      const notifyGuest = cancellation.notifyGuest !== false;
+      if (suppressGuestSideEffects) externalSuppressed = true;
+
+      if (notifyGuest && !suppressGuestSideEffects) {
+        try {
+          await sendBookingCancelledGuest(updatedBooking, {
+            refundDuePhp: Number(cancellation.refundDuePhp ?? 0),
+            refundPercent: cancellation.refundPercent ?? null,
+            reasonCode: cancellation.reasonCode,
+            reasonNote: cancellation.reasonNote ?? null,
+            initiator: cancellation.initiator,
+            policyTitle: cancellation.policyTitle ?? null,
+          });
+          emailsSent.push('booking_cancelled_guest');
+        } catch (err) {
+          console.error('[orchestrator] Guest cancellation email failed:', err);
+          emailsFailed.push('booking_cancelled_guest');
+          await captureSideEffectFailure('email:booking_cancelled_guest', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+        }
+      }
+
+      if (cancellation.initiator !== 'host') {
+        try {
+          await sendBookingCancelledHost(updatedBooking, {
+            refundDuePhp: Number(cancellation.refundDuePhp ?? 0),
+            refundPercent: cancellation.refundPercent ?? null,
+            reasonCode: cancellation.reasonCode,
+            reasonNote: cancellation.reasonNote ?? null,
+            initiator: cancellation.initiator,
+            policyTitle: cancellation.policyTitle ?? null,
+          });
+          emailsSent.push('booking_cancelled_host');
+        } catch (err) {
+          console.error('[orchestrator] Host cancellation email failed:', err);
+          emailsFailed.push('booking_cancelled_host');
+          await captureSideEffectFailure('email:booking_cancelled_host', err, {
+            provider: 'resend',
+            bookingStatusTo: toStatus,
+          });
+        }
+      }
+
+      const organizationId = await resolveNotificationOrgId();
+      if (organizationId && cancellation.initiator === 'guest') {
+        try {
+          await createNotification({
+            organizationId,
+            propertyId,
+            type: 'booking_cancelled_by_guest',
+            title: 'Booking cancelled',
+            body: `${updatedBooking.primary_guest_name ?? 'A guest'} cancelled their booking.`,
+            bookingId,
+            metadata: {
+              ...bookingNotificationMetadata(updatedBooking),
+              reason_code: cancellation.reasonCode,
+              refund_due_php: cancellation.refundDuePhp ?? 0,
+            },
+            dedupeKey: `${bookingId}:cancelled`,
+          });
+        } catch (notifyError) {
+          console.error('[orchestrator] Cancellation notification failed (non-fatal):', notifyError);
+        }
+      }
+    }
+
     console.log(`[orchestrator] Transition complete: ${fromStatus} → ${toStatus}`, {
       emailsSent,
       emailsFailed,
@@ -1231,6 +1341,7 @@ export class WorkflowOrchestrator {
         actor,
         aiVerdictOverridden,
         emailsFailed,
+        cancellation: payload.cancellation ?? null,
         resolveOrgId: resolveNotificationOrgId,
       });
       await this.logTransitionPostHog({
@@ -1242,6 +1353,7 @@ export class WorkflowOrchestrator {
         completionsChanged,
         manual,
         actor,
+        cancellation: payload.cancellation ?? null,
       });
 
       // ── Cache invalidation (doc 12, Phase 12.5) — routed through the orchestrator's side
@@ -1298,6 +1410,7 @@ export class WorkflowOrchestrator {
     completionsChanged: boolean;
     manual: boolean;
     actor?: ActorContext;
+    cancellation?: TransitionPayload['cancellation'] | null;
   }): Promise<void> {
     try {
       const statusChanged = args.fromStatus !== args.toStatus;
@@ -1332,6 +1445,9 @@ export class WorkflowOrchestrator {
           properties: {
             ...baseProps,
             previous_status: args.fromStatus,
+            initiator: args.cancellation?.initiator ?? actorType,
+            reason_code: args.cancellation?.reasonCode ?? undefined,
+            refund_percent: args.cancellation?.refundPercent ?? undefined,
           },
         });
         return;
@@ -1359,6 +1475,7 @@ export class WorkflowOrchestrator {
     actor?: ActorContext;
     aiVerdictOverridden?: boolean;
     emailsFailed?: string[];
+    cancellation?: TransitionPayload['cancellation'] | null;
     resolveOrgId: () => Promise<string | null>;
   }): Promise<void> {
     try {
@@ -1399,6 +1516,15 @@ export class WorkflowOrchestrator {
           ...(isDocSubstep && args.completionTarget ? { requirement: args.completionTarget } : {}),
           ...(args.aiVerdictOverridden ? { ai_verdict_overridden: true } : {}),
           ...(args.emailsFailed?.length ? { emails_failed: args.emailsFailed } : {}),
+          ...(args.cancellation
+            ? {
+                cancellation_initiator: args.cancellation.initiator,
+                cancellation_reason_code: args.cancellation.reasonCode,
+                cancellation_reason_note: args.cancellation.reasonNote ?? null,
+                refund_due_php: args.cancellation.refundDuePhp ?? null,
+                refund_percent: args.cancellation.refundPercent ?? null,
+              }
+            : {}),
         },
       });
     } catch (err) {

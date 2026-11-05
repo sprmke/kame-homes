@@ -33,6 +33,7 @@ import {
 import { usePublicPropertyDetail } from '@/features/guest/marketing/properties/hooks/usePublicPropertyDetail';
 import type { ResolvedPropertyDetail } from '@/features/guest/marketing/properties/types/publicProperty';
 import { GuestTripArrivalSection } from '@/features/guest/trip/components/GuestTripArrivalSection';
+import { GuestTripCancellationSection } from '@/features/guest/trip/components/GuestTripCancellationSection';
 import { GuestTripDetailsSection } from '@/features/guest/trip/components/GuestTripDetailsSection';
 import { GuestTripHostRow } from '@/features/guest/trip/components/GuestTripHostRow';
 import { GuestTripNowCard } from '@/features/guest/trip/components/GuestTripNowCard';
@@ -466,6 +467,8 @@ function GuestTripContent({
         <div className="mt-10 space-y-6 lg:mt-0">
           <GuestTripPaymentSection trip={trip} phase={phase} paymentMethods={paymentMethods} />
 
+          <GuestTripCancellationSection trip={trip} />
+
           {!cancelled && (active || phase === 'requested') ? (
             <GuestTripArrivalSection
               trip={trip}
@@ -495,12 +498,7 @@ function GuestTripContent({
             email={trip.contact.email}
           />
 
-          <GuestTripDetailsSection
-            trip={trip}
-            cancellationPolicy={property?.cancellationPolicy ?? null}
-            showPolicy={phase === 'requested' || phase === 'confirmed' || phase === 'arriving'}
-            messageHostPath={messageHostPath}
-          />
+          <GuestTripDetailsSection trip={trip} />
 
           <nav
             aria-label="More"

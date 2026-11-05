@@ -61,6 +61,9 @@ export const PROPERTY_TEMPLATE_PLACEHOLDERS_REFERENCE: readonly string[] = [
   '{{gcash_payment_section}}: payment accounts (+ QR when uploaded; empty when total balance is 0)',
   '{{sd_refund_checklist_section}}: check-out checklist table (SD refund email)',
   '{{sd_refund_details_section}}: SD refund amount + form CTA (SD refund email)',
+  '{{cancellation_intro}}: cancellation intro line (guest cancellation email)',
+  '{{cancellation_detail_section}}: cancellation summary table (policy, reason, refund)',
+  '{{cancellation_request_title}}: request state title (received / approved / declined)',
 ];
 
 export const PROPERTY_TEMPLATE_SAMPLE_VARS: Record<string, string> = {

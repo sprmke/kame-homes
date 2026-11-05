@@ -14,7 +14,9 @@ import {
   Clock3,
   DollarSign,
   FileText,
+  HelpCircle,
   Layers,
+  LayoutGrid,
   ListChecks,
   Mail,
   PencilLine,
@@ -23,8 +25,10 @@ import {
   Quote,
   Receipt,
   Reply,
+  Shield,
   ShieldCheck,
   Star,
+  UserCheck,
   TrendingUp,
   Users,
   Wallet,
@@ -35,6 +39,10 @@ import { AdminMetricCardSkeleton } from '@/features/dashboard/bookings/component
 
 import { AppLoader } from '@/components/branding/AppLoader';
 import { FloatingToolbar } from '@/components/mobile/FloatingPanel';
+import {
+  PlansTabsListSkeleton,
+  SlidingTabsListSkeleton,
+} from '@/components/skeletons/SlidingTabsListSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -585,16 +593,14 @@ export function PlansPageSkeleton() {
       </div>
 
       <div className="min-w-0">
-        <div className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-md p-1 sm:w-auto lg:h-11">
-          {['Billing', 'Plans', 'Compare', 'FAQs'].map((label) => (
-            <span
-              key={label}
-              className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-sm px-2 text-[13px] font-medium sm:w-20 sm:flex-none lg:h-9 lg:w-24"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
+        <PlansTabsListSkeleton
+          items={[
+            { label: 'Billing', icon: Receipt },
+            { label: 'Plans', icon: LayoutGrid },
+            { label: 'Compare', icon: FileText },
+            { label: 'FAQs', icon: HelpCircle },
+          ]}
+        />
 
         <div className="surface-card mt-3 p-4 md:p-5">
           <Skeleton className="mb-3 h-5 w-24 sm:mb-4" />
@@ -1453,16 +1459,13 @@ export function TeamPageSkeleton({
           />
         ))}
       </div>
-      <div className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-lg p-1 sm:w-auto">
-        {['Members', 'Invitations', 'Permissions'].map((label) => (
-          <span
-            key={label}
-            className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 text-[13px] font-medium sm:w-24 sm:flex-none"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+      <SlidingTabsListSkeleton
+        items={[
+          { label: 'Members', icon: Users, labelClassName: 'hidden sm:inline' },
+          { label: 'Invitations', icon: Mail, labelClassName: 'hidden sm:inline' },
+          { label: 'Permissions', icon: Shield, labelClassName: 'hidden sm:inline' },
+        ]}
+      />
       <div className="border-border/50 bg-card rounded-xl border">
         <div className="space-y-0 p-4 pb-2 sm:p-6 sm:pb-2">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -1579,6 +1582,14 @@ export function ReviewsPageSkeleton({
 }: {
   tabs?: string[];
 } = {}) {
+  const tabItems = tabs.map((label) => {
+    if (label === 'From guests') return { label, icon: Quote };
+    if (label === 'To write') return { label, icon: PencilLine };
+    if (label === 'About guests') return { label, icon: UserCheck };
+    if (label === 'By property') return { label, icon: Building2 };
+    return { label };
+  });
+
   return (
     <div
       role="status"
@@ -1599,19 +1610,7 @@ export function ReviewsPageSkeleton({
           />
         ))}
       </div>
-      <div
-        className="bg-muted inline-flex h-9 w-full items-center gap-1 rounded-lg p-1 sm:w-auto"
-        aria-hidden
-      >
-        {tabs.map((label) => (
-          <span
-            key={label}
-            className="text-muted-foreground inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 text-[13px] font-medium sm:w-24 sm:flex-none"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+      <SlidingTabsListSkeleton items={tabItems} />
       <div className="hidden lg:block" aria-hidden>
         <FinanceStaysTableSkeleton />
       </div>

@@ -38,6 +38,7 @@ import { OtherInfoPanel } from '@/features/dashboard/bookings/components/booking
 import { ParkingPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/ParkingPanel';
 import { PetsPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/PetsPanel';
 import { PricingSummaryPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/PricingSummaryPanel';
+import { BookingCancellationCard } from '@/features/dashboard/bookings/components/booking-detail/panels/BookingCancellationCard';
 import { StayDetailsPanel } from '@/features/dashboard/bookings/components/booking-detail/panels/StayDetailsPanel';
 import {
   BookingDetailShell,
@@ -538,6 +539,22 @@ export function BookingDetailPage() {
                       {viewTab === 'overview' && (
                         <div className="space-y-4">
                           <StayDetailsPanel booking={booking} />
+                          <BookingCancellationCard
+                            booking={booking as unknown as Record<string, unknown>}
+                            checkInTime={
+                              String(
+                                (property.settings as Record<string, unknown> | undefined)
+                                  ?.checkInTime ?? '14:00'
+                              ) || '14:00'
+                            }
+                            currentPolicyVersionId={
+                              String(
+                                (property.settings as Record<string, unknown> | undefined)
+                                  ?.cancellationPolicyVersionId ?? ''
+                              ) || null
+                            }
+                            canEdit={canMutateWorkflow}
+                          />
                           <GuestReputationCard
                             payload={guestReputation}
                             isLoading={guestReputationLoading}

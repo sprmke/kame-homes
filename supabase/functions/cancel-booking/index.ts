@@ -1,5 +1,7 @@
 /**
- * cancel-booking — Admin endpoint to cancel a booking.
+ * cancel-booking — host-initiated cancellation with a reason, refund preview and
+ * optional override. Guest cancellations use `guest-cancel-booking` so the
+ * public endpoint cannot borrow admin auth.
  */
 
 import { WorkflowOrchestrator } from '../_shared/workflowOrchestrator.ts';
@@ -19,6 +21,11 @@ import {
 } from '../_shared/propertyScope.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { releaseAppliedVoucherOnCancel } from '../_shared/voucherRedemption.ts';
+import {
+  cancelBooking,
+  isCancellationReasonCode,
+  type CancellationReasonCode,
+} from '../_shared/cancellationService.ts';
 
 serveAuthenticated('cancel-booking', async (req) => {
   requireHttpMethod(req, 'POST');
@@ -46,20 +53,43 @@ serveAuthenticated('cancel-booking', async (req) => {
     return jsonError(req, 'Booking not found', 404);
   }
 
-  if (booking.status === 'CANCELLED') {
-    return jsonError(req, 'Booking is already cancelled');
+  const initiator = body.initiator === 'guest' ? 'guest' : 'host';
+  const reasonCode: CancellationReasonCode = isCancellationReasonCode(body.reasonCode)
+    ? body.reasonCode
+    : 'other';
+  const reasonNote = typeof body.reasonNote === 'string' ? body.reasonNote.trim() : '';
+  const overrideRaw = body.refundOverridePhp;
+  const refundOverridePhp =
+    overrideRaw === null || overrideRaw === undefined || overrideRaw === ''
+      ? null
+      : Number(overrideRaw);
+  const overrideNote = typeof body.overrideNote === 'string' ? body.overrideNote.trim() : '';
+
+  if (refundOverridePhp != null && !Number.isFinite(refundOverridePhp)) {
+    return jsonError(req, 'Refund override must be a valid amount');
+  }
+  if (refundOverridePhp != null) {
+    if (!overrideNote) {
+      return jsonError(req, 'Add a note explaining the refund override');
+    }
+  }
+  if (initiator === 'host' && !reasonNote && reasonCode === 'other') {
+    return jsonError(req, 'Add a short reason for the cancellation');
   }
 
-  console.log(`Cancelling booking: ${bookingId}`);
+  const actor = buildActorContext('dashboard', { propertyAccess }, req);
 
-  const result = await WorkflowOrchestrator.transition(
-    String(bookingId),
-    'CANCELLED',
-    {},
-    devControls,
-    true,
-    buildActorContext('dashboard', { propertyAccess }, req)
-  );
+  const result = await cancelBooking({
+    booking,
+    initiator,
+    reasonCode,
+    reasonNote: reasonNote || null,
+    overrideRefundPhp: refundOverridePhp,
+    overrideNote: overrideNote || null,
+    notifyGuest: body.notifyGuest !== false,
+    actor,
+    devControls: (devControls ?? {}) as Record<string, boolean>,
+  });
 
   try {
     await releaseAppliedVoucherOnCancel(createServiceClient(), {
@@ -83,9 +113,14 @@ serveAuthenticated('cancel-booking', async (req) => {
 
   return jsonResponse(req, {
     success: true,
-    message: 'Booking cancelled successfully. All data preserved; dates are now available.',
+    message: result.alreadyCancelled
+      ? 'Booking was already cancelled.'
+      : 'Booking cancelled. Dates are now available.',
     bookingId,
-    guestName: booking.primary_guest_name,
-    data: result,
+    guestName: result.booking.primary_guest_name,
+    alreadyCancelled: result.alreadyCancelled,
+    outcome: result.outcome,
+    refund: result.refund,
+    data: result.booking,
   });
 });

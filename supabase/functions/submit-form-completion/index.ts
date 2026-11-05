@@ -34,6 +34,7 @@ import { validateGuestFormFormatFields } from '../_shared/guestFormSubmitValidat
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import { syncReviewIdentityKey } from '../_shared/hostGuestReviewService.ts';
 import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
+import { captureSnapshotForBooking } from '../_shared/cancellationService.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -153,6 +154,27 @@ serve(async (req) => {
 
     // Guarded stamp — no-ops if a concurrent submit already completed it.
     await markGuestFormCompleted(bookingId);
+
+    // The OTA stub was created before the guest could see a policy. Capture the
+    // property's current policy now that the guest is filling the form.
+    if (!booking.cancellation_policy_snapshot && propertyId) {
+      try {
+        const snapshot = await captureSnapshotForBooking({
+          propertyId,
+          capturedFrom: 'form_completion',
+          externalSource: String(booking.external_source ?? '') || null,
+        });
+        await DatabaseService.setWorkflowFields(bookingId, {
+          cancellation_policy_snapshot: snapshot,
+          booked_at: booking.booked_at ?? booking.created_at ?? new Date().toISOString(),
+        });
+      } catch (snapshotErr) {
+        console.error(
+          '[submit-form-completion] cancellation snapshot failed (non-fatal):',
+          snapshotErr
+        );
+      }
+    }
 
     const completedEmail =
       (submissionData as GuestSubmission | undefined)?.guest_email ??

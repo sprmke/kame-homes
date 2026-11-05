@@ -4,9 +4,10 @@ import {
 } from '@/features/dashboard/bookings/lib/unitTypes';
 import { slugifyOrgName } from '@/features/dashboard/org/lib/orgSettingsForm';
 import {
+  cancellationPolicyEqual,
   readCancellationPolicyFromSettings,
-  type CancellationPolicySettings,
-} from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+  type CancellationPolicy,
+} from '@/features/dashboard/org/lib/cancellationPolicy';
 import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDisplay';
 import {
   INITIAL_ENABLED_HOUSE_RULES,
@@ -74,7 +75,7 @@ export type PropertyProfileDraft = {
   customAmenities: CustomAmenity[];
   enabledHouseRules: string[];
   customHouseRules: CustomHouseRule[];
-  cancellationPolicy: CancellationPolicySettings;
+  cancellationPolicy: CancellationPolicy | null;
   allowPets: boolean;
   allowParking: boolean;
   allowSurpriseDecor: boolean;
@@ -328,7 +329,7 @@ export function propertyProfileExtendedDirty(
     JSON.stringify(draft.customAmenities) !== JSON.stringify(baseline.customAmenities) ||
     JSON.stringify(draft.enabledHouseRules) !== JSON.stringify(baseline.enabledHouseRules) ||
     JSON.stringify(draft.customHouseRules) !== JSON.stringify(baseline.customHouseRules) ||
-    JSON.stringify(draft.cancellationPolicy) !== JSON.stringify(baseline.cancellationPolicy) ||
+    !cancellationPolicyEqual(draft.cancellationPolicy, baseline.cancellationPolicy) ||
     draft.allowPets !== baseline.allowPets ||
     draft.allowParking !== baseline.allowParking ||
     draft.allowSurpriseDecor !== baseline.allowSurpriseDecor ||

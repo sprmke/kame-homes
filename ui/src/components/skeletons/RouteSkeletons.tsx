@@ -84,6 +84,12 @@ import {
 import { TemplateWorkbenchSkeleton } from '@/components/skeletons/TemplateWorkbenchSkeleton';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  MARKETING_STUDIO_TAB_LABELS,
+  MARKETING_STUDIO_TABS,
+} from '@/features/dashboard/marketing/lib/theme/marketingStudioNav';
+
+import { SlidingTabsListSkeleton } from '@/components/skeletons/SlidingTabsListSkeleton';
 import { cn } from '@/lib/utils';
 
 /** `BookingDateRangeFilter` in the hero overlap (phone). */
@@ -552,19 +558,11 @@ export function PropertyAnalyticsRouteSkeleton() {
 
 function MarketingTabsSkeleton() {
   return (
-    <div
-      className="bg-muted inline-flex h-9 max-w-full items-center gap-1 rounded-lg p-0.5"
-      aria-hidden
-    >
-      {['AI Studio', 'Posts', 'Videos', 'Calendar'].map((label) => (
-        <span
-          key={label}
-          className="text-muted-foreground inline-flex h-full items-center justify-center rounded-md px-2 text-[13px] font-medium sm:w-24 sm:px-3 lg:text-sm"
-        >
-          {label}
-        </span>
-      ))}
-    </div>
+    <SlidingTabsListSkeleton
+      items={MARKETING_STUDIO_TABS.map((tab) => ({
+        label: MARKETING_STUDIO_TAB_LABELS[tab],
+      }))}
+    />
   );
 }
 
@@ -683,11 +681,13 @@ export function PropertyCustomPagesRouteSkeleton() {
       title="Public Pages"
       subtitle="Every guest URL for this listing."
       titleId="public-pages-heading"
+      desktopActions={<Skeleton className="h-9 w-32 rounded-lg" />}
     >
       <div className="flex flex-col gap-8 sm:gap-10">
         {[
           { title: 'Design your pages', count: 3 },
-          { title: 'Other guest pages', count: 2 },
+          { title: 'Share links', count: 3 },
+          { title: 'Booking links', count: 3 },
         ].map((section) => (
           <section key={section.title} className="space-y-3 sm:space-y-4">
             <h2 className="text-foreground text-sm font-semibold tracking-tight">

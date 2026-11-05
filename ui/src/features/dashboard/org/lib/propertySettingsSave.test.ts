@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AppSettingsFormValues } from '@/features/dashboard/bookings/hooks/useAppSettings';
-import { DEFAULT_CANCELLATION_POLICY } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import { buildCancellationPreset } from '@/features/dashboard/org/lib/cancellationPolicy';
 import { DEFAULT_PROPERTY_AUTOMATION_TOGGLES } from '@/features/dashboard/org/lib/propertyEmailAutomation';
 import type { PropertySettingsCompletionResult } from '@/features/dashboard/org/lib/propertySettingsCompletion';
 import type { PropertyProfileDraft } from '@/features/dashboard/org/lib/propertySettingsForm';
@@ -52,7 +52,7 @@ function baseProfile(overrides: Partial<PropertyProfileDraft> = {}): PropertyPro
     customAmenities: [],
     enabledHouseRules: [],
     customHouseRules: [],
-    cancellationPolicy: { ...DEFAULT_CANCELLATION_POLICY },
+    cancellationPolicy: buildCancellationPreset('moderate'),
     allowPets: false,
     allowParking: true,
     allowSurpriseDecor: false,
