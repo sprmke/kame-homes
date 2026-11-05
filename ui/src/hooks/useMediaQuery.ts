@@ -45,3 +45,12 @@ export function useIsBelowXl(): boolean {
 export function usePrefersReducedMotion(): boolean {
   return useMediaQuery('(prefers-reduced-motion: reduce)');
 }
+
+/**
+ * True for mouse / trackpad devices. Used for hover affordances (help hints),
+ * not layout. Touch laptops that also report a fine pointer still open the
+ * hint on click, so both input paths always work.
+ */
+export function useIsHoverFine(): boolean {
+  return useMediaQuery('(hover: hover) and (pointer: fine)');
+}

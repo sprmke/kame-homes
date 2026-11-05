@@ -7,6 +7,8 @@ import {
 } from '@/features/dashboard/bookings/lib/bookingStages';
 import type { BookingStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
 
+import { InfoHint } from '@/components/help/InfoHint';
+
 const STAGE_ICON_STYLES = {
   action_required: {
     iconClassName: 'text-red-600 dark:text-red-400',
@@ -87,6 +89,13 @@ export function BookingsSummaryCards({
           <AdminMetricCard
             key={stage}
             title={stageLabels?.[stage] ?? meta.label}
+            titleAdornment={
+              <InfoHint
+                label={stageLabels?.[stage] ?? meta.label}
+                text={meta.hint}
+                variant="metric"
+              />
+            }
             value={String(counts[stage])}
             icon={meta.icon}
             iconClassName={iconStyles.iconClassName}
