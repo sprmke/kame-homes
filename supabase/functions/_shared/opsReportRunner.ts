@@ -49,10 +49,10 @@ function manilaWeekStart(now: Date): Date {
   );
 }
 
-export function opsReportPeriod(input: {
-  periodKind: OpsPeriodKind;
-  now?: Date;
-}): { periodStart: string; periodEnd: string } {
+export function opsReportPeriod(input: { periodKind: OpsPeriodKind; now?: Date }): {
+  periodStart: string;
+  periodEnd: string;
+} {
   const now = input.now ?? new Date();
   const thisWeek = manilaWeekStart(now);
   if (input.periodKind === 'weekly') {
@@ -76,7 +76,11 @@ function validRecipients(): string[] {
   const seen = new Set<string>();
   const recipients: string[] = [];
   for (const part of raw.split(',')) {
-    const email = part.trim().toLowerCase();
+    // Env files may wrap the whole allowlist in single or double quotes.
+    const email = part
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+      .toLowerCase();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || seen.has(email)) continue;
     seen.add(email);
     recipients.push(email);

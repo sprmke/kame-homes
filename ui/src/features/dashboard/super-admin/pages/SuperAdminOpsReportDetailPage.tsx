@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 
 function agentPrompt(summary: OpsReportSummary): string {
-  const lines = summary.nextActions.map(
+  const lines = (summary.nextActions ?? []).map(
     (action) =>
       `- [${action.priority.toUpperCase()}] ${action.findingIds.join(', ')}: ${action.title}`
   );
@@ -196,7 +196,7 @@ export function SuperAdminOpsReportDetailPage() {
             {OPS_SEVERITIES.slice(0, 4).map((severity) => (
               <div key={severity} className="surface-card px-3 py-3">
                 <p className="text-muted-foreground text-xs uppercase tracking-wide">{severity}</p>
-                <p className="text-stat-value">{report.counts[severity] ?? 0}</p>
+                <p className="text-stat-value">{report.counts?.[severity] ?? 0}</p>
               </div>
             ))}
           </div>
@@ -204,7 +204,7 @@ export function SuperAdminOpsReportDetailPage() {
           <section className="space-y-2">
             <h2 className="text-section-title">Sources</h2>
             <ul className="space-y-1.5">
-              {report.summary.sources.map((source) => (
+              {(report.summary.sources ?? []).map((source) => (
                 <li
                   key={source.id}
                   className="surface-card flex flex-wrap items-center gap-2 px-3 py-2 text-sm"
@@ -227,31 +227,34 @@ export function SuperAdminOpsReportDetailPage() {
             />
           ))}
 
-          {report.summary.changes.new.length > 0 || report.summary.changes.resolved.length > 0 ? (
+          {(report.summary.changes?.new ?? []).length > 0 ||
+          (report.summary.changes?.resolved ?? []).length > 0 ? (
             <section className="space-y-2">
               <h2 className="text-section-title">Changes</h2>
               <div className="surface-card space-y-1 px-3 py-3 text-sm">
-                {report.summary.changes.new.length > 0 ? (
+                {(report.summary.changes?.new ?? []).length > 0 ? (
                   <p>
                     <span className="font-medium">New:</span>{' '}
-                    {report.summary.changes.new.map((finding) => finding.id).join(', ')}
+                    {(report.summary.changes?.new ?? []).map((finding) => finding.id).join(', ')}
                   </p>
                 ) : null}
-                {report.summary.changes.resolved.length > 0 ? (
+                {(report.summary.changes?.resolved ?? []).length > 0 ? (
                   <p>
                     <span className="font-medium">Resolved:</span>{' '}
-                    {report.summary.changes.resolved.map((finding) => finding.id).join(', ')}
+                    {(report.summary.changes?.resolved ?? [])
+                      .map((finding) => finding.id)
+                      .join(', ')}
                   </p>
                 ) : null}
               </div>
             </section>
           ) : null}
 
-          {report.summary.metrics.length > 0 ? (
+          {(report.summary.metrics ?? []).length > 0 ? (
             <section className="space-y-2">
               <h2 className="text-section-title">Metrics</h2>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {report.summary.metrics.map((group) => (
+                {(report.summary.metrics ?? []).map((group) => (
                   <div key={group.label} className="surface-card px-3 py-3">
                     <p className="text-sm font-medium">{group.label}</p>
                     <dl className="mt-2 space-y-1 text-sm">

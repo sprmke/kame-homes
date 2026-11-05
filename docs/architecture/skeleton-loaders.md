@@ -27,6 +27,8 @@ Loading UI must mirror the **layout that appears after data loads**, on phone an
 
 Super-admin lazy routes use `superAdminRoute(page, skeleton)` in `ui/src/features/dashboard/super-admin/routes/index.tsx`.
 
+Weekly ops reports use two route-specific skeletons: `SuperAdminOpsReportsRouteSkeleton` (real title + **Generate now**, five report rows) and `SuperAdminOpsReportDetailRouteSkeleton` (real title + back link, four fixed severity labels, finding cards).
+
 Nested layouts with lazy children keep their own `Suspense` around `<Outlet />` so switching sections does not unmount the layout (Help & Support: `HelpSupportSectionSkeleton`).
 
 ## Module map (eager skeletons)
