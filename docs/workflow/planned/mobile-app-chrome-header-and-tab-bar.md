@@ -107,16 +107,25 @@ Files: `ui/src/features/guest/marketing/shared/components/MarketingNav.tsx`, `Ma
 - [ ] Confirm keyboard behavior with `visualViewport` on iOS and Android (B8).
 - [ ] Inventory every bottom-offset consumer: `bottomTabBarOffsetClassName`, `aboveBottomTabBarOverlayClassName`, `MarketingEditorMobileToolbar`, `VideoMobileActionBar`, `FloatingBottomOverlay`, `OfflineBanner`, toasts, `GuestForm`, `SdFormPage`, `ParkingRegistrationForm`, `InboxPage`, `TicketsWorkspacePage`, `NotificationsActivityView`.
 
-### Phase 1: Bottom bar fix (ships on its own, fixes the iPhone bleed)
+### Phase 1: Bottom bar fix — **done** (`9910a95fc`)
 
-- [ ] Add `--mobile-bottom-bar-h` token in `index.css` (`max-lg` only) and a `.mobile-bottom-bar` surface class.
-- [ ] Rebuild `BottomTabBar` as docked (C1): full width, safe-area fill, hairline, 10 to 11px labels, remove `dense` 9px mode.
-- [ ] Rebuild `ContextualActionBar` on the same surface (B6).
-- [ ] Replace hard-coded offsets in all consumers from the Phase 0 inventory with the token (B5).
-- [ ] Hide the bottom bar while the keyboard is open (B8) via `visualViewport` resize.
-- [ ] Re-tap active tab scrolls to top.
-- [ ] Dark mode, reduced motion, and `BottomBarSlotProvider` enter/exit animation check.
-- [ ] Remove `.mobile-floating-dock` once no consumer uses it.
+- [x] `--safe-*` and `--mobile-bottom-bar-h` tokens in `index.css` plus a `.mobile-bottom-bar` surface class.
+- [x] `BottomTabBar` rebuilt as docked (C1): full width, opaque, safe-area fill, hairline, labels never below 10px.
+- [x] `ContextualActionBar` on the same surface (B6).
+- [x] All 17 offset consumers derive spacing from the token instead of hard-coded `7.75rem` / `5.25rem` (B5).
+- [x] Bar hides while the on-screen keyboard is open (B8), via `useVirtualKeyboardOpen`.
+- [x] `.mobile-floating-dock` removed; the three editor toolbars that stack **on** the bar keep a floating pill under the clearer name `mobileFloatingToolbarClassName`.
+- [ ] Re-tap active tab scrolls to top. **Not done** — moved to Phase 2 with the tab-set change.
+- [ ] Dark mode and reduced motion spot-check on a real device. **Not done** — headless only so far.
+
+### Phase 1b: Public detail back control — **done** (`0e15fc997`, covers B9 / C8)
+
+- [x] `useMobileBack(fallback)` — pops history when there is one, else goes to the parent list.
+- [x] `getPublicBackTarget(pathname)` + unit tests: root destinations get no back control, every other public route gets a labelled parent.
+- [x] `MarketingNav` shows the back control in place of the wordmark on phone for non-root routes, so PDP, parking detail and the guest flows all gain an exit.
+- [x] Gates in `mobileBottomChrome.spec.ts`: docked/opaque/untruncated bar, and a deep-linked detail screen that still lands on the parent list.
+- [ ] Per-page back affordance for dashboard detail routes and wizards. **Not done** — needs the Phase 3 header.
+- [ ] Edge-swipe back in standalone PWA. **Not done.**
 
 ### Phase 2: Admin tab set
 
