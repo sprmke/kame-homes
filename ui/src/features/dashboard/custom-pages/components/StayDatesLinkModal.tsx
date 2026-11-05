@@ -78,30 +78,23 @@ export function StayDatesLinkModal({ open, onOpenChange, propertySlug, pageId }:
 
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
-      <ResponsiveModalContent
-        sheetLayout="split"
-        className="flex max-h-[min(92dvh,42rem)] w-full max-w-[min(calc(100vw-1.5rem),32rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
-      >
-        <ResponsiveModalHeader className="border-separator shrink-0 space-y-1 border-b px-4 pb-3 pt-1 sm:px-5">
-          <ResponsiveModalTitle className="text-left">{copy.title}</ResponsiveModalTitle>
-          <ResponsiveModalDescription className="text-muted-foreground text-xs">
-            {copy.description}
-          </ResponsiveModalDescription>
+      <ResponsiveModalContent>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle>{copy.title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription>{copy.description}</ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 sm:px-4">
-          <Calendar
-            mode="range"
-            selected={range}
-            onSelect={setRange}
-            numberOfMonths={1}
-            weekStartsOn={0}
-            disabled={{ before: startOfToday() }}
-            className="admin-date-range-calendar mx-auto"
-          />
-        </div>
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={setRange}
+          numberOfMonths={1}
+          weekStartsOn={0}
+          disabled={{ before: startOfToday() }}
+          className="stay-dates-calendar"
+        />
 
-        <ResponsiveModalFooter className="border-separator flex-row justify-end gap-2 border-t px-4 py-3 sm:px-5">
+        <ResponsiveModalFooter>
           {pageId === 'calendar' ? (
             <Button
               type="button"

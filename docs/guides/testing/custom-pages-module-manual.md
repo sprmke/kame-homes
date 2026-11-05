@@ -120,13 +120,13 @@ Expect `count = 1` regardless of how many times you called the endpoint.
 
 ### Copy links
 
-1. Tap **Copy links** (icon in the phone hero, button on desktop). **Pass:** Calendar, Form, and Find parking appear; no booking-only links appear.
+1. Tap **Copy links** (icon in the phone hero, primary button on desktop). **Pass:** Showcase, Property, Calendar, Form, Find parking, Messages, SD Refund, and Guest Review appear (Stay Guide is excluded). The picker links open their modal instead of copying.
 2. Copy **Find parking**. **Pass:** the clipboard holds `/parkings`, and pasting it in a new tab opens the marketplace with no missing-booking error.
 3. On the **Calendar** card choose **Copy link**, pick a check-in and check-out, then **Copy link**. **Pass:** the pasted link includes both dates, and opening it shows the calendar with that range selected.
 4. Choose **Without dates** on the calendar picker. **Pass:** the pasted link has no date params and the calendar opens empty.
-5. On **Messages** choose **Copy link**, pick a range, copy. **Pass:** the pasted link includes both dates and opening it keeps the chat dates.
-6. On **SD Refund** choose **Copy link**. **Pass:** the sheet lists stays from check-out onward with status and check-in date; copy one and open it — the refund form loads for that stay. With no eligible stay, the empty state shows.
-7. Repeat for **Guest Review**. **Pass:** same picker and per-stay copy.
+5. On **Messages** choose **Copy link**, pick a range, copy. **Pass:** the pasted link includes both dates and opening it keeps the chat dates. Choosing Messages from the header **Copy links** menu opens the same picker.
+6. On **SD Refund** choose **Copy link**. **Pass:** the sheet lists only stays in Ready for Check-out or Pending SD Refund, with status and stay dates; copy one and open it — the refund form loads for that stay. Completed stays are hidden. With no eligible stay, the empty state shows.
+7. Repeat for **Guest Review**. **Pass:** same picker, same eligible statuses, and per-stay copy.
 
 ---
 

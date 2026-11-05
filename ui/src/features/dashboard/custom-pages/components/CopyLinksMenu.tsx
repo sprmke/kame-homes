@@ -1,8 +1,6 @@
-import { useState, type ComponentType } from 'react';
+import { Fragment, useState, type ComponentType } from 'react';
 
-import { Copy } from 'lucide-react';
-
-import { copyGuestLink } from '@/features/dashboard/custom-pages/lib/copyGuestLink';
+import { ChevronDown, Copy } from 'lucide-react';
 
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
@@ -11,14 +9,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
 export type CopyLinkMenuItem = {
   key: string;
   label: string;
-  href: string;
   Icon: ComponentType<{ className?: string }>;
+  onSelect: () => void;
+  /** Render a divider above this item (group boundary). */
+  separatorBefore?: boolean;
 };
 
 type Props = {
@@ -29,15 +30,11 @@ type Props = {
 
 const MENU_LABEL = 'Copy links';
 
-/** Quick-copy menu for guest links that work without a booking. */
+/** Copy menu for every guest-shareable link on the page. Picker actions run from here too. */
 export function CopyLinksMenu({ items, variant }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   if (items.length === 0) return null;
-
-  const copy = (item: CopyLinkMenuItem) => {
-    void copyGuestLink(item.href, item.label);
-  };
 
   if (variant === 'hero') {
     return (
@@ -55,15 +52,19 @@ export function CopyLinksMenu({ items, variant }: Props) {
             {items.map((item) => {
               const Icon = item.Icon;
               return (
-                <MobileChoiceItem
-                  key={item.key}
-                  label={item.label}
-                  icon={<Icon className="size-5" aria-hidden />}
-                  onSelect={() => {
-                    copy(item);
-                    setSheetOpen(false);
-                  }}
-                />
+                <Fragment key={item.key}>
+                  {item.separatorBefore ? (
+                    <div className="border-border/60 mx-4 border-t" aria-hidden />
+                  ) : null}
+                  <MobileChoiceItem
+                    label={item.label}
+                    icon={<Icon className="size-5" aria-hidden />}
+                    onSelect={() => {
+                      item.onSelect();
+                      setSheetOpen(false);
+                    }}
+                  />
+                </Fragment>
               );
             })}
           </div>
@@ -75,23 +76,23 @@ export function CopyLinksMenu({ items, variant }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" className="h-9 gap-2">
+        <Button type="button" variant="default" className="h-9 gap-2">
           <Copy className="size-4" aria-hidden />
           {MENU_LABEL}
+          <ChevronDown className="size-3.5 opacity-80" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-56">
         {items.map((item) => {
           const Icon = item.Icon;
           return (
-            <DropdownMenuItem
-              key={item.key}
-              onSelect={() => copy(item)}
-              className="min-h-[44px] gap-2"
-            >
-              <Icon className="size-4 shrink-0" aria-hidden />
-              {item.label}
-            </DropdownMenuItem>
+            <Fragment key={item.key}>
+              {item.separatorBefore ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuItem onSelect={() => item.onSelect()} className="min-h-[44px] gap-2">
+                <Icon className="size-4 shrink-0" aria-hidden />
+                {item.label}
+              </DropdownMenuItem>
+            </Fragment>
           );
         })}
       </DropdownMenuContent>
