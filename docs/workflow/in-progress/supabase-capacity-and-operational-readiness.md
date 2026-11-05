@@ -31,14 +31,18 @@ Implemented in `chore/supabase-capacity-readiness` and deployed to production on
   96% -> 86.5%, available memory 194 MB -> 488 MB, swap used 32% -> 15%, no OOM.
   Advisor performance warnings 33 -> 0; `auth_rls_initplan` 31 -> 0 and
   `duplicate_index` 2 -> 0.
+- Follow-up deploy (2026-11-05, PR #285): search_path pinned on 24 functions, 10 RLS
+  helpers moved to a non-exposed `private` schema, `pg_trgm` moved to `extensions`,
+  and leaked-password protection enabled. Security warnings 36 -> **0**; only 111
+  informational `rls_enabled_no_policy` findings remain.
 
 Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
 Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-capacity.md).
 
 Still required: continuous Prometheus collection plus paged alerts, large-tenant seed,
 load-test execution, public Vercel cache, dashboard/finance SQL aggregates, booking
-transition RPC, and the product retention decisions. The three code-level security
-WARNs are handled by the follow-up migrations pending deploy.
+transition RPC, and the product retention decisions. The code-level security WARNs are
+cleared as of 2026-11-05.
 
 ## Goal
 

@@ -82,24 +82,25 @@ connection pressure.
 
 ### Advisor delta after deploy
 
-| Advisor category         |              Before (2026-10-27) |               After (2026-11-04) |
-| ------------------------ | -------------------------------: | -------------------------------: |
-| Security findings        | 142 (0 error, 36 warn, 106 info) | 147 (0 error, 36 warn, 111 info) |
-| Performance findings     |          282 (33 warn, 249 info) |       **217 (0 warn, 217 info)** |
-| `auth_rls_initplan`      |                               31 |                            **0** |
-| `duplicate_index`        |                                2 |                            **0** |
-| `unused_index`           |                              175 |                              126 |
-| `unindexed_foreign_keys` |                               73 |                               90 |
-| `rls_enabled_no_policy`  |                              106 |                              111 |
+| Advisor category         |              Before (2026-10-27) |         After (2026-11-04) | After follow-up (2026-11-05) |
+| ------------------------ | -------------------------------: | -------------------------: | ---------------------------: |
+| Security findings        | 142 (0 error, 36 warn, 106 info) |    147 (36 warn, 111 info) |    **111 (0 error, 0 warn)** |
+| Performance findings     |          282 (33 warn, 249 info) | **217 (0 warn, 217 info)** |   **217 (0 warn, 217 info)** |
+| `auth_rls_initplan`      |                               31 |                      **0** |                        **0** |
+| `duplicate_index`        |                                2 |                      **0** |                        **0** |
+| `unused_index`           |                              175 |                        126 |                          126 |
+| `unindexed_foreign_keys` |                               73 |                         90 |                           90 |
+| `rls_enabled_no_policy`  |                              106 |                        111 |                          111 |
 
-Performance warnings are now zero. The remaining security WARNs were
+The follow-up deploy cleared the last four security WARNs:
 `function_search_path_mutable` (24), `authenticated_security_definer_function_executable`
-(10), `auth_leaked_password_protection` (1), and `extension_in_public` (1). The
-leaked-password toggle is enabled. The other three are addressed by
-`20261318180000_pin_function_search_paths.sql`,
-`20261318181000_move_rls_helpers_to_private.sql`, and
-`20261318182000_move_pg_trgm_to_extensions.sql`; their advisor delta will be recorded
-after the follow-up deploy.
+(10), `auth_leaked_password_protection` (1), and `extension_in_public` (1). Security
+warnings are now **zero**; only the 111 informational `rls_enabled_no_policy` findings
+remain, which are intentional deny-by-default tables.
+
+The follow-up deploy (2026-11-05) also passed 438/438 migration parity, health returned
+`200`, helper RPCs return `404 PGRST202`, and `search_public_properties` still returns
+`200` with a live listing.
 
 ## 3. After / expected effect
 
