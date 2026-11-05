@@ -15,7 +15,7 @@ export function ThemedToaster() {
       expand
       closeButton
       duration={7000}
-      visibleToasts={5}
+      visibleToasts={3}
       gap={8}
       offset={16}
       style={{ ['--width' as string]: 'min(420px, calc(100vw - 32px))' }}

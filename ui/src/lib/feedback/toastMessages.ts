@@ -200,6 +200,21 @@ function sanitizeToastOptions(data: ExternalToast | undefined): ExternalToast | 
   return next;
 }
 
+/**
+ * Stable Sonner id for repeated error/warning copy, so a retry replaces the
+ * toast that is already on screen instead of stacking identical cards.
+ * A caller-provided `id` always wins.
+ */
+export function withDedupeToastId(
+  level: 'error' | 'warning',
+  title: ToastMessage,
+  data: ExternalToast | undefined
+): ExternalToast | undefined {
+  if (typeof title !== 'string' || data?.id !== undefined) return data;
+  const description = typeof data?.description === 'string' ? data.description : '';
+  return { ...data, id: `${level}:${description}:${title}` };
+}
+
 let friendlyToastsInstalled = false;
 
 /**
@@ -213,14 +228,15 @@ export function installFriendlyToasts(): void {
   const originalError = toast.error.bind(toast);
   const originalWarning = toast.warning.bind(toast);
 
-  toast.error = ((message: ToastMessage, data?: ExternalToast) =>
-    originalError(sanitizeToastTitle(message), sanitizeToastOptions(data))) as typeof toast.error;
+  toast.error = ((message: ToastMessage, data?: ExternalToast) => {
+    const title = sanitizeToastTitle(message);
+    return originalError(title, withDedupeToastId('error', title, sanitizeToastOptions(data)));
+  }) as typeof toast.error;
 
-  toast.warning = ((message: ToastMessage, data?: ExternalToast) =>
-    originalWarning(
-      sanitizeToastTitle(message),
-      sanitizeToastOptions(data)
-    )) as typeof toast.warning;
+  toast.warning = ((message: ToastMessage, data?: ExternalToast) => {
+    const title = sanitizeToastTitle(message);
+    return originalWarning(title, withDedupeToastId('warning', title, sanitizeToastOptions(data)));
+  }) as typeof toast.warning;
 }
 
 export function telegramScheduleSyncError(
