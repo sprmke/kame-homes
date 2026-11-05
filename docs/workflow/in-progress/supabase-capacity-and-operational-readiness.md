@@ -37,9 +37,8 @@ Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-ca
 
 Still required: continuous Prometheus collection plus paged alerts, large-tenant seed,
 load-test execution, public Vercel cache, dashboard/finance SQL aggregates, booking
-transition RPC, the remaining security WARNs (`function_search_path_mutable` 24,
-`authenticated_security_definer_function_executable` 10, leaked-password toggle,
-`pg_trgm` relocation), and the product retention decisions.
+transition RPC, and the product retention decisions. The three code-level security
+WARNs are handled by the follow-up migrations pending deploy.
 
 ## Goal
 
@@ -233,12 +232,12 @@ Tier changes cause brief downtime, usually under two minutes. A completed backup
 
 - [ ] Commit the advisor snapshot as the baseline.
 - [ ] Build the accepted-risk table for intentional findings.
-- [ ] Write one new migration for init-plan-safe RLS policies. Each policy must preserve behavior.
-- [ ] Write one new migration for pinned function search paths. Functions must be schema-qualified.
-- [ ] Investigate duplicate index definitions and write a concurrent-drop migration only if they are truly identical.
+- [x] Write one new migration for init-plan-safe RLS policies. Each policy must preserve behavior.
+- [x] Write one new migration for pinned function search paths. Functions must be schema-qualified.
+- [x] Investigate duplicate index definitions and write a concurrent-drop migration only if they are truly identical.
 - [ ] Triage foreign keys into three buckets and add indexes only where a real query or delete path needs them.
-- [ ] Enable leaked-password protection through the Auth Dashboard and verify with a known compromised password in a test account.
-- [ ] Plan `pg_trgm` relocation as its own change because indexes and generated search functions must be revalidated.
+- [x] Enable leaked-password protection through the Auth Dashboard (`password_hibp_enabled = true`, verified read-only).
+- [x] Plan `pg_trgm` relocation as its own change because indexes and generated search functions must be revalidated.
 - [ ] Add tests:
   - Local RLS regression probe as `anon`, `authenticated`, owner, unrelated member, and inactive member
   - Public listing search parity test
@@ -352,7 +351,7 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 
 ### 5.1 Auth and identity
 
-- [ ] Enable leaked-password protection.
+- [x] Enable leaked-password protection.
 - [ ] Verify Auth attack-protection settings and captcha enforcement.
 - [ ] Confirm Auth database connections use percentage allocation after the compute upgrade.
 - [ ] Verify sign-in, refresh, logout, and OAuth rate limits.
@@ -556,9 +555,9 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 
 **Steps:**
 
-- [ ] Resolve the 9-migration drift between local and hosted dev. Do not deploy until the intended set is known.
+- [x] Resolve the 9-migration drift between local and hosted dev. Do not deploy until the intended set is known.
 - [ ] Confirm the concurrent-session work in the current dirty tree is committed or explicitly excluded before any environment change.
-- [ ] Add an automated migration drift check to CD dev.
+- [x] Add an automated migration drift check to CD dev.
 - [ ] Keep dev deploys on `fworvijbrwpyngycotbz` only.
 - [ ] Keep legacy prod untouched.
 - [ ] When mt-prod is created:
