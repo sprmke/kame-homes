@@ -15,6 +15,8 @@ Plans with **implementation complete** and only manual QA left live in [`../for-
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
 
+**Moved in 2026-11-06:** [`settings-cleanup-and-clarity.md`](./settings-cleanup-and-clarity.md) — started. Retires the legacy Parking owners BCC field, the hidden `emailParkingBroadcast` toggle, the dead Parking Request template and orphan pay-parking code; fixes complimentary own parking being honored with Allow Parking off; rewrites Email automations copy and moves the toggles inline; merges parking Automations and removes the parking Payment section (guests pay through PayMongo). Expand now, contract (schema drop) after one release soak.
+
 **Moved in 2026-11-05:** [`cancellation-policy-and-process.md`](./cancellation-policy-and-process.md) — started. Tiered policy engine + custom builder, immutable booking-time snapshot, Manila refund calculator, guest cancel/request from the trip page, host cancel sheet with reasons and overrides, refund tracking, cancellation emails, activity log, edge-case matrix. Phases 1–7 in the doc.
 
 **Moved in 2026-11-05:** [`support-content-and-faq-sync.md`](./support-content-and-faq-sync.md) — started. Makes `docs/guides/` the enforced source behind the Help Center Guides tab, `help_center_faqs`, public `/support`, and guest help. Phases: coverage gate, content sweep, provenance-safe sync, FAQ search/browse, public endpoint, support-content rule.
