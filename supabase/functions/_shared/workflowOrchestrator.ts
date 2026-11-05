@@ -83,7 +83,6 @@ export type TransitionPayload = {
 
   // Parking (PENDING_PARKING_REQUEST → *)
   parking_rate_paid?: number | null;
-  parking_owner_email?: string | null;
   /** Owner or agent display name (who parking was obtained from). */
   parking_owner?: string | null;
   parking_endorsement_url?: string | null;
@@ -156,7 +155,6 @@ export type DevControlFlags = {
   /** Filled GAF (+ pet request PDF if pets) generate + optional Storage upload on PENDING_REVIEW → initial docs. */
   generatePdf?: boolean;
   sendGafRequestEmail?: boolean;
-  sendParkingBroadcastEmail?: boolean;
   sendPetRequestEmail?: boolean;
   sendBookingAcknowledgementEmail?: boolean;
   sendReadyForCheckinEmail?: boolean;
@@ -667,8 +665,6 @@ export class WorkflowOrchestrator {
       }
       if (payload.parking_rate_paid != null)
         workflowFields.parking_rate_paid = payload.parking_rate_paid;
-      if (payload.parking_owner_email)
-        workflowFields.parking_owner_email = payload.parking_owner_email;
       if (payload.parking_owner !== undefined) {
         const po = typeof payload.parking_owner === 'string' ? payload.parking_owner.trim() : '';
         workflowFields.parking_owner = po || null;
