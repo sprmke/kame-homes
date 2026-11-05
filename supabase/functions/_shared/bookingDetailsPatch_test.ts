@@ -168,6 +168,23 @@ Deno.test('sanitizeBookingPatchPayload rejects invalid dates and non-finite mone
   assertEquals(sanitizeBookingPatchPayload({ balance: null }).balance, null);
 });
 
+Deno.test('sanitizeBookingPatchPayload allows a blank pet vaccination date', () => {
+  assertEquals(
+    sanitizeBookingPatchPayload({ pet_vaccination_date: null }).pet_vaccination_date,
+    null
+  );
+  assertEquals(sanitizeBookingPatchPayload({ pet_vaccination_date: '' }).pet_vaccination_date, null);
+  assertEquals(
+    sanitizeBookingPatchPayload({ pet_vaccination_date: '2026-01-10' }).pet_vaccination_date,
+    '2026-01-10'
+  );
+  assertThrows(
+    () => sanitizeBookingPatchPayload({ pet_vaccination_date: 'not-a-date' }),
+    Error,
+    'valid date'
+  );
+});
+
 Deno.test('sanitizeBookingPatchPayload validates settlement line items', () => {
   assertThrows(
     () =>

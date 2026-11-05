@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { friendlyToastError, isTechnicalToastMessage, sanitizeToastMessage } from './toastMessages';
+import {
+  friendlyToastError,
+  isTechnicalToastMessage,
+  sanitizeToastMessage,
+  withDedupeToastId,
+} from './toastMessages';
 
 const GEMINI_QUOTA_DUMP = `You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-3.1-flash-image * Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-3.1-flash-image Please retry in 24.474649167s.`;
 
@@ -56,6 +61,31 @@ describe('isTechnicalToastMessage', () => {
     expect(isTechnicalToastMessage('Image generation failed (502)')).toBe(true);
     expect(isTechnicalToastMessage('gemini-3.1-flash-image quota')).toBe(true);
     expect(isTechnicalToastMessage('Could not save settings')).toBe(false);
+  });
+});
+
+describe('withDedupeToastId', () => {
+  it('reuses one id for the same level, title, and description', () => {
+    const first = withDedupeToastId('error', 'Could not save', { description: 'Try again' });
+    const second = withDedupeToastId('error', 'Could not save', { description: 'Try again' });
+    expect(first?.id).toBe(second?.id);
+  });
+
+  it('keeps distinct messages and levels apart', () => {
+    expect(withDedupeToastId('error', 'A', undefined)?.id).not.toBe(
+      withDedupeToastId('error', 'B', undefined)?.id
+    );
+    expect(withDedupeToastId('error', 'A', undefined)?.id).not.toBe(
+      withDedupeToastId('warning', 'A', undefined)?.id
+    );
+    expect(withDedupeToastId('error', 'A', { description: 'x' })?.id).not.toBe(
+      withDedupeToastId('error', 'A', { description: 'y' })?.id
+    );
+  });
+
+  it('respects a caller-provided id and leaves non-string titles alone', () => {
+    expect(withDedupeToastId('error', 'A', { id: 'custom' })?.id).toBe('custom');
+    expect(withDedupeToastId('error', null, undefined)).toBeUndefined();
   });
 });
 
