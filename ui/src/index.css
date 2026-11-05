@@ -182,6 +182,32 @@
     @apply scroll-smooth;
     /* Fixed public nav (MarketingNav). Sticky toolbars + morph search read this. */
     --public-nav-h: 3.5rem;
+
+    /*
+     * Safe-area insets, as tokens.
+     *
+     * Chromium (and therefore Playwright) cannot emulate `env(safe-area-inset-*)`,
+     * so a device notch / home indicator is invisible to automated checks. Reading
+     * the insets through variables keeps one source of truth AND lets the mobile
+     * chrome capture spec override them to real iPhone values (47px / 34px) to
+     * prove the bars still paint edge to edge.
+     *
+     * Always use these instead of calling `env()` directly in chrome components.
+     */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+
+    /*
+     * Docked bottom bar (BottomTabBar / ContextualActionBar) on phone + tablet.
+     * `--mobile-bottom-bar-h` is the full occupied height including the home
+     * indicator strip; every scrollport clears it via `bottomTabBarOffsetClassName()`
+     * and every bottom overlay stacks on it via `aboveBottomTabBarOverlayClassName()`.
+     * Nothing hard-codes a height: change the row here and the whole app follows.
+     */
+    --mobile-bottom-bar-row-h: 3.5rem;
+    --mobile-bottom-bar-h: calc(var(--mobile-bottom-bar-row-h) + var(--safe-bottom));
   }
 
   @media (min-width: 768px) {
@@ -1344,9 +1370,42 @@
       0 20px 48px -12px hsl(var(--shadow-color) / 0.08);
   }
 
-  /** Floating bottom dock (tabs + contextual action bar) — soft lift + top sheen. */
-  .mobile-floating-dock {
-    background-color: hsl(var(--background) / 0.92);
+  /**
+   * Docked bottom bar (tabs + contextual action bar) — phone/tablet.
+   *
+   * Deliberately **opaque**. The previous floating pill was inset from the screen
+   * edges and translucent, so page content scrolled visibly through the side
+   * gutters and through the home-indicator strip on iPhone. Edge-to-edge and
+   * opaque is the one combination where nothing can show through: the background
+   * runs to the physical bottom of the screen via `--safe-bottom`.
+   */
+  .mobile-bottom-bar {
+    background-color: hsl(var(--background));
+    border-top: 1px solid hsl(var(--border) / 0.7);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+    box-shadow: 0 -8px 24px -16px hsl(var(--shadow-color) / 0.3);
+  }
+
+  .dark .mobile-bottom-bar {
+    border-top-color: hsl(var(--border));
+    box-shadow: 0 -8px 24px -16px hsl(var(--shadow-color) / 0.55);
+  }
+
+  /** Single tab/action row — height is the token so clearance math stays in sync. */
+  .mobile-bottom-bar-row {
+    height: var(--mobile-bottom-bar-row-h);
+  }
+
+  /**
+   * Secondary floating toolbar that stacks ON TOP of the docked bottom bar
+   * (Marketing Studio editor, video clip actions). Still a floating pill on
+   * purpose: it is contextual and overlays the canvas, unlike the app-level
+   * bottom bar, which has to be opaque and edge to edge.
+   */
+  .mobile-floating-toolbar {
+    background-color: hsl(var(--background) / 0.95);
     box-shadow:
       0 1px 0 0 hsl(0 0% 100% / 0.65) inset,
       0 1px 2px 0 hsl(var(--shadow-color) / 0.05),
@@ -1354,7 +1413,7 @@
       0 24px 56px -16px hsl(var(--shadow-color) / 0.12);
   }
 
-  .dark .mobile-floating-dock {
+  .dark .mobile-floating-toolbar {
     box-shadow:
       0 1px 0 0 hsl(0 0% 100% / 0.06) inset,
       0 1px 2px 0 hsl(var(--shadow-color) / 0.2),
