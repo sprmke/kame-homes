@@ -62,6 +62,10 @@ export type FeedSyncResult = {
   blocksCreated: number;
   blocksUpdated: number;
   blocksRemoved: number;
+  bookingsCreated: number;
+  bookingsUpdated: number;
+  bookingsCancelled: number;
+  bookingsLinked: number;
   conflicts: number;
   error?: string;
 };
@@ -124,9 +128,18 @@ export function addCalendarFeed(
 
 export function updateCalendarFeed(
   propertyId: string,
-  input: { feedId: string; label?: string; icsUrl?: string; isActive?: boolean }
+  input: {
+    feedId: string;
+    label?: string;
+    icsUrl?: string;
+    isActive?: boolean;
+    createBookings?: boolean;
+  }
 ) {
-  return patch<{ feed: unknown }>(propertyId, { action: 'updateFeed', ...input });
+  return patch<{ feed: unknown; sync?: FeedSyncResult | null }>(propertyId, {
+    action: 'updateFeed',
+    ...input,
+  });
 }
 
 export function removeCalendarFeed(propertyId: string, feedId: string, deleteData: boolean) {

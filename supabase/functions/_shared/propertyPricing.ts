@@ -3,6 +3,7 @@
  */
 
 import { manilaTodayYmd } from './calendarAvailabilityManila.ts';
+import { airbnbReservationUrlFromDescription } from './calendarSyncService.ts';
 import { createServiceClient } from './orgAuth.ts';
 import {
   deleteBlockedRangesCovering,
@@ -109,6 +110,12 @@ export type PropertyPricingCalendarBooking = {
   has_pets: boolean | null;
   guest_requests_surprise_decor: unknown;
   valid_id_url: string | null;
+  /** `airbnb` / `booking_com` … when the row came from an OTA calendar feed. */
+  external_source: string | null;
+  /** Display source (`Airbnb` for imported reservations). */
+  booking_source: string | null;
+  /** Airbnb reservation link from the feed DESCRIPTION. Host-only, never sent to guests. */
+  reservation_url: string | null;
 };
 
 export type PropertyPricingDto = {
@@ -368,6 +375,12 @@ function bookingOverlapsMonth(
   return checkIn <= monthEnd && lastNight >= monthStart;
 }
 
+function reservationUrlFromRaw(raw: unknown): string | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const description = (raw as Record<string, unknown>).description;
+  return typeof description === 'string' ? airbnbReservationUrlFromDescription(description) : null;
+}
+
 /** Bookings visible on the property pricing calendar for a month window. */
 export async function loadCalendarBookings(
   propertyId: string,
@@ -382,7 +395,7 @@ export async function loadCalendarBookings(
   const { data, error } = await supabase
     .from('guest_submissions')
     .select(
-      'id, status, check_in_date, check_out_date, primary_guest_name, guest_facebook_name, guest_email, guest_phone_number, booking_rate, number_of_nights, need_parking, has_pets, guest_requests_surprise_decor, valid_id_url'
+      'id, status, check_in_date, check_out_date, primary_guest_name, guest_facebook_name, guest_email, guest_phone_number, booking_rate, number_of_nights, need_parking, has_pets, guest_requests_surprise_decor, valid_id_url, external_source, booking_source, external_raw'
     )
     .eq('property_id', propertyId)
     // IMPORTED bookings are historical records — must not appear on the live calendar.
@@ -419,6 +432,9 @@ export async function loadCalendarBookings(
       has_pets: row.has_pets ?? null,
       guest_requests_surprise_decor: row.guest_requests_surprise_decor ?? null,
       valid_id_url: row.valid_id_url != null ? String(row.valid_id_url) : null,
+      external_source: row.external_source != null ? String(row.external_source) : null,
+      booking_source: row.booking_source != null ? String(row.booking_source) : null,
+      reservation_url: reservationUrlFromRaw(row.external_raw),
     });
   }
 

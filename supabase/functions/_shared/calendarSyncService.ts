@@ -161,11 +161,22 @@ export function classifyEventKind(
 }
 
 const AIRBNB_CONFIRMATION_RE = /reservations\/details\/([A-Z0-9]{6,})/i;
+const AIRBNB_RESERVATION_URL_RE =
+  /(https:\/\/[^\s\\]*\/reservations\/details\/[A-Z0-9]{6,}[^\s\\]*)/i;
 const PHONE_LAST4_RE = /Last\s*4\s*Digits\)?:?\s*(\d{4})/i;
 
 export function airbnbConfirmationCodeFromDescription(description: string): string | null {
   const m = AIRBNB_CONFIRMATION_RE.exec(description);
   return m ? m[1].toUpperCase() : null;
+}
+
+/**
+ * Full reservation URL from DESCRIPTION, when present. Host-only surface: this is
+ * the link the host opens in Airbnb, never exposed to a guest endpoint.
+ */
+export function airbnbReservationUrlFromDescription(description: string): string | null {
+  const m = AIRBNB_RESERVATION_URL_RE.exec(description ?? '');
+  return m ? m[1] : null;
 }
 
 export function phoneLast4FromDescription(description: string): string | null {

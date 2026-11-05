@@ -6,6 +6,7 @@
 import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   airbnbConfirmationCodeFromDescription,
+  airbnbReservationUrlFromDescription,
   assertExternalIcsUrlShape,
   buildExportCalendar,
   classifyEventKind,
@@ -157,6 +158,13 @@ Deno.test('description parsers', () => {
   );
   assertEquals(airbnbConfirmationCodeFromDescription('no url here'), null);
   assertEquals(phoneLast4FromDescription('Phone Number (Last 4 Digits): 4321'), '4321');
+  assertEquals(
+    airbnbReservationUrlFromDescription(
+      'Reservation URL: https://www.airbnb.com/hosting/reservations/details/HM12AB34?x=1\nPhone'
+    ),
+    'https://www.airbnb.com/hosting/reservations/details/HM12AB34?x=1'
+  );
+  assertEquals(airbnbReservationUrlFromDescription('Phone Number (Last 4 Digits): 4321'), null);
 });
 
 Deno.test('diffFeed - create / reschedule / touch / remove', () => {

@@ -92,6 +92,7 @@ export function PropertyPricingPage() {
   const canUnblockDates = hasPropertyPermission(permissions, 'pricing.blocks:delete');
   const canViewChannels = hasPropertyPermission(permissions, 'pricing.channels:view');
   const canEditChannels = hasPropertyPermission(permissions, 'pricing.channels:edit');
+  const canCopyGuestFormLink = hasPropertyPermission(permissions, 'bookings.detail.workflow:edit');
   const canSelectDates = canEditRates || canBlockDates || canUnblockDates;
   const channelSyncAvailability = useFeatureAvailability('pricing.channel_sync');
   const showChannelSyncTierBadge =
@@ -811,6 +812,7 @@ export function PropertyPricingPage() {
         open={bookingModalOpen}
         onOpenChange={setBookingModalOpen}
         displayAmount={selectedBooking ? getBookingDisplayTotal(selectedBooking) : null}
+        canCopyGuestFormLink={canCopyGuestFormLink}
       />
 
       <CalendarBookingCelebration trigger={celebration} onDone={() => setCelebration(null)} />

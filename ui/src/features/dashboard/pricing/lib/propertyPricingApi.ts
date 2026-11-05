@@ -19,6 +19,12 @@ export type PropertyPricingCalendarBooking = {
   has_pets: boolean | null;
   guest_requests_surprise_decor?: unknown;
   valid_id_url: string | null;
+  /** Set when the booking came from an OTA calendar feed (`airbnb`, `booking_com` …). */
+  external_source?: string | null;
+  /** Display source, `Airbnb` for imported reservations. */
+  booking_source?: string | null;
+  /** Airbnb reservation link from the feed. Host-only. */
+  reservation_url?: string | null;
 };
 
 export type PropertyPricingDto = PropertyPricingDefaults & {
