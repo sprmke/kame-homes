@@ -221,10 +221,11 @@ export async function drainOutbox(): Promise<void> {
       useOfflineSyncStore.getState().setSyncing(false);
       try {
         const remaining = await withTimeout(outboxList(), OUTBOX_READ_MS);
-        if (generation !== drainGeneration) return;
-        useOfflineSyncStore.getState().markSynced();
-        pushStoreSnapshot(remaining);
-        if (backedOff) scheduleRetry(remaining.filter((i) => i.status === 'pending'));
+        if (generation === drainGeneration) {
+          useOfflineSyncStore.getState().markSynced();
+          pushStoreSnapshot(remaining);
+          if (backedOff) scheduleRetry(remaining.filter((i) => i.status === 'pending'));
+        }
       } catch {
         // The database did not answer. Leave the pill off and allow a later drain.
       }
