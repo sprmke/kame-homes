@@ -31,6 +31,10 @@ Staff Telegram settings have moved to the Notifications page. The old Staff link
   A: Scheduled daily summaries plus customizable templates, like check-in/check-out reminders or task lists you set up for your cleaning or front-desk team.
 - Q: Can I use the same Telegram bot for Staff and Operations?
   A: Each module on Notifications connects separately, so you can use different bots or chat groups for staff summaries versus booking workflow alerts if you prefer.
+- Q: Can I choose what time the daily summary is sent?
+  A: Yes. The Staff section has its own schedule and message templates, so you can match the summary to your team's shift.
+- Q: How do I know the staff bot is connected correctly?
+  A: Use **Save and test** in the Staff section. It confirms the bot and chat before the first scheduled summary.
 
 ## Implementation map
 

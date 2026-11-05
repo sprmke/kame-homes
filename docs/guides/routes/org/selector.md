@@ -49,6 +49,10 @@ Visiting the organization hub does not show a list of organizations to pick from
   A: No. Each account can own one organization. You can still be invited as an admin to other people’s organizations.
 - Q: I only manage one property. Why did I land on an org page?
   A: Property-only members are usually redirected to their assigned property dashboard. If something looks wrong, confirm your team invite was accepted and that a property is assigned to you.
+- Q: How do I switch to another organization I help manage?
+  A: Use the tenant switcher in the sidebar. The app opens your last organization by default, so switch whenever you need a different one.
+- Q: Why am I sent to onboarding when I already help another host?
+  A: Onboarding appears when your account has no organizations it can open, or when your only seat is paused by a plan limit. Ask the owner to check your invite and plan seats.
 
 ---
 

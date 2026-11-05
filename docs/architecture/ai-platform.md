@@ -24,7 +24,9 @@ The browser never holds a provider key. Gemini Live uses a server-minted, single
 
 **CI guard:** `bun run check:ai-gateway` (`scripts/dev/check-ai-gateway.mjs`, wired into `ci.yml`, `cd-dev.yml` and `ci-quality-gate.sh`) fails if `generativelanguage.googleapis.com` or `api.groq.com` appears outside `_shared/ai/`, or if a key is sent as `?key=`.
 
-**Knowledge coverage:** `bun run check:ai-knowledge-coverage` fails when a Documented host route guide lacks ≥3 Host-facing knowledge Q&A, or when a previously synced guide would drop from the knowledge base.
+**Knowledge coverage:** `bun run check:ai-knowledge-coverage` fails when a Documented host route guide lacks its Host-facing knowledge Q&A minimum (5 for major module pages, 3 for the rest), or when a previously synced guide would drop from the knowledge base. It runs in `ci:quality` and the CI `static-guards` job.
+
+**Support-content sync:** `bun run sync:support-content` (alias `sync:ai-knowledge-base`) writes two stores from docs: route-guide Host-facing Q&A into `ai_dashboard_assistant_knowledge_base`, and `docs/guides/support/faqs.md` into `help_center_faqs` (`origin = 'synced'`). `bun run check:support-content` validates the curated doc (categories, audiences, source paths, duplicate keys, no em dashes). The `Sync support content` workflow runs on `develop` when either docs source changes; `help_center_faqs` is the layer the `search_help_center` assistant tool reads first.
 
 ## 2. Gateway modules (`supabase/functions/_shared/ai/`)
 

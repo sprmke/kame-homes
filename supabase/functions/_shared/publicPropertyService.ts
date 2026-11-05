@@ -12,10 +12,12 @@ import { loadResolvedBrandColorByPropertyId } from './propertyBranding.ts';
 import { resolveAmenityLabels } from './publicPropertyAmenities.ts';
 import { resolvePublicHouseRules, type PublicHouseRuleDto } from './publicPropertyHouseRules.ts';
 import {
+  cancellationPolicyHash,
   readCancellationPolicyFromSettings,
+  readCancellationPolicyVersionId,
   resolveCancellationPolicyDisplay,
   type ResolvedCancellationPolicyDisplay,
-} from './propertyCancellationPolicy.ts';
+} from './cancellationPolicy.ts';
 import { resolvePropertyIdBySlug } from './propertyScope.ts';
 import {
   listPublicGuestReviews,
@@ -90,6 +92,8 @@ export type PublicPropertyDetailDto = {
   pricing: PublicPropertyPricingDto;
   houseRules: PublicHouseRuleDto[];
   cancellationPolicy: ResolvedCancellationPolicyDisplay;
+  cancellationPolicyVersionId: string | null;
+  cancellationPolicyHash: string;
   host: {
     unitName: string;
     organizationName: string;
@@ -439,9 +443,10 @@ export async function loadPublicPropertyById(
     checkInTime,
     checkOutTime
   );
-  const cancellationPolicy = resolveCancellationPolicyDisplay(
-    readCancellationPolicyFromSettings(settings)
-  );
+  const policy = readCancellationPolicyFromSettings(settings);
+  const cancellationPolicy = resolveCancellationPolicyDisplay(policy);
+  const cancellationPolicyVersionId = readCancellationPolicyVersionId(settings);
+  const policyHash = cancellationPolicyHash(policy);
   return {
     id: row.id,
     slug: row.slug,
@@ -486,6 +491,8 @@ export async function loadPublicPropertyById(
     },
     houseRules,
     cancellationPolicy,
+    cancellationPolicyVersionId,
+    cancellationPolicyHash: policyHash,
     host: {
       unitName,
       organizationName,

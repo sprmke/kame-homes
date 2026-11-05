@@ -53,11 +53,38 @@ your listing. When the booking is ready for check-in, the stay guide button appe
   A: No. Email links carry a private access key. Without it, the guest has to sign in with the
   email they booked with.
 - Q: Can a guest cancel from this page?
-  A: No. It shows your cancellation policy and sends cancel or date-change requests to your inbox
-  as a chat message. You still cancel from the booking in your dashboard.
+  A: Yes, when your policy allows it. Instant policies show **Cancel booking**; request-mode, custom
+  and unset policies show **Request to cancel**. The guest sees the exact refund before confirming.
+  You still approve or decline requests, and send the refund, from the booking in your dashboard.
 - Q: Why doesn't my guest see the stay guide button?
   A: It only shows from ready-for-check-in during the stay window, and only on Pro or above (same
   rule as the stay guide link itself).
+
+---
+
+## Cancellation
+
+The trip page shows a **Cancellation** card below Payment. It reads the booking's
+`cancellation_policy_snapshot` (never the property's live policy), so changing your policy later
+does not change what an existing guest sees.
+
+| Booking state                         | What the guest sees                                                  |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| Before check-in, instant policy       | Policy timeline, next deadline, refund now, **Cancel booking**       |
+| Before check-in, request policy/unset | Same, with **Request to cancel**                                     |
+| Open request                          | "Cancellation requested", requested time, host message, **Withdraw** |
+| `CANCELLED` with a refund             | Refund amount + status; payout details form when still needed        |
+| `CANCELLED` with no refund due        | "This booking was cancelled"                                         |
+| After check-in                        | No cancel action; policy summary only                                |
+
+Flow: `GuestTripCancellationSection` → `guest-cancel-booking` (instant) or
+`guest-cancellation-request` (create/withdraw). The server recomputes the refund from the snapshot
+and the recorded payments; the client never sends an amount. Refund payout details go through
+`submit-guest-refund-details` and are stored on `booking_refunds` (not the SD refund columns).
+
+Edge cases: `409 policy_changed` refreshes the trip; a direct API call after check-in is rejected;
+OTA/calendar-synced bookings show "handled on the channel" and cannot self-cancel; an open request
+expires at check-in.
 
 ---
 

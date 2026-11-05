@@ -5,7 +5,11 @@ import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 
 import { ADMIN_DEFAULT_PAGE_SIZE } from '@/lib/table/pagination';
 
-export type AdminHelpCenterFaq = HelpCenterFaq & { is_published: boolean };
+export type AdminHelpCenterFaq = HelpCenterFaq & {
+  is_published: boolean;
+  origin?: 'synced' | 'manual';
+  content_key?: string | null;
+};
 
 export const HELP_CENTER_FAQS_ADMIN_QUERY_KEY = ['super-admin', 'help-center-faqs'] as const;
 

@@ -21,7 +21,7 @@ Route: `/account`
 
 ## Overview
 
-`GuestAccountIndexPage` renders no UI — it immediately `<Navigate replace>`s to **`/account/profile`**. There is no account landing/dashboard page; the sidebar nav (Profile · Trips · Stays · Vouchers · Favorites · Tickets) is the entry point instead.
+`GuestAccountIndexPage` renders no UI — it immediately `<Navigate replace>`s to **`/account/profile`**. There is no account landing/dashboard page; the sidebar nav (Profile · Trips · Reviews · Stays · Vouchers · Favorites · Tickets · Help) is the entry point instead.
 
 `/account/settings` also redirects to `/account/profile` (see [profile.md](./profile.md) § Settings).
 
@@ -35,6 +35,10 @@ Guests who tap their account avatar and land on the account area always see thei
 
 - Q: A guest says they can't find an "Account" overview page. Where does it go?
   A: There isn't a separate overview page. Signing in and opening the account menu takes them straight to their Profile tab, with Stays, Vouchers, and Favorites as other tabs in the same area.
+- Q: How does a guest open their account?
+  A: After signing in, they open the avatar in the top navigation. On a phone, the same links live in the account tab at the bottom.
+- Q: What can a guest do from the account area?
+  A: They can edit their profile, review trips, read messages in Stays, manage vouchers and favorites, and check tickets they filed with us.
 
 ---
 

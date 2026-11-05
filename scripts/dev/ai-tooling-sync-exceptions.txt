@@ -14,3 +14,7 @@
 # - MCP: root .mcp.json (Cursor/Claude) vs opencode.json local-server shape (type + command array).
 # - Hooks: Cursor hooks.json / Claude settings.json vs .opencode/plugins/gfm-ai-tooling.ts calling .claude/hooks/.
 # - Skills also auto-load from .claude/skills and .agents/skills; opencode.json skills.paths is belt-and-suspenders.
+# - agent-reporting is deliberately NOT wired for OpenCode: its summaries are the reference the
+#   format was derived from. Keep agent-reporting.mdc out of opencode.json instructions and AGENTS.md,
+#   and keep session-agent-reporting.sh out of .opencode/plugins/gfm-ai-tooling.ts. The skill itself
+#   is still discoverable from .agent/skills (on-demand only, never injected).

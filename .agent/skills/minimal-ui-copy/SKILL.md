@@ -93,12 +93,12 @@ When touching a file, **do not** expand existing copy. If you add a feature, def
 
 The dashboard contextual-help system (plan: `docs/workflow/planned/dashboard-contextual-help.md`, architecture: `docs/architecture/contextual-help.md`) is an explicit exception. These are allowed and must not be removed as "helper text":
 
-| Pattern                             | Use                                              | Limit                       |
-| ----------------------------------- | ------------------------------------------------ | --------------------------- |
-| `InfoHint`                          | One `?` / `i` beside a field, stat, or section   | 2 sentences, 200 characters |
-| `HowItWorksButton` + `…Dialog`      | Feature intro from a page header                 | 3 to 4 steps + 1 tip        |
-| `IntroCard`                         | First-visit nudge, dismissed for good            | One sentence                |
-| `NoticeCallout`                     | Static note that changes the next decision       | One short line              |
+| Pattern                        | Use                                            | Limit                       |
+| ------------------------------ | ---------------------------------------------- | --------------------------- |
+| `InfoHint`                     | One `?` / `i` beside a field, stat, or section | 2 sentences, 200 characters |
+| `HowItWorksButton` + `…Dialog` | Feature intro from a page header               | 3 to 4 steps + 1 tip        |
+| `IntroCard`                    | First-visit nudge, dismissed for good          | One sentence                |
+| `NoticeCallout`                | Static note that changes the next decision     | One short line              |
 
 Copy belongs in the feature's `*HelpCopy.ts` (typed by `ui/src/lib/help/types.ts`), never inline in JSX. Still banned: always-visible helper paragraphs, `CardDescription` essays, and hints on obvious fields. Do not put a hint inside a `<label>`, tab pill, select trigger, or a card that is itself a link or button.
 

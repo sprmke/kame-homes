@@ -449,6 +449,25 @@ This is the page a host opens to manage one specific booking end to end: guest d
 
 ---
 
+## Cancellation and refunds
+
+The **Overview** tab renders `BookingCancellationCard` under the stay details.
+
+| Section          | Behavior                                                                                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policy summary   | Reads `guest_submissions.cancellation_policy_snapshot`; shows "Policy changed" when the property's current version id differs                       |
+| Refund preview   | Client mirror `computeCancellationOutcome` (Manila deadlines, capped at cash paid)                                                                  |
+| Guest request    | Open request card with reason, note, time; **Approve** opens `CancelBookingSheet` prefilled with the guest's reason, **Decline** requires a message |
+| Refund           | Amount + status; **Mark refund sent** needs a receipt link and records `amount_paid_php`, `sent_at`, `proof_url`; sends the guest email             |
+| Goodwill refunds | Listed separately from the cancellation refund                                                                                                      |
+| Bookings list    | Rows with `cancellation_requested_at` show a "Cancellation requested" chip                                                                          |
+
+**Cancel sheet** (`WorkflowPanel` footer → Cancel): who asked (guest / host), reason, note, refund preview, optional override with a required note, and "Email the guest". Host-initiated cancels after check-in default to 0% and need an override.
+
+Endpoints: `cancel-booking` (host), `respond-cancellation-request` (approve/decline), `record-booking-refund` (mark sent / update / goodwill). All require `bookings.detail.workflow:edit`; there is no separate refund leaf.
+
+---
+
 ## Testing
 
 | Layer | Path / spec                                                                                                                                                                  | Manual                         |

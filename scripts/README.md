@@ -176,6 +176,19 @@ Every deploy and rollback appends an audit line to `backups/deploy-log.csv` (tim
 | ---------------------------- | --------------------------- | ---------------------------------------- |
 | `preview-emails-from-db.mjs` | `bun run preview:emails:db` | Render email HTML previews from local DB |
 
+## Support content
+
+| Script                                   | Command                               | Purpose                                                                                                                                   |
+| ---------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/sync-ai-knowledge-base.ts`      | `bun run sync:support-content`        | Route-guide Q&A → `ai_dashboard_assistant_knowledge_base`; curated FAQs → `help_center_faqs` (`origin='synced'`, publish state preserved) |
+| `scripts/check-support-content.ts`       | `bun run check:support-content`       | Curated doc categories, audiences, source paths, duplicate keys, em dashes                                                                |
+| `scripts/check-ai-knowledge-coverage.ts` | `bun run check:ai-knowledge-coverage` | Documented route-guide Q&A minimums (5 major / 3 rest) + drop detection                                                                   |
+| `scripts/lib/supportContent.ts`          | —                                     | Shared parsers for both sources                                                                                                           |
+| `scripts/lib/faqProvenance.ts`           | —                                     | Pure insert/update/prune planning for synced FAQs                                                                                         |
+| `scripts/supportContent.test.ts`         | `bun run test:support-content`        | Parser + provenance unit tests                                                                                                            |
+
+`sync:support-content` also accepts `--dry-run` and `--dev`. `bun run sync:ai-knowledge-base` remains an alias. The `Sync support content` GitHub workflow runs it on `develop` when `docs/guides/routes/**` or `docs/guides/support/**` changes.
+
 ## Docs (`scripts/docs/`)
 
 | Script                    | npm script                   | Purpose                                                                                                                                                |

@@ -788,3 +788,16 @@ Adds `ai_platform_global_settings.voice_receptionist_rollout_percentage` (INT 0-
 ### Marketing themes (`20261316127000_marketing_themes.sql`)
 
 Adds `marketing_themes` (property-scoped host themes: `name`, `tokens` JSONB, `source`, `source_ref`; RLS on, `service_role` only, anon/authenticated revoked) and `marketing_templates.theme_key` (TEXT, no FK: built-in key `property-colors` / `starter:<id>` or a `marketing_themes.id`) with index `(property_id, theme_key)`. **No backfill:** rows without `theme_key` are read as Property colors, except calendars whose `designJson.sourcePresetId` is a designer look, which belong to `starter:<presetId>` (same rule in `marketing-themes` GET and the client). Deleting a theme row sets nothing on templates by itself; the edge function moves items to another key first. Verify: `GET marketing-themes` returns `{ themes: [], itemCounts }` for an existing property; `POST` a theme and see it in the list.
+
+### Help Center FAQ sync provenance (`20261318183000_help_center_faqs_sync_provenance.sql`)
+
+Adds `help_center_faqs.origin` (`synced` | `manual`, default `manual`), `audience` (`host` | `guest` | `public`, default `host`), and a unique `content_key`; backfills seeded rows to `origin = 'synced'` with a deterministic `category--question` key; adds `(audience, is_published, category, sort_order)` for the public read. Additive and safe to apply before the sync script deploy.
+
+One-time follow-up after the migration: run `bun run sync:support-content` against the target project so `docs/guides/support/faqs.md` owns the synced rows. The sync never reads, updates, or deletes `origin = 'manual'` rows and preserves `is_published` on updates. Verify:
+
+```sql
+SELECT origin, count(*) FROM public.help_center_faqs GROUP BY origin;
+SELECT count(*) FROM public.help_center_faqs WHERE content_key IS NULL AND origin = 'synced'; -- 0
+```
+
+Remote writes need `kamewave`. Never run the sync against production without a backup.

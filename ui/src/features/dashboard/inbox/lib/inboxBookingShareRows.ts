@@ -14,6 +14,10 @@ import { useBookingParkingShareLink } from '@/features/dashboard/bookings/hooks/
 import { useBookingStayGuideLink } from '@/features/dashboard/bookings/hooks/useBookingStayGuideLink';
 import { useOwnerDefaultParking } from '@/features/dashboard/bookings/hooks/useOwnerDefaultParking';
 import { isStayGuideEligibleStatus } from '@/features/dashboard/bookings/lib/bookingStatus';
+import {
+  isGuestReviewLinkEligible,
+  isSdRefundLinkEligible,
+} from '@/features/dashboard/bookings/lib/guestShareLinkEligibility';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import type { PlanFeatureKey } from '@/features/dashboard/plans/lib/planFeatures';
 
@@ -25,8 +29,6 @@ export type InboxShareRow = {
   /** Plan below this feature's tier: row stays visible with a plan pill and opens the upgrade modal. */
   lockedFeature?: PlanFeatureKey;
 };
-
-const SD_FORM_ELIGIBLE_STATUSES = new Set(['READY_FOR_CHECKOUT', 'PENDING_SD_REFUND', 'COMPLETED']);
 
 export function useInboxPropertyShareRows(propertySlug: string): InboxShareRow[] {
   return useMemo(
@@ -111,14 +113,14 @@ export function useInboxBookingShareRows(
         pending: ownerDefaultQuery.isLoading,
       });
     }
-    if (SD_FORM_ELIGIBLE_STATUSES.has(String(selectedBooking.status))) {
+    if (isSdRefundLinkEligible(selectedBooking.status)) {
       rows.push({
         key: 'sd-form',
         label: 'Security Deposit Refund',
         url: `${window.location.origin}${guestSdFormPath(propertySlug, selectedBooking.id)}`,
       });
     }
-    if (selectedBooking.status === 'COMPLETED') {
+    if (isGuestReviewLinkEligible(selectedBooking.status)) {
       rows.push({
         key: 'review',
         label: 'Leave a Review',

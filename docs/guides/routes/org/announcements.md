@@ -46,6 +46,8 @@ This is where you read official notices from Kame Space - scheduled maintenance,
   A: Yes. Next to each group title (Platform or a development name), tap **Read all** when that group has unread notices.
 - Q: What's the difference between Platform and a development name?
   A: **Platform** applies to all hosts. A development name applies only to properties or parkings linked to that development.
+- Q: Do announcements also show as a banner on other pages?
+  A: No. They live on the Announcements page and its detail view. The red dot on **Announcements** is the prompt that a new notice is waiting.
 
 ## Permissions
 

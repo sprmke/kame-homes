@@ -150,7 +150,7 @@ first data load. Both use the same page chrome, so nothing jumps when the chunk 
 
 ## Adding a new dashboard route
 
-1. Add or reuse a skeleton component that matches the loaded layout and default view (375px first). Render fixed chrome immediately: page/section titles, card headings, tab/column/legend labels and known icons. Skeleton only async values, rows, media and charts. Pass the real counts/labels (`AppSettingsNavLayoutSkeleton navLabels`, `PricingPageBodySkeleton statsCount`, `SuperAdminAdminListBodySkeleton metricTitles`) so the sidebar, KPI row, and list line up with the page.
+1. Add or reuse a skeleton component that matches the loaded layout and default view (375px first). Render fixed chrome immediately: page/section titles, card headings, tab/column/legend labels and known icons. Skeleton only async values, rows, media and charts. For primary `SlidingTabsList` strips, use `SlidingTabsListSkeleton` (content-width, icons, `whitespace-nowrap`; never `w-full` + `flex-1` on triggers). Org Plans uses `PlansTabsListSkeleton`. Pass the real counts/labels (`AppSettingsNavLayoutSkeleton navLabels`, `PricingPageBodySkeleton statsCount`, `SuperAdminAdminListBodySkeleton metricTitles`) so the sidebar, KPI row, and list line up with the page.
 2. Export a `*RouteSkeleton` from `RouteSkeletons.tsx` if the shape is route-specific. Wrap the body in the page's `AdminMobilePage` with the same props as the loaded page.
 3. Pass it as the third argument to `propertyRoute` / `orgRoute` / `parkingRoute`, or wrap with `RouteSkeletonBoundary` (super-admin, guest shells).
 4. Page-level `isLoading`: keep shell/header; swap **body** only (`SuperAdminPage` `loadingBody`, `AdminMobilePage` children).

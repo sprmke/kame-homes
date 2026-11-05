@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 
 import { Copy, ExternalLink, Pencil } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { withGuestEmbedPreviewUrl } from '@/features/guest/lib/guestEmbedPreview';
 import { absoluteGuestPath } from '@/features/guest/lib/guestPublicPaths';
 
 import { PublicPageLivePreview } from '@/features/dashboard/custom-pages/components/PublicPageLivePreview';
+import { copyGuestLink } from '@/features/dashboard/custom-pages/lib/copyGuestLink';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { propertySectionPath } from '@/features/dashboard/org/lib/tenantPaths';
 import type { PropertyGuestPublicPage } from '@/features/dashboard/property/lib/propertyGuestPublicPages';
@@ -24,16 +24,9 @@ type Props = {
   /** When true, Edit opens upgrade instead of the editor. */
   locked?: boolean;
   onUnlock?: () => void;
+  /** Booking or date picker instead of copying the URL right away. */
+  onCopy?: () => void;
 };
-
-async function copyPublicPageLink(href: string, label: string) {
-  try {
-    await navigator.clipboard.writeText(href);
-    toast.success(`${label} link copied`);
-  } catch {
-    toast.error('Could not copy link');
-  }
-}
 
 export function PublicPageCard({
   page,
@@ -43,6 +36,7 @@ export function PublicPageCard({
   canEdit = true,
   locked = false,
   onUnlock,
+  onCopy,
 }: Props) {
   const { orgSlug, propertySlug } = useOrgContext();
   const Icon = page.icon;
@@ -141,7 +135,13 @@ export function PublicPageCard({
               size="icon"
               className="size-11 shrink-0"
               aria-label={`Copy ${page.label} link`}
-              onClick={() => void copyPublicPageLink(copyHref, page.label)}
+              onClick={() => {
+                if (onCopy) {
+                  onCopy();
+                  return;
+                }
+                void copyGuestLink(copyHref, page.label);
+              }}
             >
               <Copy className="size-3.5" aria-hidden />
             </Button>
@@ -169,7 +169,13 @@ export function PublicPageCard({
               variant="outline"
               size="sm"
               className="h-9 min-h-[44px] flex-1 gap-1.5"
-              onClick={() => void copyPublicPageLink(copyHref, page.label)}
+              onClick={() => {
+                if (onCopy) {
+                  onCopy();
+                  return;
+                }
+                void copyGuestLink(copyHref, page.label);
+              }}
             >
               <Copy className="size-3.5" aria-hidden />
               Copy link

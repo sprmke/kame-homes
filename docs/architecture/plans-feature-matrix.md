@@ -396,3 +396,11 @@ Full detail in [`org-level-billing-migration.md`](../workflow/done/org-level-bil
 - Business Plus's exclusion logic from Phase 9 (`property-plan/index.ts`'s `.neq('code', 'business_plus')`) is moot — that whole edge function is deleted; `business_plus` is simply `is_active: false` now, excluded by the same `is_active` filter every other inactive plan already uses.
 
 **AI limit profiles:** `aiMonthlyCreditAllowance` stays the plan-facing number and feeds `aiLimitResolver` as the `plan_allowance` layer. Every other AI limit comes from the plan's `ai_limit_profile_id` (bound in `/admin/ai` → Profiles). See [`ai-platform.md`](ai-platform.md) section 5.
+
+## Cancellation policy & refunds — no plan gate (2026-11-05)
+
+Cancellation is part of the core booking loop, so it is **available on every tier** and has no
+`PlanFeatureKey`. Refund actions (override amount, mark sent) reuse the existing
+`bookings.detail.workflow:edit` permission; there is no separate refund leaf. The refund reminder
+cron follows the same automation posture as the SD refund cron and is not a new entitlement.
+Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).

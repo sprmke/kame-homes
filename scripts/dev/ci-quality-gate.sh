@@ -36,6 +36,9 @@ run_step "type-check" bun run type-check
 run_step "lint (ESLint errors block CD — warnings OK)" bun run lint
 run_step "check:filenames" bun run check:filenames
 run_step "brand guard (retired product name)" bun scripts/brand/check-brand.ts --check
+run_step "AI knowledge coverage" bun run check:ai-knowledge-coverage
+run_step "support content format" bun run check:support-content
+run_step "support content parser tests" bun run test:support-content
 run_step "migration versions" bash scripts/dev/check-migration-versions.sh
 run_step "migration security" bash scripts/dev/check-migration-security.sh
 run_step "unit tests (Vitest)" bun run test

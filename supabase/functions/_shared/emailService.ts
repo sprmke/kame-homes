@@ -1471,3 +1471,296 @@ ${buildEmailCtaHtml('View the ticket', ticketUrl, null)}`;
 
   return sent;
 }
+
+// ─── Cancellation emails ─────────────────────────────────────────────────────
+
+const CANCELLATION_REASON_LABELS: Record<string, string> = {
+  change_of_plans: 'Change of plans',
+  found_another_place: 'Found another place',
+  travel_issue: 'Travel issue',
+  emergency: 'Emergency',
+  no_show: 'No-show',
+  no_payment: 'No payment received',
+  duplicate_or_test: 'Duplicate or test booking',
+  host_unavailable: 'Host could not host the stay',
+  other: 'Other',
+};
+
+function cancellationReasonLabel(code: string | null | undefined): string {
+  return CANCELLATION_REASON_LABELS[String(code ?? '')] ?? 'Cancellation';
+}
+
+function cancellationPeso(amount: number | null | undefined): string {
+  const n = Number(amount ?? 0);
+  return `₱${n.toLocaleString('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function buildCancellationDetailSectionHtml(input: {
+  title: string;
+  rows: Array<{ label: string; value: string }>;
+  note?: string | null;
+}): string {
+  const rows = input.rows
+    .map(
+      (row) =>
+        `<tr><td style="padding:6px 0;color:#666666;font-size:14px;">${escapeHtml(row.label)}</td><td style="padding:6px 0;color:#111111;font-size:14px;text-align:right;font-weight:600;">${escapeHtml(row.value)}</td></tr>`
+    )
+    .join('');
+  const note = input.note
+    ? `<p style="margin:12px 0 0 0;font-size:14px;line-height:1.6;color:#333333;">${escapeHtml(input.note)}</p>`
+    : '';
+  return `<div style="margin:0 0 16px 0;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+<p style="margin:0 0 8px 0;font-size:15px;font-weight:700;color:#111111;">${escapeHtml(input.title)}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>${note}</div>`;
+}
+
+export type CancellationEmailContext = {
+  refundDuePhp: number;
+  refundPercent: number | null;
+  reasonCode: string;
+  reasonNote?: string | null;
+  initiator: 'guest' | 'host' | 'ota' | 'system';
+  policyTitle?: string | null;
+};
+
+async function loadCancellationEmailContext(booking: GuestSubmission) {
+  const propertyId = resolveEmailPropertyId(booking);
+  const { EMAIL_REPLY_TO, settings } = await getResendCredentials(propertyId);
+  const { branding, unitLabel, displayCheckInDate, displayCheckOutDate } =
+    await loadBookingEmailDisplayContext(propertyId, booking);
+  const guestContact = await loadGuestFacingContactInfo(propertyId, settings);
+  const guestLinkExtras = await loadGuestBookingEmailLinkExtras(booking, settings);
+  return {
+    propertyId,
+    EMAIL_REPLY_TO,
+    settings,
+    branding,
+    unitLabel,
+    displayCheckInDate,
+    displayCheckOutDate,
+    guestContact,
+    guestLinkExtras,
+  };
+}
+
+/** Guest: cancellation confirmed (instant guest cancel, host cancel, no-show). */
+export async function sendBookingCancelledGuest(
+  booking: GuestSubmission,
+  ctx: CancellationEmailContext
+) {
+  if (!booking.guest_email?.trim()) return { skipped: true, reason: 'no_guest_email' };
+  if (await isEmailSuppressed(booking.guest_email)) {
+    return { skipped: true, reason: 'suppressed' };
+  }
+
+  const c = await loadCancellationEmailContext(booking);
+  const guestName = String(booking.guest_facebook_name ?? '').trim() || 'Guest';
+  const who = ctx.initiator === 'host' ? 'The host cancelled this booking.' : 'Your booking was cancelled.';
+
+  const detail = buildCancellationDetailSectionHtml({
+    title: 'Cancellation summary',
+    rows: [
+      { label: 'Stay', value: `${c.displayCheckInDate} to ${c.displayCheckOutDate}` },
+      { label: 'Reason', value: cancellationReasonLabel(ctx.reasonCode) },
+      ...(ctx.policyTitle ? [{ label: 'Policy', value: ctx.policyTitle }] : []),
+      ...(ctx.refundPercent != null ? [{ label: 'Policy refund', value: `${ctx.refundPercent}%` }] : []),
+      { label: 'Refund', value: cancellationPeso(ctx.refundDuePhp) },
+    ],
+    note: ctx.reasonNote ?? null,
+  });
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId: c.propertyId,
+    templateKey: 'email-booking-cancelled-guest',
+    emailTitle: 'Booking cancelled',
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      c.settings,
+      {
+        ...c.guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(c.guestContact),
+        cancellation_intro: who,
+        cancellation_detail_section: detail,
+        email_signature_section: buildEmailSignatureSectionHtml(c.settings.gafUnitOwner, c.unitLabel),
+      },
+      c.branding
+    ),
+    branding: c.branding,
+  });
+
+  return sendResendEmail({
+    from: formatResendFromAddress(`${c.unitLabel} - ${c.branding.organizationName}`, c.branding.fromEmail),
+    to: [booking.guest_email],
+    reply_to: c.EMAIL_REPLY_TO,
+    subject: `${c.unitLabel} - Booking Cancelled ${formatEmailDateRange(c.displayCheckInDate, c.displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
+  });
+}
+
+/** Host: a guest cancelled or asked to cancel. */
+export async function sendBookingCancelledHost(
+  booking: GuestSubmission,
+  ctx: CancellationEmailContext & { requestOnly?: boolean }
+) {
+  const c = await loadCancellationEmailContext(booking);
+  const to = String(c.EMAIL_REPLY_TO ?? '').trim();
+  if (!to) return { skipped: true, reason: 'no_host_email' };
+  if (await isEmailSuppressed(to)) return { skipped: true, reason: 'suppressed' };
+
+  const guestName =
+    String(booking.primary_guest_name ?? '').trim() ||
+    String(booking.guest_facebook_name ?? '').trim() ||
+    'A guest';
+
+  const detail = buildCancellationDetailSectionHtml({
+    title: ctx.requestOnly ? 'Cancellation request' : 'Cancellation summary',
+    rows: [
+      { label: 'Guest', value: guestName },
+      { label: 'Stay', value: `${c.displayCheckInDate} to ${c.displayCheckOutDate}` },
+      { label: 'Reason', value: cancellationReasonLabel(ctx.reasonCode) },
+      ...(ctx.requestOnly
+        ? []
+        : [{ label: 'Refund to send', value: cancellationPeso(ctx.refundDuePhp) }]),
+    ],
+    note: ctx.reasonNote ?? null,
+  });
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId: c.propertyId,
+    templateKey: 'email-booking-cancelled-host',
+    emailTitle: ctx.requestOnly ? 'Cancellation requested' : 'Booking cancelled',
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      c.settings,
+      {
+        ...c.guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(c.guestContact),
+        cancellation_detail_section: detail,
+        email_signature_section: buildEmailSignatureSectionHtml(c.settings.gafUnitOwner, c.unitLabel),
+      },
+      c.branding
+    ),
+    branding: c.branding,
+  });
+
+  return sendResendEmail({
+    from: formatResendFromAddress(`${c.unitLabel} - ${c.branding.organizationName}`, c.branding.fromEmail),
+    to: [to],
+    reply_to: c.EMAIL_REPLY_TO,
+    subject: `${c.unitLabel} - ${ctx.requestOnly ? 'Cancellation requested' : 'Cancellation'} ${formatEmailDateRange(c.displayCheckInDate, c.displayCheckOutDate)}`,
+    html,
+    errorLabel: 'email',
+  });
+}
+
+/** Guest: cancellation request received / approved / declined. */
+export async function sendCancellationRequestGuest(
+  booking: GuestSubmission,
+  input: {
+    state: 'received' | 'approved' | 'declined';
+    hostMessage?: string | null;
+    refundDuePhp?: number | null;
+  }
+) {
+  if (!booking.guest_email?.trim()) return { skipped: true, reason: 'no_guest_email' };
+  if (await isEmailSuppressed(booking.guest_email)) {
+    return { skipped: true, reason: 'suppressed' };
+  }
+
+  const c = await loadCancellationEmailContext(booking);
+  const guestName = String(booking.guest_facebook_name ?? '').trim() || 'Guest';
+  const title =
+    input.state === 'received'
+      ? 'Cancellation request received'
+      : input.state === 'approved'
+        ? 'Cancellation approved'
+        : 'Cancellation request declined';
+
+  const detail = buildCancellationDetailSectionHtml({
+    title,
+    rows: [
+      { label: 'Stay', value: `${c.displayCheckInDate} to ${c.displayCheckOutDate}` },
+      ...(input.refundDuePhp != null
+        ? [{ label: 'Refund', value: cancellationPeso(input.refundDuePhp) }]
+        : []),
+    ],
+    note: input.hostMessage ?? null,
+  });
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId: c.propertyId,
+    templateKey: 'email-cancellation-request-guest',
+    emailTitle: title,
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      c.settings,
+      {
+        ...c.guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(c.guestContact),
+        cancellation_request_title: title,
+        cancellation_detail_section: detail,
+        email_signature_section: buildEmailSignatureSectionHtml(c.settings.gafUnitOwner, c.unitLabel),
+      },
+      c.branding
+    ),
+    branding: c.branding,
+  });
+
+  return sendResendEmail({
+    from: formatResendFromAddress(`${c.unitLabel} - ${c.branding.organizationName}`, c.branding.fromEmail),
+    to: [booking.guest_email],
+    reply_to: c.EMAIL_REPLY_TO,
+    subject: `${c.unitLabel} - ${title}`,
+    html,
+    errorLabel: 'email',
+  });
+}
+
+/** Guest: refund marked sent. */
+export async function sendRefundSentGuest(
+  booking: GuestSubmission,
+  input: { amountPhp: number; proofUrl?: string | null }
+) {
+  if (!booking.guest_email?.trim()) return { skipped: true, reason: 'no_guest_email' };
+  if (await isEmailSuppressed(booking.guest_email)) {
+    return { skipped: true, reason: 'suppressed' };
+  }
+
+  const c = await loadCancellationEmailContext(booking);
+  const detail = buildCancellationDetailSectionHtml({
+    title: 'Refund sent',
+    rows: [{ label: 'Amount', value: cancellationPeso(input.amountPhp) }],
+    note: input.proofUrl ? 'A receipt is attached to your booking.' : null,
+  });
+
+  const html = await renderPropertyTemplateSendEmail({
+    propertyId: c.propertyId,
+    templateKey: 'email-refund-sent-guest',
+    emailTitle: 'Refund sent',
+    placeholderVars: buildBookingPlaceholderVars(
+      booking,
+      c.settings,
+      {
+        ...c.guestLinkExtras,
+        ...buildGuestFacingPlaceholderVars(c.guestContact),
+        cancellation_detail_section: detail,
+        email_signature_section: buildEmailSignatureSectionHtml(c.settings.gafUnitOwner, c.unitLabel),
+      },
+      c.branding
+    ),
+    branding: c.branding,
+  });
+
+  return sendResendEmail({
+    from: formatResendFromAddress(`${c.unitLabel} - ${c.branding.organizationName}`, c.branding.fromEmail),
+    to: [booking.guest_email],
+    reply_to: c.EMAIL_REPLY_TO,
+    subject: `${c.unitLabel} - Refund sent`,
+    html,
+    errorLabel: 'email',
+  });
+}

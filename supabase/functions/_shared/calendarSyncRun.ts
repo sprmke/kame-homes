@@ -50,6 +50,7 @@ import { resolveGuestFormSettings } from './guestFormSettings.ts';
 import { decryptIntegrationSecret } from './secretsCrypto.ts';
 import { DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME, occupiedStayNights } from './utils.ts';
 import { WorkflowOrchestrator } from './workflowOrchestrator.ts';
+import { buildCancellationPolicySnapshot } from './cancellationPolicy.ts';
 
 export { buildExportCalendar };
 
@@ -1133,6 +1134,12 @@ async function reconcileExternalBookings(
           external_uid: ev.uid,
           external_feed_id: feed.id,
           external_raw: ev.raw,
+          booked_at: new Date().toISOString(),
+          cancellation_policy_snapshot: buildCancellationPolicySnapshot({
+            policy: null,
+            capturedFrom: 'external',
+            externalSource: feed.provider,
+          }),
           primary_guest_name: displayName,
           guest_facebook_name: displayName,
           guest_email: null,
@@ -1279,7 +1286,14 @@ async function reconcileExternalBookings(
       await WorkflowOrchestrator.transition(
         row.id,
         'CANCELLED',
-        {},
+        {
+          cancellation: {
+            initiator: 'ota',
+            reasonCode: 'other',
+            reasonNote: 'Removed from the channel feed.',
+            notifyGuest: false,
+          },
+        },
         {},
         false,
         buildActorContext('cron', { cron: 'calendar-sync-cron' })

@@ -2,7 +2,7 @@
 title: 'Dashboard contextual help (info tooltips, how-it-works panels, stat card definitions)'
 status: in-progress
 tags: [workflow, in-progress, ux, copy, dashboard, help]
-updated: 2026-11-05
+updated: 2026-11-06
 stage: in-progress
 kind: plan
 ---

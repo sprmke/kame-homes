@@ -83,6 +83,8 @@ Parking **Notifications** configures Telegram alerts for this slot. The **Chat**
   A: Reservation Telegram templates are wired for this slot, but some reservation events depend on the parking booking flow shipping. Finance due-date reminders work today when finance Telegram is enabled and transactions have due dates.
 - Q: How do I jump straight to finance reminders?
   A: Open notifications with the finance module selected in the URL, or scroll to the **Finance** card on this page.
+- Q: Can I test a notification section before turning it on?
+  A: Yes. Each section has a **Save and test** action that confirms the bot token and chat ID before alerts start.
 
 ---
 

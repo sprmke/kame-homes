@@ -28,11 +28,11 @@ kind: backlog
 
 ## Pre-release items
 
-- 🔵 Update property settings and photos.
-- 🔵 iCal sync to Airbnb
+- ✅ Update property settings and photos.
+- ✅ iCal sync to Airbnb
   → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
 - 📋 Live identity verification to simplify real identity checks
-  → **Planned:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
+  → **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
 - 🔵 Booking detail: email sent history, quick resend, and view sent email content.
 - 🔵 Cleanup tasks
   - Cleanup unused settings and email templates related to Parking.
@@ -42,13 +42,15 @@ kind: backlog
   - List every third-party service. Add monitoring and alerts for errors, plus cost and limit tracking.
   - Able to sync data from hosting to local. → **Done:** `bun run sync:prod-data` (prod → local only).
 - 📋 AI-supported marketing scheduling and strategy
-  → **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md)
+  → **In progress:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md)
 - 🔵 Refine the archive and delete property flow.
-- 🔵 Refine cancellation policy settings and the overall cancellation process.
+- 🚧 Refine cancellation policy settings and the overall cancellation process.
+  → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 - ✅ On/off dashboard pages, sections, features or buttons from super admin, with a visible reason
   → **Done:** [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) · QA: [`../for-testing/feature-availability-controls.md`](../for-testing/feature-availability-controls.md)
 - 🚧 Improve and refine default amenities and house rules
-- Refine and improve cancellation policy options
+- 🚧 Refine and improve cancellation policy options
+  → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 - Fix issue where google map is not rendering properly on both dashboard and public page
 - ✅ Display warning message if user refresh the page when editing on a page (ex. Settings). Right now, we only display the default browser warning and not our custom popup modal warning
 - ✅ Cleanup usages of "—" on email templates and across the app. If we need to use it, then please ensure that we use the normal "-". But please analyze carefully if it's good UX to use - at all. Then make sure to apply all usages across the entire app that it's still using it. From UI, email templates and other locations that we are using it from our app.

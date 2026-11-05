@@ -7,9 +7,9 @@ import type {
 import { MOCK_HOST_AVATAR_URL } from '@/features/guest/marketing/shared/lib/mockListingImages';
 
 import {
-  DEFAULT_CANCELLATION_POLICY,
+  buildCancellationPreset,
   resolveCancellationPolicyDisplay,
-} from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+} from '@/features/dashboard/org/lib/cancellationPolicy';
 import {
   INITIAL_ENABLED_HOUSE_RULES,
   resolveHouseRulesForDisplay,
@@ -18,7 +18,9 @@ import {
 /** Same default as guest forms / org settings preview */
 export const DEFAULT_ORG_LOGO_URL = '/images/logo.png';
 
-const MOCK_CANCELLATION_POLICY = resolveCancellationPolicyDisplay(DEFAULT_CANCELLATION_POLICY);
+const MOCK_CANCELLATION_POLICY = resolveCancellationPolicyDisplay(
+  buildCancellationPreset('moderate')
+);
 
 const MOCK_HOUSE_RULES = resolveHouseRulesForDisplay({
   enabledIds: INITIAL_ENABLED_HOUSE_RULES,
@@ -61,6 +63,8 @@ export function mapApiPropertyToResolved(dto: PublicPropertyDetailDto): Resolved
     floors: dto.floors,
     houseRules: dto.houseRules,
     cancellationPolicy: dto.cancellationPolicy,
+    cancellationPolicyVersionId: dto.cancellationPolicyVersionId ?? null,
+    cancellationPolicyHash: dto.cancellationPolicyHash,
     checkInTime: dto.checkInTime,
     checkOutTime: dto.checkOutTime,
     selfCheckIn: dto.selfCheckIn,
