@@ -112,11 +112,21 @@ Expect `count = 1` regardless of how many times you called the endpoint.
 
 1. Sign in as an admin, navigate to `/org/:orgSlug/property/:propertySlug/public-pages`.
 2. **Pass:** page title is `"<Property> - Public Pages"`; sidebar shows a **Public Pages** entry (globe icon) between **Templates** and **Settings**, highlighted as active.
-3. **Pass:** five cards — **Property**, **Calendar**, **Form**, **Messages**, **Stay Guide** — each with a visual preview. Tapping a card opens that guest URL in a new tab.
+3. **Pass:** three sections — **Design your pages** (Showcase, Stay Guide, Property), **Share links** (Calendar, Form, Find parking), **Booking links** (Messages, SD Refund, Guest Review) — each with a visual preview. Tapping a preview opens that guest URL in a new tab.
 4. Click **Stay Guide** → opens `/properties/:slug/stay-guide?preview=1&property_id=...` in a new tab.
 5. **Permission check:** as a property member whose custom role has `templates:view` unchecked, navigate directly to `/public-pages`. **Pass:** redirected to the first section that member _can_ view (or an access-denied screen) — no crash, no blank page.
 6. Resize to 375px. **Pass:** teal hero band + title, cards stack full-width, bottom tab bar shows **More** (Public Pages is reachable from there since it isn't one of the pinned mobile tabs).
 7. Open `/custom-pages` on the same property. **Pass:** redirects to `/public-pages`.
+
+### Copy links
+
+1. Tap **Copy links** (icon in the phone hero, button on desktop). **Pass:** Calendar, Form, and Find parking appear; no booking-only links appear.
+2. Copy **Find parking**. **Pass:** the clipboard holds `/parkings`, and pasting it in a new tab opens the marketplace with no missing-booking error.
+3. On the **Calendar** card choose **Copy link**, pick a check-in and check-out, then **Copy link**. **Pass:** the pasted link includes both dates, and opening it shows the calendar with that range selected.
+4. Choose **Without dates** on the calendar picker. **Pass:** the pasted link has no date params and the calendar opens empty.
+5. On **Messages** choose **Copy link**, pick a range, copy. **Pass:** the pasted link includes both dates and opening it keeps the chat dates.
+6. On **SD Refund** choose **Copy link**. **Pass:** the sheet lists stays from check-out onward with status and check-in date; copy one and open it — the refund form loads for that stay. With no eligible stay, the empty state shows.
+7. Repeat for **Guest Review**. **Pass:** same picker and per-stay copy.
 
 ---
 

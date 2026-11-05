@@ -324,6 +324,47 @@ static_files = [
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
 
+[functions.guest-cancel-booking]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.guest-cancellation-request]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.submit-guest-refund-details]
+verify_jwt = false
+
+[functions.respond-cancellation-request]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.record-booking-refund]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+  "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
+]
+
+[functions.cancellation-policy-impact]
+verify_jwt = false
+
+[functions.cancellation-refund-cron]
+verify_jwt = false
+
 [functions.parking-broadcast-email]
 verify_jwt = false
 static_files = [
@@ -750,6 +791,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.list-public-pricing-plans]
+verify_jwt = false
+
+[functions.list-public-support-faqs]
 verify_jwt = false
 
 [functions.property-templates-settings]

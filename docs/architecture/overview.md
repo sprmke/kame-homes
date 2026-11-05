@@ -197,6 +197,8 @@ Entry: `ui/src/main.tsx` → `App.tsx` → `ui/src/routes/index.tsx` merges `gue
 | Host Analytics        | Occupancy / ADR bundle, AI review                                                                                                                                                                                                                                                                                                                                                | view free; `analyticsInsights` on export / AI generate                             |
 | PWA                   | Install offer, `/app` launch resolver, tiered precache, offline read + drafts, inbox/notification outbox, Web Push with per-user badge                                                                                                                                                                                                                                           | deepest on host dashboard                                                          |
 
+**Support content is docs-driven.** `docs/guides/routes/**` Host-facing knowledge feeds `ai_dashboard_assistant_knowledge_base` (Help Center Guides + AI assistant). `docs/guides/support/faqs.md` feeds `help_center_faqs` (`origin = 'synced'`), which powers the Help Center FAQs tab, guest `/account/help`, and public `/support` through `list-public-support-faqs`. `bun run sync:support-content` writes both; the `Sync support content` workflow runs it on `develop` for docs changes. `origin = 'manual'` FAQs stay super-admin authored and are never touched by the sync.
+
 **Billing is org-level only** (`org_subscriptions`). A property left out of enrollment resolves to Free. Plans UI: `/org/:orgSlug/plans`. Matrix: [`plans-feature-matrix.md`](plans-feature-matrix.md).
 
 ---
@@ -273,6 +275,8 @@ flowchart LR
 **Parking marketplace** is a separate graph: `PENDING_HOST_ACCEPTANCE` → claim → `PENDING_PAYMENT` → PayMongo paid → `PENDING_REVIEW`. Timeouts return to search or `NO_HOST_AVAILABLE`. First-accept-wins is a guarded `UPDATE` on status.
 
 Canonical spec: `.cursor/rules/booking-workflow.mdc`. Host walkthrough: [`booking-flow-guide-for-admin.md`](../archive/reference/booking-flow-guide-for-admin.md).
+
+**Cancellation.** Every booking carries an immutable `cancellation_policy_snapshot` captured at booking time. Guests cancel (instant policies) or request to cancel (request-mode / custom / unset policies) from `/properties/:slug/trip`; hosts approve or decline, and can cancel with a reason and a refund preview. The refund is computed from the snapshot in Asia/Manila time, capped at cash actually paid, and tracked in `booking_refunds` until the host marks it sent. Guest and host cancellation emails are orchestrator side effects. Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
 
 ---
 

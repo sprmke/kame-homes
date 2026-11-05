@@ -39,6 +39,10 @@ import {
 } from '../_shared/guestBookingAccessToken.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
+import {
+  captureSnapshotForBooking,
+  PolicyChangedError,
+} from '../_shared/cancellationService.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -295,6 +299,31 @@ serve(async (req) => {
 
     const isNewGuestSubmission = isSaveToDatabaseEnabled && !!bookingId && !existingData;
 
+    /**
+     * Cancellation policy snapshot — captured before the write so a host edit
+     * mid-checkout fails closed with `409 policy_changed`. Only new bookings get
+     * a snapshot; guest edits keep the one they booked with.
+     */
+    let cancellationSnapshot = null as Awaited<ReturnType<typeof captureSnapshotForBooking>> | null;
+    let cancellationAcceptedAt: string | null = null;
+    if (isSaveToDatabaseEnabled && propertyId && !existingData) {
+      const clientVersionId = formData.get('cancellationPolicyVersionId');
+      const clientHash = formData.get('cancellationPolicyHash');
+      const accepted = formData.get('cancellationPolicyAccepted') === 'true';
+      cancellationSnapshot = await captureSnapshotForBooking({
+        propertyId,
+        capturedFrom: 'guest_form',
+        clientVersionId: typeof clientVersionId === 'string' ? clientVersionId : undefined,
+        clientHash: typeof clientHash === 'string' ? clientHash : undefined,
+      });
+      if (cancellationSnapshot.policy && !accepted) {
+        throw new Error(
+          'CANCELLATION_POLICY_NOT_ACCEPTED: Tick the cancellation policy agreement to continue.'
+        );
+      }
+      cancellationAcceptedAt = accepted ? new Date().toISOString() : null;
+    }
+
     const guestUser = await tryGetAuthenticatedUser(req);
 
     const appliedVoucherSourceBookingId = (
@@ -366,6 +395,29 @@ serve(async (req) => {
         } else {
           throw voucherErr;
         }
+      }
+    }
+
+    if (cancellationSnapshot && submissionData?.id) {
+      try {
+        const sb = createServiceClient();
+        const { error: snapshotError } = await sb
+          .from('guest_submissions')
+          .update({
+            cancellation_policy_snapshot: cancellationSnapshot,
+            cancellation_policy_accepted_at: cancellationAcceptedAt,
+            booked_at: new Date().toISOString(),
+          })
+          .eq('id', String(submissionData.id))
+          .is('cancellation_policy_snapshot', null);
+        if (snapshotError) {
+          console.error('[submit-form] cancellation snapshot write failed:', snapshotError);
+        } else {
+          (submissionData as Record<string, unknown>).cancellation_policy_snapshot =
+            cancellationSnapshot;
+        }
+      } catch (snapshotErr) {
+        console.error('[submit-form] cancellation snapshot write failed (non-fatal):', snapshotErr);
       }
     }
 
@@ -535,6 +587,36 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error processing form submission:', error);
+
+    if (error instanceof PolicyChangedError) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'policy_changed',
+          message: error.message,
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith('CANCELLATION_POLICY_NOT_ACCEPTED:')) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'cancellation_policy_not_accepted',
+          message: message.split(':').slice(1).join(':').trim(),
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     await capturePostHogEvent('guest_form_rejected', {
       logPrefix: 'submit-form',
       request: req,
@@ -548,7 +630,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 400,

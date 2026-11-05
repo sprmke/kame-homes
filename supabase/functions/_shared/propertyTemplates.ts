@@ -21,7 +21,11 @@ export type PropertyTemplateKey =
   | 'email-new-booking-request'
   | 'email-booking-acknowledgement'
   | 'email-ready-for-checkin'
-  | 'email-sd-refund-form-request';
+  | 'email-sd-refund-form-request'
+  | 'email-booking-cancelled-guest'
+  | 'email-booking-cancelled-host'
+  | 'email-cancellation-request-guest'
+  | 'email-refund-sent-guest';
 
 export type PropertyTemplateDefinition = {
   key: PropertyTemplateKey;
@@ -243,6 +247,48 @@ const BUILTIN_TEMPLATES: PropertyTemplateDefinition[] = [
 <p>Thank you for staying with us! We hope you had a wonderful stay! Please follow the check-out instructions below. After that, please open and fill out the SD refund form so that we can process your refund.</p>
 <p>{{sd_refund_checklist_section}}</p>
 <p>{{sd_refund_details_section}}</p>`,
+  },
+  {
+    key: 'email-booking-cancelled-guest',
+    label: 'Booking Cancelled (Guest)',
+    description: 'Guest email when a booking is cancelled.',
+    category: 'email',
+    defaultContent: `<p>Hi <strong>{{guest_facebook_name}}</strong>,</p>
+<p>{{cancellation_intro}}</p>
+<p>This is for your stay at <strong>{{tower_and_unit_number}}</strong> from <strong>{{check_in_date}}</strong> to <strong>{{check_out_date}}</strong>.</p>
+<p>{{cancellation_detail_section}}</p>
+<p>You can see the latest status any time from your trip page.</p>
+<p>{{email_signature_section}}</p>`,
+  },
+  {
+    key: 'email-booking-cancelled-host',
+    label: 'Booking Cancelled (Host)',
+    description: 'Host email when a guest cancels or asks to cancel.',
+    category: 'email',
+    defaultContent: `<p>Hello,</p>
+<p>A booking was cancelled.</p>
+<p>{{cancellation_detail_section}}</p>
+<p>{{email_signature_section}}</p>`,
+  },
+  {
+    key: 'email-cancellation-request-guest',
+    label: 'Cancellation Request (Guest)',
+    description: 'Guest email for a cancellation request received, approved or declined.',
+    category: 'email',
+    defaultContent: `<p>Hi <strong>{{guest_facebook_name}}</strong>,</p>
+<p><strong>{{cancellation_request_title}}</strong></p>
+<p>{{cancellation_detail_section}}</p>
+<p>{{email_signature_section}}</p>`,
+  },
+  {
+    key: 'email-refund-sent-guest',
+    label: 'Refund Sent (Guest)',
+    description: 'Guest email when the host marks a refund as sent.',
+    category: 'email',
+    defaultContent: `<p>Hi <strong>{{guest_facebook_name}}</strong>,</p>
+<p>Your refund has been sent.</p>
+<p>{{cancellation_detail_section}}</p>
+<p>{{email_signature_section}}</p>`,
   },
 ];
 

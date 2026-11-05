@@ -4,7 +4,7 @@ import {
   syncLegacyPaymentFieldsFromMethods,
   type PropertyPaymentMethod,
 } from '@/features/dashboard/org/lib/paymentMethods';
-import { cancellationPolicySettingsEqual } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import { cancellationPolicyEqual } from '@/features/dashboard/org/lib/cancellationPolicy';
 import {
   automationTogglesEqual,
   type PropertyAutomationToggles,
@@ -217,7 +217,7 @@ export function propertySettingsSectionDirty(
         profileDraft.cleaningBufferMinutes !== profileBaseline.cleaningBufferMinutes
       );
     case 'cancellation':
-      return !cancellationPolicySettingsEqual(
+      return !cancellationPolicyEqual(
         profileDraft.cancellationPolicy,
         profileBaseline.cancellationPolicy
       );
@@ -400,16 +400,8 @@ function dirtyFieldIdsInSection(
     case 'cancellation': {
       const draftPolicy = profileDraft.cancellationPolicy;
       const baselinePolicy = profileBaseline.cancellationPolicy;
-      if (!cancellationPolicySettingsEqual(draftPolicy, baselinePolicy)) {
+      if (!cancellationPolicyEqual(draftPolicy, baselinePolicy)) {
         ids.push('cancellation-policy');
-        if (draftPolicy.type === 'custom') {
-          if ((draftPolicy.customTitle ?? '') !== (baselinePolicy.customTitle ?? '')) {
-            ids.push('cancellation-custom-title');
-          }
-          if ((draftPolicy.customDescription ?? '') !== (baselinePolicy.customDescription ?? '')) {
-            ids.push('cancellation-custom-description');
-          }
-        }
       }
       break;
     }

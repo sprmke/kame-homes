@@ -22,6 +22,15 @@ import {
   isStayGuideEligibleStatus,
   propertyHasStayGuideAccess,
 } from './guestStayGuide.ts';
+import {
+  buildGuestCancellationPayload,
+  computeOutcomeForBooking,
+  ensureBookingSnapshot,
+  ensureCancellationRefund,
+  loadBookingRefund,
+  loadOpenCancellationRequest,
+  loadPropertyCancellationContext,
+} from './cancellationService.ts';
 import { createServiceClient } from './orgAuth.ts';
 import { resolveGuestParkingCtaAbsoluteUrl } from './ownerDefaultParking.ts';
 import { normalizePropertyMediaItems } from './propertyMedia.ts';
@@ -109,6 +118,8 @@ export type GuestTripDetailDto = {
     amount: number | null;
     settledAt: string | null;
   };
+  /** Cancellation snapshot, deadlines, refund preview and any open request. */
+  cancellation: ReturnType<typeof buildGuestCancellationPayload>;
   documents: GuestTripDocumentDto[];
   actions: {
     canEditBooking: boolean;
@@ -285,6 +296,10 @@ export async function buildGuestTripPayload(input: {
     reviewWindow,
     guestReviewRow,
     hostReviewRow,
+    cancellationContext,
+    cancellationSnapshot,
+    openCancellationRequest,
+    bookingRefund,
   ] = await Promise.all([
     loadGuestFacingContactInfo(propertyId, settings),
     loadLinkedParking(bookingId),
@@ -296,6 +311,10 @@ export async function buildGuestTripPayload(input: {
     cancelled ? Promise.resolve(null) : getReviewWindow(bookingId),
     getGuestReviewRow(bookingId),
     getHostGuestReviewRow(bookingId),
+    loadPropertyCancellationContext(propertyId),
+    ensureBookingSnapshot(row),
+    loadOpenCancellationRequest(bookingId),
+    loadBookingRefund(bookingId),
   ]);
 
   const needParking = row.need_parking === true;
@@ -339,6 +358,18 @@ export async function buildGuestTripPayload(input: {
     normalizeBookingDateToYmd(str(row.check_out_date)) ?? str(row.check_out_date);
 
   const voucherCode = str(row.next_stay_voucher_code);
+
+  const cancellationOutcome = computeOutcomeForBooking({
+    booking: row,
+    policy: cancellationSnapshot?.policy ?? cancellationContext.policy,
+    checkInTime: cancellationContext.checkInTime,
+    initiator: 'guest',
+    cancelledAt: str(row.cancelled_at) || undefined,
+  });
+  const resolvedRefund =
+    cancelled && !bookingRefund
+      ? await ensureCancellationRefund({ booking: row, outcome: cancellationOutcome })
+      : bookingRefund;
 
   return {
     bookingId,
@@ -388,6 +419,14 @@ export async function buildGuestTripPayload(input: {
       amount: numOrNull(row.sd_refund_amount),
       settledAt: str(row.settled_at) || null,
     },
+    cancellation: buildGuestCancellationPayload({
+      booking: row,
+      snapshot: cancellationSnapshot,
+      outcome: cancellationOutcome,
+      openRequest: openCancellationRequest,
+      refund: resolvedRefund,
+      checkInTime: cancellationContext.checkInTime,
+    }),
     documents,
     actions: {
       canEditBooking: canGuestPublicUpdateForm(status),

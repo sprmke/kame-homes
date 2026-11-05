@@ -48,6 +48,7 @@ Per-page documentation mirrors the app routes. Each guide tracks **behavior**, *
 | `/org/:orgSlug/property/:propertySlug/notifications`                                                              | [org/property/notifications.md](./org/property/notifications.md)     | Documented                                                                                               |
 | `/org/:orgSlug/property/:propertySlug/templates`                                                                  | [org/property/templates.md](./org/property/templates.md)             | Documented — UI + DB + workflow email sends                                                              |
 | `/org/:orgSlug/property/:propertySlug/public-pages`                                                               | [org/property/public-pages.md](./org/property/public-pages.md)       | Documented — guest public page gallery                                                                   |
+| `/org/:orgSlug/property/:propertySlug/public-pages/:pageId/edit`                                                  | [org/property/public-pages.md](./org/property/public-pages.md)       | Documented — Page Editor (autosave on Pro+)                                                              |
 | `/org/:orgSlug/property/:propertySlug/custom-pages`                                                               | [org/property/custom-pages.md](./org/property/custom-pages.md)       | Redirect → `/public-pages`                                                                               |
 | `/org/:orgSlug/property/:propertySlug/team`                                                                       | [org/property/team.md](./org/property/team.md)                       | Documented — property team v1                                                                            |
 | `/org/:orgSlug/property/:propertySlug/activity`                                                                   | [org/property/activity.md](./org/property/activity.md)               | Redirect → property `settings?open=activity` (modal); primary entry is Settings → Activity → Manage      |
@@ -87,7 +88,9 @@ Platform-level control panel, distinct from org/property admin and the legacy `A
 | `/admin/orgs`                                    | [admin/orgs.md](./admin/orgs.md)                                 | Documented — organization directory                                                          |
 | `/admin/orgs/:orgSlug`                           | [admin/orgs.md](./admin/orgs.md)                                 | Documented — organization hub (Overview/Subscription/Listings/Approvals/AI/Support/Settings) |
 | `/admin/orgs/:orgSlug/properties`                | [admin/orgs.md](./admin/orgs.md)                                 | Redirects to `…/listings`                                                                    |
-| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor                                                                      |
+| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor, synced rows read-only                                               |
+| `/admin/health`                                  | [admin/health.md](./admin/health.md)                             | Documented — config health / env audit                                                       |
+| `/admin/rate-limits`                             | —                                                                | No dedicated guide — super-admin rate-limit defaults (platform settings)                     |
 | `/admin/playbook`                                | [admin/playbook.md](./admin/playbook.md)                         | Documented — Host Analytics Improvement Playbook article editor                              |
 | `/admin/announcements`                           | [admin/announcements.md](./admin/announcements.md)               | Documented — platform-wide host notices (Announcements page)                                 |
 | `/admin/ai`                                      | [admin/ai.md](./admin/ai.md)                                     | Documented — AI console: Usage, Limits, Profiles, Wallets, Controls                          |
@@ -102,7 +105,6 @@ Platform-level control panel, distinct from org/property admin and the legacy `A
 | `/admin/pricing/payment-settings`                | [admin/payment-settings.md](./admin/payment-settings.md)         | Documented — PayMongo dunning config                                                         |
 | `/admin/parking/payouts`                         | [admin/parking-payouts.md](./admin/parking-payouts.md)           | Documented — commission/guest rate config + manual payout ledger                             |
 | `/admin/support`                                 | [admin/support.md](./admin/support.md)                           | Documented — ticket triage (table/card)                                                      |
-| `/admin/support/faqs`                            | [admin/support.md](./admin/support.md)                           | Documented — FAQ editor (first-class nav)                                                    |
 
 ## App shell
 
@@ -114,27 +116,29 @@ Platform-level control panel, distinct from org/property admin and the legacy `A
 
 ### Marketing site (PMA port — Phase 1 UI, mock data)
 
-| Route                                                                                                            | Guide                                          | Status                                                                                  |
-| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `/` · `/explore-preview`                                                                                         | [index-landing.md](./index-landing.md)         | Documented — UI only; `/explore-preview` holds a redesign pending swap                  |
-| `/for-hosts` · `/for-hosts/pricing` · `/for-hosts/v2` · `/for-hosts/v3`                                          | [for-hosts.md](./for-hosts.md)                 | Documented — UI only; `/for-hosts/v2` and `/for-hosts/v3` hold redesigns pending review |
-| `/services`                                                                                                      | [services.md](./services.md)                   | Documented — UI-only coming soon                                                        |
-| `/search`                                                                                                        | [search.md](./search.md)                       | Documented — live typeahead + availability results                                      |
-| `/properties` · `/properties/in/:location` · `/properties/:propertySlug`                                         | [properties.md](./properties.md)               | Documented — UI only                                                                    |
-| `/hosts/:orgSlug`                                                                                                | [properties.md](./properties.md)               | Documented — public host profile                                                        |
-| `/parkings` · `/parkings/in/:location` · `/parkings/:parkingSlug` · `…/form` · `/parkings/requests/:bookingId`   | [parkings.md](./parkings.md)                   | Documented — list/detail live API; form + request status live                           |
-| `/developments` · `/developments/in/:location` · `/developments/:slug` · `…/properties` · `…/parking/*`          | [developments.md](./developments.md)           | Documented — UI only                                                                    |
-| `/about` · `/contact` · `/support` · `/terms` · `/privacy` · `/cookies`                                          | [legal.md](./legal.md)                         | Documented — static company + legal pages                                               |
-| `/for-hosts/login` · `/for-hosts/register` · `/for-guests/login` · `/for-guests/register` · guest checkout modal | [auth.md](./auth.md)                           | Documented                                                                              |
-| `/account`                                                                                                       | [account/index.md](./account/index.md)         | Documented — redirect to `/account/profile`                                             |
-| `/account/profile` · `/account/settings` (hidden, redirects)                                                     | [account/profile.md](./account/profile.md)     | Documented                                                                              |
-| `/account/trips`                                                                                                 | [account/trips.md](./account/trips.md)         | Documented — booking list → trip page                                                   |
-| `/account/stays` (legacy `/account/messages` redirects here)                                                     | [account/stays.md](./account/stays.md)         | Documented — stay messaging hub                                                         |
-| `/account/vouchers`                                                                                              | [account/vouchers.md](./account/vouchers.md)   | Documented — next-stay voucher wallet                                                   |
-| `/account/favorites` (legacy `/account/wishlist` redirects here)                                                 | [account/favorites.md](./account/favorites.md) | Documented                                                                              |
-| `/account/tickets` · `/account/tickets/new` · `/account/tickets/:ticketId`                                       | [account/tickets.md](./account/tickets.md)     | Documented — explore guest tickets                                                      |
-| `/account/messages`                                                                                              | [account/messages.md](./account/messages.md)   | Redirect → `/account/stays`                                                             |
-| `/account/wishlist`                                                                                              | [account/wishlist.md](./account/wishlist.md)   | Redirect → `/account/favorites`                                                         |
+| Route                                                                                                            | Guide                                          | Status                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/` · `/explore-preview`                                                                                         | [index-landing.md](./index-landing.md)         | Documented — UI only; `/explore-preview` holds a redesign pending swap                         |
+| `/for-hosts` · `/for-hosts/pricing` · `/for-hosts/v2` · `/for-hosts/v3`                                          | [for-hosts.md](./for-hosts.md)                 | Documented — UI only; `/v2` and `/v3` hold redesigns pending review                            |
+| `/for-hosts/preview`                                                                                             | —                                              | No dedicated guide — internal preview alias for the v3 landing                                 |
+| `/services`                                                                                                      | [services.md](./services.md)                   | Documented — UI-only coming soon                                                               |
+| `/search`                                                                                                        | [search.md](./search.md)                       | Documented — live typeahead + availability results                                             |
+| `/properties` · `/properties/in/:location` · `/properties/:propertySlug`                                         | [properties.md](./properties.md)               | Documented — UI only                                                                           |
+| `/hosts/:orgSlug`                                                                                                | [properties.md](./properties.md)               | Documented — public host profile                                                               |
+| `/parkings` · `/parkings/in/:location` · `/parkings/:parkingSlug` · `…/form` · `/parkings/requests/:bookingId`   | [parkings.md](./parkings.md)                   | Documented — list/detail live API; form + request status live                                  |
+| `/developments` · `/developments/in/:location` · `/developments/:slug` · `…/properties` · `…/parking/*`          | [developments.md](./developments.md)           | Documented — UI only                                                                           |
+| `/about` · `/contact` · `/support` · `/terms` · `/privacy` · `/cookies`                                          | [legal.md](./legal.md)                         | Documented — static company + legal pages; `/support` renders published FAQs (static fallback) |
+| `/for-hosts/login` · `/for-hosts/register` · `/for-guests/login` · `/for-guests/register` · guest checkout modal | [auth.md](./auth.md)                           | Documented                                                                                     |
+| `/account`                                                                                                       | [account/index.md](./account/index.md)         | Documented — redirect to `/account/profile`                                                    |
+| `/account/profile` · `/account/settings` (hidden, redirects)                                                     | [account/profile.md](./account/profile.md)     | Documented                                                                                     |
+| `/account/trips`                                                                                                 | [account/trips.md](./account/trips.md)         | Documented — booking list → trip page                                                          |
+| `/account/stays` (legacy `/account/messages` redirects here)                                                     | [account/stays.md](./account/stays.md)         | Documented — stay messaging hub                                                                |
+| `/account/vouchers`                                                                                              | [account/vouchers.md](./account/vouchers.md)   | Documented — next-stay voucher wallet                                                          |
+| `/account/favorites` (legacy `/account/wishlist` redirects here)                                                 | [account/favorites.md](./account/favorites.md) | Documented                                                                                     |
+| `/account/tickets` · `/account/tickets/new` · `/account/tickets/:ticketId`                                       | [account/tickets.md](./account/tickets.md)     | Documented — explore guest tickets                                                             |
+| `/account/help`                                                                                                  | [account/help.md](./account/help.md)           | Documented — guest FAQ help from `list-public-support-faqs`                                    |
+| `/account/messages`                                                                                              | [account/messages.md](./account/messages.md)   | Redirect → `/account/stays`                                                                    |
+| `/account/wishlist`                                                                                              | [account/wishlist.md](./account/wishlist.md)   | Redirect → `/account/favorites`                                                                |
 
 ### Operational guest flows (property-scoped)
 
@@ -169,49 +173,83 @@ Old global paths redirect when **`?property=<slug>`** is present; otherwise gues
 
 Flat admin paths (`/bookings`, `/settings`, etc.) still redirect via **`LegacyAdminRedirect`** to **`/org/:orgSlug/property/:propertySlug/...`** — see nested route guides above.
 
+## Support content
+
+| Source                                              | Feeds                                                                             |
+| --------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `docs/guides/routes/**` Host-facing knowledge       | Help Center **Guides** tab + AI assistant                                         |
+| [`docs/guides/support/faqs.md`](../support/faqs.md) | Help Center **FAQs** tab, guest `/account/help`, public `/support`, AI FAQ search |
+
+`support-content` skill · `.cursor/rules/support-content.mdc` · sync: `bun run sync:support-content` · checks: `bun run check:support-content`, `bun run check:ai-knowledge-coverage`.
+
 ## Folder layout
 
 ```
-docs/guides/routes/
-  README.md                 ← this index
-  index-landing.md          ← /
-  for-hosts.md
-  services.md
-  properties.md
-  developments.md
-  legal.md
-  sign-in.md
-  onboarding.md
-  accept-invite.md
-  calendar.md
-  form.md
-  success.md
-  trip.md
-  sd-form.md
-  stay-guide.md
-  guest-booking-document.md
-  account/
-    index.md
-    profile.md
-    stays.md
-    trips.md
-    wishlist.md
-    messages.md
-  org/
-    ...
-  admin/
-    overview.md
+docs/guides/
+  routes/
+    README.md                 ← this index
+    index-landing.md          ← /
+    for-hosts.md
+    services.md
+    properties.md
+    properties/
+      chat.md
     developments.md
-    development-detail.md
-    approvals.md
-    hosts.md
-    platform-properties.md
-    org-properties.md
-    host-detail/
+    legal.md
+    sign-in.md
+    onboarding.md
+    accept-invite.md
+    app.md
+    calendar.md
+    form.md
+    success.md
+    trip.md
+    sd-form.md
+    stay-guide.md
+    property-showcase.md
+    guest-booking-document.md
+    search.md
+    parkings.md
+    account/
+      index.md
+      profile.md
+      stays.md
+      trips.md
+      reviews.md
+      vouchers.md
+      favorites.md
+      tickets.md
+      help.md
+      wishlist.md
+      messages.md
+    org/
+      ... (org hub + property/ + parking/)
+    admin/
+      overview.md
+      health.md
+      developments.md
+      development-detail.md
+      approvals.md
+      hosts.md
+      host-detail.md
+      platform-properties.md
+      org-properties.md
       orgs.md
-      properties.md
-  bookings/
-    parking.md
+      support.md
+      playbook.md
+      announcements.md
+      ai.md
+      settings.md
+      platform-tools.md
+      feature-availability.md
+      pricing-plans.md
+      org-subscriptions.md
+      payment-settings.md
+      parking-payouts.md
+    bookings/
+      parking.md
+  support/
+    faqs.md                   ← curated cross-cutting FAQ source
 ```
 
 When adding a guide, place it under the same path segments as the route (omit dynamic params like `:orgSlug`).

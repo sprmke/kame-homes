@@ -1,6 +1,7 @@
 import {
   Gift,
   Heart,
+  HelpCircle,
   Luggage,
   MessageSquare,
   Star,
@@ -11,6 +12,7 @@ import {
 
 import {
   GUEST_ACCOUNT_FAVORITES_PATH,
+  GUEST_ACCOUNT_HELP_PATH,
   GUEST_ACCOUNT_PROFILE_PATH,
   GUEST_ACCOUNT_REVIEWS_PATH,
   GUEST_ACCOUNT_STAYS_PATH,
@@ -61,6 +63,11 @@ export const GUEST_ACCOUNT_NAV_ITEMS: GuestAccountNavItem[] = [
     href: GUEST_ACCOUNT_TICKETS_PATH,
     label: 'Tickets',
     Icon: Ticket,
+  },
+  {
+    href: GUEST_ACCOUNT_HELP_PATH,
+    label: 'Help',
+    Icon: HelpCircle,
   },
 ];
 

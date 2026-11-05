@@ -40,7 +40,7 @@ Charts, calendars, KPIs, timelines, and comparisons are **hydrated server-side**
 
 New host-visible data surfaces should get a read tool **or** knowledge-base coverage so the assistant can answer without inventing facts.
 
-**Knowledge coverage:** Documented route guides under `docs/guides/routes/` (except `admin/**`) must have a Host-facing knowledge section with at least 3 Q&A rows. `bun run check:ai-knowledge-coverage` (wired into `ci:quality` / CI) fails otherwise, and also fails if a previously synced guide would drop from `bun run sync:ai-knowledge-base`.
+**Knowledge coverage:** Documented route guides under `docs/guides/routes/` (except `admin/**`) must have a Host-facing knowledge section with at least 5 Q&A rows on major module pages and 3 on the rest. `bun run check:ai-knowledge-coverage` (wired into `ci:quality` / CI) fails otherwise, and also fails if a previously synced guide would drop from `bun run sync:support-content`.
 
 ## Related
 

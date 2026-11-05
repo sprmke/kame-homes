@@ -41,6 +41,8 @@ export type HelpCenterFaq = {
   sort_order: number;
   /** Route guide path used to scope common FAQs to org / property / parking. */
   source_route_guide_path?: string | null;
+  /** Host, guest, or public. Public answers appear on both host and guest surfaces. */
+  audience?: 'host' | 'guest' | 'public' | null;
 };
 
 export function fetchHelpCenterFaqs(): Promise<{ faqs: HelpCenterFaq[] }> {

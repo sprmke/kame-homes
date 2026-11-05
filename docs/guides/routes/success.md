@@ -38,6 +38,8 @@ After a guest submits their booking form, they land on a confirmation screen rec
   A: That's expected. The summary only shows right after submitting, so refreshing (or opening the link fresh) still confirms the booking was received, just without the detailed recap. The guest doesn't need to resubmit.
 - Q: Does this page mean the booking is approved?
   A: No, it only means the request was received and is now awaiting review. Approval and the GAF process happen afterward.
+- Q: What should the guest do after submitting?
+  A: Keep the booking ID and watch for the acknowledgment email. Do not submit the form again. If something needs to change, reply to the host in the same conversation they used.
 
 ---
 

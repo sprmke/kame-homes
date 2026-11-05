@@ -111,6 +111,8 @@ export type BookingRow = {
   // ── Status & workflow ─────────────────────────────────────────────────────
   status: BookingStatus | string; // defensive against unknown values in the wild
   status_updated_at?: string | null;
+  /** Set while a guest cancellation request is open; cleared on resolve. */
+  cancellation_requested_at?: string | null;
 
   // Phase 0 additive columns — may be absent on prod until migration applied.
   booking_rate?: number | string | null;

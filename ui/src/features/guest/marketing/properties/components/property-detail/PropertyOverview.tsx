@@ -19,7 +19,7 @@ import { ListingRecommendedBadge } from '@/features/guest/marketing/shared/compo
 import { ListingStatItem } from '@/features/guest/marketing/shared/components/ListingStatItem';
 import { buildPropertyPlacementLabels } from '@/features/guest/marketing/shared/lib/listingPlacement';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
 
 interface PropertyOverviewProps {
   name: string;

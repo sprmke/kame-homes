@@ -24,6 +24,33 @@ See **`.cursor/rules/ai-usage.mdc`** (always-on in Cursor; follow here too):
 - Prefer `/effort medium` for routine chores; reserve high effort + thinking for hard judgment.
 - Heavy rules (`booking-workflow`, `admin-auth`) are **not** always injected — **read them when the task touches those surfaces**.
 
+## Reporting format
+
+Every **summary, progress update, investigation answer, and question** uses one shape, regardless of model. This mirrors the always-on Cursor rule `.cursor/rules/agent-reporting.mdc`, which Claude Code cannot auto-load, so this section is the equivalent always-loaded copy and must be kept in sync with that file. Full spec and real examples: skill **`agent-reporting`**. OpenCode is exempt (its output is the reference) — never add this to `opencode.json` or `AGENTS.md`.
+
+```
+<one-line outcome>
+
+## <Section>
+<tight bullets, table, or 1-2 sentences>
+
+## Verification
+<gates actually run, with results>
+
+<one closing question or single next action>
+```
+
+- **Line 1** is a plain sentence saying what happened. No heading, no preamble. The PR link or URL goes here.
+- **Max 5 `##` sections**, titles of 1 to 3 words, one-line bullets, one nesting level. Drop empty sections.
+- **Pick one report type, don't blend:** Implementation (What changed · Verification · Docs · Notes) · Investigation (Short answer · What is happening · Options · Recommendation) · Deploy (Shipped · Verification · Cleanup) · Blocked (What works · What is blocked · Next step) · mid-task (1 to 2 lines, no sections).
+- **Status words only:** `pass` · `fail` · `skipped` · `not run` · `blocked` · `N/A — <why>`. Never claim a gate you did not run.
+- **Always state what you did not do:** uncommitted files and why, skipped gates, pre-existing failures, anything needing **`kamewave`**, and `Plans/RBAC: N/A` / `activity-log: N/A` when they do not apply.
+- **Emphasis is the color:** `**bold**` for the one thing that matters per bullet; `` `code` `` for paths, commands, identifiers, statuses, branches. Tables for before/after and gate/result.
+- **Questions:** one decision per message, last in the message, recommended option first and labeled `(recommended)`.
+- **Banned:** opening heading, `## Summary` / `## Overview` / `## Conclusion`, preamble ("I've completed", "Great!"), em dash, decorative emoji or ✅/❌ as status, numbered mega-outlines, "Let me know if you need anything else", narrating tool calls, apologies and self-criticism, claiming done when a gate failed.
+
+Target under ~150 words for a small change, ~400 for a module. Longer means you are describing your process instead of the result.
+
 ## Commands
 
 ```bash
@@ -150,7 +177,9 @@ Whenever you implement or materially change behavior (features, routes, validati
 3. If any UI in `ui/src/**` changed → invoke **`mobile-responsive`** skill (native mobile gate: bottom sheets, bottom nav, density).
    3a. If the change adds or edits any form, settings card, editor, or modal with editable fields and a manual Save → invoke **`unsaved-changes-guard`**: wire `useUnsavedChangesGuard` (pages/cards) or `useGuardedClose` (modals) so leaving with unsaved edits prompts Save / Discard / Keep editing. Never hand-roll `beforeunload`/`useBlocker`/leave dialogs.
 4. If the change mutates org / property / parking state (edge write, workflow transition, cron, webhook, direct-write surface, or a guest/public action worth recording) → invoke **`audit-logging`**: emit an `activity_log` event or write `activity-log: N/A — <why>`.
-5. Confirm the matching files below were updated, or explicitly note why the change is docs-exempt (typo / rename-only).
+5. If the change alters what a host or guest sees or can do → invoke **`support-content`**: update Host-facing knowledge Q&A and `docs/guides/support/faqs.md`, then run `check:support-content` + `check:ai-knowledge-coverage`.
+6. Confirm the matching files below were updated, or explicitly note why the change is docs-exempt (typo / rename-only).
+7. Write the final summary in the **§ Reporting format** shape (skill **`agent-reporting`**): outcome line, max 5 short sections, real verification results, what you did not do, one closing question.
 
 SessionStart and PostToolUse hooks also inject this reminder — do not ignore them.
 
@@ -163,6 +192,7 @@ SessionStart and PostToolUse hooks also inject this reminder — do not ignore t
 | **Pricing plans / tier catalog / `planPresentation` / entitlements**                               | **`/for-hosts/pricing`** (live via `list-public-pricing-plans` + shared `planPresentation.ts`) **and** **`docs/architecture/plans-feature-matrix.md`** + host Plans route guides (`org/plans.md` — the only in-app Plans page, billing is org-level only; `for-hosts.md`)                                                       |
 | **New host feature (Plans and/or Team RBAC)**                                                      | **`plans-and-permissions`** skill + always-on **`.cursor/rules/plans-and-permissions.mdc`** — decide both or mark N/A in the same change                                                                                                                                                                                        |
 | **New / changed mutating capability (edge write, transition, cron, webhook, guest/public action)** | **`audit-logging`** skill + always-on **`.cursor/rules/audit-logging.mdc`** — emit an `activity_log` event via `_shared/activityLog.ts`, or mark `activity-log: N/A — <why>`, in the same change                                                                                                                                |
+| **New / changed host or guest behavior, FAQ, or help surface**                                     | **`support-content`** skill + always-on **`.cursor/rules/support-content.mdc`** — Host-facing knowledge Q&A, `docs/guides/support/faqs.md`, then `check:support-content` + `check:ai-knowledge-coverage`                                                                                                                        |
 | Booking status/transition/side-effects                                                             | `.cursor/rules/booking-workflow.mdc` (canonical)                                                                                                                                                                                                                                                                                |
 | Admin auth, allow list, new admin endpoints                                                        | `.cursor/rules/admin-auth.mdc`                                                                                                                                                                                                                                                                                                  |
 | Edge function conventions / JWT policy                                                             | `.cursor/rules/supabase-edge-functions.mdc`                                                                                                                                                                                                                                                                                     |
@@ -170,7 +200,7 @@ SessionStart and PostToolUse hooks also inject this reminder — do not ignore t
 | Backlog / shipped work                                                                             | GitHub Issues + `docs/README.md` (Product backlog section); shipped history in `docs/archive/todos/shipped/`                                                                                                                                                                                                                    |
 | Booking-flow redesign decisions                                                                    | `docs/archive/planning/NEW_FLOW_PLAN.md`                                                                                                                                                                                                                                                                                        |
 
-Trivial fixes (typos, internal renames with no behavior/API/UX impact) don't need doc updates — everything else does. Doc index: `docs/README.md`. Full rules/skills index: `.cursor/rules/README.md` · Claude: `.claude/README.md`. Skills: `documentation-maintenance`, `docs-first`, `route-guides`, `plans-and-permissions`, `audit-logging`, `unsaved-changes-guard`.
+Trivial fixes (typos, internal renames with no behavior/API/UX impact) don't need doc updates — everything else does. Doc index: `docs/README.md`. Full rules/skills index: `.cursor/rules/README.md` · Claude: `.claude/README.md`. Skills: `documentation-maintenance`, `docs-first`, `route-guides`, `plans-and-permissions`, `audit-logging`, `support-content`, `unsaved-changes-guard`.
 
 ## Agent tooling
 

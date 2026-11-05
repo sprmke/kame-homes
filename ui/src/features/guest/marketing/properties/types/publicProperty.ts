@@ -1,6 +1,6 @@
 import type { ResolvedPublicDevelopment } from '@/features/guest/marketing/developments/lib/resolvePublicDevelopment';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
 
 export type PublicPropertyMedia = {
   id: string;
@@ -71,6 +71,8 @@ export type PublicPropertyDetailDto = {
     type: 'info' | 'prohibited' | 'allowed';
   }>;
   cancellationPolicy: ResolvedCancellationPolicyDisplay;
+  cancellationPolicyVersionId?: string | null;
+  cancellationPolicyHash?: string;
   host: PublicPropertyHost;
   rating: number | null;
   reviewCount: number;
@@ -159,6 +161,8 @@ export type ResolvedPropertyDetail = {
   floors: number;
   houseRules: PublicHouseRule[];
   cancellationPolicy: ResolvedCancellationPolicyDisplay;
+  cancellationPolicyVersionId?: string | null;
+  cancellationPolicyHash?: string;
   checkInTime: string;
   checkOutTime: string;
   selfCheckIn: boolean;

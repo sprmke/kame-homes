@@ -6,6 +6,7 @@
 import { serializeGuestPaymentInfo } from './appSettings.ts';
 import { manilaTodayYmd } from './calendarAvailabilityManila.ts';
 import { loadGuestSafePropertyContext } from './inboxAiGuestContext.ts';
+import { readCancellationPolicySnapshot } from './cancellationPolicy.ts';
 import { createServiceClient } from './orgAuth.ts';
 
 export type GuestReceptionistContextTier =
@@ -106,7 +107,8 @@ export async function buildGuestReceptionistContext(input: {
   const today = manilaTodayYmd();
   const earliestStay = shiftYmd(today, -90);
   const latestStay = shiftYmd(today, 365);
-  const bookingSelect = 'id, status, check_in_date, check_out_date';
+  const bookingSelect =
+    'id, status, check_in_date, check_out_date, cancellation_policy_snapshot';
   const { data: ownedBooking, error: ownedError } = await sb
     .from('guest_submissions')
     .select(bookingSelect)
@@ -153,10 +155,16 @@ export async function buildGuestReceptionistContext(input: {
   const checkIn = normalizeYmd(String(booking.check_in_date ?? ''));
   const checkOut = normalizeYmd(String(booking.check_out_date ?? ''));
   const activeStay = Boolean(checkIn && checkOut && checkIn <= today && checkOut >= today);
+  const snapshot = readCancellationPolicySnapshot(
+    (booking as Record<string, unknown>).cancellation_policy_snapshot
+  );
   const verifiedFacts = [
     `Your booking status: ${String(booking.status).replaceAll('_', ' ').toLowerCase()}`,
     checkIn ? `Your check-in: ${checkIn}` : '',
     checkOut ? `Your check-out: ${checkOut}` : '',
+    snapshot?.rendered.title
+      ? `Cancellation policy on this booking: ${snapshot.rendered.title}. ${snapshot.rendered.description}`
+      : '',
     activeStay
       ? 'Verified active stay. Stay-guide details may be requested through the stay-guide tool.'
       : 'Verified booking. Access credentials are not available before the active stay.',

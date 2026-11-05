@@ -2,7 +2,7 @@
 title: 'Tasks To Plan'
 status: active
 tags: [planning, intake, backlog]
-updated: 2026-11-04
+updated: 2026-11-06
 stage: intake
 kind: backlog
 ---
@@ -224,7 +224,7 @@ that we updated our domain and updated our app name and prepared the application
 
 → **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) — brand verification approved and published 2026-11-03; sign-in closed.
 
-→ **Planned:** [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md) — post-launch billing upgrade (by 2026-12-03), Maps quotas/budget, Gemini paid tier, Fonts, legacy cleanup (H-01…H-12).
+→ **In progress:** [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md) — post-launch billing upgrade (by 2026-12-03), Maps quotas/budget, Gemini paid tier, Fonts, legacy cleanup (H-01…H-12).
 
 ===
 
@@ -532,7 +532,7 @@ Maybe we will offer a simplified website editor?
 
 Pivot from strict per-property billing to org-scoped portfolio caps for Pro/Business tiers while keeping Free/Starter/Managed/Commission per-property.
 
-→ **Planned:** [`../done/pricing-portfolio-bundling.md`](../done/pricing-portfolio-bundling.md)
+→ **In progress:** [`../done/pricing-portfolio-bundling.md`](../done/pricing-portfolio-bundling.md)
 
 ===
 
@@ -756,7 +756,7 @@ Apply to all pages including both public and dashboard pages
 
 Now that we have the AI assistant in the dashboard, build a Help & Support page for hosts at both org and property level: Documentation (from docs/guides Host-facing knowledge, filtered to never expose sensitive/internal info), AI Chat (opens the existing dashboard assistant sidebar), Ticket/App Support (dynamic per-category fields — bug/inquiry/suggestion/business — replied to from a new super-admin page), and FAQs (20-50 items generated from the docs). Every docs/guides change should stay synced to whatever powers this automatically.
 
-→ **Done:** [`../for-testing/help-support-center.md`](../for-testing/help-support-center.md)
+→ **In progress:** [`../planned/support-content-and-faq-sync.md`](../planned/support-content-and-faq-sync.md) · shipped baseline: [`../for-testing/help-support-center.md`](../for-testing/help-support-center.md)
 
 ===
 
@@ -910,25 +910,25 @@ Earned-only org Superhost badge — metrics, cron, Trust UI shipped; manual QA p
 
 📋 AI Assistant — bulk/range pricing with diff preview
 
-→ **Planned:** [`../planned/ai-assistant-bulk-pricing-chat.md`](../planned/ai-assistant-bulk-pricing-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + architecture §5.
+→ **In progress:** [`../planned/ai-assistant-bulk-pricing-chat.md`](../planned/ai-assistant-bulk-pricing-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + architecture §5.
 
 ===
 
 📋 AI Assistant — parking broadcast fan-out
 
-→ **Planned:** [`../planned/ai-assistant-parking-broadcast-chat.md`](../planned/ai-assistant-parking-broadcast-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + Part E matrix.
+→ **In progress:** [`../planned/ai-assistant-parking-broadcast-chat.md`](../planned/ai-assistant-parking-broadcast-chat.md) — Deferred from ../done/ai-assistant-attachment-actions-and-coverage.md Phase 6 + Part E matrix.
 
 ===
 
 📋 AI Assistant — settings validators
 
-→ **Planned:** [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md) — Shared validators plus OTP-safe assistant writes for payment methods, email automations and document requirements.
+→ **In progress:** [`../planned/ai-assistant-settings-validators.md`](../planned/ai-assistant-settings-validators.md) — Shared validators plus OTP-safe assistant writes for payment methods, email automations and document requirements.
 
 ===
 
 📋 AI paid provider selection + production-safe quota tuning
 
-→ **Planned:** [`../planned/ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md) — 1. Provider: stay on Google Gemini. Move from free multi-key rotation to one paid pay-as-you-go GEMINI_API_KEY per environment, keep a paid GROQ_API_KEY as text-only fallback. Gemini is the only single provider that covers our whole...
+→ **In progress:** [`../planned/ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md) — 1. Provider: stay on Google Gemini. Move from free multi-key rotation to one paid pay-as-you-go GEMINI_API_KEY per environment, keep a paid GROQ_API_KEY as text-only fallback. Gemini is the only single provider that covers our whole...
 
 ===
 
@@ -947,61 +947,61 @@ Example:
 
 📋 Dashboard mobile native v2 (ground-up phone redesign)
 
-→ **Planned:** [`../planned/dashboard-mobile-native-v2.md`](../planned/dashboard-mobile-native-v2.md) — Rebuild every dashboard screen's phone layout (max-lg) so it looks and behaves like a native iOS/Android app, matching the product shots in marketing/social/src/features/Screens.tsx. Desktop (lg+) keeps its current layout and behavior....
+→ **In progress:** [`../planned/dashboard-mobile-native-v2.md`](../planned/dashboard-mobile-native-v2.md) — Rebuild every dashboard screen's phone layout (max-lg) so it looks and behaves like a native iOS/Android app, matching the product shots in marketing/social/src/features/Screens.tsx. Desktop (lg+) keeps its current layout and behavior....
 
 ===
 
 📋 Guest Trust & Safety Reporting — report a host, property, or organization
 
-→ **Planned:** [`../planned/guest-trust-safety-reporting.md`](../planned/guest-trust-safety-reporting.md) — Let signed-in guests (and prospective guests browsing while signed in) report a property/listing, a host/organization, or a conversation for fraud, misrepresentation, safety, or abuse — routed to a platform-side super-admin Trust &...
+→ **In progress:** [`../planned/guest-trust-safety-reporting.md`](../planned/guest-trust-safety-reporting.md) — Let signed-in guests (and prospective guests browsing while signed in) report a property/listing, a host/organization, or a conversation for fraud, misrepresentation, safety, or abuse — routed to a platform-side super-admin Trust &...
 
 ===
 
 📋 Live Identity Verification — guided capture, phone handoff, PhilSys QR, liveness
 
-→ **Planned:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md) — Replace today's "pick a file from your gallery" identity capture — on both the guest booking form and the host/org verification flow — with one shared guided live capture module: desktop starts it, a QR hands it to the phone, the phone...
+→ **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md) — Replace today's "pick a file from your gallery" identity capture — on both the guest booking form and the host/org verification flow — with one shared guided live capture module: desktop starts it, a QR hands it to the phone, the phone...
 
 ===
 
 📋 Marketing storage: unified org quota, retention, and cost guardrails
 
-→ **Planned:** [`../planned/marketing-storage-quotas-and-retention.md`](../planned/marketing-storage-quotas-and-retention.md) — Marketing Studio writes a lot of bytes: host uploads (images, video, music), canvas uploads, AI image and video outputs, every refinement version of an AI session, saved-design thumbnails, and data-URL exports pushed to Meta. We are on...
+→ **In progress:** [`../planned/marketing-storage-quotas-and-retention.md`](../planned/marketing-storage-quotas-and-retention.md) — Marketing Studio writes a lot of bytes: host uploads (images, video, music), canvas uploads, AI image and video outputs, every refinement version of an AI session, saved-design thumbnails, and data-URL exports pushed to Meta. We are on...
 
 ===
 
 📋 Multi-residence support — config decoupling from Azure North
 
-→ **Planned:** [`../planned/multi-residence-config-decoupling.md`](../planned/multi-residence-config-decoupling.md) — Goal. Support any number of residences / developments / real-estate types without code changes, with per-residence configuration edited from /admin, and Azure North reduced to a seeded row that behaves byte-identically to today.
+→ **In progress:** [`../planned/multi-residence-config-decoupling.md`](../planned/multi-residence-config-decoupling.md) — Goal. Support any number of residences / developments / real-estate types without code changes, with per-residence configuration edited from /admin, and Azure North reduced to a seeded row that behaves byte-identically to today.
 
 ===
 
 📋 Org Activity & Audit Log — follow-ups (RBAC leaves, cron rows, notice emitters, partitioning)
 
-→ **Planned:** [`../planned/activity-log-followups.md`](../planned/activity-log-followups.md) — Split from the core Org Activity plan so the core phases could move to QA: dedicated RBAC leaves, cron summary rows, notice-tier emitters, guest ticket/profile handlers, and monthly partitioning. None of these block the feature.
+→ **In progress:** [`../planned/activity-log-followups.md`](../planned/activity-log-followups.md) — Split from the core Org Activity plan so the core phases could move to QA: dedicated RBAC leaves, cron summary rows, notice-tier emitters, guest ticket/profile handlers, and monthly partitioning. None of these block the feature.
 
 ===
 
 📋 Parking E2E Phase 6 — Behavioral Ranking, Transparency & Trust/Safety
 
-→ **Planned:** [`../planned/parking-e2e-phase6-ranking-trust-safety.md`](../planned/parking-e2e-phase6-ranking-trust-safety.md) — Part of Parking E2E Phase 2+ overview. Depends on Phase 2 (price ranking baseline) and Phase 5 (chat/response-time signal source) having run in production long enough to accumulate real data — this phase is explicitly sequenced _after_...
+→ **In progress:** [`../planned/parking-e2e-phase6-ranking-trust-safety.md`](../planned/parking-e2e-phase6-ranking-trust-safety.md) — Part of Parking E2E Phase 2+ overview. Depends on Phase 2 (price ranking baseline) and Phase 5 (chat/response-time signal source) having run in production long enough to accumulate real data — this phase is explicitly sequenced _after_...
 
 ===
 
 📋 Property Management Feature Roadmap — Competitive Research
 
-→ **Planned:** [`../planned/property-management-feature-roadmap.md`](../planned/property-management-feature-roadmap.md) — Competitive research feature catalog vs Guesty, Hostaway, Lodgify, Hospitable and OwnerRez, tiered Quick Win / Mid-Term / Big Bet.
+→ **In progress:** [`../planned/property-management-feature-roadmap.md`](../planned/property-management-feature-roadmap.md) — Competitive research feature catalog vs Guesty, Hostaway, Lodgify, Hospitable and OwnerRez, tiered Quick Win / Mid-Term / Big Bet.
 
 ===
 
 📋 Scheduled marketing posts/story
 
-→ **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Meta scheduling cron + `scheduledAt` UI + confirmation/permalink + retry + Reels (split from the done Marketing 5 bug-fix slice)
+→ **In progress:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md) — Meta scheduling cron + `scheduledAt` UI + confirmation/permalink + retry + Reels (split from the done Marketing 5 bug-fix slice)
 
 ===
 
 📋 Supabase capacity and operational readiness
 
-→ **Planned:** [`../planned/supabase-capacity-and-operational-readiness.md`](../planned/supabase-capacity-and-operational-readiness.md) — Capacity and operational plan for hosted dev and mt-prod: plan tier, metrics and alerts, advisor triage, query and public-cache fixes, load tests and restore drills.
+→ **In progress:** [`../planned/supabase-capacity-and-operational-readiness.md`](../planned/supabase-capacity-and-operational-readiness.md) — Capacity and operational plan for hosted dev and mt-prod: plan tier, metrics and alerts, advisor triage, query and public-cache fixes, load tests and restore drills.
 
 ===
 
@@ -1020,7 +1020,7 @@ Expand `/admin/*` so operators can manage the platform without SQL or ad-hoc sup
 
 📋 Super Admin — service cost control & optimization
 
-→ **Planned:** [`../planned/super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md) — Spun out of the Sept 2026 infrastructure cost audit (docs/workflow/intake/_to-prompt.md → "Check current functionalities … that may cost us"). The audit inventoried every metered external service GFM depends on. This plan makes the app...
+→ **In progress:** [`../planned/super-admin-service-cost-monitoring.md`](../planned/super-admin-service-cost-monitoring.md) — Spun out of the Sept 2026 infrastructure cost audit (docs/workflow/intake/_to-prompt.md → "Check current functionalities … that may cost us"). The audit inventoried every metered external service GFM depends on. This plan makes the app...
 
 ===
 
@@ -1106,7 +1106,7 @@ From the dashboard, there should be a copyable link for parking owner hosts wher
 
 We should apply all the same logic and flow that we have from above except that this is direct booking and guest needs to manually fill up their information, car details and pay the parking.
 
-→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **Planned:** Phase 6 + [`../in-progress/production-readiness/audits/parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md)
+→ **Overview:** [`../planned/parking-e2e-later-phases.md`](../planned/parking-e2e-later-phases.md) · **Done:** Phases 0–5, 7–8 (`docs/workflow/done/parking-e2e-phase*.md`) · **In progress:** Phase 6 + [`../in-progress/production-readiness/audits/parking-e2e-production-readiness.md`](../in-progress/production-readiness/audits/parking-e2e-production-readiness.md)
 
 ===
 
@@ -1222,7 +1222,7 @@ Refine the full host onboarding flow end to end — not just the left showcase p
 
 Take the pre-prod checklist (cache API responses, load balancer, index the DB, compress images, loading skeletons, cache expensive queries, debounce input handlers, split code into chunks, add CDN, paginate large lists, compress API payloads, unnecessary re-renders ❌, minify JS/CSS, add lazy loading, defer non-critical scripts, unused dependencies ❌, DB connection pooling) plus the platform readiness list (frontend, backend & APIs, database, storage, auth/permissions, hosting & deployment, cloud computing, CI/CD & version control, security & RLS, rate limiting, caching & CDN, load balancing & scalability, error tracking & logs, analytics, SDLC testing, availability & recovery) and produce one detailed plan per item, applied everywhere in the codebase — not spot fixes.
 
-→ **Planned:** [`../in-progress/production-readiness/checklist/README.md`](../in-progress/production-readiness/checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
+→ **In progress:** [`../in-progress/production-readiness/checklist/README.md`](../in-progress/production-readiness/checklist/README.md) — 31 docs (00 baseline + 01–30). Each states prior art from the four earlier audits, measured current state, phases, edge cases, and an exit gate with a CI guard. Docs 21/22/23 are launch blockers.
 
 ===
 
@@ -1273,7 +1273,9 @@ After we refine the roles & permissions that we have on both org and property le
 
 ===
 
-🔵 Cancellation Process
+🚧 Cancellation Process
+
+→ **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 
 ===
 

@@ -72,6 +72,8 @@ Each step validates its own fields (via `getFieldsForGuestFormStep`) before **Ne
 
 Stepper labels and in-card section headings share the same **`title`** per step (`guestFormSteps.ts`); a one-line **`hint`** appears under the heading inside the card.
 
+**Cancellation policy agreement.** On the last visible step (Payment, or Pets for Airbnb), the form renders `GuestFormCancellationPolicy` from the property's live policy: title, description, exact deadline dates for the chosen stay, and a required **"I agree to the cancellation policy"** checkbox. The checkbox is skipped when the property has no policy (the card says "Ask the host"). On submit the form sends `cancellationPolicyVersionId`, `cancellationPolicyHash`, and `cancellationPolicyAccepted`; the server captures the snapshot and stores `cancellation_policy_accepted_at`. If the host edited the policy while the guest was filling the form, the server returns **409 `policy_changed`**, the form keeps every value, refetches the policy, clears the checkbox and asks the guest to agree again. Existing bookings (`?bookingId=`) and the OTA completion flow skip the agreement and never rewrite the snapshot.
+
 ---
 
 ## Fields

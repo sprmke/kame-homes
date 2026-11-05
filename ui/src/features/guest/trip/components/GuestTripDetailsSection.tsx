@@ -10,8 +10,6 @@ import { GuestTripRow } from '@/features/guest/trip/components/GuestTripSection'
 import type { GuestTrip } from '@/features/guest/trip/lib/guestTripApi';
 import { guestTripEditBookingPath } from '@/features/guest/trip/lib/guestTripLinks';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
-
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
@@ -34,15 +32,9 @@ async function copyBookingId(bookingId: string) {
  */
 export function GuestTripDetailsSection({
   trip,
-  cancellationPolicy,
-  showPolicy,
-  messageHostPath,
   defaultOpen = false,
 }: {
   trip: GuestTrip;
-  cancellationPolicy: ResolvedCancellationPolicyDisplay | null;
-  showPolicy: boolean;
-  messageHostPath: string;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -123,27 +115,6 @@ export function GuestTripDetailsSection({
               >
                 Edit booking details
               </Link>
-            ) : null}
-
-            {showPolicy && cancellationPolicy ? (
-              <div className="bg-muted/50 mt-4 rounded-2xl p-4">
-                <h3 className="text-sm font-semibold">{cancellationPolicy.title}</h3>
-                {cancellationPolicy.description ? (
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {cancellationPolicy.description}
-                  </p>
-                ) : null}
-                <p className="text-muted-foreground mt-2 text-sm">
-                  To cancel or change dates,{' '}
-                  <Link
-                    to={messageHostPath}
-                    className="text-foreground font-semibold underline underline-offset-4"
-                  >
-                    message your host
-                  </Link>
-                  .
-                </p>
-              </div>
             ) : null}
 
             <Link

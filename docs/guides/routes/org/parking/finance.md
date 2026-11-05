@@ -29,6 +29,10 @@ Parking **Finance** tracks money in and out for this slot only: rent collected, 
   A: Configure **Finance** notifications (Telegram) under this slot’s **Notifications** page, then add due dates when you create or edit expense lines.
 - Q: Who can add or delete transactions?
   A: Team members with finance edit access for this parking slot. View-only roles can see summaries but not change lines.
+- Q: How do I add an operating expense?
+  A: Use **Add Transaction**, choose expense, then set the category, amount, date, and notes. Recurring lines can repeat on a schedule.
+- Q: Can I export parking finance for my accountant?
+  A: Yes. **Export report** offers an overview, the transactions list, or a full PDF report for the selected range. Stays are left out because parking finance has no guest-stay ledger.
 
 ---
 

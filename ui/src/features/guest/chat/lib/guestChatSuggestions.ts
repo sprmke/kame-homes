@@ -68,6 +68,21 @@ export const GUEST_CHAT_FAQS: readonly GuestChatFaq[] = [
     prompt: 'How do I submit my security deposit refund details?',
     phases: ['ongoing'],
   },
+  {
+    id: 'g-24',
+    prompt: 'Can I use a voucher from a past stay?',
+    phases: ['pre_booking', 'inquiry'],
+  },
+  {
+    id: 'g-25',
+    prompt: 'How do I leave a review after my stay?',
+    phases: ['ongoing'],
+  },
+  {
+    id: 'g-26',
+    prompt: 'Where can I see the documents I submitted?',
+    phases: ['inquiry', 'ongoing'],
+  },
 ];
 
 export const GUEST_CHAT_FAQ_VISIBLE_COUNT = 5;

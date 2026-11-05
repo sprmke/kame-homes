@@ -29,6 +29,10 @@ This dashboard is the home screen for one parking slot. It's the same layout you
   A: It covers a single **parking slot** (tower bay, motorcycle space, etc.), not a rental unit. Labels say “reservations” instead of “bookings.”
 - Q: Where do I edit rates or slot details?
   A: Use **Pricing** for nightly rates and the calendar, and **Settings** for photos, location, and payment methods. This dashboard is for at-a-glance monitoring.
+- Q: Can I open the public parking page from here?
+  A: Yes. **View Parking** opens the public listing in a new tab so you can check what guests see.
+- Q: Does the date range change every card and chart?
+  A: Yes. The selected range applies to the KPIs and the calendar section, so you can compare a quiet week with a busy month.
 
 ---
 

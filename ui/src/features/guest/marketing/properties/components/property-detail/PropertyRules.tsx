@@ -22,7 +22,7 @@ import {
 import { CancellationPolicyDisplay } from '@/features/guest/marketing/properties/components/property-detail/CancellationPolicyDisplay';
 import { GuestDialogShell } from '@/features/guest/marketing/shared/components/GuestDialogShell';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/propertyCancellationPolicy';
+import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
 import type { ResolvedHouseRule } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
 
 import { Button } from '@/components/ui/button';
