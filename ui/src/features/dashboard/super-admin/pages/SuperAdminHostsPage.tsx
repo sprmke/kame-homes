@@ -64,7 +64,9 @@ export function SuperAdminHostsPage() {
     <div className="space-y-3 sm:space-y-4">
       <AdminPageHeader title="Hosts" subtitle="All hosts on the platform." />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total hosts', 'Organizations', 'Properties', 'Parking slots']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load hosts.</p>
       ) : (

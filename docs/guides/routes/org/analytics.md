@@ -2,7 +2,7 @@
 title: 'Org Portfolio Analytics — operator guide'
 status: active
 tags: [guides, routes, org, analytics]
-updated: 2026-09-27
+updated: 2026-11-05
 ---
 
 # Org Portfolio Analytics — operator guide
@@ -31,6 +31,8 @@ Route: `/org/:orgSlug/analytics`
 
 Org-wide rollup of listing performance — answers "how is my portfolio doing, and which
 listings need attention" rather than deep-diving into any single property.
+
+Page subtitle: "Track revenue, occupancy, and bookings across every listing."
 
 Layout (top → bottom):
 

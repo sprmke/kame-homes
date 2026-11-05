@@ -14,7 +14,6 @@ type Props = {
 };
 
 export function HostPublicHero({ host, className }: Props) {
-  const avatar = host.ownerAvatarUrl || host.logoUrl;
   const logo = host.logoUrl;
   const hasSocials = Object.values(host.socialLinks).some(Boolean);
 
@@ -64,33 +63,6 @@ export function HostPublicHero({ host, className }: Props) {
                 {host.verifiedBadge ? <ListingRecommendedBadge size="md" /> : null}
               </div>
 
-              {host.isSuperhost ? (
-                <p className="text-muted-foreground text-xs sm:text-[13px]">Superhost</p>
-              ) : host.verifiedBadge ? (
-                <p className="text-muted-foreground text-xs sm:text-[13px]">Recommended host</p>
-              ) : null}
-
-              <div className="flex items-center justify-center gap-2.5 sm:justify-start">
-                <div className="from-primary to-primary/80 relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gradient-to-br sm:h-9 sm:w-9">
-                  {avatar ? (
-                    <Image
-                      src={avatar}
-                      alt={host.ownerName}
-                      width={36}
-                      height={36}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                      {host.ownerName.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <p className="text-muted-foreground text-sm sm:text-[15px]">
-                  Hosted by <span className="text-foreground font-medium">{host.ownerName}</span>
-                </p>
-              </div>
-
               {host.tagline ? (
                 <p className="text-primary mx-auto max-w-xl text-sm font-medium leading-snug sm:mx-0 sm:text-base">
                   {host.tagline}
@@ -99,7 +71,7 @@ export function HostPublicHero({ host, className }: Props) {
             </div>
 
             {host.description ? (
-              <p className="text-muted-foreground text-[13px] leading-snug sm:mx-0 sm:text-sm sm:text-[15px] sm:leading-relaxed">
+              <p className="text-muted-foreground text-[13px] leading-snug sm:mx-0 sm:text-[15px] sm:text-sm sm:leading-relaxed">
                 {host.description}
               </p>
             ) : null}

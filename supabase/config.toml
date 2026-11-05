@@ -67,6 +67,19 @@ enabled = false
 provider = "turnstile"
 secret = "env(TURNSTILE_SECRET_KEY)"
 
+# Sign-in email. `signInWithOtp` sends `confirmation` for a new email and
+# `magic_link` for an existing one, so both point at the same template: the
+# app verifies a 6-digit code, and the stock Supabase templates only contain a
+# link. Hosted projects keep their own copy in Dashboard -> Authentication ->
+# Emails; config.toml only affects local. See docs/guides/routes/auth.md.
+[auth.email.template.confirmation]
+subject = "Your Kame Space sign-in code"
+content_path = "./supabase/templates/auth/sign-in-code.html"
+
+[auth.email.template.magic_link]
+subject = "Your Kame Space sign-in code"
+content_path = "./supabase/templates/auth/sign-in-code.html"
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"
@@ -1317,4 +1330,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.chat-templates]
+verify_jwt = false
+
+[functions.ops-report]
+verify_jwt = false
+
+[functions.ops-report-cron]
 verify_jwt = false

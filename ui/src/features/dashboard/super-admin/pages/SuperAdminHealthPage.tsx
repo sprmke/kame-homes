@@ -25,6 +25,7 @@ import {
   type HealthSectionId,
 } from '@/features/dashboard/super-admin/lib/systemHealth/healthSections';
 
+import { SuperAdminHealthBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import { Button } from '@/components/ui/button';
 import { appPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
@@ -87,6 +88,7 @@ export function SuperAdminHealthPage() {
       title="System health"
       subtitle={SECTION_SUBTITLES[resolvedSection]}
       isLoading={isLoading}
+      loadingBody={<SuperAdminHealthBodySkeleton />}
       error={error}
       actions={
         resolvedSection === 'overview' || resolvedSection === 'integrations' ? (
@@ -102,17 +104,17 @@ export function SuperAdminHealthPage() {
               Send test error
             </Button>
             <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] lg:min-h-9"
-            disabled={runProbes.isPending}
-            onClick={runAllProbes}
-          >
-            <RefreshCw
-              className={cn('size-4 shrink-0', runProbes.isPending && 'animate-spin')}
-              aria-hidden
-            />
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] lg:min-h-9"
+              disabled={runProbes.isPending}
+              onClick={runAllProbes}
+            >
+              <RefreshCw
+                className={cn('size-4 shrink-0', runProbes.isPending && 'animate-spin')}
+                aria-hidden
+              />
               Run live checks
             </Button>
           </div>

@@ -39,10 +39,12 @@ Implemented in `chore/supabase-capacity-readiness` and deployed to production on
 Evidence: [`production-readiness/evidence/supabase-capacity-2026-11-04.md`](./production-readiness/evidence/supabase-capacity-2026-11-04.md).
 Model: [`docs/architecture/supabase-capacity.md`](../../architecture/supabase-capacity.md).
 
-Still required: continuous Prometheus collection plus paged alerts, large-tenant seed,
-load-test execution, public Vercel cache, dashboard/finance SQL aggregates, booking
-transition RPC, and the product retention decisions. The code-level security WARNs are
-cleared as of 2026-11-05.
+Still required: continuous Prometheus collection plus paged alerts, run the load matrix
+with the new local large-tenant seed, public Vercel cache, dashboard/finance SQL
+aggregates, booking transition RPC, and the product retention decisions. The weekly
+operations report (`/admin/ops-reports`) now covers the recurring summary and email
+reminder; a daily critical-only alert can reuse the same findings. The code-level
+security WARNs are cleared as of 2026-11-05.
 
 ## Goal
 

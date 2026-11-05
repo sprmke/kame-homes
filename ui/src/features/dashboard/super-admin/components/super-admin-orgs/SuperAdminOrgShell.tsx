@@ -100,7 +100,9 @@ export function SuperAdminOrgShell() {
     return (
       <div className="space-y-3 sm:space-y-4">
         <AdminPageHeaderSkeleton compact />
-        <AppSettingsNavLayoutSkeleton />
+        <AppSettingsNavLayoutSkeleton
+          navLabels={ORG_HUB_SECTIONS.map((section) => section.label)}
+        />
       </div>
     );
   }

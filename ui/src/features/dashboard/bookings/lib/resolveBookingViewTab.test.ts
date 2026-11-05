@@ -26,6 +26,10 @@ describe('resolveBookingViewTab', () => {
     ).toBe('overview');
   });
 
+  it('keeps the activity tab', () => {
+    expect(resolveBookingViewTab('activity', baseBooking)).toBe('activity');
+  });
+
   it('keeps tab when section applies', () => {
     expect(resolveBookingViewTab('pets', { ...baseBooking, has_pets: true } as BookingRow)).toBe(
       'pets'

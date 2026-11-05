@@ -211,7 +211,7 @@ function WorkflowPanelInner({
   const documentRequirements =
     appSettings?.resolvedDocumentRequirements ?? DEFAULT_DOCUMENT_REQUIREMENTS;
 
-  const [automationHelpOpen, setAutomationHelpOpen] = useState(true);
+  const [automationHelpOpen, setAutomationHelpOpen] = useState(false);
   const { allowed: automatedBookingFlowAllowed, isLoading: entitlementsLoading } =
     useFeatureGate('automatedBookingFlow');
   // Assume paid until entitlements land: paying hosts never flash Free-plan copy, and the

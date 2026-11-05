@@ -211,7 +211,11 @@ export function PropertyShowcasePageEditor({
     (!hydrated && !configQuery.isError)
   ) {
     return (
-      <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+      <AdminMobilePage
+        title="Showcase"
+        subtitle="Design the public showcase page for this property."
+        titleId="showcase-editor-heading"
+      >
         <PageEditorSkeleton />
       </AdminMobilePage>
     );
@@ -219,7 +223,11 @@ export function PropertyShowcasePageEditor({
 
   if (configQuery.isError || previewQuery.isError || !previewQuery.data) {
     return (
-      <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+      <AdminMobilePage
+        title="Showcase"
+        subtitle="Design the public showcase page for this property."
+        titleId="showcase-editor-heading"
+      >
         <p className="text-muted-foreground px-4 py-16 text-center text-sm">
           Could not load this showcase.
         </p>
@@ -228,7 +236,11 @@ export function PropertyShowcasePageEditor({
   }
 
   return (
-    <AdminMobilePage title="Showcase" titleId="showcase-editor-heading">
+    <AdminMobilePage
+      title="Showcase"
+      subtitle="Design the public showcase page for this property."
+      titleId="showcase-editor-heading"
+    >
       <PageEditorShell
         canUndo={historyIndex > 0}
         canRedo={historyIndex < historyLength - 1}

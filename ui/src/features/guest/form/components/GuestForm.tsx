@@ -1614,7 +1614,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   if (!skipAuthGate && (guestAuthStatus === 'loading' || guestAuthStatus === 'anonymous')) {
     return (
       <div className={cn(embed?.compactChrome ? 'p-0 sm:p-1' : 'p-4 sm:p-6 lg:p-8')}>
-        <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+        <GuestFormPageSkeleton
+          embed={Boolean(embed?.compactChrome)}
+          stepTitles={guestFormSteps.map((step) => step.title)}
+          activeStep={currentStep}
+          stepTitle={activeStepConfig?.title}
+          stepHint={activeStepConfig?.hint}
+        />
       </div>
     );
   }
@@ -1631,7 +1637,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
   if (isCompletionMode && !completionReady) {
     return (
       <div className={cn(embed?.compactChrome ? 'p-0 sm:p-1' : 'p-4 sm:p-6 lg:p-8')}>
-        <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+        <GuestFormPageSkeleton
+          embed={Boolean(embed?.compactChrome)}
+          stepTitles={guestFormSteps.map((step) => step.title)}
+          activeStep={currentStep}
+          stepTitle={activeStepConfig?.title}
+          stepHint={activeStepConfig?.hint}
+        />
       </div>
     );
   }
@@ -1654,7 +1666,13 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         )}
       >
         {isLoading ? (
-          <GuestFormPageSkeleton embed={Boolean(embed?.compactChrome)} />
+          <GuestFormPageSkeleton
+            embed={Boolean(embed?.compactChrome)}
+            stepTitles={guestFormSteps.map((step) => step.title)}
+            activeStep={currentStep}
+            stepTitle={activeStepConfig?.title}
+            stepHint={activeStepConfig?.hint}
+          />
         ) : invalidBookingId ? (
           <div className="flex flex-col items-center justify-center space-y-4 py-20">
             <div className="text-center">

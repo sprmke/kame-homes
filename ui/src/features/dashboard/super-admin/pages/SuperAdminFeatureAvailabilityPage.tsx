@@ -15,6 +15,7 @@ import {
   groupCatalogByModule,
 } from '@/features/dashboard/super-admin/lib/featureAvailabilityAdmin';
 
+import { SuperAdminSettingsBodySkeleton } from '@/components/skeletons/SuperAdminSkeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,6 +106,7 @@ export function SuperAdminFeatureAvailabilityPage() {
       title="Feature availability"
       subtitle="Turn product areas off for hosts with a reason, optional banner, and super-admin bypass."
       isLoading={isLoading}
+      loadingBody={<SuperAdminSettingsBodySkeleton cards={4} />}
       error={error}
       toolbar={
         data ? (

@@ -14,7 +14,6 @@ import { usePropertyReserve } from '@/features/guest/marketing/properties/hooks/
 import { GuestStayDateRangeDisplay } from '@/features/guest/property/components/GuestStayDateRangeDisplay';
 
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -310,7 +309,13 @@ export function PublicPropertyCalendar({
           }
 
           if (isLoading) {
-            return <Skeleton key={`loading-${cell.day}`} className={dayCellClass} />;
+            return (
+              <div key={`loading-${cell.day}`} className={cn(dayCellClass, 'bg-muted/30 relative')}>
+                <span className="text-muted-foreground/60 absolute inset-0 flex items-center justify-center text-sm font-medium">
+                  {cell.day}
+                </span>
+              </div>
+            );
           }
 
           const state = getDayState(cell.day);

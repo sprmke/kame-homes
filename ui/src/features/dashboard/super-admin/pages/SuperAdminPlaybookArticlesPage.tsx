@@ -185,7 +185,7 @@ export function SuperAdminPlaybookArticlesPage() {
       />
 
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton metricCount={0} metricTitles={[]} view="grouped" />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load Playbook articles.</p>
       ) : (

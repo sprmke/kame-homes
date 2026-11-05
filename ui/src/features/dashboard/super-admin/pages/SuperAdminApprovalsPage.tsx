@@ -166,7 +166,9 @@ export function SuperAdminApprovalsPage() {
     <div className="space-y-3 sm:space-y-4">
       <AdminPageHeader title="Approvals" subtitle="Review host verification requests." />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['In review', 'Org verifications', 'Listing verifications', 'Reviews']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load approvals.</p>
       ) : (

@@ -2,7 +2,7 @@
 title: 'Guest & host auth — operator guide'
 status: active
 tags: [guides, routes, auth]
-updated: 2026-09-14
+updated: 2026-11-05
 ---
 
 # Guest & host auth — operator guide
@@ -62,6 +62,13 @@ On the **host dashboard**, the sidebar footer account menu shows the same avatar
 - The email step and the code-entry step are mutually exclusive views — once a code is sent, the Google button, divider, and register/login cross-link are hidden so the code-entry step stays focused (just Back, the 6-digit input, Verify, and a Resend link with a 30s cooldown). Concurrent sends for the same normalized email share one in-flight request, preventing rapid clicks or two mounted auth surfaces from sending duplicate codes; Supabase Auth remains the server-side rate-limit authority.
 - **Invisible human verification:** a Cloudflare Turnstile widget (`useCaptchaToken`, `action: auth-email-otp`) is mounted for the whole login flow — kept alive on both the email and the code-entry steps so **Resend** (which lives on the code step) always has a fresh single-use token. Real users see nothing; a suspicious session gets an inline challenge before **Continue** / **Resend** proceeds. The token is passed as `options.captchaToken` on `signInWithOtp` and verified by Supabase Auth's native Turnstile (`supabase/config.toml` `[auth.captcha]`; hosted: Dashboard → Authentication → Attack Protection). Fully degrades (no widget, OTP still sends) when `VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` are unset. Google OAuth is unaffected. See [PROJECT.md → Anti-spam & CAPTCHA](../../PROJECT.md).
 
+**Sign-in email (code + link).** `signInWithOtp` sends Supabase's **Confirm signup** template when the email is new and **Magic link** when the account already exists. Both are wired to the same branded template (`supabase/templates/auth/sign-in-code.html`, subject "Your Kame Space sign-in code"), so a returning login never reads like a separate signup step. The email leads with the `{{ .Token }}` 6-digit code (what `OtpCodeInput` / `verifyOtp` expects) and keeps `{{ .ConfirmationURL }}` as a fallback button. It is rendered and sent by Supabase Auth, not by `emailService` / Resend templates.
+
+- **Local:** `supabase/config.toml` `[auth.email.template.confirmation]` and `.magic_link` point at the template; read the result in Inbucket (`http://127.0.0.1:54324`). Restart `./dev.sh` after editing.
+- **Hosted:** templates are dashboard config and are **not** applied by `config.toml`. Paste the same HTML into Dashboard → Authentication → Emails for **Confirm signup** and **Magic link**, and update both whenever the file changes.
+- **Sender:** hosted Auth sends through Resend custom SMTP (`smtp.resend.com:465`, user `resend`, from `Kame Space <mail@notify.kamespace.com>`), not the built-in mailer. Hosted limits: 120 emails/hour and a 30s per-address minimum, matching the UI resend cooldown. Supabase Auth has no Reply-To setting, so the template footer links to `/contact` instead of asking for a reply.
+- **OTP length:** hosted `mailer_otp_length` must stay **6**. `OtpCodeInput` renders six cells and the sensitive-settings / super-admin reauth dialogs say "Enter the 6-digit code". Raising it server-side silently breaks every code entry.
+
 Resume after OAuth (guest): `sessionStorage` (`guestAuthResume.ts`) restores navigation to the form, contact-host sheet, booking-form modal, or auto-submits after social/email auth when the modal was the entry point. On the standalone guest page, OAuth/OTP success simply navigates to `?redirect=` (or `/`) once the session becomes authenticated.
 
 `?redirect=` must be a same-origin path: `safeRedirect` falls back to the default for absolute URLs, `//…`, and any value with a backslash or control character (browsers turn `/\evil.com` and `/<tab>/evil.com` into `//evil.com`).
@@ -100,6 +107,8 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
   A: Each email is one host account. Sign-in opens your existing workspace. You cannot create a second organization with the same email.
 - Q: I signed in with Google but the page says it could not load my workspace.
   A: Refresh and try again. Sign-in worked; the workspace list did not load.
+- Q: What does the sign-in email look like?
+  A: It comes from Kame Space with a 6-digit code and a sign-in button. Enter the code on the sign-in screen, or use the button. The code expires after 1 hour.
 
 ---
 
@@ -121,6 +130,7 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
 | Guest standalone pages             | `ui/src/features/guest/auth/pages/GuestAuthPages.tsx` (`GuestLoginPage`, `GuestRegisterPage`)                                                                                                            |
 | Guest OTP + OAuth + redirect hook  | `ui/src/features/guest/auth/hooks/useGuestAuthPage.ts`                                                                                                                                                   |
 | Auth page config                   | `ui/src/features/guest/auth/config/auth-page-config.ts` (`AUTH_PAGE_CONFIG.host` / `.guest`)                                                                                                             |
+| Auth sign-in email template        | `supabase/templates/auth/sign-in-code.html` + `supabase/config.toml` (`[auth.email.template.confirmation]` / `.magic_link`)                                                                              |
 | Path helpers                       | `ui/src/features/guest/auth/lib/hostAuthPaths.ts`, `ui/src/features/guest/auth/lib/guestAuthPaths.ts`, `ui/src/features/guest/auth/lib/authRedirect.ts` (shared `safeRedirect`)                          |
 | Nav mode/CTA helpers               | `ui/src/features/guest/auth/config/auth-navigation.ts` (`getAuthAudienceFromPath`, `getHostMarketingNavCta`, `getGuestLoginCta`), `ui/src/features/guest/auth/config/mode-switch.ts`                     |
 | Marketing nav sign-in CTA          | `ui/src/features/guest/marketing/shared/components/MarketingNav.tsx`                                                                                                                                     |
@@ -135,7 +145,7 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
 ## Env / Supabase
 
 - **Google OAuth:** `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (host + guest)
-- Email OTP must be enabled in the Supabase Auth dashboard for hosted projects (both audiences depend on it)
+- Email OTP must be enabled in Supabase Auth (both audiences). Auth email transport and templates are Supabase-side config, not env vars: custom SMTP is required for real users (the built-in mailer only reaches organization team addresses), and **Confirm signup** + **Magic link** must both use `supabase/templates/auth/sign-in-code.html`. Local copies are wired in `config.toml`; hosted copies live in Dashboard → Authentication → Emails.
 - **Turnstile CAPTCHA (optional):** `VITE_TURNSTILE_SITE_KEY` (UI) + `TURNSTILE_SECRET_KEY` (edge). Local: add the secret to `ui/.env.development`, set `VITE_TURNSTILE_SITE_KEY`, flip `[auth.captcha] enabled = true` in `supabase/config.toml`, restart. Hosted: Dashboard → Authentication → Attack Protection → enable Turnstile with the secret. Test keys in [`validation-and-env.md`](../../architecture/validation-and-env.md) §11.
 - Facebook OAuth was removed — `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET` and the `[auth.external.facebook]` block in `supabase/config.toml` no longer exist. Not supported; do not reintroduce it.
 
@@ -143,11 +153,12 @@ Hosts and guests can both sign in with a one-time code sent to their email, or w
 
 ## Testing
 
-| Layer | Path / spec                                                                                            | Manual                           |
-| ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| Unit  | OTP/reserved-name validators when touched; `_shared/cors_test.ts` (PostHog tracing + loopback origins) | —                                |
-| E2E   | `ui/e2e/features/auth/authPagesSmoke.spec.ts`, `authRedirectSmoke.spec.ts` (`@smoke` / `@ci`)          | Google OAuth, real email OTP     |
-| N/A   | —                                                                                                      | Turnstile live, Facebook removed |
+| Layer | Path / spec                                                                                            | Manual                                                  |
+| ----- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Unit  | OTP/reserved-name validators when touched; `_shared/cors_test.ts` (PostHog tracing + loopback origins) | —                                                       |
+| E2E   | `ui/e2e/features/auth/authPagesSmoke.spec.ts`, `authRedirectSmoke.spec.ts` (`@smoke` / `@ci`)          | Google OAuth, real email OTP                            |
+| N/A   | —                                                                                                      | Turnstile live, Facebook removed                        |
+| N/A   | Auth email render is Supabase-side                                                                     | New + existing email in Inbucket, then hosted SMTP send |
 
 ---
 

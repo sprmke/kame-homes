@@ -2,7 +2,7 @@
 title: 'Host Detail — operator guide'
 status: active
 tags: [guides, routes, admin]
-updated: 2026-09-05
+updated: 2026-11-05
 ---
 
 # Host Detail — operator guide
@@ -19,7 +19,7 @@ Route: `/admin/hosts/:hostId`
 
 | Section       | E2E save | Validation | Docs | Notes                                                                                                     |
 | ------------- | -------- | ---------- | ---- | --------------------------------------------------------------------------------------------------------- |
-| Header        | Done     | —          | Done | Avatar/initial, name, email, **← Hosts** back link (`SuperAdminDetailHeader`)                             |
+| Header        | Done     | —          | Done | Avatar/initial, name, page description, email, **← Hosts** back link (`SuperAdminDetailHeader`)           |
 | Stat cards    | Done     | —          | Done | Organizations / Properties / Parking slots (`host.stats`) — the first two double as the mode switch       |
 | Mode dropdown | Done     | —          | Done | `Organizations` \| `Properties` — replaces the old pill tabs, URL-persisted `?mode=`                      |
 | Organizations | Done     | —          | Done | Search + grid/table view + pagination                                                                     |

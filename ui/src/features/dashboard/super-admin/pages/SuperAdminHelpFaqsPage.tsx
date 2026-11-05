@@ -292,7 +292,10 @@ export function SuperAdminHelpFaqsPage() {
       />
 
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total FAQs', 'Published', 'Unpublished', 'Categories']}
+          view="grouped"
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load FAQs.</p>
       ) : (

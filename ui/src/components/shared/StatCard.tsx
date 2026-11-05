@@ -191,25 +191,88 @@ export function StatCard({
 
 type StatCardSkeletonProps = {
   showTrend?: boolean;
+  /** Desktop status chips under the value (bookings stage cards). */
+  showStatusFooter?: boolean;
+  /** Fixed card label — render it immediately instead of a bar. */
+  title?: string;
+  /** Fixed adornment beside the title (e.g. metric info dot). */
+  titleAdornment?: ReactNode;
+  /** Fixed icon — render the real icon well instead of a placeholder. */
+  icon?: LucideIcon;
+  iconClassName?: string;
+  iconBgClassName?: string;
+  /** Fixed trend caption, e.g. "vs last period". */
+  changeLabel?: string;
+  /** Fixed footer content (status chips, helper copy). */
+  footer?: ReactNode;
   className?: string;
   style?: CSSProperties;
 };
 
-export function StatCardSkeleton({ showTrend = false, className, style }: StatCardSkeletonProps) {
+export function StatCardSkeleton({
+  showTrend = false,
+  showStatusFooter = false,
+  title,
+  titleAdornment,
+  icon: Icon,
+  iconClassName = STAT_CARD_ICON_MUTED.iconClassName,
+  iconBgClassName = STAT_CARD_ICON_MUTED.iconBgClassName,
+  changeLabel,
+  footer,
+  className,
+  style,
+}: StatCardSkeletonProps) {
   return (
-    <div className={cn('surface-card p-3 sm:p-3.5 md:p-4', className)} style={style}>
-      <div className="flex items-start justify-between gap-2.5 sm:gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
-          <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
-          <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
-          {showTrend ? (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <Skeleton className="h-6 w-14 rounded-full" />
-              <Skeleton className="hidden h-3 w-20 lg:block" />
+    <div className={cn('surface-card p-3 sm:p-3.5 md:p-5', className)} style={style}>
+      <div className={cn('flex flex-col', (showStatusFooter || footer) && 'lg:gap-2.5')}>
+        <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+          <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
+            <div className="flex items-start gap-0.5">
+              {title ? (
+                <p className="text-muted-foreground line-clamp-2 text-xs font-medium leading-snug sm:line-clamp-none sm:text-sm">
+                  {title}
+                </p>
+              ) : (
+                <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
+              )}
+              {titleAdornment ? <span className="shrink-0">{titleAdornment}</span> : null}
             </div>
-          ) : null}
+            <Skeleton className="h-6 w-20 sm:h-8 sm:w-32" />
+            {showTrend ? (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <Skeleton className="h-6 w-14 rounded-full" />
+                {changeLabel ? (
+                  <span className="text-muted-foreground hidden text-xs lg:inline">
+                    {changeLabel}
+                  </span>
+                ) : (
+                  <Skeleton className="hidden h-3 w-20 lg:block" />
+                )}
+              </div>
+            ) : null}
+          </div>
+          {Icon ? (
+            <div
+              className={cn(
+                'native-icon-tile hidden shrink-0 items-center justify-center lg:flex',
+                iconBgClassName
+              )}
+            >
+              <Icon className={cn('size-4 sm:size-5', iconClassName)} aria-hidden />
+            </div>
+          ) : (
+            <Skeleton className="hidden size-8 shrink-0 rounded-lg sm:size-10 sm:rounded-xl lg:block" />
+          )}
         </div>
-        <Skeleton className="hidden size-8 shrink-0 rounded-lg sm:size-10 sm:rounded-xl lg:block" />
+        {footer ? (
+          <div className="w-full shrink-0 self-start">{footer}</div>
+        ) : showStatusFooter ? (
+          <div className="hidden flex-wrap gap-1 lg:flex">
+            <Skeleton className="h-5 w-14 rounded-md" />
+            <Skeleton className="h-5 w-16 rounded-md" />
+            <Skeleton className="h-5 w-10 rounded-md" />
+          </div>
+        ) : null}
       </div>
     </div>
   );

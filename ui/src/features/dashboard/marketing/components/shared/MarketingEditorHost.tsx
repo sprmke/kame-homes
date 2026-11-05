@@ -190,7 +190,15 @@ export function MarketingEditorHost({ contentType, children }: Props) {
     );
   }
 
-  if (!document) return <MarketingEditorSkeleton />;
+  if (!document) {
+    return (
+      <MarketingEditorSkeleton
+        variant={
+          contentType === 'video' ? 'video' : contentType === 'calendar' ? 'calendar' : 'design'
+        }
+      />
+    );
+  }
 
   return (
     <div key={docKeyRef.current} className="flex min-h-0 flex-1 flex-col">

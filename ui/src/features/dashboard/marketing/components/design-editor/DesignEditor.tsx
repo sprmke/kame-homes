@@ -70,7 +70,7 @@ export function DesignEditor(props: Props) {
         void loadPolotnoDesignStudio().catch(() => undefined);
       }}
     >
-      <Suspense fallback={<MarketingEditorSkeleton />}>
+      <Suspense fallback={<MarketingEditorSkeleton variant="design" />}>
         <PolotnoDesignStudio {...props} />
       </Suspense>
     </DesignEditorErrorBoundary>

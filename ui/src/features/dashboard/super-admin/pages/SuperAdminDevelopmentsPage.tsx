@@ -126,7 +126,9 @@ export function SuperAdminDevelopmentsPage() {
         }
       />
       {isLoading ? (
-        <SuperAdminAdminListBodySkeleton metricCount={4} />
+        <SuperAdminAdminListBodySkeleton
+          metricTitles={['Total developments', 'Active', 'Linked properties', 'Linked parking']}
+        />
       ) : error ? (
         <p className="text-destructive text-sm">Could not load developments.</p>
       ) : (

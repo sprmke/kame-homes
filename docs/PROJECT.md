@@ -24,6 +24,7 @@ This document is the entry point for the **guest-form-management** architecture 
 | Guest form validation + environment variables                                             | [`docs/architecture/validation-and-env.md`](architecture/validation-and-env.md)         |
 | Deployment                                                                                | [`docs/architecture/deployment.md`](architecture/deployment.md)                         |
 | Supabase capacity — Pro limits, measured baseline, scaling triggers                       | [`docs/architecture/supabase-capacity.md`](architecture/supabase-capacity.md)           |
+| Weekly operations reports — sources, schema, AI handoff, email delivery                   | [`docs/architecture/ops-reports.md`](architecture/ops-reports.md)                       |
 | Roadmap / gaps                                                                            | [`docs/architecture/roadmap.md`](architecture/roadmap.md)                               |
 | AI platform — gateway, prompt registry, injection safety, evals, retention                | [`docs/architecture/ai-platform.md`](architecture/ai-platform.md)                       |
 | AI dashboard assistant — full tool catalog, tiers, RBAC, exclusions                       | [`docs/architecture/ai-dashboard-assistant.md`](architecture/ai-dashboard-assistant.md) |

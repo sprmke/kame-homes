@@ -2,7 +2,7 @@
 title: 'Property Dashboard — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-03
+updated: 2026-11-05
 ---
 
 # Property Dashboard — operator guide
@@ -46,7 +46,7 @@ Layout order:
 - **Canvas** — denser KPI cards first (no icon tiles / “vs last period” text), then the six board cards stack full-width in the same reading order. Chart/calendar headers use a compact icon + centered title (`AdminSurfaceCardHeader`; descriptions `lg+` only). Header actions (Name/Price, All/Income/Expenses) stay on the **same row, right-aligned**, using dense equal-width `SegmentedControl` (`h-7`, 11px labels). Only when a card is too narrow for both (e.g. the two-column Finance row at 1024px) does the action wrap to its own right-aligned row; the title never runs under it. Section/card gaps stay comfortable (`gap-2.5`–`3.5`, `p-3`+), not cramped.
 - **Desktop (`lg+`)** — standard `AdminPageHeader` with inline date filter and **View Property**; board is `lg:grid-cols-2`.
 
-**Deep links:** KPI “Total Bookings”, Needs attention / Recent bookings “View”, Finance chart “View”, Maintenance “View”, and Transactions “View” / “Add” must target **`propertySectionPath`** (`/org/:orgSlug/property/:propertySlug/…`), never bare `/bookings`, `/finance`, or `/maintenance`.
+**Deep links:** KPI “Total Bookings”, Needs attention / Recent bookings “View”, Finance chart “View”, Maintenance “View”, and Transactions “View” / “Add” must target **`propertySectionPath`** (`/org/:orgSlug/property/:propertySlug/…`), never bare `/bookings`, `/finance`, `/maintenance`, or `/analytics`.
 
 ---
 
@@ -79,7 +79,7 @@ Calendar, form, messages, and stay guide live on **[[public-pages|Public Pages]]
 
 `DashboardAttentionCard` is a peer **surface card** on the ops rail (not a top strip). Sources (unchanged):
 
-1. **Server attention items** — `dashboard-stats` `attention[]` (pending review, awaiting documents, check-ins/outs today, SD refunds, unpaid guest balance; same rules as the org dashboard).
+1. **Server attention items** — `dashboard-stats` `attention[]` (pending review, awaiting documents, check-ins/outs today, SD refunds, unpaid guest balance, low occupancy next 30 days; same rules as the org dashboard). **Low occupancy** opens property **Analytics** with the dashboard’s `from` / `to` (`resolvePropertyDashboardHref` maps `/analytics?…`). Other rows map the same way onto bookings, finance, and so on.
 2. **Rejected external review** (client-only) — shown when `app_settings.external_reviews` includes any row with `moderationStatus = rejected` (`usePropertyRejectedExternalReviewsAttentionItem`); label **Review rejected** (or **Reviews rejected** + count); links to **Settings** → Socials → External reviews. Clears when the host deletes the review or edits and resubmits (back to pending).
 
 Unified **divided list** (up to 5 rows): severity dot (rose / amber / sky), label, optional count on the right; setup-style rows without a count show a chevron. Header subtitle **Bookings & reviews** (matches Calendar / Maintenance / Transactions card headers). **View** links to period-scoped bookings; when any item is critical, an **urgent** summary chip appears under the header. **View all (+N more)** when more than five items.
@@ -137,7 +137,7 @@ List cards (Needs attention, Maintenance, Transactions) show at most **5** rows.
 
 Mini calendar: **fixed short day cells** (not square — keeps the card from towering over an empty Needs attention list) with the same occupancy overlay as bookings month view — status-colored stay pills sit inside the week (inset from the cell edges with a small bottom gap and lane spacing), spanning multi-night stays as one continuous band with status-tone borders. Days that exceed visible lanes show a **+N** chip; hover highlights every segment of that stay and shows a pricing-style tip. **Year** and custom ranges spanning more than one calendar month switch to the yearly dot grid (no stay pills); the Name/Price header toggle is hidden in those views because labels do not render. On single-month week/month/custom ranges, Name/Price toggle: **Price** shows the full stay total (`booking_rate`), not the per-night split. Each week fragment of a multi-week stay repeats the label (no empty continuation bars). Compact mode omits the per-day count badge.
 
-Initial page load uses `DashboardSkeleton` (`AdminSkeletons.tsx`): same gaps as the live board (`gap-2.5` / `lg:grid-cols-2`), compact calendar day placeholders at the same short fixed height, and header actions that match each card (Name/Price toggle, attention badge, View links, breakdown segment). Per-card refresh skeletons inside Maintenance / Transactions / Attention use the same row heights.
+Initial page load uses `DashboardSkeleton` (`AdminSkeletons.tsx`) inside the same page header (title, subtitle, date control) as the loaded dashboard, so the board does not drop when the header appears. The board uses the same gaps as the live layout (`gap-2.5` / `lg:grid-cols-2`), compact calendar day placeholders at the same short fixed height, and header actions that match each card (Name/Price toggle, attention badge, View links, breakdown segment). Per-card refresh skeletons inside Maintenance / Transactions / Attention use the same row heights. Cash-flow / breakdown and Maintenance / Transactions cards are omitted from the skeleton when the member lacks `finance:view` / `maintenance:view`, matching the loaded board.
 
 Cash flow / breakdown / transactions / calendar data still come from `finance-line-items`, `finance-bookings`, and `list-bookings` for the selected period. Tapping a calendar day or booking pill navigates to that booking's detail page.
 

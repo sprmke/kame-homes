@@ -267,7 +267,12 @@ export function SdFormPage() {
   }
 
   if (query.isLoading) {
-    return <SdFormPageSkeleton title={SD_FORM_BRAND_TITLE} />;
+    return (
+      <SdFormPageSkeleton
+        title={SD_FORM_BRAND_TITLE}
+        stepTitles={SD_FORM_STEPS.map((step) => step.title)}
+      />
+    );
   }
 
   if (query.isError || !query.data) {

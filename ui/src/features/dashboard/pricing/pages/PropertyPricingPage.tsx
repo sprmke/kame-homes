@@ -76,6 +76,7 @@ import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { MobileHeroActionButton } from '@/components/mobile/MobileHeroActionButton';
 import { PricingPageBodySkeleton } from '@/components/skeletons/PricingSkeleton';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 
 /** A viewed month at/above this many bookings triggers the busy-month celebration. */
@@ -591,7 +592,32 @@ export function PropertyPricingPage() {
   });
 
   if (isLoading && !hydratedRef.current) {
-    return <PricingPageBodySkeleton />;
+    return (
+      <AdminMobilePage
+        title="Pricing"
+        subtitle="Manage pricing and availability."
+        titleId="pricing-heading"
+        heroTrailing={
+          canSmartPricing || canViewChannels ? (
+            <span className="inline-flex items-center gap-1.5">
+              {canSmartPricing ? <Skeleton className="size-9 shrink-0 rounded-full" /> : null}
+              {canViewChannels ? <Skeleton className="size-9 shrink-0 rounded-full" /> : null}
+            </span>
+          ) : undefined
+        }
+        desktopActions={
+          canSmartPricing || canViewChannels ? (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              {canSmartPricing ? <Skeleton className="h-11 w-full rounded-lg sm:w-36" /> : null}
+              {canViewChannels ? <Skeleton className="h-11 w-full rounded-lg sm:w-32" /> : null}
+            </div>
+          ) : undefined
+        }
+        desktopActionsClassName="w-full sm:w-auto"
+      >
+        <PricingPageBodySkeleton statsCount={4} />
+      </AdminMobilePage>
+    );
   }
 
   if (isError) {
