@@ -22,6 +22,11 @@ export type DocumentRequirement = {
 export type DocumentRequirementCompletion = {
   completedAt: string | null;
   approvedPdfUrl: string | null;
+  /** Host rejected the received file. Cleared when a new file is accepted. */
+  rejectedAt?: string | null;
+  rejectedReason?: string | null;
+  rejectedNote?: string | null;
+  rejectedBy?: string | null;
 };
 
 export const DEFAULT_DOCUMENT_REQUIREMENTS: DocumentRequirement[] = [

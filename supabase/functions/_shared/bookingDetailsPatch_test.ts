@@ -8,13 +8,14 @@ import {
   assertStayDateOrder,
   canRescheduleBookingAtStatus,
   impliedBookingPatchColumns,
+  parseBookingDetailsOperation,
   parkingEditResetPatch,
   requiredPermissionsForOperation,
   requiredPermissionsForPatchColumns,
   requestPdfClearPatchForAdminPayload,
   sanitizeBookingPatchPayload,
 } from './bookingDetailsPatch.ts';
-import { DEFAULT_DOCUMENT_REQUIREMENTS } from './documentRequirements.ts';
+import { DEFAULT_DOCUMENT_REQUIREMENTS, parseDocRejectionReason } from './documentRequirements.ts';
 
 Deno.test('requiredPermissionsForPatchColumns maps stay vs pricing leaves', () => {
   assertEquals(requiredPermissionsForPatchColumns(['check_in_date']), [
@@ -47,6 +48,20 @@ Deno.test('requiredPermissionsForOperation - reschedule requires stay edit', () 
   assertEquals(requiredPermissionsForOperation('reschedule', {}), [
     'bookings.detail.stay:edit',
   ]);
+});
+
+Deno.test('requiredPermissionsForOperation - review_document requires workflow edit', () => {
+  assertEquals(requiredPermissionsForOperation('review_document', { reason: 'expired' }), [
+    'bookings.detail.workflow:edit',
+  ]);
+  assertEquals(parseBookingDetailsOperation('review_document'), 'review_document');
+});
+
+Deno.test('parseDocRejectionReason accepts the catalog and rejects anything else', () => {
+  assertEquals(parseDocRejectionReason('wrong_document'), 'wrong_document');
+  assertEquals(parseDocRejectionReason('other'), 'other');
+  assertThrows(() => parseDocRejectionReason('made_up'), Error, 'Select a rejection reason');
+  assertThrows(() => parseDocRejectionReason(''), Error, 'Select a rejection reason');
 });
 
 Deno.test('sanitizeBookingPatchPayload rejects unknown columns', () => {

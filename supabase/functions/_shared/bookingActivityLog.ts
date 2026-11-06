@@ -66,6 +66,7 @@ type BookingDetailActivityAction = Extract<
   ActivityAction,
   | 'booking.workflow_email_sent'
   | 'booking.document_uploaded'
+  | 'booking.document_rejected'
   | 'booking.share_link_issued'
   | 'booking.stay_guide_link_issued'
   | 'booking.guest_form_link_issued'

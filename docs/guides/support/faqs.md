@@ -1129,6 +1129,14 @@ Yes. The policy is copied onto each booking when the guest books, so a change on
 
 Open the cancelled booking. The Cancellation card shows the refund amount and whether the guest has added payout details. Send the money yourself, then add the receipt link and tap Mark refund sent. The guest gets a confirmation email and the refund is marked done.
 
+### The approved GAF or pet form that came in is wrong. Can I remove it?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+
+Yes. On the Pending Docs card, open the ... menu on the received Approved GAF or Approved pet form row and choose Reject document. Pick a reason, add a note if it helps, then confirm. The file is removed and the step goes back to awaiting, so the booking cannot move forward until a new copy arrives. Nothing is emailed automatically, so request it again the same way you did before. You can reject a document once every 30 seconds, up to five times an hour.
+
 ### Why does the guest see a different cancellation policy than my listing?
 
 - category: Bookings
