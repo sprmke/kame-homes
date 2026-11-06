@@ -368,10 +368,10 @@ const WORKFLOW_SENSITIVE_FORM_FIELDS = new Set<string>([
   'checkInTime',
   'checkOutTime',
   'guestRequestsSurpriseDecor',
-  'needParking',
-  'carPlateNumber',
-  'carBrandModel',
-  'carColor',
+  // Parking is a nested sub-step under Pending Documents, not a re-approval
+  // trigger. Guests can only update /form while PENDING_REVIEW anyway, so a
+  // parking-only change never needs a status revert; the admin edit path
+  // re-opens the parking step server-side (`bookingDetailsPatch.ts`).
   'hasPets',
   'petName',
   'petType',

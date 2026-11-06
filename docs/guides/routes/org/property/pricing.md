@@ -69,6 +69,9 @@ dates that should not be available to guests.
 - Q: Will changing rates update existing bookings?
   A: No. Bookings with saved pricing keep their amounts. Updated defaults apply to future
   pricing reviews that do not already have saved amounts.
+- Q: Do the default down payment and security deposit apply to Airbnb bookings?
+  A: No. Those defaults are for direct and Facebook bookings. Airbnb collects the stay payment
+  and any deposit on their platform, so Airbnb bookings hide both fields and keep them at zero.
 - Q: Where do I connect Airbnb or other OTA calendars?
   A: Pricing → **Channel sync** (Airbnb only for now). Use **From Airbnb** to paste
   Airbnb’s export link, and **To Airbnb** to copy your Kame link back into Airbnb.

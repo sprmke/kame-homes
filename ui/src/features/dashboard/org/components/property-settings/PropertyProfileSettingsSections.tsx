@@ -933,6 +933,7 @@ export function PropertyDangerZoneSection({
   isArchived,
   disabled = false,
   showDelete = true,
+  restoreBlockedReason = null,
   onArchive,
   onRestore,
   onDelete,
@@ -945,6 +946,8 @@ export function PropertyDangerZoneSection({
   disabled?: boolean;
   /** Permanent delete is owner-only (D10) — hide when false. */
   showDelete?: boolean;
+  /** Why Restore is not allowed (unverified listing, ended contract). Null = allowed. */
+  restoreBlockedReason?: string | null;
   onArchive: () => Promise<void>;
   onRestore: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -999,21 +1002,24 @@ export function PropertyDangerZoneSection({
             </p>
             <p className="text-card-description">
               {isArchived
-                ? 'Sets status to Active. Shows the property in active listings again.'
+                ? (restoreBlockedReason ??
+                  'Sets status to Active. Shows the property in active listings again.')
                 : 'Sets status to Inactive. Hides the property from active listings. Booking history and settings are kept.'}
             </p>
           </div>
           {isArchived ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled || restorePending}
-              className="settings-action w-full sm:w-auto"
-              onClick={() => setRestoreOpen(true)}
-            >
-              {restorePending ? 'Restoring…' : 'Restore'}
-            </Button>
+            restoreBlockedReason ? null : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={disabled || restorePending}
+                className="settings-action w-full sm:w-auto"
+                onClick={() => setRestoreOpen(true)}
+              >
+                {restorePending ? 'Restoring…' : 'Restore'}
+              </Button>
+            )
           ) : (
             <Button
               type="button"

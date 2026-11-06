@@ -18,6 +18,10 @@ import {
   type PropertyRow,
 } from './orgAuth.ts';
 import {
+  readListingAuthorizationFromSettings,
+  resolveListingActivationBlock,
+} from './listingAuthorization.ts';
+import {
   DUPLICATE_PROPERTY_NAME_MESSAGE,
   findPropertyNameConflict,
 } from './propertyNameConflict.ts';
@@ -102,6 +106,14 @@ export async function applyPropertyProfilePatch(
     const status = fields.status.trim().toUpperCase();
     if (status !== 'ACTIVE' && status !== 'INACTIVE') {
       throw new PropertyProfilePatchError('status must be ACTIVE or INACTIVE');
+    }
+    if (status === 'ACTIVE' && String(property.status ?? '').toUpperCase() !== 'ACTIVE') {
+      const activationBlock = resolveListingActivationBlock(
+        readListingAuthorizationFromSettings(property.settings)
+      );
+      if (activationBlock) {
+        throw new PropertyProfilePatchError(activationBlock.message, 409);
+      }
     }
     patch.status = status;
   }

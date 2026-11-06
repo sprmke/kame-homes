@@ -15,6 +15,7 @@
 import {
   contractLegLifecycleToSettingsValue,
   emptyContractLegLifecycle,
+  isListingAccessLocked,
   parseContractLegLifecycle,
   resolveListingContractRenewalPhase,
   type ContractLegLifecycle,
@@ -336,6 +337,47 @@ export function isListingRecommendedBadge(state: ListingAuthorizationState): boo
 /** Tier 1 approved — the listing may be ACTIVE regardless of org verification status. */
 export function isListingAuthorized(state: ListingAuthorizationState): boolean {
   return state.baseStatus === 'approved';
+}
+
+/** Why a host may not put this listing live. `null` means activation is allowed. */
+export type ListingActivationBlock = {
+  reason: 'listing_not_approved' | 'contract_locked';
+  message: string;
+};
+
+function listingNotApprovedMessage(status: ListingAuthorizationStatus): string {
+  switch (status) {
+    case 'pending':
+      return 'This listing is still in review. It can go live once it is approved.';
+    case 'rejected':
+      return 'This listing verification was declined. Resubmit it before the property can go live.';
+    default:
+      return 'This listing is not verified yet. Submit the listing verification to go live.';
+  }
+}
+
+/**
+ * Host activation gate. Reads the listing's own authorization block, never the org-leg
+ * fallback: a listing created after the backfill has no block until it is submitted, and
+ * that is exactly the case that used to go live unverified.
+ */
+export function resolveListingActivationBlock(
+  state: ListingAuthorizationState
+): ListingActivationBlock | null {
+  if (isListingAccessLocked(state.lifecycle)) {
+    return {
+      reason: 'contract_locked',
+      message:
+        'This listing contract has ended. Renew the contract to make the listing live again.',
+    };
+  }
+  if (!isListingAuthorized(state)) {
+    return {
+      reason: 'listing_not_approved',
+      message: listingNotApprovedMessage(state.baseStatus),
+    };
+  }
+  return null;
 }
 
 /** Approved listing in pre-expiry, grace, or locked — eligible to submit a renewal. */

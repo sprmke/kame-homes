@@ -19,8 +19,12 @@ function bookingFlagTrue(v: unknown): boolean {
   return v === true || v === 'true';
 }
 
-function isAirbnbBookingSource(source: unknown): boolean {
-  return String(source ?? '').trim() === 'Airbnb';
+export function isAirbnbBookingSource(source: unknown): boolean {
+  return (
+    String(source ?? '')
+      .trim()
+      .toLowerCase() === 'airbnb'
+  );
 }
 
 function petFeeForGuestBalance(booking: Record<string, unknown>): number {
