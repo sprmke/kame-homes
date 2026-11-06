@@ -43,8 +43,6 @@ function renderStepSkeleton(kind: SetupGuideStepKind | undefined): ReactNode {
           <PaymentMethodCard />
         </SectionShell>
       );
-    case 'parking.payments':
-      return <PaymentMethodCard />;
     case 'property.guestform':
       return <GuestFormSkeleton />;
     case 'property.email':

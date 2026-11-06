@@ -77,7 +77,6 @@ function baseOperational(): AppSettingsFormValues {
   return {
     emailTo: '',
     emailReplyTo: '',
-    parkingOwnerEmails: '',
     sdRefundCronEmailLeadHours: 2,
     sdRefundCronMaxCheckoutAgeDays: 30,
     defaultParkingRateGuest: 0,
@@ -183,6 +182,38 @@ describe('planPropertySettingsSave', () => {
 
     expect(plan.hasSavableWork).toBe(true);
     expect(plan.profileSections).toContain('guest-form');
+  });
+});
+
+describe('cleaning buffer section move', () => {
+  it('marks details dirty, not guest-form, when only Cleaning Time changes', () => {
+    const baseline = baseProfile({ cleaningBufferMinutes: 60 });
+    const draft = baseProfile({ cleaningBufferMinutes: 120 });
+    const operational = baseOperational();
+
+    expect(propertySettingsSectionDirty('details', draft, baseline, operational, operational, '')).toBe(
+      true
+    );
+    expect(
+      propertySettingsSectionDirty('guest-form', draft, baseline, operational, operational, '')
+    ).toBe(false);
+  });
+
+  it('saves Cleaning Time with the details section', () => {
+    const draft = baseProfile({ cleaningBufferMinutes: 120 });
+    const patch = buildProfilePatchForSections(draft, 'prop-1', ['details']);
+    expect(patch?.settings?.cleaningBufferMinutes).toBe(120);
+  });
+});
+
+describe('email automation patch', () => {
+  it('no longer sends the retired Parking owners field', () => {
+    const draft = baseOperational();
+    const patch = buildAppSettingsPatchForSections(draft, ['email-automations']);
+    expect(patch).not.toBeNull();
+    expect(patch).not.toHaveProperty('parkingOwnerEmails');
+    expect(patch?.emailReplyTo).toBe(draft.emailReplyTo);
+    expect(patch?.automationToggles).toEqual(draft.automationToggles);
   });
 });
 

@@ -17,7 +17,6 @@ export type PropertyTemplateKey =
   | 'parking-reminders'
   | 'email-gaf-request'
   | 'email-pet-request'
-  | 'email-parking-request'
   | 'email-new-booking-request'
   | 'email-booking-acknowledgement'
   | 'email-ready-for-checkin'
@@ -183,20 +182,6 @@ const BUILTIN_TEMPLATES: PropertyTemplateDefinition[] = [
 <p>{{pet_attachments_section}}</p>
 <p>Please let us know if you need any additional information or documentation.</p>
 <p>Thank you for your consideration.</p>
-<p>{{email_signature_section}}</p>`,
-  },
-  {
-    key: 'email-parking-request',
-    label: 'Parking Request',
-    description: 'Request email sent to building admin for parking registration.',
-    category: 'email',
-    previewTemplateSlug: 'parking-broadcast',
-    defaultContent: `<p>{{urgent_notice}}</p>
-<p>{{update_notice}}</p>
-<p>Good day,</p>
-<p>We have a guest checking in <strong>{{tower_and_unit_number}}</strong> and they need a parking slot.</p>
-<p>{{booking_vehicle_copy}}</p>
-<p>{{parking_reply_callout_section}}</p>
 <p>{{email_signature_section}}</p>`,
   },
   {

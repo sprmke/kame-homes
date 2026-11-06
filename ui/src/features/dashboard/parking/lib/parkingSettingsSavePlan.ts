@@ -8,7 +8,6 @@ export type ParkingSettingsDirtyFlags = {
   details: boolean;
   features: boolean;
   location: boolean;
-  payment: boolean;
   automation: boolean;
 };
 
@@ -17,7 +16,6 @@ export type ParkingSettingsSavePlan = {
   saveDetails: boolean;
   saveFeatures: boolean;
   saveLocation: boolean;
-  savePayment: boolean;
   saveAutomation: boolean;
   blockedSectionIds: ParkingSettingsSectionId[];
   firstBlockedSectionId: ParkingSettingsSectionId | null;
@@ -38,8 +36,6 @@ function sectionDirty(
       return dirty.features;
     case 'location':
       return dirty.location;
-    case 'payment':
-      return dirty.payment;
     default:
       return false;
   }
@@ -65,7 +61,6 @@ export function planParkingSettingsSave(input: {
     'details',
     'features',
     'location',
-    'payment',
   ];
 
   const candidates = draftSections.filter((sectionId) => {
@@ -98,7 +93,6 @@ export function planParkingSettingsSave(input: {
   const saveDetails = savable.has('details');
   const saveFeatures = savable.has('features');
   const saveLocation = savable.has('location');
-  const savePayment = savable.has('payment');
 
   const firstBlockedSectionId = blockedSectionIds[0] ?? null;
   const firstBlockedMessage = firstBlockedSectionId
@@ -110,24 +104,22 @@ export function planParkingSettingsSave(input: {
     saveDetails,
     saveFeatures,
     saveLocation,
-    savePayment,
     saveAutomation,
     blockedSectionIds,
     firstBlockedSectionId,
     firstBlockedMessage,
     hasSavableWork:
-      saveProfile || saveDetails || saveFeatures || saveLocation || savePayment || saveAutomation,
+      saveProfile || saveDetails || saveFeatures || saveLocation || saveAutomation,
   };
 }
 
 export const SETUP_GUIDE_PARKING_SAVE_SCOPE: Record<
-  'basics' | 'location' | 'photo' | 'payments' | 'email' | 'pricing',
+  'basics' | 'location' | 'photo' | 'email' | 'pricing',
   readonly ParkingSettingsSectionId[]
 > = {
   basics: ['basic', 'details'],
   location: ['location'],
   photo: ['media', 'features'],
-  payments: ['payment'],
   email: [],
   // Pricing owns its own save flow via `SetupGuideParkingPricingEmbed` — never scope-saved here.
   pricing: [],

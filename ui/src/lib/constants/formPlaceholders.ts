@@ -28,7 +28,7 @@ export const FORM_PLACEHOLDERS = {
   orgDocumentsApproverEmail: 'documents@yourcompany.com',
   orgTeamEmail: 'team@yourcompany.com',
   orgParkingOwners: 'owner1@example.com, owner2@example.com',
-  orgSdRefundLeadHours: '3',
+  orgSdRefundLeadHours: '2',
   orgStaleCheckoutEmailCutoffDays: '30',
   orgDefaultParkingRate: '400',
 } as const;

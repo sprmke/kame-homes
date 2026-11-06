@@ -90,6 +90,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
 import type { AvailabilityCheckState } from '@/lib/availabilityCheckState';
+import { CLEANING_BUFFER_OPTIONS } from '@/lib/cleaningBuffer';
 import { collectPropertyPhotoUrls } from '@/lib/theme/photoBrandColor';
 import { cn } from '@/lib/utils';
 
@@ -684,6 +685,37 @@ export function PropertyProfileMainSections({
               />
             </SettingsField>
           </FieldGrid>
+
+          <SettingsField
+            id="property-cleaning-buffer"
+            label="Cleaning Time"
+            required
+            error={fieldError('property-cleaning-buffer')}
+            help="Time needed to clean between a checkout and the next check-in on the same day."
+          >
+            <Select
+              value={String(draft.cleaningBufferMinutes)}
+              onValueChange={(value) =>
+                setField('cleaningBufferMinutes', Number(value), 'property-cleaning-buffer')
+              }
+              disabled={lock('details')}
+            >
+              <SelectTrigger
+                id="property-cleaning-buffer"
+                aria-invalid={Boolean(fieldError('property-cleaning-buffer'))}
+                className={cn(fieldError('property-cleaning-buffer') && 'border-destructive')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLEANING_BUFFER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingsField>
 
           <label className="flex min-h-[44px] cursor-pointer items-start gap-3">
             <Checkbox

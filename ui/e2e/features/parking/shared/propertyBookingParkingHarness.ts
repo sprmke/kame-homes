@@ -136,7 +136,6 @@ function e2eAppSettingsPayload() {
   return {
     emailTo: 'host@example.com',
     emailReplyTo: '',
-    parkingOwnerEmails: [] as string[],
     sdRefundCronEmailLeadMinutes: 120,
     sdRefundCronMaxCheckoutAgeDays: 14,
     publicGuestAppOrigin: 'http://127.0.0.1:4173',
@@ -165,7 +164,6 @@ function e2eAppSettingsPayload() {
       emailGafRequest: false,
       emailBookingAcknowledgement: false,
       emailPetRequest: false,
-      emailParkingBroadcast: false,
       emailReadyForCheckin: false,
       emailSdRefundCheckout: false,
     },
@@ -173,7 +171,6 @@ function e2eAppSettingsPayload() {
     fieldSources: {
       emailTo: fieldDefault,
       emailReplyTo: fieldDefault,
-      parkingOwnerEmails: fieldDefault,
       sdRefundCronEmailLeadMinutes: fieldDefault,
       sdRefundCronMaxCheckoutAgeDays: fieldDefault,
       publicGuestAppOrigin: fieldDefault,

@@ -264,7 +264,7 @@ serve(async (req) => {
       const settings = await resolveAppSettings(propertyId);
       let leadMinutes = settings.sdRefundCronEmailLeadMinutes;
       if (Number.isNaN(leadMinutes) || leadMinutes < 0) {
-        leadMinutes = 180;
+        leadMinutes = 120;
       }
       const maxCheckoutAgeDays = settings.sdRefundCronMaxCheckoutAgeDays;
       const maxAgeMs =
@@ -402,8 +402,7 @@ serve(async (req) => {
             saveToDatabase: true,
             generatePdf: false,
             sendGafRequestEmail: false,
-            sendParkingBroadcastEmail: false,
-            sendPetRequestEmail: false,
+                sendPetRequestEmail: false,
             sendBookingAcknowledgementEmail: false,
             sendReadyForCheckinEmail: false,
             sendSdRefundFormEmail: sendEmailOnTransition,
