@@ -19,7 +19,6 @@ type AppSettingsRow = {
   updated_at: string;
   email_to: string | null;
   email_reply_to: string | null;
-  parking_owner_emails: string | null;
   sd_refund_cron_email_lead_minutes: number | null;
   sd_refund_cron_max_checkout_age_days: number | null;
   default_parking_rate_guest: number | null;
@@ -62,7 +61,6 @@ export const DEFAULT_GCASH_QR_RELATIVE_PATH = 'images/kame-home-gcash-qr-payment
 export type AppSettingsResolved = {
   emailTo: string;
   emailReplyTo: string;
-  parkingOwnerEmails: string[];
   sdRefundCronEmailLeadMinutes: number;
   sdRefundCronMaxCheckoutAgeDays: number;
   publicGuestAppOrigin: string;
@@ -359,7 +357,6 @@ function parseCommaSeparatedEmailsLower(raw: string): string[] {
 type PropertyFieldPicks = {
   emailTo: ReturnType<typeof pickPmoEmail>;
   emailReplyTo: ReturnType<typeof pickDbString>;
-  parkingRaw: ReturnType<typeof pickDbString>;
   lead: ReturnType<typeof pickDbInt>;
   maxAge: ReturnType<typeof pickDbInt>;
   parkingRate: ReturnType<typeof pickMoney>;
@@ -439,8 +436,7 @@ function pickPropertyFieldsFromRow(
 ): PropertyFieldPicks {
   const emailTo = pickPmoEmail(developmentPmoEmail, row?.email_to, residenceName);
   const emailReplyTo = pickDbString(row?.email_reply_to);
-  const parkingRaw = pickDbString(row?.parking_owner_emails);
-  const lead = pickDbInt(row?.sd_refund_cron_email_lead_minutes, 180, 0, 10080);
+  const lead = pickDbInt(row?.sd_refund_cron_email_lead_minutes, 120, 0, 10080);
   const maxAge = pickDbInt(row?.sd_refund_cron_max_checkout_age_days, 30, 0, 365);
   const parkingRate = pickMoney(row?.default_parking_rate_guest, 400);
   const paymentMethods = normalizePaymentMethods(row?.payment_methods, row, '');
@@ -461,7 +457,6 @@ function pickPropertyFieldsFromRow(
   return {
     emailTo,
     emailReplyTo,
-    parkingRaw,
     lead,
     maxAge,
     parkingRate,
@@ -507,7 +502,6 @@ export async function resolveAppSettings(propertyId?: string | null): Promise<Ap
   return {
     emailTo: property.emailTo.value,
     emailReplyTo: property.emailReplyTo.value,
-    parkingOwnerEmails: parseCommaSeparatedEmails(property.parkingRaw.value),
     sdRefundCronEmailLeadMinutes: property.lead.value,
     sdRefundCronMaxCheckoutAgeDays: property.maxAge.value,
     publicGuestAppOrigin: originBase,
@@ -633,7 +627,6 @@ export async function serializeAppSettingsForAdmin(
     fieldSources: {
       emailTo: property.emailTo.source,
       emailReplyTo: property.emailReplyTo.source,
-      parkingOwnerEmails: property.parkingRaw.source,
       sdRefundCronEmailLeadMinutes: property.lead.source,
       sdRefundCronMaxCheckoutAgeDays: property.maxAge.source,
       publicGuestAppOrigin: 'default' as const,

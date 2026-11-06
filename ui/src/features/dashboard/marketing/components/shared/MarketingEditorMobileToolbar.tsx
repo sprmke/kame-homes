@@ -2,7 +2,7 @@ import { useState, type ComponentType, type ReactNode } from 'react';
 
 import { ChevronUp, MoreHorizontal } from 'lucide-react';
 
-import { mobileFloatingDockClassName } from '@/components/mobile/BottomTabBar';
+import { mobileFloatingToolbarClassName } from '@/components/mobile/BottomTabBar';
 import { MobileChoiceItem, MobileChoiceSheet } from '@/components/mobile/MobileChoiceSheet';
 import { Button } from '@/components/ui/button';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
@@ -88,14 +88,14 @@ export function MarketingEditorMobileToolbar({
         className={cn(
           // Stacked above the app tab bar (`bottom-0`); the tab bar stays visible.
           'pointer-events-none fixed inset-x-0 z-40 px-4',
-          'bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]',
+          'bottom-[calc(var(--mobile-bottom-bar-h)+0.5rem)]',
           'touch-manipulation',
           className
         )}
         role="toolbar"
         aria-label="Editor actions"
       >
-        <div className={cn(mobileFloatingDockClassName, 'px-3 py-2.5')}>
+        <div className={cn(mobileFloatingToolbarClassName, 'px-3 py-2.5')}>
           <div className="pointer-events-auto flex items-center gap-2">
             {panels ? (
               <div className="flex min-w-0 flex-1 items-center gap-1">

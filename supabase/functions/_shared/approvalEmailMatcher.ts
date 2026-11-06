@@ -155,7 +155,6 @@ export const APPROVAL_INTAKE_DEV_CONTROLS = {
   saveToDatabase: true,
   generatePdf: false,
   sendGafRequestEmail: false,
-  sendParkingBroadcastEmail: false,
   sendPetRequestEmail: false,
   sendBookingAcknowledgementEmail: false,
   sendReadyForCheckinEmail: false,

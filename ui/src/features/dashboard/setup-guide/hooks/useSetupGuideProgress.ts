@@ -122,7 +122,7 @@ export function useSetupGuideProgress({
       Object.fromEntries(
         parkings.map((p) => [
           p.id,
-          ['basic', 'details', 'location', 'media', 'features', 'payment'] as const,
+          ['basic', 'details', 'location', 'media', 'features'] as const,
         ])
       );
 

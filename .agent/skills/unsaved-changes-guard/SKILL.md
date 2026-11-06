@@ -72,6 +72,23 @@ re-checks after commit, which covers most flows. If the redirect is not
 guaranteed to land after the state reset (slug rename, "create then open"),
 wrap it: `const runUnguarded = useRunUnguarded(); runUnguarded(() => navigate(...))`.
 
+### Load-time normalization (no false prompt)
+
+Settings that derive values on load (unit-type defaults, GAF tower/unit from the
+profile, healing a stale preferred parking, initial map auto-locate) change the
+draft without the host touching anything. Those syncs must **not** mark the host
+as having edited the form, or every open of the page prompts on leave.
+
+- Keep a `userEdited` flag (`useSettingsUserEdited`) and guard with
+  `isDirty && userEdited`; do not guard on `isDirty` alone when load-time sync
+  can differ from the server snapshot.
+- Call the parent setter with `{ markEdited: false }` for a normalization. Never
+  route it through `markFieldInteracted`, a user-facing `setField`, or the
+  default `onChange`.
+- Effects that "heal" stale data belong on the silent path too.
+- A modal's initial auto-fill can seed its session baseline (prompt-free) while
+  keeping Save available for the derived value.
+
 ## 2. Modal / sheet / inline editor (no route change)
 
 ```tsx
@@ -111,6 +128,7 @@ or keep the panels mounted.
 - [ ] Manually verified: edit a field, click a sidebar link -> prompt; Save & leave persists and navigates; Discard leaves without saving; Keep editing stays
 - [ ] Verified browser back and refresh prompt: F5 / Cmd+Ctrl+R open the app dialog; toolbar reload and tab close still use `beforeunload`
 - [ ] `isDirty` is false immediately after a successful save (no prompt after saving)
+- [ ] A clean visit with load-time normalization shows no Save chrome and prompts no leave dialog; a real edit still prompts
 - [ ] Modal: Cancel, X, Esc and backdrop all prompt when dirty, none prompt when clean
 - [ ] Route guide updated (`route-guides` skill): one line under the page's Save flow
 - [ ] No hand-rolled `beforeunload`, `useBlocker`, or leave-confirm dialogs

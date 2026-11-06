@@ -90,6 +90,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { TimePicker } from '@/components/ui/time-picker';
 import type { AvailabilityCheckState } from '@/lib/availabilityCheckState';
+import { CLEANING_BUFFER_OPTIONS } from '@/lib/cleaningBuffer';
 import { collectPropertyPhotoUrls } from '@/lib/theme/photoBrandColor';
 import { cn } from '@/lib/utils';
 
@@ -97,9 +98,15 @@ function FieldGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5">{children}</div>;
 }
 
+type ProfileFieldChangeOptions = { markEdited?: boolean };
+
 type ProfileSectionsProps = {
   draft: PropertyProfileDraft;
-  onChange: <K extends keyof PropertyProfileDraft>(key: K, value: PropertyProfileDraft[K]) => void;
+  onChange: <K extends keyof PropertyProfileDraft>(
+    key: K,
+    value: PropertyProfileDraft[K],
+    options?: ProfileFieldChangeOptions
+  ) => void;
   disabled?: boolean;
   slugPreview: string;
   towerConflict: PropertyTowerUnitConflict | null;
@@ -212,11 +219,17 @@ export function PropertyProfileMainSections({
       draft.maxAdults !== defaults.maxAdults ||
       draft.maxChildren !== defaults.maxChildren
     ) {
-      onChange('bedrooms', defaults.bedrooms);
-      onChange('bathrooms', defaults.bathrooms);
-      onChange('maxAdults', defaults.maxAdults);
-      onChange('maxChildren', defaults.maxChildren);
-      onChange('maxGuests', propertyGuestCapacityTotal(defaults.maxAdults, defaults.maxChildren));
+      // Derived sync, not a host edit: keep Save chrome and the leave prompt off.
+      const options = { markEdited: false };
+      onChange('bedrooms', defaults.bedrooms, options);
+      onChange('bathrooms', defaults.bathrooms, options);
+      onChange('maxAdults', defaults.maxAdults, options);
+      onChange('maxChildren', defaults.maxChildren, options);
+      onChange(
+        'maxGuests',
+        propertyGuestCapacityTotal(defaults.maxAdults, defaults.maxChildren),
+        options
+      );
     }
   }, [draft.unitTypeId, unitTypes, onChange]);
 
@@ -685,6 +698,37 @@ export function PropertyProfileMainSections({
             </SettingsField>
           </FieldGrid>
 
+          <SettingsField
+            id="property-cleaning-buffer"
+            label="Cleaning Time"
+            required
+            error={fieldError('property-cleaning-buffer')}
+            help="Time needed to clean between a checkout and the next check-in on the same day."
+          >
+            <Select
+              value={String(draft.cleaningBufferMinutes)}
+              onValueChange={(value) =>
+                setField('cleaningBufferMinutes', Number(value), 'property-cleaning-buffer')
+              }
+              disabled={lock('details')}
+            >
+              <SelectTrigger
+                id="property-cleaning-buffer"
+                aria-invalid={Boolean(fieldError('property-cleaning-buffer'))}
+                className={cn(fieldError('property-cleaning-buffer') && 'border-destructive')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLEANING_BUFFER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={String(option.value)}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingsField>
+
           <label className="flex min-h-[44px] cursor-pointer items-start gap-3">
             <Checkbox
               checked={draft.selfCheckIn}
@@ -878,16 +922,16 @@ export function PropertyProfileMainSections({
               mapsUrl: draft.mapsUrl,
               placeId: draft.placeId,
             }}
-            onChange={(next) => {
-              onChange('address', next.address);
-              onChange('city', next.city);
-              onChange('province', next.province);
-              onChange('country', next.country);
-              onChange('zipCode', next.zipCode);
-              onChange('latitude', next.latitude);
-              onChange('longitude', next.longitude);
-              onChange('mapsUrl', next.mapsUrl);
-              onChange('placeId', next.placeId);
+            onChange={(next, options) => {
+              onChange('address', next.address, options);
+              onChange('city', next.city, options);
+              onChange('province', next.province, options);
+              onChange('country', next.country, options);
+              onChange('zipCode', next.zipCode, options);
+              onChange('latitude', next.latitude, options);
+              onChange('longitude', next.longitude, options);
+              onChange('mapsUrl', next.mapsUrl, options);
+              onChange('placeId', next.placeId, options);
             }}
           />
         </AdminSection>
@@ -901,6 +945,7 @@ export function PropertyDangerZoneSection({
   isArchived,
   disabled = false,
   showDelete = true,
+  restoreBlockedReason = null,
   onArchive,
   onRestore,
   onDelete,
@@ -913,6 +958,8 @@ export function PropertyDangerZoneSection({
   disabled?: boolean;
   /** Permanent delete is owner-only (D10) — hide when false. */
   showDelete?: boolean;
+  /** Why Restore is not allowed (unverified listing, ended contract). Null = allowed. */
+  restoreBlockedReason?: string | null;
   onArchive: () => Promise<void>;
   onRestore: () => Promise<void>;
   onDelete: () => Promise<void>;
@@ -967,21 +1014,24 @@ export function PropertyDangerZoneSection({
             </p>
             <p className="text-card-description">
               {isArchived
-                ? 'Sets status to Active. Shows the property in active listings again.'
+                ? (restoreBlockedReason ??
+                  'Sets status to Active. Shows the property in active listings again.')
                 : 'Sets status to Inactive. Hides the property from active listings. Booking history and settings are kept.'}
             </p>
           </div>
           {isArchived ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled || restorePending}
-              className="settings-action w-full sm:w-auto"
-              onClick={() => setRestoreOpen(true)}
-            >
-              {restorePending ? 'Restoring…' : 'Restore'}
-            </Button>
+            restoreBlockedReason ? null : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={disabled || restorePending}
+                className="settings-action w-full sm:w-auto"
+                onClick={() => setRestoreOpen(true)}
+              >
+                {restorePending ? 'Restoring…' : 'Restore'}
+              </Button>
+            )
           ) : (
             <Button
               type="button"

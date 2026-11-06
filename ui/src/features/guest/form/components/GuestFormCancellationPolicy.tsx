@@ -44,6 +44,9 @@ export function GuestFormCancellationPolicy({
     <div className="border-border/80 bg-card rounded-xl border px-4 py-4 shadow-sm">
       <p className="text-sm font-semibold">{policy.title}</p>
       <p className="text-muted-foreground mt-1 text-sm">{policy.description}</p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        Percentages apply to what you have paid.
+      </p>
 
       {policy.timeline.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
@@ -60,7 +63,7 @@ export function GuestFormCancellationPolicy({
                 aria-hidden
               />
               <span>
-                <span className="text-foreground font-medium">{row.refundPercent}% refund</span>{' '}
+                <span className="text-foreground font-medium">{row.refundPercent}% of paid</span>{' '}
                 until{' '}
                 {validCheckIn
                   ? format(addDays(checkIn, -row.daysBefore), 'MMM d, yyyy')

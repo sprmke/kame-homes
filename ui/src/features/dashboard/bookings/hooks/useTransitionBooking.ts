@@ -38,7 +38,6 @@ export type TransitionPayload = {
   applied_voucher_discount_php?: number | null;
   surprise_decor_staff_acknowledged?: boolean;
   parking_rate_paid?: number | null;
-  parking_owner_email?: string | null;
   parking_owner?: string | null;
   parking_endorsement_url?: string | null;
   parking_fee_included_in_downpayment?: boolean | null;
@@ -89,7 +88,6 @@ export type TransitionEmailDevControls = {
   sendGafRequestEmail?: boolean;
   sendBookingAcknowledgementEmail?: boolean;
   sendPetRequestEmail?: boolean;
-  sendParkingBroadcastEmail?: boolean;
   sendReadyForCheckinEmail?: boolean;
   sendSdRefundFormEmail?: boolean;
 };

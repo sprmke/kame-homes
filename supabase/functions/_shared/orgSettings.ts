@@ -12,19 +12,12 @@ export type OrgSettingsRow = {
   id: number;
   organization_id: string;
   updated_at: string;
-  email_to: string | null;
-  email_reply_to: string | null;
-  parking_owner_emails: string | null;
-  sd_refund_cron_email_lead_minutes: number | null;
-  sd_refund_cron_max_checkout_age_days: number | null;
   public_guest_app_origin: string | null;
   facebook_reviews_url: string | null;
   airbnb_url: string | null;
   instagram_url: string | null;
   tiktok_url: string | null;
   email_logo_url: string | null;
-  default_parking_rate_guest: number | null;
-  automation_toggles: Record<string, unknown> | null;
 };
 
 export type OrgSettingsResolved = {
@@ -115,83 +108,23 @@ function pickDbString(dbVal: string | null | undefined): {
   return { value: '', source: 'default' };
 }
 
-function pickDbInt(
-  dbVal: number | null | undefined,
-  fallback: number,
-  min: number,
-  max: number
-): { value: number; source: OrgSettingsFieldSource } {
-  if (dbVal != null && Number.isFinite(Number(dbVal))) {
-    const n = Math.floor(Number(dbVal));
-    if (n >= min && n <= max) {
-      return { value: n, source: 'db' };
-    }
-  }
-  return { value: fallback, source: 'default' };
-}
-
-function pickMoney(
-  dbVal: number | null | undefined,
-  fallback: number
-): { value: number; source: OrgSettingsFieldSource } {
-  if (dbVal != null) {
-    const n = Number(dbVal);
-    if (Number.isFinite(n) && n > 0) {
-      return { value: n, source: 'db' };
-    }
-  }
-  return { value: fallback, source: 'default' };
-}
-
-function parseCommaSeparatedEmails(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean);
-}
-
 type OrgFieldPicks = {
-  emailTo: ReturnType<typeof pickDbString>;
-  emailReplyTo: ReturnType<typeof pickDbString>;
-  parkingRaw: ReturnType<typeof pickDbString>;
-  lead: ReturnType<typeof pickDbInt>;
-  maxAge: ReturnType<typeof pickDbInt>;
   origin: ReturnType<typeof pickDbString>;
   facebook: ReturnType<typeof pickDbString>;
   airbnb: ReturnType<typeof pickDbString>;
   instagram: ReturnType<typeof pickDbString>;
   tiktok: ReturnType<typeof pickDbString>;
   logo: ReturnType<typeof pickDbString>;
-  parkingRate: ReturnType<typeof pickMoney>;
 };
 
 export function pickOrgSettingsFieldsFromRow(row: OrgSettingsRow | null): OrgFieldPicks {
-  const emailTo = pickDbString(row?.email_to);
-  const emailReplyTo = pickDbString(row?.email_reply_to);
-  const parkingRaw = pickDbString(row?.parking_owner_emails);
-  const lead = pickDbInt(row?.sd_refund_cron_email_lead_minutes, 180, 0, 10080);
-  const maxAge = pickDbInt(row?.sd_refund_cron_max_checkout_age_days, 30, 0, 365);
-  const origin = pickDbString(row?.public_guest_app_origin);
-  const facebook = pickDbString(row?.facebook_reviews_url);
-  const airbnb = pickDbString(row?.airbnb_url);
-  const instagram = pickDbString(row?.instagram_url);
-  const tiktok = pickDbString(row?.tiktok_url);
-  const logo = pickDbString(row?.email_logo_url);
-  const parkingRate = pickMoney(row?.default_parking_rate_guest, 400);
-
   return {
-    emailTo,
-    emailReplyTo,
-    parkingRaw,
-    lead,
-    maxAge,
-    origin,
-    facebook,
-    airbnb,
-    instagram,
-    tiktok,
-    logo,
-    parkingRate,
+    origin: pickDbString(row?.public_guest_app_origin),
+    facebook: pickDbString(row?.facebook_reviews_url),
+    airbnb: pickDbString(row?.airbnb_url),
+    instagram: pickDbString(row?.instagram_url),
+    tiktok: pickDbString(row?.tiktok_url),
+    logo: pickDbString(row?.email_logo_url),
   };
 }
 

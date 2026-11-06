@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
 import { motion } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
 
 import { GuestAccountMenu } from '@/features/guest/account/components/GuestAccountMenu';
 import {
@@ -21,11 +22,13 @@ import {
 } from '@/features/guest/marketing/shared/context/ListingScrollSearchContext';
 import { useModeSwitchTransition } from '@/features/guest/marketing/shared/context/ModeSwitchTransitionContext';
 import { marketingGuestNavLinks } from '@/features/guest/marketing/shared/lib/marketingGuestNavLinks';
+import { getPublicBackTarget } from '@/features/guest/marketing/shared/lib/publicBackTarget';
 
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 
 import { ThemeToggle } from '@/components/theme/MarketingThemeToggle';
 import { Button } from '@/components/ui/button';
+import { useMobileBack } from '@/hooks/useMobileBack';
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +56,8 @@ export function MarketingNav() {
   const isGuestSignedIn = guestSessionStatus === 'authenticated';
   const guestSignInCta = getGuestLoginCta();
   const modeSwitch = useModeSwitchTransition();
+  const backTarget = getPublicBackTarget(pathname);
+  const goBack = useMobileBack(backTarget?.href ?? '/');
   const [isScrolled, setIsScrolled] = useState(false);
   const { headerAnchorRef, morph, enabled: scrollSearchEnabled } = useListingScrollSearch();
   const navMorph = useListingNavMorph();
@@ -186,11 +191,41 @@ export function MarketingNav() {
     >
       <nav className="container relative mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-[var(--public-nav-h)] items-center justify-between overflow-hidden">
+          {/*
+           * Phone back control on detail routes.
+           *
+           * Detail screens (PDP, parking detail, guest flows) mount a
+           * `ContextualActionBar`, which claims the single bottom slot and hides
+           * the tab bar. Without this the screen has no navigation at all, and a
+           * standalone PWA has no browser back gesture to rescue it.
+           */}
+          {backTarget ? (
+            <button
+              type="button"
+              onClick={goBack}
+              data-mobile-back
+              aria-label={`Back to ${backTarget.label}`}
+              className={cn(
+                'native-press relative z-20 -ml-1 flex shrink-0 items-center gap-1 rounded-full py-2 pl-1 pr-2',
+                'min-h-[44px] text-sm font-medium lg:hidden',
+                headerSolid
+                  ? 'text-foreground'
+                  : 'text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)] dark:text-white'
+              )}
+            >
+              <ChevronLeft className="size-5 shrink-0" aria-hidden />
+              <span className="max-w-[9rem] truncate">{backTarget.label}</span>
+            </button>
+          ) : null}
+
           {/* Logo */}
           <Link
             to="/"
             onClick={handleExploreHome}
-            className="group relative z-20 flex shrink-0 items-center gap-2"
+            className={cn(
+              'group relative z-20 flex shrink-0 items-center gap-2',
+              backTarget && 'max-lg:hidden'
+            )}
           >
             <MarketingBrandLogo
               wordmarkClassName={cn(

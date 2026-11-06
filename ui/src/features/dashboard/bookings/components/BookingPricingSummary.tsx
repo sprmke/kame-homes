@@ -8,9 +8,11 @@ import {
   type HostNetBreakdown,
   type HostNetBreakdownLine,
 } from '@/features/dashboard/bookings/lib/bookingFinance';
+import { buildBookingRateRows } from '@/features/dashboard/bookings/lib/bookingPricingRows';
 import {
   computeTotalGuestBalance,
   guestBalancePaidRecorded,
+  isAirbnbBookingSource,
 } from '@/features/dashboard/bookings/lib/totalGuestBalance';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 
@@ -108,37 +110,16 @@ export function BookingPricingSummary({
     );
   }
 
-  const additionalGuestFee = Number(booking.guest_additional_fee ?? 0);
   const hasParking = booking.need_parking === true;
+  const isAirbnb = isAirbnbBookingSource(booking.booking_source);
+  const hasSecurityDeposit = Number(booking.security_deposit ?? 0) > 0;
 
   /**
    * Ledger order: what the stay costs, how it was split, then the optional add-ons.
-   * Rows with no recorded amount are dropped rather than shown as a dash or ₱0.00.
+   * Airbnb bookings skip down payment and security deposit, which are handled on
+   * the platform. Rows with no recorded amount are dropped rather than shown as ₱0.00.
    */
-  const rateRows = [
-    { key: 'rate', label: 'Booking rate', value: formatMoney(booking.booking_rate as number) },
-    { key: 'down', label: 'Down payment', value: formatMoney(booking.down_payment as number) },
-    {
-      key: 'balance',
-      label: 'Balance after down payment',
-      value: formatMoney(booking.balance as number),
-    },
-    {
-      key: 'deposit',
-      label: 'Security deposit',
-      value: formatMoney(booking.security_deposit as number),
-    },
-    {
-      key: 'pet',
-      label: 'Pet fee',
-      value: booking.has_pets === true ? formatMoney(booking.pet_fee as number) : '-',
-    },
-    {
-      key: 'additional',
-      label: 'Additional guest fee',
-      value: additionalGuestFee > 0 ? formatMoney(additionalGuestFee) : '-',
-    },
-  ].filter((row) => row.value !== '-');
+  const rateRows = buildBookingRateRows(booking);
 
   /**
    * Parking sits in its own section because it never counts toward the guest
@@ -171,6 +152,7 @@ export function BookingPricingSummary({
               <BookingDetailRow numeric key={row.key} label={row.label} value={row.value} />
             ))}
           </BookingDetailRowGroup>
+          {isAirbnb ? <p className="text-caption mt-1.5">Stay paid through Airbnb.</p> : null}
         </PricingSection>
       ) : null}
 
@@ -219,7 +201,7 @@ export function BookingPricingSummary({
         />
       ) : null}
 
-      {isCompleted ? <SdRefundSummaryCard booking={booking} /> : null}
+      {isCompleted && hasSecurityDeposit ? <SdRefundSummaryCard booking={booking} /> : null}
     </div>
   );
 }

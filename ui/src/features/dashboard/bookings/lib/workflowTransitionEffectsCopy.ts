@@ -47,7 +47,6 @@ function automation(input: WorkflowTransitionEffectsInput): PropertyAutomationTo
     emailGafRequest: false,
     emailBookingAcknowledgement: false,
     emailPetRequest: false,
-    emailParkingBroadcast: false,
     emailReadyForCheckin: false,
     emailSdRefundCheckout: false,
   };

@@ -64,6 +64,10 @@ import {
 import { usePropertySettingsCompletionForDraft } from '@/features/dashboard/org/hooks/usePropertySettingsCompletion';
 import { useTowerUnitConflict } from '@/features/dashboard/org/hooks/useTowerUnitConflict';
 import { useUpdateProperty } from '@/features/dashboard/org/hooks/useUpdateProperty';
+import {
+  isListingAuthorized,
+  readListingAuthorizationSummary,
+} from '@/features/dashboard/org/lib/listingAuthorization';
 import { paymentMethodsDraftIsDirty } from '@/features/dashboard/org/lib/paymentMethods';
 import type { PropertyAutomationToggleKey } from '@/features/dashboard/org/lib/propertyEmailAutomation';
 import {
@@ -199,6 +203,19 @@ export function usePropertySettingsController() {
           },
     [orgSettings]
   );
+
+  // Restore puts the listing live, so it needs the listing to be verified and the
+  // contract to be current. The server enforces the same rule in `update-property`.
+  const restoreBlockedReason = useMemo(() => {
+    const listingAuthorization = readListingAuthorizationSummary(property.settings);
+    if (listingAuthorization.lifecycle.accessLockedAt) {
+      return 'This listing contract has ended. Renew the contract to restore this property.';
+    }
+    if (!isListingAuthorized(listingAuthorization)) {
+      return 'Restore is available once this listing is verified.';
+    }
+    return null;
+  }, [property.settings]);
 
   const [profileBaseline, setProfileBaseline] = useState(() =>
     propertyProfileDraftFromProperty(property)
@@ -485,13 +502,17 @@ export function usePropertySettingsController() {
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const setProfileField = <K extends keyof PropertyProfileDraft>(
-    key: K,
-    value: PropertyProfileDraft[K]
-  ) => {
-    markUserEdited();
-    setProfileDraft((current) => ({ ...current, [key]: value }));
-  };
+  const setProfileField = useCallback(
+    <K extends keyof PropertyProfileDraft>(
+      key: K,
+      value: PropertyProfileDraft[K],
+      options?: { markEdited?: boolean }
+    ) => {
+      if (options?.markEdited !== false) markUserEdited();
+      setProfileDraft((current) => ({ ...current, [key]: value }));
+    },
+    [markUserEdited]
+  );
 
   const handleMediaPersisted = (media: PropertyProfileDraft['media']) => {
     setProfileDraft((current) => ({ ...current, media }));
@@ -559,14 +580,19 @@ export function usePropertySettingsController() {
 
   const setOperationalField = <K extends keyof AppSettingsFormValues>(
     key: K,
-    value: AppSettingsFormValues[K]
+    value: AppSettingsFormValues[K],
+    options?: { markEdited?: boolean }
   ) => {
-    markUserEdited();
+    if (options?.markEdited !== false) markUserEdited();
     setOperationalDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
-  const setAutomationToggle = (key: PropertyAutomationToggleKey, value: boolean) => {
-    markUserEdited();
+  const setAutomationToggle = (
+    key: PropertyAutomationToggleKey,
+    value: boolean,
+    options?: { markEdited?: boolean }
+  ) => {
+    if (options?.markEdited !== false) markUserEdited();
     setOperationalDraft((current) =>
       current
         ? {
@@ -887,6 +913,7 @@ export function usePropertySettingsController() {
     operationalDirty,
     handleSaveExternalReview,
     isDirty,
+    userEdited,
     showSaveActions,
     savePlan,
     paymentDirty,
@@ -914,6 +941,7 @@ export function usePropertySettingsController() {
     handleArchiveProperty,
     handleRestoreProperty,
     handleDeleteProperty,
+    restoreBlockedReason,
   };
 }
 
@@ -974,6 +1002,7 @@ export function PropertySettingsCard() {
     handleArchiveProperty,
     handleRestoreProperty,
     handleDeleteProperty,
+    restoreBlockedReason,
   } = usePropertySettingsController();
 
   const copyFromHref =
@@ -1162,6 +1191,7 @@ export function PropertySettingsCard() {
             isArchived={profileDraft.status === 'INACTIVE'}
             disabled={busy || !canEditDangerZone}
             showDelete={canDeleteProperty}
+            restoreBlockedReason={restoreBlockedReason}
             archivePending={updateProperty.isPending}
             restorePending={updateProperty.isPending}
             deletePending={deleteProperty.isPending}

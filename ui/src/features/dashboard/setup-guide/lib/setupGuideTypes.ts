@@ -23,7 +23,6 @@ export type SetupGuideStepKind =
   | 'parking.location'
   | 'parking.photo'
   | 'parking.pricing'
-  | 'parking.payments'
   | 'parking.email'
   | 'org.verification'
   | 'org.team'

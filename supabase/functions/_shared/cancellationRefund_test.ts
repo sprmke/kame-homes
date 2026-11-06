@@ -82,27 +82,43 @@ Deno.test('after the last deadline the fallback is 0 and nothing is owed', () =>
   assertEquals(result.retainedPhp, 2000);
 });
 
-Deno.test('firm 50% retains half the stay, capped at cash paid', () => {
+Deno.test('firm 50% refunds half of what the guest paid', () => {
   const result = outcome({
     policy: buildCancellationPreset('firm'),
     cancelledAt: '2026-12-10T06:00:00.000Z',
     booking: { downPayment: 8000 },
   });
   assertEquals(result.refundPercent, 50);
-  // Policy base = 10,000 stay + 500 pet. Retained = 5,250.
-  assertEquals(result.policyBasePhp, 10500);
-  assertEquals(result.retainedPhp, 5250);
-  assertEquals(result.refundDuePhp, 2750);
+  // Paid pool: 7,500 stay + 500 pet. 50% of each.
+  assertEquals(result.refundablePaidPhp, 8000);
+  assertEquals(result.retainedPhp, 4000);
+  assertEquals(result.refundDuePhp, 4000);
 });
 
-Deno.test('guest who paid less than the retained amount gets 0, never a debt', () => {
+Deno.test('guest who paid only the down payment still gets a partial refund', () => {
   const result = outcome({
     policy: buildCancellationPreset('firm'),
     cancelledAt: '2026-12-10T06:00:00.000Z',
     booking: { downPayment: 2000 },
   });
-  assertEquals(result.refundDuePhp, 0);
-  assertEquals(result.retainedPhp, 2000);
+  // 50% of 1,500 stay + 50% of 500 pet = 1,000. This is the whole point of the
+  // paid-based basis: a 50% policy must not wipe out a down payment.
+  assertEquals(result.refundDuePhp, 1000);
+  assertEquals(result.retainedPhp, 1000);
+});
+
+Deno.test('fully paid booking refunds 50% of the stay plus the deposit', () => {
+  const result = outcome({
+    policy: buildCancellationPreset('firm'),
+    cancelledAt: '2026-12-10T06:00:00.000Z',
+    booking: { downPayment: 2000, guestBalancePaid: 10000 },
+  });
+  // Cash paid 12,000: 1,500 SD + 10,000 stay + 500 pet.
+  // 50% of stay + 50% of pet + the full SD = 5,000 + 250 + 1,500 = 6,750.
+  assertEquals(result.amountPaidPhp, 12000);
+  assertEquals(result.securityDepositHeldPhp, 1500);
+  assertEquals(result.refundDuePhp, 6750);
+  assertEquals(result.retainedPhp, 5250);
 });
 
 Deno.test('nothing paid means nothing owed', () => {
@@ -174,15 +190,18 @@ Deno.test('override below policy is allowed and warned', () => {
   assertEquals(result.warnings.length, 1);
 });
 
-Deno.test('voucher discount reduces the refundable stay base', () => {
+Deno.test('voucher discount does not reduce the refund of cash paid', () => {
   const result = outcome({
     cancelledAt: '2026-12-16T06:00:00.000Z',
     booking: { voucherDiscount: 2000 },
   });
-  assertEquals(result.policyBasePhp, 8500);
+  // The guest still paid the same down payment; the discount reduced the amount
+  // due, not the cash already handed over.
+  assertEquals(result.amountPaidPhp, 2000);
+  assertEquals(result.refundablePaidPhp, 2000);
 });
 
-Deno.test('pet fee never_refund is retained outside the policy base', () => {
+Deno.test('pet fee never_refund is retained once the fee has been paid', () => {
   const policy = buildCancellationPreset('custom', {
     tiers: [{ daysBefore: 7, refundPercent: 100 }],
     feeRules: { petFee: 'never_refund', additionalFees: 'follow_policy' },
@@ -190,9 +209,10 @@ Deno.test('pet fee never_refund is retained outside the policy base', () => {
   const result = outcome({
     policy,
     cancelledAt: '2026-12-10T06:00:00.000Z',
-    booking: { downPayment: 8000 },
+    booking: { downPayment: 2000, guestBalancePaid: 10000 },
   });
-  assertEquals(result.policyBasePhp, 10000);
+  // 100% of 10,000 stay + the 1,500 SD; the 500 pet fee is retained.
+  assertEquals(result.refundDuePhp, 11500);
 });
 
 Deno.test('unset policy is host-decides, not a silent 0%', () => {

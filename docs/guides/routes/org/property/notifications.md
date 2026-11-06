@@ -37,6 +37,8 @@ Single hub for **in-app activity** (booking workflow + inbox events in the bell)
 
 Page subtitle: "Manage in-app notifications and Telegram alerts for this property."
 
+**How it works** sits in the header (desktop) and as a hero icon (phone). It names the three channels — in-app, phone push and Telegram — and the rule that ties them together: muting a group for phone push still keeps every event in Activity. Quiet hours use Philippine time; calendar sync failures still come through.
+
 Telegram module settings (and optional credentials) are bulk-copyable via org **Properties → Copy settings**.
 
 ### This device (PWA)

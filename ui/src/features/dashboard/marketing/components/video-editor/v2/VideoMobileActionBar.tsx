@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 
 import { Copy, Replace, Scissors, SlidersHorizontal, Trash2, X } from 'lucide-react';
 
-import { mobileFloatingDockClassName } from '@/components/mobile/BottomTabBar';
+import { mobileFloatingToolbarClassName } from '@/components/mobile/BottomTabBar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -75,11 +75,11 @@ export function VideoMobileActionBar({
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 touch-manipulation px-4"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobile-bottom-bar-h)+0.5rem)] z-40 touch-manipulation px-4"
       role="toolbar"
       aria-label="Clip actions"
     >
-      <div className={cn(mobileFloatingDockClassName, 'px-3 py-2.5')}>
+      <div className={cn(mobileFloatingToolbarClassName, 'px-3 py-2.5')}>
         <div className="pointer-events-auto flex items-center gap-1">
           <Button
             type="button"

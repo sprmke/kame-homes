@@ -70,6 +70,8 @@ test.describe('@ci contextual help', () => {
     const trigger = page.getByRole('button', { name: PROPERTY_NAME_HINT });
     await expect(trigger).toBeVisible({ timeout: 20_000 });
 
+    // Make a real edit so the form is in edit mode before touching the hint.
+    await page.locator('#property-name').fill('Solea Mactan Updated');
     const saveButton = page.getByRole('button', { name: 'Save Changes' });
     await expect(saveButton).toBeVisible();
 

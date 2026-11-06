@@ -1,4 +1,4 @@
-import { mobileFloatingDockClassName } from '@/components/mobile/BottomTabBar';
+import { mobileFloatingToolbarClassName } from '@/components/mobile/BottomTabBar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsBelowLg } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
@@ -348,10 +348,10 @@ function MarketingEditorMobileDockSkeleton({
   return (
     <div
       className="pointer-events-none fixed inset-x-0 z-40 px-4 lg:hidden"
-      style={{ bottom: 'calc(4.75rem + env(safe-area-inset-bottom, 0px))' }}
+      style={{ bottom: 'calc(var(--mobile-bottom-bar-h) + 0.5rem)' }}
       aria-hidden
     >
-      <div className={cn(mobileFloatingDockClassName, 'px-3 py-2.5')}>
+      <div className={cn(mobileFloatingToolbarClassName, 'px-3 py-2.5')}>
         <div className="flex items-center gap-1">
           {labels.map((label) => (
             <div

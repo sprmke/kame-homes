@@ -65,6 +65,15 @@ kind: backlog
 - Refine landing page
 - ✅ Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
 - Refine Channel sync modal
+- Reposition light/dark switch
+- Improve paid/pro subscription badge/flow
+- Control for auto transition to ready for check-in status?
+- Refine edit booking detail page
+- Make sure updated with new changes and features that we have
+  - Subscriptions tier & validation
+  - Team access
+  - Updated tests (unit, e2e, integration)
+  - Updated guide docs for support Q/A and guides
 - Improve ? helper notes from tooltip to a new whole modal with detailed instruction and graphics/images
   - Pricing -> Channel Sync
 

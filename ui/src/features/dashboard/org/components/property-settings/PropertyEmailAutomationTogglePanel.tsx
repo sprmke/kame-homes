@@ -1,5 +1,6 @@
 import type { AppSettingsFormValues } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import {
+  PLAN_GATED_AUTOMATION_TOGGLE_KEYS,
   PROPERTY_AUTOMATION_TOGGLE_GROUPS,
   type PropertyAutomationToggleKey,
 } from '@/features/dashboard/org/lib/propertyEmailAutomation';
@@ -7,15 +8,6 @@ import { TierBadge } from '@/features/dashboard/plans/components/TierBadge';
 import { useUpgradeModal } from '@/features/dashboard/plans/components/UpgradeModalProvider';
 
 import { cn } from '@/lib/utils';
-
-/** Mirrors `_shared/propertyAutomationToggles.ts#PLAN_GATED_AUTOMATION_TOGGLE_KEYS`. */
-const PLAN_GATED_AUTOMATION_TOGGLE_KEYS = new Set<PropertyAutomationToggleKey>([
-  'emailGafRequest',
-  'emailBookingAcknowledgement',
-  'emailPetRequest',
-  'emailReadyForCheckin',
-  'emailSdRefundCheckout',
-]);
 
 function SettingsToggle({
   id,
@@ -120,15 +112,15 @@ function resolveToggleRecipient(
   draft: AppSettingsFormValues,
   fallback: string
 ): string {
-  const propertyEmail = draft.emailReplyTo.trim();
-  const pmoEmail = draft.emailTo.trim();
+  const teamEmail = draft.emailReplyTo.trim();
+  const buildingAdminEmail = draft.emailTo.trim();
 
   switch (key) {
     case 'emailNewBookingRequest':
-      return propertyEmail || `${fallback} (set in Recipients above)`;
+      return teamEmail || `${fallback} (set above)`;
     case 'emailGafRequest':
     case 'emailPetRequest':
-      return pmoEmail || 'Configure in platform development settings';
+      return buildingAdminEmail || 'Not set. Ask your platform team to set it.';
     default:
       return fallback;
   }
@@ -150,9 +142,9 @@ export function PropertyEmailAutomationTogglePanel({
   const { open: openUpgrade } = useUpgradeModal();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {PROPERTY_AUTOMATION_TOGGLE_GROUPS.map((group) => (
-        <div key={group.id} className="space-y-2.5">
+        <div key={group.id} className="space-y-2">
           <p className="text-muted-foreground/90 text-[11px] font-semibold uppercase tracking-wider">
             {group.title}
           </p>

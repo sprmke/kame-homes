@@ -3,6 +3,7 @@ import { voucherLiabilityPhp } from '@/features/guest/sd-form/lib/voucher';
 import {
   computeTotalGuestBalance,
   guestBalancePaidRecorded,
+  isAirbnbBookingSource,
 } from '@/features/dashboard/bookings/lib/totalGuestBalance';
 import type { BookingRow, SdSettlementLineItem } from '@/features/dashboard/bookings/lib/types';
 
@@ -163,10 +164,16 @@ export function buildHostNetBreakdown(
   const additional = toMoneyNumber(booking.guest_additional_fee);
   const parkingGuest = parkingFeeForHostNet(booking);
   const parkingPaid = toMoneyNumber(booking.parking_rate_paid);
+  const isAirbnb = isAirbnbBookingSource(booking.booking_source);
+  const bookingRate = bookingRateForDisplay(booking);
 
-  const income: HostNetBreakdownLine[] = [{ key: 'down', label: 'Down payment', amount: down }];
+  const income: HostNetBreakdownLine[] = isAirbnb
+    ? bookingRate != null
+      ? [{ key: 'booking_rate', label: 'Booking rate', amount: bookingRate }]
+      : []
+    : [{ key: 'down', label: 'Down payment', amount: down }];
 
-  if (guestBalance != null) {
+  if (!isAirbnb && guestBalance != null) {
     income.push({
       key: 'guest_balance',
       label: 'Guest balance',

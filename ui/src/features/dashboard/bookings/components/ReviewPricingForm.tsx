@@ -36,7 +36,10 @@ import {
   optionalNonNegativeMoney,
   requiredNonNegativeMoney,
 } from '@/features/dashboard/bookings/lib/moneyFieldSchema';
-import { computeTotalGuestBalance } from '@/features/dashboard/bookings/lib/totalGuestBalance';
+import {
+  computeTotalGuestBalance,
+  isAirbnbBookingSource,
+} from '@/features/dashboard/bookings/lib/totalGuestBalance';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import type { PricingHolidayRuleDto } from '@/features/dashboard/pricing/lib/phHolidayRules';
 import {
@@ -48,23 +51,29 @@ import {
 import { FORM_PLACEHOLDERS } from '@/lib/constants/formPlaceholders';
 import { formatMoney } from '@/utils/format/currency';
 
-function createReviewPricingSchema(surpriseDecorRequested: boolean) {
+function createReviewPricingSchema(surpriseDecorRequested: boolean, isAirbnb: boolean) {
   const guestAdditionalFeeSchema = surpriseDecorRequested
     ? requiredNonNegativeMoney({
         requiredError: 'Additional fee is required when the guest requested surprise decor',
       })
     : optionalNonNegativeMoney();
+  const downPaymentSchema = isAirbnb
+    ? optionalNonNegativeMoney()
+    : requiredNonNegativeMoney({
+        requiredError: 'Enter down payment',
+      });
+  const securityDepositSchema = isAirbnb
+    ? optionalNonNegativeMoney()
+    : requiredNonNegativeMoney({
+        requiredError: 'Enter security deposit',
+      });
 
   return z.object({
     booking_rate: requiredNonNegativeMoney({
       requiredError: 'Enter booking rate',
     }),
-    down_payment: requiredNonNegativeMoney({
-      requiredError: 'Enter down payment',
-    }),
-    security_deposit: requiredNonNegativeMoney({
-      requiredError: 'Enter security deposit',
-    }),
+    down_payment: downPaymentSchema,
+    security_deposit: securityDepositSchema,
     pet_fee: optionalNonNegativeMoney(),
     parking_rate_guest: optionalNonNegativeMoney(),
     guest_additional_fee: guestAdditionalFeeSchema,
@@ -107,13 +116,13 @@ export function ReviewPricingForm({
   editMode = false,
   variant = 'workflow',
 }: Props) {
-  const isAirbnb = (booking.booking_source || 'Direct') === 'Airbnb';
+  const isAirbnb = isAirbnbBookingSource(booking.booking_source);
   const surpriseDecorRequested = !!booking.guest_requests_surprise_decor;
   const needParking = booking.need_parking === true;
   const hasPets = booking.has_pets === true;
   const schema = useMemo(
-    () => createReviewPricingSchema(surpriseDecorRequested),
-    [surpriseDecorRequested]
+    () => createReviewPricingSchema(surpriseDecorRequested, isAirbnb),
+    [surpriseDecorRequested, isAirbnb]
   );
   const computedDefaultRate = computeDefaultBookingRate(
     booking,
@@ -186,8 +195,8 @@ export function ReviewPricingForm({
   const emitPricingDraft = useCallback((): ReviewPricingFormValues => {
     return {
       booking_rate: bookingRate,
-      down_payment: downPayment,
-      security_deposit: securityDeposit,
+      down_payment: isAirbnb ? 0 : downPayment,
+      security_deposit: isAirbnb ? 0 : securityDeposit,
       pet_fee: petFee,
       parking_rate_guest: parkingRateGuest,
       guest_additional_fee: additionalFee,
@@ -203,6 +212,7 @@ export function ReviewPricingForm({
     parkingRateGuest,
     additionalFee,
     appliedVoucherDiscount,
+    isAirbnb,
   ]);
 
   const validateForProceed = useCallback(async () => {
@@ -275,6 +285,12 @@ export function ReviewPricingForm({
         </div>
       ) : null}
 
+      {isAirbnb ? (
+        <p className="text-muted-foreground mb-3 text-xs leading-snug">
+          Paid through Airbnb. Down payment and security deposit are handled there.
+        </p>
+      ) : null}
+
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Booking Rate" required error={shownErrors.booking_rate?.message}>
           <input
@@ -289,41 +305,35 @@ export function ReviewPricingForm({
           />
         </Field>
 
-        <Field
-          label="Down Payment"
-          required
-          error={shownErrors.down_payment?.message}
-          helpText={isAirbnb ? 'Down payment is not required for Airbnb bookings' : undefined}
-        >
-          <input
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder={FORM_PLACEHOLDERS.downPayment}
-            aria-invalid={!!shownErrors.down_payment || undefined}
-            className={inputClass(!!shownErrors.down_payment, false, isAirbnb || readOnly)}
-            readOnly={isAirbnb || readOnly}
-            {...register('down_payment')}
-          />
-        </Field>
+        {!isAirbnb ? (
+          <>
+            <Field label="Down Payment" required error={shownErrors.down_payment?.message}>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder={FORM_PLACEHOLDERS.downPayment}
+                aria-invalid={!!shownErrors.down_payment || undefined}
+                className={inputClass(!!shownErrors.down_payment, false, readOnly)}
+                readOnly={readOnly}
+                {...register('down_payment')}
+              />
+            </Field>
 
-        <Field
-          label="Security Deposit"
-          required
-          error={shownErrors.security_deposit?.message}
-          helpText={isAirbnb ? 'Security deposit is not required for Airbnb bookings' : undefined}
-        >
-          <input
-            type="number"
-            min={0}
-            step={0.01}
-            placeholder={FORM_PLACEHOLDERS.securityDeposit}
-            aria-invalid={!!shownErrors.security_deposit || undefined}
-            className={inputClass(!!shownErrors.security_deposit, false, isAirbnb || readOnly)}
-            readOnly={isAirbnb || readOnly}
-            {...register('security_deposit')}
-          />
-        </Field>
+            <Field label="Security Deposit" required error={shownErrors.security_deposit?.message}>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder={FORM_PLACEHOLDERS.securityDeposit}
+                aria-invalid={!!shownErrors.security_deposit || undefined}
+                className={inputClass(!!shownErrors.security_deposit, false, readOnly)}
+                readOnly={readOnly}
+                {...register('security_deposit')}
+              />
+            </Field>
+          </>
+        ) : null}
 
         <Field label="Pet Fee" error={shownErrors.pet_fee?.message}>
           <input
@@ -458,7 +468,7 @@ function buildPricingDefaultValues(
   surpriseDecorRequested: boolean,
   propertyDefaults: PropertyPricingDefaults
 ): DefaultValues<ReviewPricingFormValues> {
-  const isAirbnb = (booking.booking_source || 'Direct') === 'Airbnb';
+  const isAirbnb = isAirbnbBookingSource(booking.booking_source);
   const hasPets = booking.has_pets === true;
   const needParking = booking.need_parking === true;
   const storedAdditional = toNullableNumber(booking.guest_additional_fee);
@@ -500,6 +510,7 @@ function buildPricingDefaultValues(
   return {
     ...fromBooking,
     ...initialDraft,
+    ...(isAirbnb ? { down_payment: 0, security_deposit: 0 } : {}),
   } satisfies DefaultValues<ReviewPricingFormValues>;
 }
 

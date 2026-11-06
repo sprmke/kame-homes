@@ -55,7 +55,6 @@ const REVERT_DEV_CONTROLS: DevControlFlags = {
   sendGafRequestEmail: false,
   sendBookingAcknowledgementEmail: false,
   sendPetRequestEmail: false,
-  sendParkingBroadcastEmail: false,
   sendReadyForCheckinEmail: false,
   sendSdRefundFormEmail: false,
 };

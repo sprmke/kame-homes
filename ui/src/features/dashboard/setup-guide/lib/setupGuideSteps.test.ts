@@ -42,7 +42,6 @@ describe('assembleSetupGuideSteps', () => {
       'parking.park-1.location',
       'parking.park-1.photo',
       'parking.park-1.pricing',
-      'parking.park-1.payments',
       'parking.park-1.email',
     ]);
 
@@ -103,7 +102,7 @@ describe('deriveSetupGuideProgress', () => {
           ],
         },
         parkingIssueSectionIdsById: {
-          'park-1': ['basic', 'details', 'location', 'media', 'features', 'payment'],
+          'park-1': ['basic', 'details', 'location', 'media', 'features'],
         },
         hostTier1Submitted: false,
         listingIdsMissingTier1Proof: ['prop-1', 'park-1'],
@@ -133,7 +132,7 @@ describe('deriveSetupGuideProgress', () => {
         orgIssueSectionIds: [],
         propertyIssueSectionIdsById: { 'prop-1': [] },
         parkingIssueSectionIdsById: {
-          'park-1': ['basic', 'location', 'media', 'payment'],
+          'park-1': ['basic', 'location', 'media'],
         },
         hostTier1Submitted: true,
         listingIdsMissingTier1Proof: ['park-1'],

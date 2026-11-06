@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import { useClaimBottomBarSlot } from '@/components/mobile/BottomBarSlot';
 import {
   bottomTabBarOffsetClassName,
-  mobileFloatingDockClassName,
+  mobileBottomBarClassName,
+  mobileBottomBarRowClassName,
 } from '@/components/mobile/BottomTabBar';
+import { useVirtualKeyboardOpen } from '@/hooks/useVirtualKeyboardOpen';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -26,18 +28,17 @@ export function ContextualActionBar({
   className?: string;
 }) {
   useClaimBottomBarSlot();
+  const keyboardOpen = useVirtualKeyboardOpen();
+
+  // A fixed CTA would otherwise cover the field being typed into.
+  if (keyboardOpen) return null;
 
   return (
     <div
-      className={cn(
-        'pointer-events-none fixed inset-x-0 bottom-0 z-40',
-        'px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))]',
-        'touch-manipulation',
-        className
-      )}
+      className={cn('fixed inset-x-0 bottom-0 z-40', mobileBottomBarClassName, className)}
       role="toolbar"
     >
-      <div className={cn(mobileFloatingDockClassName, 'px-3 py-2.5')}>{children}</div>
+      <div className={cn(mobileBottomBarRowClassName, 'px-3 py-2.5')}>{children}</div>
     </div>
   );
 }
