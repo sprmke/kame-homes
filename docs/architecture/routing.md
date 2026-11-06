@@ -156,9 +156,10 @@ Key differences from non-Airbnb bookings:
 - **Guest form** guest-list **capacity** (`maxAdults`, `maxChildren`) comes from the same payload (set by property **Unit type** under development **`unitTypes`** presets). Reminder banner + **`submit-form`** occupancy checks use building rule: age 4+ = adult, age 0–3 = child.
 - **Guest form** is **4 steps** for Airbnb (Payment step hidden). Non-Airbnb Direct/Facebook bookings include Payment unless parking/pets toggles remove middle steps. `paymentReceipt` is optional in the Airbnb schema; `findUs` defaults to "Airbnb" when `?source=airbnb`.
 - **Server (`submit-form`)** allows missing `paymentReceipt` file and skips the downpayment receipt AI validation for Airbnb submissions.
-- **Admin `ReviewPricingForm`** defaults down payment and security deposit to **₱0** (editable by admin if needed).
+- **Admin `ReviewPricingForm`** hides down payment and security deposit for Airbnb and keeps both values at **₱0**. The Pricing tab omits those rows and shows "Stay paid through Airbnb"; a completed Airbnb booking has no SD refund card; the host-net breakdown uses **Booking rate** instead of Down payment.
 - **Admin `BookingEditForm`** hides the Downpayment receipt row in the Documents section for Airbnb bookings.
-- **Ready-for-check-in email** hides the Payment breakdown table and payment QR section when total balance due is ₱0 (source-agnostic — applies to any booking with zero total balance).
+- **Ready-for-check-in email** hides the Payment breakdown table and payment QR section when total balance due is ₱0 (source-agnostic — applies to any booking with zero total balance). For Airbnb with extra fees, the table shows **Stay: Paid through Airbnb** plus only the pet/parking/additional fee rows.
+- **Airbnb source matching** is trimmed and case-insensitive in the UI and edge helpers.
 - **Guest balance settlement** (`READY_FOR_CHECKIN` → `READY_FOR_CHECKOUT`): for Airbnb, **booking rate / down payment / security deposit are excluded** from total guest balance — only **pet fee** and **additional guest fee** count. When that total is ₱0, **paid = 0** and **no payment balance receipt** is required. Additional fees still require a GCash/Maya/bank/cash receipt with AI validation.
 - **SD refund flow** is skipped when `security_deposit = 0`: booking goes directly from `READY_FOR_CHECKOUT` to `COMPLETED` (no SD form email, no guest `/sd-form` step). The `sd-refund-cron` also suppresses the check-out email for SD=0 bookings.
 

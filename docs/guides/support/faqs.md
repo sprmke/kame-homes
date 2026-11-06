@@ -158,6 +158,15 @@ Yes. Return to step at the bottom left moves the booking to a previous status. E
 
 Cancelling is only available up to Ready for Check-in. Once a booking reaches Ready for Check-out the stay has already happened, so it gets finished or refunded instead of cancelled.
 
+### Why don't I see a down payment or security deposit on an Airbnb booking?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+- order: 45
+
+Airbnb collects the stay payment and any deposit on their platform, so those fields are hidden and left at zero. You still record the booking rate, pet fee, and any additional fee. The Pricing tab says Stay paid through Airbnb.
+
 ### Can I close calendar dates without creating a booking?
 
 - category: Bookings
