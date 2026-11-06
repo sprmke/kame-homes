@@ -4,8 +4,8 @@
  */
 
 import dayjs from 'dayjs';
-import type { DocumentRequirement } from './documentRequirements.ts';
-import { resolveDocumentRequirements } from './documentRequirements.ts';
+import type { DocumentRequirement, DocumentRequirementCompletion } from './documentRequirements.ts';
+import { parseDocRejectionReason, resolveDocumentRequirements } from './documentRequirements.ts';
 import { createServiceClient } from './orgAuth.ts';
 import type { PropertyAccessContext } from './orgAuth.ts';
 import {
@@ -19,6 +19,7 @@ import { validateEmailAddress, validatePhilippineMobilePhone } from './fieldVali
 import {
   pendingDocumentsClearCompletionsJsonbPatch,
   pendingDocumentsClearPatchForGuestEditRevert,
+  readDocumentCompletions,
   shouldRevertGuestFieldEditsToPendingReview,
   isPostPendingDocumentsStatus,
 } from './statusMachine.ts';
@@ -39,6 +40,7 @@ export type BookingDetailsOperation =
   | 'patch'
   | 'reschedule'
   | 'clear_asset'
+  | 'review_document'
   | 'save_parking_rate_guest'
   | 'ensure_need_parking';
 
@@ -824,6 +826,59 @@ export async function applyBookingDetailsPatch(
     return { booking, changedColumns: Object.keys(patch) };
   }
 
+  if (operation === 'review_document') {
+    const decision = String(body.decision ?? '').trim();
+    if (decision !== 'reject') throw new Error('Unsupported review decision');
+
+    const requirementId = parseOptionalString(body.requirementId);
+    if (!requirementId) throw new Error('requirementId is required');
+
+    const assetTypeRaw = body.assetType;
+    if (
+      !isBookingAssetType(assetTypeRaw) ||
+      (assetTypeRaw !== 'approved_gaf' && assetTypeRaw !== 'approved_pet')
+    ) {
+      throw new Error('Only approved GAF and pet PDFs can be rejected');
+    }
+
+    if (existingStatus !== 'PENDING_DOCUMENTS') {
+      throw new Error('Reopen Pending Documents before rejecting a document');
+    }
+
+    const reason = parseDocRejectionReason(body.reason);
+    const note = parseOptionalString(body.note)?.slice(0, 500) ?? null;
+
+    const completions = readDocumentCompletions(
+      existing as Parameters<typeof readDocumentCompletions>[0]
+    );
+    // A manually uploaded file can live only in the legacy named column while the
+    // map has no entry for a renamed requirement id — accept either source.
+    const legacyColumn = BOOKING_ASSET_URL_COLUMN[assetTypeRaw];
+    const legacyUrl =
+      typeof existing[legacyColumn] === 'string' ? String(existing[legacyColumn]).trim() : '';
+    if (!completions[requirementId]?.approvedPdfUrl?.trim() && !legacyUrl) {
+      throw new Error('No approved document on file to reject');
+    }
+
+    const nextCompletions: Record<string, DocumentRequirementCompletion> = { ...completions };
+    nextCompletions[requirementId] = {
+      completedAt: null,
+      approvedPdfUrl: null,
+      rejectedAt: nowIso,
+      rejectedReason: reason,
+      rejectedNote: note,
+    };
+
+    const patch: Record<string, unknown> = {
+      ...bookingAssetClearPatch(assetTypeRaw),
+      document_requirement_completions: nextCompletions,
+    };
+    const booking = await updateBookingRow(bookingId, patch, {
+      expectedStatus: 'PENDING_DOCUMENTS',
+    });
+    return { booking, changedColumns: Object.keys(patch) };
+  }
+
   if (operation === 'reschedule') {
     const currentStatus = String(existing.status ?? '').trim();
     if (!canRescheduleBookingAtStatus(currentStatus)) {
@@ -945,6 +1000,8 @@ export function requiredPermissionsForOperation(
       }
       return [bookingAssetPermission(assetTypeRaw)];
     }
+    case 'review_document':
+      return ['bookings.detail.workflow:edit'];
     case 'patch': {
       const payload = sanitizeBookingPatchPayload(body.payload);
       return requiredPermissionsForPatchColumns([
@@ -963,6 +1020,7 @@ export function parseBookingDetailsOperation(value: unknown): BookingDetailsOper
     op === 'patch' ||
     op === 'reschedule' ||
     op === 'clear_asset' ||
+    op === 'review_document' ||
     op === 'save_parking_rate_guest' ||
     op === 'ensure_need_parking'
   ) {

@@ -18,6 +18,7 @@ import {
   requiredPermissionsForOperation,
 } from '../_shared/bookingDetailsPatch.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { BOOKING_ASSET_LABELS, isBookingAssetType } from '../_shared/bookingAssetTypes.ts';
 import {
   jsonError,
   jsonSuccess,
@@ -25,6 +26,8 @@ import {
   requireHttpMethod,
 } from '../_shared/httpResponse.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
+import { DOC_REJECTION_REASON_IDS } from '../_shared/documentRequirements.ts';
+import { rateLimitGate } from '../_shared/rateLimit.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 
 serveAuthenticated('update-booking-details', async (req) => {
@@ -72,6 +75,32 @@ serveAuthenticated('update-booking-details', async (req) => {
     return jsonError(req, (err as Error).message, 403);
   }
 
+  // Document review is a repeated toggle surface (reject → re-upload → reject).
+  // Bound it per booking + requirement, after the property scope check so only
+  // authorized hosts can spend the quota: a short cooldown stops double-taps and
+  // the hourly window stops a host cycling one document over and over.
+  if (operation === 'review_document') {
+    const requirementId =
+      typeof body.requirementId === 'string' ? body.requirementId.trim() : 'unknown';
+    const reviewIdentity = `${bookingId}:${requirementId}`;
+
+    const hourly = await rateLimitGate(req, {
+      scope: 'booking-document-review',
+      identity: reviewIdentity,
+      limit: 5,
+      windowSec: 3600,
+    });
+    if (hourly) return hourly;
+
+    const cooldown = await rateLimitGate(req, {
+      scope: 'booking-document-review-cooldown',
+      identity: reviewIdentity,
+      limit: 1,
+      windowSec: 30,
+    });
+    if (cooldown) return cooldown;
+  }
+
   let result;
   try {
     result = await applyBookingDetailsPatch({
@@ -98,8 +127,14 @@ serveAuthenticated('update-booking-details', async (req) => {
   }
 
   if (!result.skipped) {
+    const isDocumentReview = operation === 'review_document';
+    const reasonRaw = typeof body.reason === 'string' ? body.reason.trim() : '';
+    const reasonLabel = (DOC_REJECTION_REASON_IDS as readonly string[]).includes(reasonRaw)
+      ? reasonRaw
+      : null;
+
     await logActivity({
-      action: 'booking.details_edited',
+      action: isDocumentReview ? 'booking.document_rejected' : 'booking.details_edited',
       organizationId: propertyAccess.property.organization_id,
       propertyId,
       scope: 'property',
@@ -115,7 +150,17 @@ serveAuthenticated('update-booking-details', async (req) => {
         result.booking,
         { include: result.changedColumns, exclude: ['updated_at'] }
       ),
-      metadata: { operation },
+      metadata: isDocumentReview
+        ? {
+            operation,
+            requirement_id: typeof body.requirementId === 'string' ? body.requirementId : null,
+            asset_type: typeof body.assetType === 'string' ? body.assetType : null,
+            asset_label: isBookingAssetType(body.assetType)
+              ? BOOKING_ASSET_LABELS[body.assetType]
+              : null,
+            rejection_reason: reasonLabel,
+          }
+        : { operation },
     });
   }
 

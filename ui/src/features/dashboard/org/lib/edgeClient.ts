@@ -122,6 +122,13 @@ export function registerSuperAdminStepUp(fn: SuperAdminStepUpRequester | null): 
   stepUpRequester = fn;
 }
 
+export type EdgeCallError = Error & {
+  status?: number;
+  rateLimited?: boolean;
+  /** Seconds until the caller may retry, from a 429 rate-limit response. */
+  retryAfterSec?: number;
+};
+
 export async function callEdgeFunction<T>(path: string, init?: RequestInit): Promise<T> {
   return callEdgeFunctionInner<T>(path, init, false);
 }
@@ -176,7 +183,13 @@ async function callEdgeFunctionInner<T>(
         return callEdgeFunctionInner<T>(path, init, true);
       }
     }
-    throw new Error((json.error as string) ?? 'Request failed');
+    throw (() => {
+      const error = new Error((json.error as string) ?? 'Request failed') as EdgeCallError;
+      error.status = res.status;
+      if (json.rateLimited === true) error.rateLimited = true;
+      if (typeof json.retryAfterSec === 'number') error.retryAfterSec = json.retryAfterSec;
+      return error;
+    })();
   }
   return json.data as T;
 }

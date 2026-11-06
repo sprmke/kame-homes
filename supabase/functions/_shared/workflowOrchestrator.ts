@@ -540,6 +540,10 @@ export class WorkflowOrchestrator {
       booking as Parameters<typeof readDocumentCompletions>[0]
     );
     let completionsChanged = false;
+    /** A fresh accepted file supersedes any earlier host rejection. */
+    function acceptedDocumentPatch(): Partial<DocumentRequirementCompletion> {
+      return { rejectedAt: null, rejectedReason: null, rejectedNote: null, rejectedBy: null };
+    }
     function patchCompletion(id: string, patch: Partial<DocumentRequirementCompletion>): void {
       const prev: DocumentRequirementCompletion = completionsMap[id] ?? {
         completedAt: null,
@@ -576,6 +580,7 @@ export class WorkflowOrchestrator {
         // renamed one (matched on pdfTemplateId) rather than a literal `gaf`.
         patchCompletion(resolveLegacyCompletionId('PENDING_GAF', documentRequirements), {
           approvedPdfUrl: payload.approved_gaf_pdf_url,
+          ...acceptedDocumentPatch(),
         });
       }
     }
@@ -589,6 +594,7 @@ export class WorkflowOrchestrator {
         workflowFields.approved_pet_pdf_url = payload.approved_pet_pdf_url;
         patchCompletion(resolveLegacyCompletionId('PENDING_PET_REQUEST', documentRequirements), {
           approvedPdfUrl: payload.approved_pet_pdf_url,
+          ...acceptedDocumentPatch(),
         });
       }
     }
@@ -640,7 +646,7 @@ export class WorkflowOrchestrator {
           }
           patchCompletion(resolved.requirementId, {
             completedAt: now,
-            ...(approvedUrl ? { approvedPdfUrl: approvedUrl } : {}),
+            ...(approvedUrl ? { approvedPdfUrl: approvedUrl, ...acceptedDocumentPatch() } : {}),
           });
           if (approvedColumn && approvedUrl) {
             workflowFields[approvedColumn] = approvedUrl;

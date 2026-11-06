@@ -8,7 +8,7 @@
 
 import { useId } from 'react';
 
-import { FileClock, FileText, Mail, Upload } from 'lucide-react';
+import { CheckCircle2, FileClock, FileText, Mail, RefreshCw, Upload, XCircle } from 'lucide-react';
 
 import { WorkflowSubFormCard } from '@/features/dashboard/bookings/components/WorkflowSubFormCard';
 import type { BookingAssetPreviewHandler } from '@/features/dashboard/bookings/hooks/useBookingAssetPreview';
@@ -17,6 +17,10 @@ import {
   requirementApplies,
   type DocumentRequirement,
 } from '@/features/dashboard/bookings/lib/documentRequirements';
+import {
+  docRejectionReasonLabel,
+  formatDocReviewDate,
+} from '@/features/dashboard/bookings/lib/documentReview';
 import { pendingDocStepUsesApprovalModal } from '@/features/dashboard/bookings/lib/pendingDocApproval';
 import {
   buildPendingDocStatusGroups,
@@ -33,6 +37,7 @@ import {
 } from '@/features/dashboard/bookings/lib/workflow';
 import { nestedAdvanceDisplay } from '@/features/dashboard/bookings/lib/workflowAdvanceMode';
 
+import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import { cn } from '@/lib/utils';
 
 /** Right-column action link — matches `BookingCompactAssetControl` preview links. */
@@ -45,6 +50,10 @@ const DOC_ROW_PENDING = 'text-xs font-semibold text-amber-700 dark:text-amber-40
 const DOC_ROW_READY = 'text-muted-foreground text-xs font-semibold';
 
 const DOC_ROW_SENT = 'text-primary text-xs font-semibold';
+
+const DOC_STATUS_RECEIVED = 'text-emerald-700 dark:text-emerald-400';
+const DOC_STATUS_AWAITING = 'text-amber-700 dark:text-amber-400';
+const DOC_STATUS_REJECTED = 'text-destructive';
 
 type DocStepState = 'not-required' | 'not-sent' | 'awaiting' | 'approved' | 'complete-without-file';
 
@@ -83,11 +92,42 @@ function rowStatusLabel(
       return 'Missing';
     case 'ready':
       return 'Ready';
+    case 'rejected':
+      return 'Rejected';
     case 'awaiting':
       return 'Pending';
     default:
       return 'Pending';
   }
+}
+
+/** One-line review state under an inbound approval row label. */
+function approvalStatusText(row: PendingDocStatusRow): string {
+  if (row.status === 'received') {
+    const date = formatDocReviewDate(row.receivedAt);
+    return date ? `Received · ${date}` : 'Received';
+  }
+  if (row.status === 'rejected') {
+    const reason = docRejectionReasonLabel(row.rejectedReason);
+    const date = formatDocReviewDate(row.rejectedAt);
+    return [reason ? `Rejected · ${reason}` : 'Rejected', date].filter(Boolean).join(' · ');
+  }
+  if (row.status === 'on-file') return 'Received · not complete';
+  return 'Awaiting approval';
+}
+
+function approvalStatusTone(row: PendingDocStatusRow): string {
+  if (row.status === 'received') return DOC_STATUS_RECEIVED;
+  if (row.status === 'rejected') return DOC_STATUS_REJECTED;
+  if (row.status === 'on-file') return 'text-muted-foreground';
+  return DOC_STATUS_AWAITING;
+}
+
+function ApprovalStatusIcon({ status }: { status: PendingDocRowStatus }) {
+  if (status === 'received' || status === 'on-file')
+    return <CheckCircle2 className="size-3 shrink-0" aria-hidden />;
+  if (status === 'rejected') return <XCircle className="size-3 shrink-0" aria-hidden />;
+  return <FileClock className="size-3 shrink-0" aria-hidden />;
 }
 
 export function PendingDocSubStatusCard({
@@ -98,6 +138,7 @@ export function PendingDocSubStatusCard({
   automatedBookingFlow = true,
   canUpload = false,
   onUpload,
+  onReject,
   onPreview,
 }: {
   booking: BookingRow;
@@ -108,6 +149,8 @@ export function PendingDocSubStatusCard({
   /** Host can mutate this booking and upload a replacement approval file. */
   canUpload?: boolean;
   onUpload?: (sub: PendingDocNestedKey) => void;
+  /** Opens the reject sheet for a received approval file. */
+  onReject?: (sub: PendingDocNestedKey) => void;
   onPreview: BookingAssetPreviewHandler;
 }) {
   const groupIdPrefix = useId();
@@ -130,6 +173,13 @@ export function PendingDocSubStatusCard({
     Boolean(onUpload) &&
     pendingDocStepUsesApprovalModal(sub, requirements);
 
+  const canRejectApproval =
+    canUpload &&
+    !beforeRequestSent &&
+    booking.status === 'PENDING_DOCUMENTS' &&
+    Boolean(onReject) &&
+    pendingDocStepUsesApprovalModal(sub, requirements);
+
   const subStepCompleted = state === 'approved' || state === 'complete-without-file';
   const groups = applies
     ? buildPendingDocStatusGroups({
@@ -140,6 +190,7 @@ export function PendingDocSubStatusCard({
         approvedUrl,
         approvalCompleted: subStepCompleted,
         automatedBookingFlow,
+        completion,
       })
     : [];
   const showManualSendHint = !automatedBookingFlow && freeOutboundNeedsManualSend(groups);
@@ -206,9 +257,15 @@ export function PendingDocSubStatusCard({
                         onUpload={
                           canUploadApproval &&
                           row.approvalRow &&
-                          !row.url?.trim() &&
-                          row.status === 'awaiting'
+                          (row.status === 'awaiting' ||
+                            row.status === 'rejected' ||
+                            row.status === 'received')
                             ? () => onUpload?.(sub)
+                            : undefined
+                        }
+                        onReject={
+                          canRejectApproval && row.approvalRow && row.status === 'received'
+                            ? () => onReject?.(sub)
                             : undefined
                         }
                       />
@@ -234,68 +291,124 @@ function DocLinkRow({
   statusUpdatedAt,
   onPreview,
   onUpload,
+  onReject,
 }: {
   row: PendingDocStatusRow;
   statusUpdatedAt?: string | null;
   onPreview: BookingAssetPreviewHandler;
-  /** Opens the approval upload sheet — only offered on an awaiting inbound row. */
+  /** Opens the approval upload sheet — awaiting, rejected, or replacing a received file. */
   onUpload?: () => void;
+  /** Opens the reject sheet — received approval files only. */
+  onReject?: () => void;
 }) {
   const stored = row.url?.trim() ?? '';
   const Icon = stored ? FileText : FileClock;
   const actionLabel = rowStatusLabel(row.status, Boolean(row.approvalRow), Boolean(stored));
+  const approvalStatus = row.approvalRow ? approvalStatusText(row) : null;
+  const rejectionTitle = row.rejectionNote?.trim() || undefined;
+
+  const menuActions = [
+    ...(onUpload
+      ? [
+          {
+            key: 'replace',
+            label: stored ? 'Replace file' : 'Upload file',
+            icon: <RefreshCw className="size-4" aria-hidden />,
+            onSelect: onUpload,
+          },
+        ]
+      : []),
+    ...(onReject
+      ? [
+          {
+            key: 'reject',
+            label: 'Reject document',
+            icon: <XCircle className="size-4" aria-hidden />,
+            destructive: true,
+            onSelect: onReject,
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <li className="flex min-h-11 items-center justify-between gap-3 px-3 py-1.5">
-      <span
-        className={cn(
-          'flex min-w-0 items-center gap-2 text-xs font-medium',
-          stored ? 'text-foreground' : 'text-muted-foreground'
-        )}
-      >
-        <Icon
-          className={cn('size-3.5 shrink-0', stored ? 'text-muted-foreground' : 'opacity-60')}
-          aria-hidden
-        />
-        <span className="truncate">{row.label}</span>
-      </span>
-      {stored ? (
-        <button
-          type="button"
-          onClick={() => void onPreview(row.label, previewStorageUrl(stored, statusUpdatedAt))}
-          aria-label={`View ${row.label}`}
-          className={cn(
-            'focus-ring inline-flex min-h-11 min-w-11 shrink-0 items-center justify-end rounded-md px-1',
-            DOC_ROW_ACTION
-          )}
-        >
-          {actionLabel}
-        </button>
-      ) : onUpload ? (
-        <button
-          type="button"
-          onClick={onUpload}
-          aria-label={`Upload ${row.label}`}
-          className={cn(
-            'focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-1',
-            DOC_ROW_ACTION
-          )}
-        >
-          <Upload className="size-3.5 shrink-0" aria-hidden />
-          Upload
-        </button>
-      ) : (
+    <li className="flex min-h-11 items-start justify-between gap-3 px-3 py-2">
+      <div className="min-w-0 flex-1">
         <span
           className={cn(
-            row.status === 'ready' && DOC_ROW_READY,
-            row.status === 'missing' && DOC_ROW_PENDING,
-            row.status === 'awaiting' && DOC_ROW_PENDING,
-            row.status === 'on-file' && DOC_ROW_SENT
+            'flex min-w-0 items-center gap-2 text-xs font-medium',
+            stored ? 'text-foreground' : 'text-muted-foreground'
           )}
         >
-          {actionLabel}
+          <Icon
+            className={cn('size-3.5 shrink-0', stored ? 'text-muted-foreground' : 'opacity-60')}
+            aria-hidden
+          />
+          <span className="truncate">{row.label}</span>
         </span>
-      )}
+        {approvalStatus ? (
+          <p
+            className={cn(
+              'mt-0.5 flex min-w-0 items-center gap-1 pl-[1.375rem] text-[11px] font-medium leading-snug',
+              approvalStatusTone(row)
+            )}
+            title={rejectionTitle}
+            aria-label={rejectionTitle ? `${approvalStatus}. ${rejectionTitle}` : undefined}
+          >
+            <ApprovalStatusIcon status={row.status} />
+            <span className="truncate">{approvalStatus}</span>
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-0.5">
+        {stored ? (
+          <button
+            type="button"
+            onClick={() => void onPreview(row.label, previewStorageUrl(stored, statusUpdatedAt))}
+            aria-label={`View ${row.label}`}
+            className={cn(
+              'focus-ring inline-flex min-h-11 min-w-11 items-center justify-end rounded-md px-1',
+              DOC_ROW_ACTION
+            )}
+          >
+            View
+          </button>
+        ) : onUpload ? (
+          <button
+            type="button"
+            onClick={onUpload}
+            aria-label={`Upload ${row.label}`}
+            className={cn(
+              'focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-1',
+              DOC_ROW_ACTION
+            )}
+          >
+            <Upload className="size-3.5 shrink-0" aria-hidden />
+            Upload
+          </button>
+        ) : (
+          <span
+            className={cn(
+              row.status === 'ready' && DOC_ROW_READY,
+              row.status === 'missing' && DOC_ROW_PENDING,
+              row.status === 'awaiting' && DOC_ROW_PENDING,
+              row.status === 'rejected' && DOC_ROW_PENDING,
+              row.status === 'on-file' && DOC_ROW_SENT
+            )}
+          >
+            {actionLabel}
+          </span>
+        )}
+        {menuActions.length > 0 ? (
+          <ResponsiveOverflowMenu
+            label={`Actions for ${row.label}`}
+            sheetTitle={row.label}
+            actionGroups={[menuActions]}
+            triggerClassName="size-8"
+          />
+        ) : null}
+      </div>
     </li>
   );
 }

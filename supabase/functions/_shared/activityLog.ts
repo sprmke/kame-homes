@@ -263,6 +263,16 @@ export const ACTIVITY_ACTION_CATALOG = {
         'a booking'
       )}`,
   },
+  'booking.document_rejected': {
+    category: 'booking',
+    severity: 'notice',
+    targetType: 'booking',
+    summary: (c) =>
+      `${c.actorName} rejected ${str(c.metadata, 'asset_label') ?? str(c.metadata, 'asset_type') ?? 'a document'} for ${label(
+        c,
+        'a booking'
+      )}`,
+  },
   'booking.share_link_issued': {
     category: 'booking',
     severity: 'info',

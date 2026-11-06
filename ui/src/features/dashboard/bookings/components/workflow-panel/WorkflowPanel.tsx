@@ -48,6 +48,7 @@ import {
   WorkflowStatusTransitionDescription,
 } from '@/features/dashboard/bookings/components/workflow-panel/WorkflowConfirmModal';
 import { WorkflowDocApprovalModal } from '@/features/dashboard/bookings/components/workflow-panel/WorkflowDocApprovalModal';
+import { WorkflowDocRejectModal } from '@/features/dashboard/bookings/components/workflow-panel/WorkflowDocRejectModal';
 import { WorkflowDocStepTabs } from '@/features/dashboard/bookings/components/workflow-panel/WorkflowDocStepTabs';
 import { WorkflowPendingReviewAck } from '@/features/dashboard/bookings/components/workflow-panel/WorkflowPendingReviewAck';
 import {
@@ -317,6 +318,7 @@ function WorkflowPanelInner({
   >({});
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [docApprovalModalSub, setDocApprovalModalSub] = useState<PendingDocNestedKey | null>(null);
+  const [docRejectSub, setDocRejectSub] = useState<PendingDocNestedKey | null>(null);
   const kanbanAutoConfirmKeyRef = useRef<string | null>(null);
 
   const transitionMut = useTransitionBooking();
@@ -832,6 +834,7 @@ function WorkflowPanelInner({
           documentRequirements={documentRequirements}
           canUploadDocs={canMutate && !workflowActions.contentReadOnly}
           onUploadApprovalDoc={setDocApprovalModalSub}
+          onRejectApprovalDoc={setDocRejectSub}
           pricingValues={subFormDrafts.pricingValues}
           onPricingChange={subFormDrafts.setPricingValues}
           propertyPricingLoaded={propertyPricingLoaded}
@@ -884,6 +887,7 @@ function WorkflowPanelInner({
               documentRequirements={documentRequirements}
               canUploadDocs={canMutate && !workflowActions.contentReadOnly}
               onUploadApprovalDoc={setDocApprovalModalSub}
+              onRejectApprovalDoc={setDocRejectSub}
               pricingValues={subFormDrafts.pricingValues}
               onPricingChange={subFormDrafts.setPricingValues}
               propertyPricingLoaded={propertyPricingLoaded}
@@ -1142,6 +1146,16 @@ function WorkflowPanelInner({
             await handleMarkPendingDocSubStatusComplete(docApprovalModalSub);
             setDocApprovalModalSub(null);
           }}
+        />
+      ) : null}
+
+      {docRejectSub && pendingDocStepUsesApprovalModal(docRejectSub, documentRequirements) ? (
+        <WorkflowDocRejectModal
+          open
+          booking={booking}
+          sub={docRejectSub}
+          requirements={documentRequirements}
+          onClose={() => setDocRejectSub(null)}
         />
       ) : null}
 
