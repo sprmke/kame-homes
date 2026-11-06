@@ -10,6 +10,7 @@ import {
   CancellationNotAllowedError,
   cancelBooking,
   ensureBookingSnapshot,
+  guestMustRequestCancellation,
   isCancellationReasonCode,
   loadPropertyCancellationContext,
   type CancellationReasonCode,
@@ -73,6 +74,14 @@ servePublic('guest-cancel-booking', async (req) => {
   const snapshot = await ensureBookingSnapshot(booking);
   const policy = snapshot?.policy ?? context.policy;
   const display = resolveCancellationPolicyDisplay(policy);
+
+  if (guestMustRequestCancellation(booking)) {
+    return jsonError(
+      req,
+      'Your balance is paid, so your host reviews cancellation requests. Send a request instead.',
+      409
+    );
+  }
 
   if (policy === null || policy.needsReview || policy.guestCancellation === 'request') {
     return jsonError(

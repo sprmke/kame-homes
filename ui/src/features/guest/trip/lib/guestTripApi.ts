@@ -96,7 +96,7 @@ export type GuestTrip = {
         label: string;
       } | null;
       amountPaidPhp: number;
-      policyBasePhp: number;
+      refundablePaidPhp: number;
       retainedPhp: number;
       refundDuePhp: number;
       appliedRule: { kind: string; label: string; deadlineIso?: string } | null;

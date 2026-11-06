@@ -59,7 +59,7 @@ export function CancellationPolicyDisplay({
                     )}
                     aria-hidden
                   />
-                  {row.refundPercent}% refund at least {row.label}
+                  {row.refundPercent}% of paid at least {row.label}
                 </li>
               ))}
             </ul>

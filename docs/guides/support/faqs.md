@@ -1111,7 +1111,7 @@ The public page shows published answers for guests and hosts. Signed-in hosts ge
 - audience: host
 - source: docs/guides/routes/trip.md
 
-Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. With an instant policy they cancel right away. With "Ask me first", custom or unset policies, they send a request you approve or decline from the booking. If the guest paid nothing yet, the refund is zero and nothing is owed.
+Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. Refunds are based on what the guest has actually paid, not the full stay value: a guest who paid only the down payment gets a percentage of that down payment back, and the security deposit is always refunded. With an instant policy they cancel right away while only the down payment is paid. With "Ask me first", custom or unset policies, or once the balance is paid, they send a request you approve or decline. If the guest paid nothing yet, the refund is zero and nothing is owed.
 
 ### Can I change my cancellation policy without changing existing bookings?
 
