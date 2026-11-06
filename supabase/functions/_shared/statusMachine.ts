@@ -352,10 +352,16 @@ export type DocumentCompletionsMap = Record<string, DocumentRequirementCompletio
 function parseCompletionEntry(raw: unknown): DocumentRequirementCompletion | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
   const entry = raw as Record<string, unknown>;
-  return {
+  const parsed: DocumentRequirementCompletion = {
     completedAt: typeof entry.completedAt === 'string' ? entry.completedAt : null,
     approvedPdfUrl: typeof entry.approvedPdfUrl === 'string' ? entry.approvedPdfUrl : null,
   };
+  // Host rejection state rides in the same entry; keep it so a map rewrite
+  // (orchestrator merge, guest-edit revert siblings) never silently clears it.
+  for (const key of ['rejectedAt', 'rejectedReason', 'rejectedNote', 'rejectedBy'] as const) {
+    if (typeof entry[key] === 'string' && entry[key]) parsed[key] = entry[key];
+  }
+  return parsed;
 }
 
 function parseCompletionsMap(raw: unknown): DocumentCompletionsMap {

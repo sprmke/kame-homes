@@ -22,7 +22,32 @@ export type DocumentRequirement = {
 export type DocumentRequirementCompletion = {
   completedAt: string | null;
   approvedPdfUrl: string | null;
+  /** Host rejected the received file. Cleared when a new file is accepted. */
+  rejectedAt?: string | null;
+  rejectedReason?: string | null;
+  rejectedNote?: string | null;
+  rejectedBy?: string | null;
 };
+
+/** Reasons offered when a host rejects an approved GAF / pet file. */
+export const DOC_REJECTION_REASON_IDS = [
+  'wrong_document',
+  'wrong_guest',
+  'wrong_unit',
+  'expired',
+  'unreadable',
+  'other',
+] as const;
+
+export type DocRejectionReason = (typeof DOC_REJECTION_REASON_IDS)[number];
+
+export function parseDocRejectionReason(value: unknown): DocRejectionReason {
+  const raw = String(value ?? '').trim();
+  if ((DOC_REJECTION_REASON_IDS as readonly string[]).includes(raw)) {
+    return raw as DocRejectionReason;
+  }
+  throw new Error('Select a rejection reason');
+}
 
 const APPROVAL_SOURCES: DocumentApprovalSource[] = ['manual', 'email-listener', 'none'];
 const TRIGGER_CONDITIONS: DocumentTriggerCondition[] = ['always', 'has_pets', 'need_parking'];

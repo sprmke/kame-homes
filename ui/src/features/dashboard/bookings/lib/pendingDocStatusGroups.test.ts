@@ -67,4 +67,48 @@ describe('buildPendingDocStatusGroups', () => {
     expect(groups[0]?.summary).toMatch(/^Sent/);
     expect(freeOutboundNeedsManualSend(groups)).toBe(false);
   });
+
+  it('shows a rejected inbound row with its reason and time', () => {
+    const groups = buildPendingDocStatusGroups({
+      booking: { ...baseBooking } as never,
+      requirements: DEFAULT_DOCUMENT_REQUIREMENTS,
+      requirement: DEFAULT_DOCUMENT_REQUIREMENTS.find((r) => r.id === 'gaf'),
+      sub: 'gaf',
+      approvedUrl: null,
+      approvalCompleted: false,
+      automatedBookingFlow: true,
+      completion: {
+        completedAt: null,
+        approvedPdfUrl: null,
+        rejectedAt: '2026-11-06T02:00:00.000Z',
+        rejectedReason: 'wrong_document',
+        rejectedNote: 'Unit 2604 form for another building',
+      },
+    });
+    const inbound = groups.find((group) => group.key === 'inbound');
+    expect(inbound?.rows[0]?.status).toBe('rejected');
+    expect(inbound?.rows[0]?.rejectedReason).toBe('wrong_document');
+    expect(inbound?.rows[0]?.rejectionNote).toMatch(/another building/);
+  });
+
+  it('a newly received file wins over an earlier rejection', () => {
+    const groups = buildPendingDocStatusGroups({
+      booking: { ...baseBooking } as never,
+      requirements: DEFAULT_DOCUMENT_REQUIREMENTS,
+      requirement: DEFAULT_DOCUMENT_REQUIREMENTS.find((r) => r.id === 'gaf'),
+      sub: 'gaf',
+      approvedUrl: 'https://example.com/approved-gaf.pdf',
+      approvalCompleted: true,
+      automatedBookingFlow: true,
+      completion: {
+        completedAt: '2026-11-06T03:00:00.000Z',
+        approvedPdfUrl: 'https://example.com/approved-gaf.pdf',
+        rejectedAt: '2026-11-06T02:00:00.000Z',
+        rejectedReason: 'wrong_document',
+      },
+    });
+    const inbound = groups.find((group) => group.key === 'inbound');
+    expect(inbound?.rows[0]?.status).toBe('received');
+    expect(inbound?.rows[0]?.receivedAt).toBe('2026-11-06T03:00:00.000Z');
+  });
 });

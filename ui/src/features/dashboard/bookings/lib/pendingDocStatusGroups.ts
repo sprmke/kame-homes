@@ -10,11 +10,12 @@ import {
   hasApplicableDocumentPdfTemplate,
   requirementDocKind,
   type DocumentRequirement,
+  type DocumentRequirementCompletion,
 } from '@/features/dashboard/bookings/lib/documentRequirements';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import type { PendingDocNestedKey } from '@/features/dashboard/bookings/lib/workflow';
 
-export type PendingDocRowStatus = 'missing' | 'ready' | 'on-file' | 'awaiting' | 'received';
+export type PendingDocRowStatus = 'missing' | 'ready' | 'on-file' | 'awaiting' | 'received' | 'rejected';
 
 export type PendingDocStatusRow = {
   label: string;
@@ -22,6 +23,12 @@ export type PendingDocStatusRow = {
   status: PendingDocRowStatus;
   /** Inbound signed copy — "Approved" instead of "View" when on file. */
   approvalRow?: boolean;
+  /** When the approved file arrived (completion timestamp). */
+  receivedAt?: string | null;
+  /** Host rejection of a received file. */
+  rejectedAt?: string | null;
+  rejectedReason?: string | null;
+  rejectionNote?: string | null;
 };
 
 export type PendingDocStatusGroup = {
@@ -34,6 +41,25 @@ export type PendingDocStatusGroup = {
 
 function hasUrl(v: unknown): boolean {
   return typeof v === 'string' && v.trim() !== '';
+}
+
+function reviewFields(completion: DocumentRequirementCompletion | undefined) {
+  const rejectedAt = completion?.rejectedAt ?? null;
+  return {
+    receivedAt: completion?.completedAt ?? null,
+    rejectedAt,
+    rejectedReason: rejectedAt ? (completion?.rejectedReason ?? null) : null,
+    rejectionNote: rejectedAt ? (completion?.rejectedNote ?? null) : null,
+  };
+}
+
+function inboundStatus(
+  approvedUrl: string | null,
+  completion: DocumentRequirementCompletion | undefined,
+  completed: boolean
+): PendingDocRowStatus {
+  if (hasUrl(approvedUrl)) return completed ? 'received' : 'on-file';
+  return completion?.rejectedAt ? 'rejected' : 'awaiting';
 }
 
 function validIdRows(booking: BookingRow): PendingDocStatusRow[] {
@@ -116,12 +142,23 @@ function freeOutboundSummary(rows: PendingDocStatusRow[], packageSent: boolean):
   return 'Not sent';
 }
 
-function inboundRow(approvedUrl: string | null, completed: boolean): PendingDocStatusRow {
+function inboundRow(
+  approvedUrl: string | null,
+  completed: boolean,
+  completion: DocumentRequirementCompletion | undefined
+): PendingDocStatusRow {
   return {
     label: 'Approved form',
     url: approvedUrl,
     approvalRow: true,
-    status: hasUrl(approvedUrl) ? 'received' : completed ? 'on-file' : 'awaiting',
+    status: hasUrl(approvedUrl)
+      ? completed
+        ? 'received'
+        : 'on-file'
+      : completion?.rejectedAt
+        ? 'rejected'
+        : 'awaiting',
+    ...reviewFields(completion),
   };
 }
 
@@ -133,6 +170,7 @@ export function buildPendingDocStatusGroups(input: {
   approvedUrl: string | null;
   approvalCompleted: boolean;
   automatedBookingFlow: boolean;
+  completion?: DocumentRequirementCompletion;
 }): PendingDocStatusGroup[] {
   const {
     booking,
@@ -142,6 +180,7 @@ export function buildPendingDocStatusGroups(input: {
     approvedUrl,
     approvalCompleted,
     automatedBookingFlow,
+    completion,
   } = input;
   const docKind = requirementDocKind(requirement, sub);
   const manualKind = manualEmailKindForDocKind(docKind);
@@ -171,7 +210,8 @@ export function buildPendingDocStatusGroups(input: {
         label: 'Approved GAF',
         url: approvedUrl,
         approvalRow: true,
-        status: hasUrl(approvedUrl) ? 'received' : 'awaiting',
+        status: inboundStatus(approvedUrl, completion, approvalCompleted),
+        ...reviewFields(completion),
       },
     ];
 
@@ -232,7 +272,8 @@ export function buildPendingDocStatusGroups(input: {
         label: 'Approved Pet Request',
         url: approvedUrl,
         approvalRow: true,
-        status: hasUrl(approvedUrl) ? 'received' : 'awaiting',
+        status: inboundStatus(approvedUrl, completion, approvalCompleted),
+        ...reviewFields(completion),
       },
     ];
 
@@ -258,7 +299,7 @@ export function buildPendingDocStatusGroups(input: {
     ];
   }
 
-  const fallbackInbound = inboundRow(approvedUrl, approvalCompleted);
+  const fallbackInbound = inboundRow(approvedUrl, approvalCompleted, completion);
   return [
     {
       key: 'inbound',
