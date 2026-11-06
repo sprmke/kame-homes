@@ -40,6 +40,8 @@ export type PropertyBookingWorkflowState = {
   workflowEmailsSent: Array<{ bookingId: string; kind: string }>;
   /** Last `transition-booking` body. */
   lastTransition: Record<string, unknown> | null;
+  /** Last `update-booking-details` body (edit-form patch or parking ensure). */
+  lastDetailsPatch: Record<string, unknown> | null;
 };
 
 export type InstallPropertyBookingParkingMocksOptions = {
@@ -75,6 +77,7 @@ export function createPropertyBookingWorkflowState(
     booking: e2ePropertyBookingRow(options.bookingOverrides ?? {}),
     workflowEmailsSent: [],
     lastTransition: null,
+    lastDetailsPatch: null,
   };
 }
 
@@ -363,15 +366,29 @@ export async function installPropertyBookingParkingMocks(
     });
   });
 
-  // Host "Find parking" first marks the booking as needing parking (`ensure_need_parking`).
+  // Host "Find parking" first marks the booking as needing parking (`ensure_need_parking`),
+  // and the edit form saves through the same endpoint (`patch`).
   await page.route('**/functions/v1/update-booking-details**', async (route) => {
     const body = (route.request().postDataJSON?.() as Record<string, unknown> | undefined) ?? {};
+    workflow.lastDetailsPatch = body;
     if (body.operation === 'ensure_need_parking') {
       const skipped = workflow.booking.need_parking === true;
       Object.assign(workflow.booking, { need_parking: true });
       await fulfillJson(route, {
         success: true,
         data: { booking: { ...workflow.booking }, skipped },
+      });
+      return;
+    }
+    if (body.operation === 'patch') {
+      const payload = (body.payload as Record<string, unknown> | undefined) ?? {};
+      Object.assign(workflow.booking, payload);
+      if (body.revertToPendingReview === true) {
+        workflow.booking.status = 'PENDING_REVIEW';
+      }
+      await fulfillJson(route, {
+        success: true,
+        data: { booking: { ...workflow.booking } },
       });
       return;
     }

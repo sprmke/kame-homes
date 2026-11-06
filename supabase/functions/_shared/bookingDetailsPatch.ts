@@ -536,6 +536,70 @@ function normDate(d: string | null | undefined): string {
   return normalizeDateToYYYYMMDD(s) || s;
 }
 
+/** Use the client's new value when present, otherwise the stored row value. */
+function patchValueOrExisting(
+  existing: Record<string, unknown>,
+  patch: Record<string, unknown>,
+  key: string
+): unknown {
+  return Object.prototype.hasOwnProperty.call(patch, key) ? patch[key] : existing[key];
+}
+
+/**
+ * Parking is a nested sub-step under Pending Documents, not a separate
+ * re-approval cycle. When parking fields change in the pre-checkout pipeline,
+ * keep the status and re-open the parking step by clearing
+ * `parking_completed_at`. Removing parking also clears the settlement fields
+ * so adding it again starts from a clean slate.
+ *
+ * Returns `{}` when nothing parking-related changed, or when the booking is
+ * past the pre-checkout pipeline (`shouldRevertGuestFieldEditsToPendingReview`
+ * covers Pending Documents + its legacy sub-statuses and Ready for Check-in).
+ */
+export function parkingEditResetPatch(
+  existing: Record<string, unknown>,
+  patch: Record<string, unknown>,
+  status: string | null | undefined
+): Record<string, unknown> {
+  if (!shouldRevertGuestFieldEditsToPendingReview(status)) return {};
+
+  const nextNeedParking = !!patchValueOrExisting(existing, patch, 'need_parking');
+  const previousNeedParking = !!existing.need_parking;
+  const needParkingChanged = previousNeedParking !== nextNeedParking;
+  const carChanged =
+    !sameText(
+      existing.car_plate_number as string | null | undefined,
+      patchValueOrExisting(existing, patch, 'car_plate_number') as string | null | undefined
+    ) ||
+    !sameText(
+      existing.car_brand_model as string | null | undefined,
+      patchValueOrExisting(existing, patch, 'car_brand_model') as string | null | undefined
+    ) ||
+    !sameText(
+      existing.car_color as string | null | undefined,
+      patchValueOrExisting(existing, patch, 'car_color') as string | null | undefined
+    );
+
+  if (!needParkingChanged && !(nextNeedParking && carChanged)) return {};
+
+  const reset: Record<string, unknown> = { parking_completed_at: null };
+
+  if (!nextNeedParking) {
+    Object.assign(reset, {
+      parking_owner: null,
+      parking_owner_email: null,
+      parking_rate_paid: null,
+      parking_endorsement_url: null,
+      parking_fee_included_in_downpayment: null,
+      parking_payment_receipt_url: null,
+      parking_receipt_ai_verdict: null,
+      parking_receipt_ai_summary: null,
+    });
+  }
+
+  return reset;
+}
+
 /** Clear stored request PDF URLs when an admin edit changes PDF fill content. */
 export function requestPdfClearPatchForAdminPayload(
   baseline: Record<string, unknown>,
@@ -828,8 +892,19 @@ export async function applyBookingDetailsPatch(
     }
   }
 
+  // Parking is a nested sub-step, not a re-approval cycle. A parking edit keeps
+  // the status and re-opens the parking step instead.
+  const parkingReset = parkingEditResetPatch(existing, patch, currentStatus);
+  const resetsParkingProgress = Object.keys(parkingReset).length > 0;
+  if (resetsParkingProgress) {
+    Object.assign(patch, parkingReset);
+  }
+
   const revertToPendingReview = body.revertToPendingReview === true;
-  let statusGuard: string | null = null;
+  // Re-opening the parking step mutates workflow state, so guard it with the
+  // same compare-and-swap as a revert. A concurrent move returns 409 instead of
+  // clearing parking progress on a row another host already advanced.
+  let statusGuard: string | null = resetsParkingProgress ? currentStatus : null;
 
   if (revertToPendingReview && shouldRevertGuestFieldEditsToPendingReview(currentStatus)) {
     Object.assign(patch, pendingDocumentsClearPatchForGuestEditRevert());

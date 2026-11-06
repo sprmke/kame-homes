@@ -135,7 +135,6 @@ Only revert `status` back to `PENDING_REVIEW` when both are true:
    - Additional Guest Names
    - Check-in and Check-out Date
    - Check-in and Check-out Time
-   - Parking Details
    - Surprise decor request (`guest_requests_surprise_decor`)
    - Pet Details — only sensitive when the property's resolved document requirements include a `has_pets`-triggered requirement or id `pet` (§4.5)
    - Downpayment receipt
@@ -143,6 +142,8 @@ Only revert `status` back to `PENDING_REVIEW` when both are true:
    - Pet vaccination and pet photo
 
 If only non-listed fields are updated, keep the current status (do **not** revert).
+
+**Parking edits are not a revert trigger.** Parking is a nested sub-step under Pending Documents (and late parking stays available at Ready for Check-in+), so a parking change on the admin edit form keeps the current status and re-opens the parking step instead. `bookingDetailsPatch.ts#parkingEditResetPatch` clears `parking_completed_at`, and clears the parking settlement columns when `need_parking` turns off. The guest public form is locked after review, so guest-side parking edits cannot reach this path.
 
 When a listed field changes while the booking’s `status` is one of **`PENDING_DOCUMENTS`**, **`PENDING_GAF`**, **`PENDING_PARKING_REQUEST`**, **`PENDING_PET_REQUEST`**, or **`READY_FOR_CHECKIN`**, set `status` to `PENDING_REVIEW` (and update `status_updated_at`). In the **same write**, apply **`statusMachine.ts#pendingDocumentsClearPatchForGuestEditRevert`**: nested completion timestamps, **approved** PDF URLs, **admin parking settlement** columns, and **guest balance settlement** columns — **not** pricing snapshot fields (`booking_rate`, `down_payment`, `balance`, `security_deposit`, `pet_fee`, `parking_rate_guest`, `guest_additional_fee`) and **not** request PDF URLs (`gaf_request_pdf_url`, `pet_request_pdf_url`) unless PDF fill content changed (`requestPdfClearPatchForChangedFormFields` / admin mirror `requestPdfClearPatchForAdminGuestEdit`). Guest doc uploads (`valid_id`, `pet_vaccination`, `pet_image`) revert status but **preserve** stored request PDFs. **`workflowOrchestrator.ts`** merges the **same patch** at the start of **`PENDING_REVIEW → PENDING_DOCUMENTS | PENDING_GAF`** before payload pricing, preventing stale `*_completed_at` from showing substeps as complete immediately after **Proceed to Pending Documents** without wiping stored pricing unless the payload supplies new values. Proceed then **regenerates** request PDFs when `generatePdf` is on, reusing the prior URL when generation fails, and **throws** if a required request PDF is still missing after proceed. Do **not** apply this revert when status is already **`PENDING_REVIEW`**, in **`READY_FOR_CHECKOUT`** / **`PENDING_SD_REFUND`**, **`COMPLETED`**, or **`CANCELLED`**. Server helper: `statusMachine.ts#shouldRevertGuestFieldEditsToPendingReview`.
 
