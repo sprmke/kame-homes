@@ -46,7 +46,7 @@ When a guest needs parking, use **Use your parking** if you list your own slot (
 - Q: Does Find parking change the booking status?
   A: It marks that the stay needs parking. Matching and payment happen on the parking side; this booking's parking step completes after a successful linked payment.
 - Q: Who pays for the parking slot?
-  A: The guest pays through the parking listing they choose. If you offer your own complimentary slot, the link confirms without a payment step.
+  A: The guest pays through the parking listing they choose. If you turned on **Free parking on your own slots** and the guest books one of your own slots, the link confirms without a payment step. The option only works while **Allow Parking** is on for the property.
 
 ---
 

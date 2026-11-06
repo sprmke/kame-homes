@@ -2,7 +2,7 @@
 title: 'Maintenance — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-27
+updated: 2026-11-06
 ---
 
 # Maintenance — operator guide
@@ -38,6 +38,8 @@ Status, category, and Telegram filters apply **client-side** on items already lo
 
 **Reminders list:** table / card / calendar (`?view=table|card|calendar`). CRUD via a **3-step** modal (Details → Reminders → Preview); recurring series and mark-as-done supported. On phone, card rows match Bookings density: title + **⋯** on the first line; status badge · date · category · recurrence on the second; edit / delete / series open from the **⋯** sheet (not inline icon buttons). Notes stay hidden until edit. `sm+` keeps the taller stacked card with notes and a footer action bar.
 
+**Category picker** (`CategoryCombobox`, shared with Finance): presets are ordered by trade and frequency (plumbing, electrical, aircon, appliance, cleaning, pest control, repairs, painting, structural, landscaping, pool, safety, amenities, supplies, utilities, other). Typing filters the list; the pinned **Use "…"** row saves a custom category. Choosing **Other (type your own)** clears the field and prompts for a custom name. Enter picks the highlighted preset or the typed value, Escape restores the value from before opening. Presets live in `maintenanceCategories.ts`.
+
 Maintenance Telegram defaults: **Notifications → Maintenance**.
 
 Legacy **`?tab=settings`** redirects to **`/notifications?module=maintenance`**.
@@ -62,6 +64,8 @@ This page helps you track upkeep for your property: cleaning schedules, applianc
   A: Yes. When you add or edit a reminder, set it as a recurring series. One-off tasks and completed history stay separate.
 - Q: Is exporting a maintenance report included on my plan?
   A: Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
+- Q: None of the categories match my task. Can I create one?
+  A: Yes. Pick **Other (type your own)**, then type the category name and press Enter (or choose **Use "…"**). It saves with the reminder and appears in filters, cards, and reports like the built-in categories.
 
 ---
 
@@ -99,16 +103,17 @@ Legacy stored `maintenance:edit` expands to all reminder + export leaves.
 
 ## Implementation map
 
-| Concern                | Path                                                                                                                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Page                   | `ui/src/features/dashboard/maintenance/pages/MaintenancePage.tsx`                                                                                                       |
-| Loading skeleton       | `MaintenancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — KPIs, toolbar, then reminders table (desktop) / cards (phone) or calendar from `?view=`                     |
-| Summary cards          | `ui/src/features/dashboard/maintenance/components/MaintenanceSummaryCards.tsx`                                                                                          |
-| Toolbar                | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersToolbar.tsx`                                                                                      |
-| Export menu + PDF      | `ui/src/features/dashboard/maintenance/components/MaintenanceExportMenu.tsx`, `ui/src/features/dashboard/maintenance/lib/exportPdf.ts`, shared PDF layout `@/lib/pdf/*` |
-| Filters / sort helpers | `ui/src/features/dashboard/maintenance/lib/maintenanceReminders.ts`                                                                                                     |
-| Reminders list         | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersTab.tsx`                                                                                          |
-| API                    | `maintenance-summary`, `maintenance-items`                                                                                                                              |
+| Concern                | Path                                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page                   | `ui/src/features/dashboard/maintenance/pages/MaintenancePage.tsx`                                                                                                          |
+| Loading skeleton       | `MaintenancePageBodySkeleton` (`FinancePageSkeleton.tsx`) — KPIs, toolbar, then reminders table (desktop) / cards (phone) or calendar from `?view=`                        |
+| Summary cards          | `ui/src/features/dashboard/maintenance/components/MaintenanceSummaryCards.tsx`                                                                                             |
+| Toolbar                | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersToolbar.tsx`                                                                                         |
+| Export menu + PDF      | `ui/src/features/dashboard/maintenance/components/MaintenanceExportMenu.tsx`, `ui/src/features/dashboard/maintenance/lib/exportPdf.ts`, shared PDF layout `@/lib/pdf/*`    |
+| Filters / sort helpers | `ui/src/features/dashboard/maintenance/lib/maintenanceReminders.ts`                                                                                                        |
+| Reminders list         | `ui/src/features/dashboard/maintenance/components/MaintenanceRemindersTab.tsx`                                                                                             |
+| Category picker        | `ui/src/features/dashboard/finance/components/CategoryCombobox.tsx` (shared with Finance), presets in `ui/src/features/dashboard/maintenance/lib/maintenanceCategories.ts` |
+| API                    | `maintenance-summary`, `maintenance-items`                                                                                                                                 |
 
 ---
 

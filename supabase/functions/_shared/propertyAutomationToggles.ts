@@ -17,7 +17,6 @@ export const PROPERTY_AUTOMATION_TOGGLE_KEYS = [
   'emailGafRequest',
   'emailBookingAcknowledgement',
   'emailPetRequest',
-  'emailParkingBroadcast',
   'emailReadyForCheckin',
   'emailSdRefundCheckout',
   'emailReviewRequest',
@@ -29,7 +28,6 @@ export const PLAN_GATED_AUTOMATION_TOGGLE_KEYS: readonly PropertyAutomationToggl
   'emailGafRequest',
   'emailBookingAcknowledgement',
   'emailPetRequest',
-  'emailParkingBroadcast',
   'emailReadyForCheckin',
   'emailSdRefundCheckout',
 ];
@@ -43,7 +41,6 @@ export const DEFAULT_PROPERTY_AUTOMATION_TOGGLES: PropertyAutomationToggles = {
   emailGafRequest: true,
   emailBookingAcknowledgement: true,
   emailPetRequest: true,
-  emailParkingBroadcast: true,
   emailReadyForCheckin: true,
   emailSdRefundCheckout: true,
   emailReviewRequest: true,

@@ -14,6 +14,10 @@
  * `document_requirement_completions` via `currentDocumentRequirementCompletions`.
  * When workflow-sensitive guest fields changed, `BookingEditSaveChoiceDialog` lets
  * the admin choose revert vs save-only before calling this hook.
+ *
+ * Parking edits are not workflow-sensitive: with `revertToPendingReview: false`
+ * the server keeps the status and re-opens the parking sub-step
+ * (`parkingEditResetPatch`).
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';

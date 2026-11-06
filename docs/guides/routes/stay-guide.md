@@ -63,13 +63,14 @@ hide the ones you don't need, and set colours / fonts / motion - the same contro
 
 ## Access
 
-| Rule       | Detail                                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------- |
-| **Token**  | Opaque `stay_guide_token` on `guest_submissions`; issued when booking reaches **`READY_FOR_CHECKIN`**         |
-| **Window** | **Asia/Manila** check-in day `00:00` through end of day **after** check-out (`23:59:59+08:00`)                |
-| **Status** | `READY_FOR_CHECKIN`, `READY_FOR_CHECKOUT`, `PENDING_SD_REFUND`, or `COMPLETED` (not `CANCELLED` or pre-ready) |
-| **Slug**   | API accepts optional `?property=`; must match booking property when provided                                  |
-| **Title**  | `{Property Name} - Stay Guide` via `usePageTitle` / `ShowcaseShell`                                           |
+| Rule        | Detail                                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Token**   | Opaque `stay_guide_token` on `guest_submissions`; issued when booking reaches **`READY_FOR_CHECKIN`**            |
+| **Window**  | **Asia/Manila** check-in day `00:00` through end of day **after** check-out (`23:59:59+08:00`)                   |
+| **Status**  | `READY_FOR_CHECKIN`, `READY_FOR_CHECKOUT`, `PENDING_SD_REFUND`, or `COMPLETED` (not `CANCELLED` or pre-ready)    |
+| **Slug**    | API accepts optional `?property=`; must match booking property when provided                                     |
+| **Listing** | A valid token keeps the guide working even when the property is not `ACTIVE` (paused, archived, contract-locked) |
+| **Title**   | `{Property Name} - Stay Guide` via `usePageTitle` / `ShowcaseShell`                                              |
 
 Expired or invalid token → generic unavailable message (no leak of booking existence).
 Property without `propertyShowcase` → **403** with a host-contact message

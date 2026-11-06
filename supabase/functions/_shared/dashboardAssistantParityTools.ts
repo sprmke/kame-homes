@@ -467,7 +467,6 @@ const PROPERTY_TOGGLE_LABELS: Record<string, string> = {
   emailGafRequest: 'GAF request email',
   emailBookingAcknowledgement: 'Booking acknowledgement email',
   emailPetRequest: 'Pet request email',
-  emailParkingBroadcast: 'Parking request email',
   emailReadyForCheckin: 'Ready for check-in email',
   emailSdRefundCheckout: 'Security deposit refund email',
 };

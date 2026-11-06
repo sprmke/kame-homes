@@ -46,6 +46,19 @@ describe('totalGuestBalance', () => {
     ).toBe(200);
   });
 
+  it('matches the Airbnb source in any case', () => {
+    expect(
+      computeTotalGuestBalance({
+        ...baseFinance,
+        booking_rate: 10000,
+        down_payment: 2000,
+        security_deposit: 3000,
+        guest_additional_fee: 200,
+        booking_source: 'airbnb',
+      })
+    ).toBe(200);
+  });
+
   it('receipt required when total due is non-zero', () => {
     expect(guestBalancePaymentReceiptRequired(0)).toBe(false);
     expect(guestBalancePaymentReceiptRequired(100)).toBe(true);

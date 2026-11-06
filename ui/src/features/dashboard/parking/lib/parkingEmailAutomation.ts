@@ -30,6 +30,28 @@ export const PARKING_AUTOMATION_TOGGLE_LABELS: Record<ParkingAutomationToggleKey
   autoAcceptTopMatch: 'Auto-accept top match',
 };
 
+/** Who gets each parking automation email and when it sends. */
+export const PARKING_EMAIL_AUTOMATION_COPY: Record<
+  Extract<
+    ParkingAutomationToggleKey,
+    'emailParkingReservationRequest' | 'emailParkingGuestConfirmed' | 'emailParkingNoHostAvailable'
+  >,
+  { recipient: string; trigger: string }
+> = {
+  emailParkingReservationRequest: {
+    recipient: 'You',
+    trigger: 'When a guest asks to book this slot.',
+  },
+  emailParkingGuestConfirmed: {
+    recipient: 'Guest',
+    trigger: 'When their parking is confirmed and paid.',
+  },
+  emailParkingNoHostAvailable: {
+    recipient: 'Guest',
+    trigger: 'When no slot could be matched in time.',
+  },
+};
+
 export function mergeParkingAutomationToggles(raw: unknown): ParkingAutomationToggles {
   const merged = { ...DEFAULT_PARKING_AUTOMATION_TOGGLES };
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return merged;

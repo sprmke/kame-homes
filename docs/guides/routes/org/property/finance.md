@@ -2,7 +2,7 @@
 title: 'Finance — operator guide'
 status: active
 tags: [guides, routes, org, property]
-updated: 2026-09-27
+updated: 2026-11-06
 ---
 
 # Finance — operator guide
@@ -60,6 +60,8 @@ Finance gives hosts one place to see how much money is coming in and going out f
   A: Yes. When editing or deleting a recurring transaction you're asked whether the change applies to just that occurrence, that one and all future ones, or the whole series.
 - Q: Do the charts and totals follow the date range I pick?
   A: Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
+- Q: My expense does not fit any category. Can I add my own?
+  A: Yes. Pick **Other (type your own)**, then type the category name and press Enter (or choose **Use "…"**). Custom categories work in filters, charts, and exports like any other category.
 
 ---
 
@@ -112,7 +114,7 @@ Charts (`FinanceTransactionsChart`) plot the same underlying data as cash-flow (
 | Kind                       | `finance_line_items.kind`                       | `expense` \| `income`                                                                  |
 | Label                      | `finance_line_items.label`                      | Required, max 200 chars                                                                |
 | Amount                     | `finance_line_items.amount`                     | Required, > 0                                                                          |
-| Category                   | `finance_line_items.category`                   | Required, max 80 chars (combobox)                                                      |
+| Category                   | `finance_line_items.category`                   | Required, max 80 chars. Creatable combobox: 19 preset categories plus free typing      |
 | Occurred on                | `finance_line_items.occurred_on`                | Required, `YYYY-MM-DD`                                                                 |
 | Notes                      | `finance_line_items.notes`                      | Optional, max 2000 chars                                                               |
 | Recurrence interval        | `finance_line_items.recurrence_interval`        | none/daily/weekly/monthly/twice-monthly/every-2-months/quarterly/every-6-months/yearly |
@@ -133,6 +135,7 @@ Charts (`FinanceTransactionsChart`) plot the same underlying data as cash-flow (
 
 ### Behavior / edge cases
 
+- **Category picker** (`CategoryCombobox`): presets are ordered by common use, typing filters them, and the pinned **Use "…"** row saves a custom category. Choosing **Other (type your own)** clears the field, focuses it, and switches the placeholder to **Type your custom category**, so the next keystrokes name a real category instead of saving `Other`. Enter picks the highlighted preset (or the typed custom value); Escape restores the value from before the dropdown opened. Matching a preset case-insensitively restores its canonical casing (`rent` → `Rent`) so filters and charts stay grouped. Presets live in `financeCategories.ts`.
 - Telegram due-date reminders are sent via the property's Finance Telegram integration, configured under **Notifications → Finance** (not on this page).
 - `paid_at` on a line item stops future reminders for that item across every reminder interval.
 
@@ -198,6 +201,7 @@ Legacy stored `finance:edit` expands to all transaction + export leaves. Parking
 | Summary stats       | `ui/src/features/dashboard/finance/lib/financeSummaryStats.ts`                                                                                                                                                                                                |
 | Charts              | `ui/src/features/dashboard/finance/components/FinanceTransactionsChart.tsx`                                                                                                                                                                                   |
 | Transaction form    | `ui/src/features/dashboard/finance/components/OperatingLineItemForm.tsx`                                                                                                                                                                                      |
+| Category picker     | `ui/src/features/dashboard/finance/components/CategoryCombobox.tsx` (shared with Maintenance), presets in `ui/src/features/dashboard/finance/lib/financeCategories.ts`                                                                                        |
 | Recurrence modals   | `ui/src/features/dashboard/finance/components/RecurringSeriesModal.tsx`, `ui/src/features/dashboard/finance/components/RecurringDeleteDialog.tsx`                                                                                                             |
 | Export menu + PDF   | `ui/src/features/dashboard/finance/components/FinanceExportMenu.tsx`, `ui/src/features/dashboard/finance/lib/exportPdf.ts`, shared PDF layout `@/lib/pdf/*`                                                                                                   |
 | Mobile page shell   | `ui/src/components/mobile/MobileBrandHero.tsx` (`AdminMobilePage`)                                                                                                                                                                                            |

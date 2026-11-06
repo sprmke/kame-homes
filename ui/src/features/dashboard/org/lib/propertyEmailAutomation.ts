@@ -3,7 +3,6 @@ export const PROPERTY_AUTOMATION_TOGGLE_KEYS = [
   'emailGafRequest',
   'emailBookingAcknowledgement',
   'emailPetRequest',
-  'emailParkingBroadcast',
   'emailReadyForCheckin',
   'emailSdRefundCheckout',
   'emailReviewRequest',
@@ -19,12 +18,20 @@ export const DEFAULT_PROPERTY_AUTOMATION_TOGGLES: PropertyAutomationToggles = {
   emailGafRequest: true,
   emailBookingAcknowledgement: true,
   emailPetRequest: true,
-  emailParkingBroadcast: true,
   emailReadyForCheckin: true,
   emailSdRefundCheckout: true,
   emailReviewRequest: true,
   emailReviewReminder: true,
 };
+
+/** Mirrors `_shared/propertyAutomationToggles.ts#PLAN_GATED_AUTOMATION_TOGGLE_KEYS`. */
+export const PLAN_GATED_AUTOMATION_TOGGLE_KEYS: ReadonlySet<PropertyAutomationToggleKey> = new Set([
+  'emailGafRequest',
+  'emailBookingAcknowledgement',
+  'emailPetRequest',
+  'emailReadyForCheckin',
+  'emailSdRefundCheckout',
+]);
 
 export type PropertyAutomationToggleGroup = {
   id: string;
@@ -39,64 +46,62 @@ export type PropertyAutomationToggleGroup = {
 
 export const PROPERTY_AUTOMATION_TOGGLE_GROUPS: PropertyAutomationToggleGroup[] = [
   {
-    id: 'team-email',
-    title: 'Team',
+    id: 'team',
+    title: 'Your team',
     items: [
       {
         key: 'emailNewBookingRequest',
         label: 'New booking alert',
-        recipient: 'Property email',
-        trigger: 'Guest submits the booking form.',
+        recipient: 'Team email',
+        trigger: 'When a guest submits the booking form.',
       },
     ],
   },
   {
-    id: 'management-email',
-    title: 'Management',
+    id: 'building-admin',
+    title: 'Building admin',
     items: [
       {
         key: 'emailGafRequest',
         label: 'GAF request',
-        recipient: 'PMO email',
-        trigger:
-          'Admin proceeds to pending documents status which includes GAF request and guest ID files.',
+        recipient: 'Building admin email',
+        trigger: 'When you approve a booking that needs building documents.',
       },
       {
         key: 'emailPetRequest',
         label: 'Pet request',
-        recipient: 'PMO email',
-        trigger: 'Admin proceeds to pending documents status which includes pet request.',
+        recipient: 'Building admin email',
+        trigger: 'When you approve a booking that includes a pet.',
       },
     ],
   },
   {
-    id: 'guest-email',
+    id: 'guest',
     title: 'Guest',
     items: [
       {
         key: 'emailBookingAcknowledgement',
         label: 'Booking acknowledgement',
         recipient: 'Guest email',
-        trigger: 'Admin reviwed and approved the booking request.',
+        trigger: 'When you approve the booking.',
       },
       {
         key: 'emailReadyForCheckin',
         label: 'Ready for check-in',
         recipient: 'Guest email',
-        trigger:
-          'All required documents are approved and the booking moves to ready for check-in status.',
+        trigger: 'When all required documents are approved.',
       },
       {
         key: 'emailSdRefundCheckout',
-        label: 'Check-out & SD refund form',
+        label: 'Check-out and deposit refund',
         recipient: 'Guest email',
-        trigger: 'Before check-out and when the stay advances to ready for check-out status.',
+        trigger: 'Before check-out, using the timing above.',
       },
     ],
   },
   {
     id: 'guest-reviews',
-    title: 'Reviews',
+    title: 'Guest reviews',
     items: [
       {
         key: 'emailReviewRequest',
@@ -108,7 +113,7 @@ export const PROPERTY_AUTOMATION_TOGGLE_GROUPS: PropertyAutomationToggleGroup[] 
         key: 'emailReviewReminder',
         label: 'Review reminder',
         recipient: 'Guest email',
-        trigger: 'Before the review window closes.',
+        trigger: 'If the guest has not reviewed before the window closes.',
       },
     ],
   },
