@@ -598,7 +598,9 @@ async function buildGuestStayGuidePayload(
   const property = await loadPublicPropertyById(propertyId, {
     allowInactive: options?.allowInactive,
   });
-  if (!property || property.status !== 'ACTIVE') return null;
+  // `loadPublicPropertyById` already refuses inactive listings unless `allowInactive`
+  // is set, so the caller decides. Booked guests keep their guide when a host archives.
+  if (!property) return null;
 
   if (options?.expectedPropertySlug?.trim()) {
     const slug = options.expectedPropertySlug.trim();
@@ -743,7 +745,10 @@ export async function loadGuestStayGuideByToken(
   if (!(await propertyHasStayGuideAccess(propertyId))) return STAY_GUIDE_PLAN_ACCESS_DENIED;
 
   const validUntil = String(row.stay_guide_valid_until ?? '');
+  // The token is minted for one booking, so a guest with a live stay keeps the guide
+  // even if the host pauses or archives the listing in the meantime.
   return buildGuestStayGuidePayload(propertyId, row as GuestSubmission, validUntil, {
     expectedPropertySlug,
+    allowInactive: true,
   });
 }

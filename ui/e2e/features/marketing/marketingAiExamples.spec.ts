@@ -40,6 +40,19 @@ test.describe('@ci marketing AI Studio examples', () => {
       examples(page).getByRole('button', { name: /^Weekend escape, post example/ })
     ).toBeVisible();
 
+    // One frame height for every card, whatever the example's own shape (4:5, 1:1, 9:16).
+    // Wait for the live post art, otherwise the tall cards have not been laid out yet.
+    const cardButtons = examples(page).locator('li button');
+    await expect(
+      examples(page)
+        .getByRole('button', { name: /^Night in, post example/ })
+        .locator('img')
+    ).toBeVisible({ timeout: 30_000 });
+    const cardHeights = await cardButtons.evaluateAll((nodes) =>
+      nodes.map((node) => Math.round(node.getBoundingClientRect().height))
+    );
+    expect(new Set(cardHeights).size).toBe(1);
+
     const detail = await openExample(page, 'Book direct');
     await expect(detail.getByText('Example', { exact: true })).toBeVisible();
     await expect(detail.getByText('Book direct for weekday stays')).toBeVisible();

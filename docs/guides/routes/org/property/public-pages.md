@@ -23,7 +23,7 @@ Legacy URL `/custom-pages` redirects here.
 | Design your pages  | —        | —          | Documented | Showcase + Stay Guide + Property; Edit + last-edited from page configs                                                  |
 | Share links        | —        | —          | Documented | Calendar, Form, Find parking; copy works with no booking                                                                |
 | Booking links      | —        | —          | Documented | Messages, SD Refund, Guest Review; copy needs stay dates or an eligible booking                                         |
-| Copy links menu    | —        | —          | Documented | Page header menu (hero icon on phone, button on desktop) copies every Share link                                        |
+| Copy links menu    | —        | —          | Documented | Page header primary menu lists every guest-shareable link; picker links open their modal                                |
 | Stay Guide editor  | —        | explore    | Documented | 6-template engine (shared w/ Showcase): Template / Sections / Style + Content (WYSIWYG/images); live preview; save Pro+ |
 | Showcase editor    | explore  | Pro save   | Documented | Same explore-open + save gate as Stay Guide; live URL → `propertyShowcase`                                              |
 | Page Editor chrome | —        | —          | Documented | Fixed 480px sidebar; viewport + undo/redo in editor dock (phone) / unlabeled bar (`lg+`); no Preview strip              |
@@ -41,7 +41,7 @@ Template choice and page config are bulk-copyable via org **Properties → Copy 
 
 ## Host-facing knowledge
 
-Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property - use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). **Share links** covers calendar, booking form, and **Find parking** - these work with no booking, so **Copy link** copies straight away. **Booking links** covers messages, SD refund, and guest review - **Copy link** opens a picker: stay dates for messages, or a list of stays from check-out onward for SD refund and guest review. The **Copy links** menu at the top right copies any Share link in one tap.
+Public Pages lists every guest URL for this property. At the top, **Design your pages** shows Showcase, Stay Guide, and Property - use **Edit** to open the Page Editor (you can explore on every plan; saving needs Pro). **Share links** covers calendar, booking form, and **Find parking** - these work with no booking, so **Copy link** copies straight away. **Booking links** covers messages, SD refund, and guest review - **Copy link** opens a picker: stay dates for messages, or a list of stays from check-out through SD refund for SD refund and guest review. The primary **Copy links** menu at the top right lists every guest-shareable link, including the picker links, so the same modal opens from there.
 
 **Common host questions**
 
@@ -52,11 +52,11 @@ Public Pages lists every guest URL for this property. At the top, **Design your 
 - Q: Why does the Showcase guest link ask me to upgrade?
   A: The live Showcase page needs Pro or above. You can still open **Edit** on Free to explore the editor - saving and the public link unlock on Pro.
 - Q: Why doesn't the SD refund or find-parking copy link work for guests?
-  A: **Find parking** now copies a plain marketplace link, so it works for any guest. **SD refund** and **Guest Review** still need a specific stay: choose **Copy link**, then pick the stay from the list. Only stays from check-out onward appear.
+  A: **Find parking** now copies a plain marketplace link, so it works for any guest. **SD refund** and **Guest Review** still need a specific stay: choose **Copy link**, then pick the stay from the list. Only stays ready for check-out or pending SD refund appear. Completed stays are hidden because the refund is already settled.
 - Q: How do I copy a calendar link with dates already picked?
   A: On the **Calendar** card choose **Copy link**, select the check-in and check-out dates, then **Copy link**. The guest opens the calendar with that range selected. **Without dates** copies the plain calendar link.
 - Q: What does the Copy links menu at the top do?
-  A: It copies any **Share link** (calendar, form, find parking) right away. Links that need a booking or stay dates stay on their cards so you can pick the stay first.
+  A: It lists every link you can send a guest, including Showcase and the booking links. Choosing a link runs the same action as its card: direct links copy right away, while Calendar, Messages, SD Refund, and Guest Review open their date or stay picker first. Stay Guide is not listed because each guest gets a personal link by email.
 - Q: Can I change how the stay guide or listing looks?
   A: Open **Public Pages → Design your pages → Stay Guide or Property → Edit**. For Stay Guide: pick a template, reorder/hide sections, set palette/type/motion, and edit each chapter's text + photo - the same controls as Showcase. For Property: manage photos, brand color, and listing content (also editable in **Property Settings** - same saved data).
 - Q: How do I get a shareable link for the stay guide?
@@ -78,11 +78,11 @@ Three sections:
 2. **Share links** — Calendar, Form, Find parking. Compact cards with **Copy link** / **Open page**. Copy works with no booking; calendar asks for an optional stay date range so the guest lands on those dates. Find parking copies the plain `/parkings` marketplace link.
 3. **Booking links** — Messages, SD Refund, Guest Review. **Copy link** opens a picker instead of copying right away:
    - **Messages** — pick a check-in / check-out range; the copied link keeps both dates.
-   - **SD Refund / Guest Review** — list of eligible stays (READY_FOR_CHECKOUT, PENDING_SD_REFUND, COMPLETED) with a **Copy** button per stay. Empty state when no stay qualifies.
+   - **SD Refund / Guest Review** — list of eligible stays (READY_FOR_CHECKOUT, PENDING_SD_REFUND) with a **Copy** button per stay. COMPLETED stays are excluded because the refund is already settled. Empty state when no stay qualifies.
 
-Page header **Copy links** menu: icon-only in the mobile hero, outline button on desktop. Lists the Share links only and copies on select. Same grid as above: 1 / 2 (`sm`) / **3 (`lg`)**.
+Page header **Copy links** menu: primary button on desktop with a chevron, icon-only in the mobile hero. Lists every `guestShareable` page (all cards except Stay Guide, which is preview-only) and runs the same action as the card: direct link copy, or the date / booking picker. Dividers separate Design, Share, and Booking links. Same grid as above: 1 / 2 (`sm`) / **3 (`lg`)**.
 
-Each card lazy-loads a **scaled live iframe** at **1280px desktop width** (`?embed=1`). Booking-scoped pages render host embed previews when `embed=1` without a booking id. Page subtitle: "Every guest URL for this listing." Registry fields `group` (`design` | `share` | `booking`) and `copyPicker` (`stay-dates` | `sd-refund` | `guest-review`) drive grouping and copy behavior (no hardcoded IDs in the page).
+Each card lazy-loads a **scaled live iframe** at **1280px desktop width** (`?embed=1`). Booking-scoped pages render host embed previews when `embed=1` without a booking id. Page subtitle: "Every guest URL for this listing." Registry fields `group` (`design` | `share` | `booking`), `guestShareable`, and `copyPicker` (`stay-dates` | `sd-refund` | `guest-review`) drive grouping, menu contents, and copy behavior (no hardcoded IDs in the page).
 
 ### Page Editor (`/public-pages/:pageId/edit`)
 

@@ -233,7 +233,7 @@ export function OrgListingPageSkeleton({
             title={metric.title}
             icon={metric.icon}
             titleAdornment={
-              metric.hasHint ? <span aria-hidden className="-my-1 size-6 shrink-0" /> : undefined
+              metric.hasHint ? <span aria-hidden className="h-4 w-6 shrink-0" /> : undefined
             }
             style={{ opacity: 1 - i * 0.05 }}
           />

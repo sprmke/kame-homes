@@ -2,7 +2,7 @@
 title: 'Curated support FAQs'
 status: active
 tags: [guides, support, faqs, help-center]
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Curated support FAQs
@@ -167,6 +167,15 @@ No. The booking keeps its current status and Parking shows as an outstanding ste
 
 Cancelling is only available up to Ready for Check-in. Once a booking reaches Ready for Check-out the stay has already happened, so it gets finished or refunded instead of cancelled.
 
+### Why don't I see a down payment or security deposit on an Airbnb booking?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+- order: 45
+
+Airbnb collects the stay payment and any deposit on their platform, so those fields are hidden and left at zero. You still record the booking rate, pet fee, and any additional fee. The Pricing tab says Stay paid through Airbnb.
+
 ### Can I close calendar dates without creating a booking?
 
 - category: Bookings
@@ -266,6 +275,24 @@ Adding a parking slot needs the Add parking permission. Owners always have it, a
 
 Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it is blocked if any bookings exist, so use Archive instead for units with past stays.
 
+### Why can't I restore my archived property?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 12
+
+Restore needs a verified listing and a current listing contract. A new listing has to be approved first, and an ended contract has to be renewed. The Danger Zone card tells you which one applies.
+
+### Can guests still book a property I archived?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 13
+
+No. The public page and its direct booking link stop taking new bookings. Guests who already booked keep their form, trip page, and stay guide.
+
 ### Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
 
 - category: Property Settings
@@ -309,7 +336,7 @@ Open Public Pages, then Stay Guide, then Edit, then Content. Expand a section to
 - source: docs/guides/routes/org/properties.md
 - order: 60
 
-No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist.
+No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist. Guests with a coming stay still get their form, trip page, and stay guide.
 
 ### Do I need a different Telegram bot for every notification module?
 
@@ -437,6 +464,15 @@ Yes. When you edit or delete a recurring transaction, you choose whether the cha
 
 Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
 
+### Can I use my own category for an expense?
+
+- category: Billing & Finance
+- audience: host
+- source: docs/guides/routes/org/property/finance.md
+- order: 60
+
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the transaction and works in filters, charts, and reports like the built-in categories.
+
 ### How do I get Telegram reminders for maintenance tasks?
 
 - category: Maintenance & Operations
@@ -472,6 +508,15 @@ Yes. When you add or edit a reminder, set it as a recurring series. One-off task
 - order: 40
 
 Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
+
+### Can I use my own category for a maintenance task?
+
+- category: Maintenance & Operations
+- audience: host
+- source: docs/guides/routes/org/property/maintenance.md
+- order: 50
+
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the reminder and works in filters, cards, and reports like the built-in categories.
 
 ### What can I ask the AI assistant?
 
@@ -714,7 +759,7 @@ Showcase is a shareable one-page landing link with animated templates. It is sep
 - source: docs/guides/routes/org/property/public-pages.md
 - order: 30
 
-Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays from check-out onward are listed.
+Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays ready for check-out or pending SD refund are listed. Completed stays are hidden because the refund is already settled.
 
 ### Is there a Save button in the page editor?
 

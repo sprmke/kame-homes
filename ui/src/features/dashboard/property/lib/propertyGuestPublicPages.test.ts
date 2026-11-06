@@ -23,6 +23,12 @@ describe('buildPropertyGuestPublicPages', () => {
     ]);
   });
 
+  it('marks only the stay guide as preview-only', () => {
+    const previewOnly = pages.filter((page) => !page.guestShareable).map((page) => page.id);
+
+    expect(previewOnly).toEqual(['stay-guide']);
+  });
+
   it('only marks booking or date-dependent pages with a copy picker', () => {
     const pickers = Object.fromEntries(
       pages.filter((page) => page.copyPicker).map((page) => [page.id, page.copyPicker])
