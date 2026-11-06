@@ -58,6 +58,11 @@ function normDate(d: string | null | undefined): string {
  * status → PENDING_REVIEW while the booking is in the documents pipeline or
  * Ready for check-in (see docs/todos/ + booking-workflow.mdc §2.3).
  *
+ * Parking fields are deliberately excluded: parking is already a nested
+ * sub-step under Pending Documents (and stays available as late parking at
+ * Ready for Check-in+), so an edit only re-opens that step instead of
+ * resetting the whole booking for re-approval.
+ *
  * Compare two payloads built via `bookingEditPayloadFromValues` so form
  * defaults (empty ages, trimmed names) match the saved baseline on open.
  * Document replacements use `upload-booking-asset` instead of this payload.
@@ -105,12 +110,9 @@ export function hasWorkflowSensitiveGuestFieldDiff(
     return true;
   }
 
-  if (!sameBool(baseline.need_parking, draft.need_parking)) return true;
-  if (draft.need_parking) {
-    if (!sameText(baseline.car_plate_number, draft.car_plate_number)) return true;
-    if (!sameText(baseline.car_brand_model, draft.car_brand_model)) return true;
-    if (!sameText(baseline.car_color, draft.car_color)) return true;
-  }
+  // Parking is a nested sub-step under Pending Documents, not a re-approval
+  // trigger. A parking edit keeps the current status and re-opens the parking
+  // step server-side (`bookingDetailsPatch.ts#parkingEditResetPatch`).
 
   // Pet details only revert the booking to review when a `has_pets`-triggered
   // requirement (or literal id `pet`) is actually configured for this

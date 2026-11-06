@@ -12,22 +12,15 @@ import {
   rankOwnerDefaultParkingSlots,
   type OwnerDefaultParkingSlot,
 } from './ownerDefaultParkingRank.ts';
+import {
+  readComplimentaryOwnerParking,
+  readPreferredOwnerParkingId,
+} from './ownerDefaultParkingFlags.ts';
 
 export type { OwnerDefaultParkingSlot };
 export { ownerDefaultDateToYmd, rankOwnerDefaultParkingSlots };
+export { readComplimentaryOwnerParking, readPreferredOwnerParkingId };
 
-/** `properties.settings.preferredOwnerParkingId` — UUID of preferred org listing. */
-export function readPreferredOwnerParkingId(settings: unknown): string | null {
-  if (!settings || typeof settings !== 'object') return null;
-  const raw = (settings as Record<string, unknown>).preferredOwnerParkingId;
-  return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
-}
-
-/** `properties.settings.complimentaryOwnerParking` — skip PayMongo for same-org own pins. */
-export function readComplimentaryOwnerParking(settings: unknown): boolean {
-  if (!settings || typeof settings !== 'object') return false;
-  return (settings as Record<string, unknown>).complimentaryOwnerParking === true;
-}
 
 export type OwnerDefaultParkingResult = {
   hasOrgParkings: boolean;
@@ -225,6 +218,10 @@ export async function resolveGuestParkingCtaAbsoluteUrl(input: {
     .maybeSingle();
 
   if (!property?.organization_id) return findUrl;
+
+  // Parking off means no own-slot CTA, even if a stale preferred slot is still saved.
+  const propertySettings = property.settings as Record<string, unknown> | null | undefined;
+  if (propertySettings?.allowParking === false) return findUrl;
 
   const resolved = await resolveOwnerDefaultParking({
     organizationId: String(property.organization_id),

@@ -168,15 +168,6 @@ function parkingSteps(parking: SetupGuideListingRef): SetupGuideStep[] {
     }),
     step({
       ...base,
-      id: id('payments'),
-      kind: 'parking.payments',
-      title: 'Payments',
-      requirement: 'required',
-      estimatedMinutes: 3,
-      completionSections: [{ scope: 'parking', parkingId: parking.id, sectionId: 'payment' }],
-    }),
-    step({
-      ...base,
       id: id('email'),
       kind: 'parking.email',
       title: 'Email & automation',
@@ -289,7 +280,6 @@ export function setupGuideStepKindLabel(kind: SetupGuideStepKind): string {
     'parking.location': 'Location',
     'parking.photo': 'Cover photo & amenities',
     'parking.pricing': 'Pricing',
-    'parking.payments': 'Payments',
     'parking.email': 'Email & automation',
     'org.verification': 'Verification & go-live',
     'org.team': 'Invite your team',
@@ -317,7 +307,6 @@ export function setupGuideStepShortTitle(kind: SetupGuideStepKind): string {
     'parking.location': 'Location',
     'parking.photo': 'Photo',
     'parking.pricing': 'Pricing',
-    'parking.payments': 'Payments',
     'parking.email': 'Email',
   };
   return labels[kind] ?? setupGuideStepKindLabel(kind);

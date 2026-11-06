@@ -37,6 +37,10 @@ import {
   guestBookingAccessTokenFromRequest,
   mintGuestBookingAccessToken,
 } from '../_shared/guestBookingAccessToken.ts';
+import {
+  propertyAcceptsNewBookings,
+  propertyNotAcceptingBookingsError,
+} from '../_shared/propertyListingGate.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 import {
@@ -153,6 +157,18 @@ serve(async (req) => {
     const formatValidation = validateGuestFormFormatFields(formData);
     if (!formatValidation.ok) throw new Error(formatValidation.message);
 
+    // New submissions are gated on listing status; edits to an existing booking are not.
+    // Fetch the row once here and reuse it for the change-detection pass below.
+    const existingBookingRow =
+      isSaveToDatabaseEnabled && bookingId ? await DatabaseService.getRawData(bookingId) : null;
+
+    if (isSaveToDatabaseEnabled && propertyId && !existingBookingRow) {
+      if (!(await propertyAcceptsNewBookings(propertyId))) {
+        console.warn('[submit-form] rejected: listing is not accepting new bookings');
+        throw propertyNotAcceptingBookingsError();
+      }
+    }
+
     // Check for overlapping bookings (only if saving to database)
     if (isSaveToDatabaseEnabled) {
       console.log('🔍 Starting overlap check...');
@@ -228,7 +244,7 @@ serve(async (req) => {
     if (isSaveToDatabaseEnabled && bookingId) {
       console.log('🔍 Checking for data changes...');
 
-      existingData = await DatabaseService.getRawData(bookingId);
+      existingData = existingBookingRow;
 
       if (existingData) {
         const authz = await authorizeGuestBookingAccess({

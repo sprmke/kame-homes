@@ -88,7 +88,7 @@ const EMAIL_AUTOMATION_COLUMNS = [
   'sd_refund_cron_max_checkout_age_days',
 ] as const;
 
-const EMAIL_RECIPIENT_COLUMNS = ['email_reply_to', 'parking_owner_emails'] as const;
+const EMAIL_RECIPIENT_COLUMNS = ['email_reply_to'] as const;
 
 const TELEGRAM_TABLES = [
   'telegram_marketing_settings',

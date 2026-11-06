@@ -74,7 +74,6 @@ export type PlatformSecretsStatus = {
 export type AppSettingsDto = {
   emailTo: string;
   emailReplyTo: string;
-  parkingOwnerEmails: string[];
   sdRefundCronEmailLeadMinutes: number;
   sdRefundCronMaxCheckoutAgeDays: number;
   publicGuestAppOrigin: string;
@@ -103,7 +102,6 @@ export type AppSettingsDto = {
   fieldSources: Record<
     | 'emailTo'
     | 'emailReplyTo'
-    | 'parkingOwnerEmails'
     | 'sdRefundCronEmailLeadMinutes'
     | 'sdRefundCronMaxCheckoutAgeDays'
     | 'publicGuestAppOrigin'
@@ -143,7 +141,6 @@ export type AppSettingsDto = {
 export type AppSettingsFormValues = {
   emailTo: string;
   emailReplyTo: string;
-  parkingOwnerEmails: string;
   sdRefundCronEmailLeadHours: number;
   sdRefundCronMaxCheckoutAgeDays: number;
   defaultParkingRateGuest: number;
@@ -188,7 +185,6 @@ export function appSettingsToFormValues(data: AppSettingsDto): AppSettingsFormVa
   return {
     emailTo: data.emailTo,
     emailReplyTo: data.emailReplyTo,
-    parkingOwnerEmails: data.parkingOwnerEmails.join(', '),
     sdRefundCronEmailLeadHours: sdRefundLeadMinutesToHours(data.sdRefundCronEmailLeadMinutes),
     sdRefundCronMaxCheckoutAgeDays: data.sdRefundCronMaxCheckoutAgeDays,
     defaultParkingRateGuest: data.defaultParkingRateGuest,
@@ -291,7 +287,6 @@ export function operationalFormIsDirty(
   return (
     !propertyBrandColorsEquivalent(draft.brandColor, baseline.brandColor, inheritedBrandColor) ||
     draft.emailReplyTo.trim() !== baseline.emailReplyTo.trim() ||
-    draft.parkingOwnerEmails.trim() !== baseline.parkingOwnerEmails.trim() ||
     draft.sdRefundCronEmailLeadHours !== baseline.sdRefundCronEmailLeadHours ||
     draft.sdRefundCronMaxCheckoutAgeDays !== baseline.sdRefundCronMaxCheckoutAgeDays ||
     !automationTogglesEqual(draft.automationToggles, baseline.automationToggles) ||

@@ -1,13 +1,11 @@
 import { useCallback } from 'react';
 
-import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import {
   OrgBasicInformationSection,
   OrgSocialsBrandingSection,
 } from '@/features/dashboard/org/components/org-settings/OrgProfileSettingsSections';
 import { PropertyLocationPicker } from '@/features/dashboard/org/components/property-settings/PropertyLocationPicker';
 import { PropertyOperationalSettingsSections } from '@/features/dashboard/org/components/property-settings/PropertyOperationalSettingsSections';
-import { PropertyPaymentMethodsSection } from '@/features/dashboard/org/components/property-settings/PropertyPaymentMethodsSection';
 import { PropertyProfileMainSections } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
 import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
@@ -279,31 +277,19 @@ function PropertyPricingStep({ propertyId }: { propertyId: string }) {
   );
 }
 
-function parkingPaymentSettingsDto(settings: { gcashQrImageUrl?: string | null }): AppSettingsDto {
-  const gcashQrImageUrl = settings.gcashQrImageUrl?.trim() ?? '';
-  return {
-    gcashQrImageUrl,
-    fieldSources: {
-      gcashQrImageUrl: gcashQrImageUrl ? 'db' : 'default',
-    },
-  } as AppSettingsDto;
-}
-
 function ParkingSectionsInner({
   parkingId,
   mode,
 }: {
   parkingId: string;
-  mode: 'basics' | 'location' | 'photo' | 'payments' | 'email' | 'pricing';
+  mode: 'basics' | 'location' | 'photo' | 'email' | 'pricing';
 }) {
   const kind = `parking.${mode}` as const;
   const {
     settings,
     settingsLoading,
-    uploadQr,
     coverImage,
     setCoverImage,
-    operationalDraft,
     featuresDraft,
     setFeaturesDraft,
     newCustomFeatureInput,
@@ -317,19 +303,12 @@ function ParkingSectionsInner({
     detailsDraft,
     setDetailsDraft,
     automationDraft,
-    paymentOtpOpen,
-    paymentOtpFingerprint,
-    qrUploadingMethodId,
-    setQrUploadingMethodId,
     markFieldInteracted,
     isDirty,
     userEdited,
     resolveFieldError,
     busy,
-    setPaymentMethods,
     handleSave,
-    handlePaymentOtpOpenChange,
-    handlePaymentOtpVerified,
     setAutomationToggle,
   } = useParkingSettingsController();
 
@@ -344,7 +323,7 @@ function ParkingSectionsInner({
     isDirty: mode !== 'pricing' && isDirty && userEdited,
   });
 
-  if (settingsLoading || !operationalDraft || !settings) {
+  if (settingsLoading || !settings) {
     return <SetupGuideStepSkeleton kind={kind} />;
   }
 
@@ -425,33 +404,6 @@ function ParkingSectionsInner({
         />
       ) : null}
 
-      {mode === 'payments' ? (
-        <PropertyPaymentMethodsSection
-          data={parkingPaymentSettingsDto(settings)}
-          methods={operationalDraft.paymentMethods}
-          disabled={busy}
-          resolveFieldError={resolveFieldError}
-          markFieldInteracted={markFieldInteracted}
-          onChange={setPaymentMethods}
-          onMethodQrFile={(methodId, file) => {
-            markFieldInteracted(`payment-method-${methodId}-qr`);
-            setQrUploadingMethodId(methodId);
-            void uploadQr
-              .mutateAsync(file)
-              .then((uploaded: { publicUrl?: string; url?: string }) => {
-                const url = uploaded.publicUrl ?? uploaded.url ?? '';
-                setPaymentMethods(
-                  operationalDraft.paymentMethods.map((method) =>
-                    method.id === methodId ? { ...method, qrImageUrl: url } : method
-                  )
-                );
-              })
-              .finally(() => setQrUploadingMethodId(null));
-          }}
-          qrUploadingMethodId={qrUploadingMethodId}
-        />
-      ) : null}
-
       {mode === 'email' && automationDraft ? (
         <>
           <ParkingEmailAutomationSection
@@ -467,21 +419,13 @@ function ParkingSectionsInner({
         </>
       ) : null}
 
-      <SensitiveSettingsOtpDialog
-        open={paymentOtpOpen}
-        onOpenChange={handlePaymentOtpOpenChange}
-        scope="parking"
-        patchFingerprint={paymentOtpFingerprint}
-        onVerified={handlePaymentOtpVerified}
-        busy={busy}
-      />
     </div>
   );
 }
 
 function ParkingSectionsStep(props: {
   parkingId: string;
-  mode: 'basics' | 'location' | 'photo' | 'payments' | 'email' | 'pricing';
+  mode: 'basics' | 'location' | 'photo' | 'email' | 'pricing';
 }) {
   return (
     <SetupGuideParkingHost
@@ -594,8 +538,6 @@ export function SetupGuideStepBody({ step }: { step: SetupGuideStep | undefined 
       return <ParkingSectionsStep parkingId={step.parkingId!} mode="photo" />;
     case 'parking.pricing':
       return <ParkingSectionsStep parkingId={step.parkingId!} mode="pricing" />;
-    case 'parking.payments':
-      return <ParkingSectionsStep parkingId={step.parkingId!} mode="payments" />;
     case 'parking.email':
       return <ParkingSectionsStep parkingId={step.parkingId!} mode="email" />;
     case 'org.verification':

@@ -1,4 +1,3 @@
-import { legacyGcashQrForPaymentMethods } from '@/features/dashboard/lib/storedMediaDisplay';
 import { slugifyOrgName } from '@/features/dashboard/org/lib/orgSettingsForm';
 import {
   DEFAULT_PARKING_RESIDENCE_NAME,
@@ -7,19 +6,12 @@ import {
 } from '@/features/dashboard/org/lib/parkingResidences';
 import { parseParkingSlotNumberFromLabel } from '@/features/dashboard/org/lib/parkingSlotDisplay';
 import {
-  normalizePaymentMethodsDraft,
-  paymentMethodsEqual,
-  syncLegacyPaymentFieldsFromMethods,
-  type PropertyPaymentMethod,
-} from '@/features/dashboard/org/lib/paymentMethods';
-import {
   readNullableLatitude,
   readNullableLongitude,
   withAzureNorthLocationDefaultsIfEmpty,
   type PropertyLocationFields,
 } from '@/features/dashboard/org/lib/propertyLocation';
 import type { Parking } from '@/features/dashboard/org/types';
-import type { ParkingSettingsPayload } from '@/features/dashboard/parking/hooks/useParkingSettings';
 import {
   DEFAULT_PARKING_HEIGHT_CLEARANCE_M,
   DEFAULT_PARKING_SPACE_LENGTH_M,
@@ -42,13 +34,6 @@ export type ParkingProfileDraft = {
   residenceName: string;
   brandColor: string;
   description: string;
-};
-
-export type ParkingOperationalDraft = {
-  paymentMethods: PropertyPaymentMethod[];
-  paymentProvider: string;
-  gcashName: string;
-  gcashNumber: string;
 };
 
 export type ParkingVehicleTypeDraft = 'car' | 'motorcycle';
@@ -117,31 +102,6 @@ export function parkingProfileDraftFromParking(
   };
 }
 
-export function parkingOperationalDraftFromSettings(
-  settings: ParkingSettingsPayload
-): ParkingOperationalDraft {
-  const legacyGcashQr = legacyGcashQrForPaymentMethods(
-    settings.gcashQrImageUrl ?? '',
-    settings.gcashQrImageUrl?.trim() ? 'db' : 'default'
-  );
-  const paymentMethods = normalizePaymentMethodsDraft(
-    settings.paymentMethods as PropertyPaymentMethod[] | undefined,
-    {
-      paymentProvider: settings.paymentProvider ?? 'gcash',
-      gcashName: settings.gcashName ?? '',
-      gcashNumber: settings.gcashNumber ?? '',
-      gcashQrImageUrl: legacyGcashQr,
-    }
-  );
-  const synced = syncLegacyPaymentFieldsFromMethods(paymentMethods);
-  return {
-    paymentMethods,
-    paymentProvider: synced.paymentProvider,
-    gcashName: synced.gcashName,
-    gcashNumber: synced.gcashNumber,
-  };
-}
-
 export function parkingProfileDraftIsDirty(
   draft: ParkingProfileDraft,
   baseline: ParkingProfileDraft,
@@ -157,13 +117,6 @@ export function parkingProfileDraftIsDirty(
     propertyBrandColorStoredValue(draft.brandColor, resolvedBrandColor).toLowerCase() !==
       propertyBrandColorStoredValue(baseline.brandColor, resolvedBrandColor).toLowerCase()
   );
-}
-
-export function parkingOperationalDraftIsDirty(
-  draft: ParkingOperationalDraft,
-  baseline: ParkingOperationalDraft
-): boolean {
-  return !paymentMethodsEqual(draft.paymentMethods, baseline.paymentMethods);
 }
 
 export function parkingCoverImageFromSettings(settings: Record<string, unknown>): string {

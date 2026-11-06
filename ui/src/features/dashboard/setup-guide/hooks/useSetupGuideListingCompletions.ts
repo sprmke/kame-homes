@@ -29,7 +29,6 @@ import {
   parkingCoverImageFromSettings,
   parkingDetailsDraftFromSettings,
   parkingLocationDraftFromSettings,
-  parkingOperationalDraftFromSettings,
   parkingProfileDraftFromParking,
 } from '@/features/dashboard/parking/lib/parkingSettingsForm';
 import type { SetupGuideCompletionSnapshot } from '@/features/dashboard/setup-guide/lib/setupGuideProgress';
@@ -54,7 +53,6 @@ const PARKING_PENDING_SECTIONS = [
   'location',
   'media',
   'features',
-  'payment',
 ] as const;
 
 async function fetchAppSettings(propertyId: string): Promise<AppSettingsDto> {
@@ -203,7 +201,6 @@ export function useSetupGuideListingCompletions({
       }
       parkingIssueSectionIdsById[parking.id] = computeParkingSettingsCompletion({
         profile: parkingProfileDraftFromParking(parking, inheritedBrandColor),
-        operational: parkingOperationalDraftFromSettings(settings),
         details: parkingDetailsDraftFromSettings(parking.settings, parking.acceptedVehicleTypes),
         features: parkingFeaturesDraftFromSettings(parking.settings),
         location: parkingLocationDraftFromSettings(parking.settings, parking.residenceName),

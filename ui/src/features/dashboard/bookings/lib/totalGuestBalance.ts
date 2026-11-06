@@ -10,8 +10,8 @@ function bookingFlagTrue(value: boolean | string | null | undefined): boolean {
   return value === true || value === 'true';
 }
 
-function isAirbnbBookingSource(source: string | null | undefined): boolean {
-  return source?.trim() === 'Airbnb';
+export function isAirbnbBookingSource(source: string | null | undefined): boolean {
+  return source?.trim().toLowerCase() === 'airbnb';
 }
 
 /** Pet fee counts toward guest balance only when the guest is bringing pets. */
