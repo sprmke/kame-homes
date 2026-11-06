@@ -22,6 +22,7 @@ import { TelegramMaintenanceSettingsCard } from '@/features/dashboard/bookings/c
 import { TelegramMarketingSettingsCard } from '@/features/dashboard/bookings/components/TelegramMarketingSettingsCard';
 import { TelegramStaffSettingsCard } from '@/features/dashboard/bookings/components/TelegramStaffSettingsCard';
 import { InAppNotificationsSection } from '@/features/dashboard/notifications/components/InAppNotificationsSection';
+import { NOTIFICATIONS_HOW_IT_WORKS } from '@/features/dashboard/notifications/lib/notificationsHelpCopy';
 import {
   IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL,
   IN_APP_NOTIFICATIONS_SECTION_ID,
@@ -35,6 +36,7 @@ import {
   NOTIFICATION_MODULE_EDIT_PERMISSION,
 } from '@/features/dashboard/team/lib/propertyPermissions';
 
+import { HowItWorksButton } from '@/components/help/HowItWorksButton';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { propertyDashboardPageTitle, usePageTitle } from '@/lib/pageTitle';
 import { cn } from '@/lib/utils';
@@ -125,6 +127,12 @@ export function NotificationsPage() {
         title="Notifications"
         subtitle="Manage in-app notifications and Telegram alerts for this property."
         titleId="notifications-heading"
+        heroTrailing={
+          <HowItWorksButton hero feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
+        }
+        desktopActions={
+          <HowItWorksButton feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
+        }
       >
         <AdminSectionNavLayout
           className="min-h-0 flex-1"

@@ -73,13 +73,14 @@ function OrgBrandStep() {
     formBusy,
     slugPreview,
     resolveFieldError,
+    userEdited,
   } = useOrgSettingsController();
 
   const save = useCallback(async () => {
     if (!canSaveAny) return true;
     return handleSave();
   }, [canSaveAny, handleSave]);
-  useRegisterStepSave(save, { isDirty: canSaveAny, selfGuarded: true });
+  useRegisterStepSave(save, { isDirty: canSaveAny && userEdited, selfGuarded: true });
 
   if (isLoading || !profileDraft || !operatorDraft || !operatorData) {
     return <SetupGuideStepSkeleton kind="org.brand" />;
@@ -147,6 +148,7 @@ function PropertySectionsInner({
     settingsCompletion,
     resolveFieldError,
     isDirty,
+    userEdited,
     busy,
     slugPreview,
     setProfileField,
@@ -166,7 +168,7 @@ function PropertySectionsInner({
     if (!isDirty) return true;
     return handleSave();
   }, [handleSave, isDirty]);
-  useRegisterStepSave(save, { isDirty, selfGuarded: true });
+  useRegisterStepSave(save, { isDirty: isDirty && userEdited, selfGuarded: true });
 
   if (appSettingsLoading || !operationalDraft || !appSettings) {
     return <SetupGuideStepSkeleton kind={kind} />;
@@ -303,6 +305,7 @@ function ParkingSectionsInner({
     automationDraft,
     markFieldInteracted,
     isDirty,
+    userEdited,
     resolveFieldError,
     busy,
     handleSave,
@@ -317,7 +320,7 @@ function ParkingSectionsInner({
     return handleSave({ scopeSectionIds: [...SETUP_GUIDE_PARKING_SAVE_SCOPE[mode]] });
   }, [handleSave, isDirty, mode]);
   useRegisterStepSave(mode === 'pricing' ? null : save, {
-    isDirty: mode !== 'pricing' && isDirty,
+    isDirty: mode !== 'pricing' && isDirty && userEdited,
   });
 
   if (settingsLoading || !settings) {

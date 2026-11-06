@@ -502,13 +502,17 @@ export function usePropertySettingsController() {
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const setProfileField = <K extends keyof PropertyProfileDraft>(
-    key: K,
-    value: PropertyProfileDraft[K]
-  ) => {
-    markUserEdited();
-    setProfileDraft((current) => ({ ...current, [key]: value }));
-  };
+  const setProfileField = useCallback(
+    <K extends keyof PropertyProfileDraft>(
+      key: K,
+      value: PropertyProfileDraft[K],
+      options?: { markEdited?: boolean }
+    ) => {
+      if (options?.markEdited !== false) markUserEdited();
+      setProfileDraft((current) => ({ ...current, [key]: value }));
+    },
+    [markUserEdited]
+  );
 
   const handleMediaPersisted = (media: PropertyProfileDraft['media']) => {
     setProfileDraft((current) => ({ ...current, media }));
@@ -576,14 +580,19 @@ export function usePropertySettingsController() {
 
   const setOperationalField = <K extends keyof AppSettingsFormValues>(
     key: K,
-    value: AppSettingsFormValues[K]
+    value: AppSettingsFormValues[K],
+    options?: { markEdited?: boolean }
   ) => {
-    markUserEdited();
+    if (options?.markEdited !== false) markUserEdited();
     setOperationalDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
-  const setAutomationToggle = (key: PropertyAutomationToggleKey, value: boolean) => {
-    markUserEdited();
+  const setAutomationToggle = (
+    key: PropertyAutomationToggleKey,
+    value: boolean,
+    options?: { markEdited?: boolean }
+  ) => {
+    if (options?.markEdited !== false) markUserEdited();
     setOperationalDraft((current) =>
       current
         ? {
@@ -904,6 +913,7 @@ export function usePropertySettingsController() {
     operationalDirty,
     handleSaveExternalReview,
     isDirty,
+    userEdited,
     showSaveActions,
     savePlan,
     paymentDirty,

@@ -391,9 +391,11 @@ Notifications route keeps it once `AdminSectionNavLayout` is gone.
 
 ### Phase 5: Guidance
 
-- [ ] P5.1 Help copy registry entries (subtitle, steps, channel table, tab lines, hints, empty
-      states). `human-copy` pass.
-- [ ] P5.2 `HowItWorksButton` (desktop header + phone hero) and `IntroCard`.
+- [x] P5.1 Help copy registry entries — **partial**: `NOTIFICATIONS_HOW_IT_WORKS` shipped for property
+      and parking (three channels + per-channel mute rule + Manila quiet hours). Subtitle, channel
+      table, tab lines and empty states wait on the tab frame.
+- [x] P5.2 `HowItWorksButton` (desktop header + phone hero) — shipped on both pages. `IntroCard`
+      still pending.
 - [ ] P5.3 Push tab `InfoHint`s after verifying preference scope and recipients.
 - [ ] P5.4 Mark contextual-help P3.1 to P3.5, P3.7, P3.8 as delivered by this plan.
 
