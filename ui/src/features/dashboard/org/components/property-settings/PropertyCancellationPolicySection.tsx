@@ -99,7 +99,7 @@ function TimelinePreview({ policy }: { policy: CancellationPolicy }) {
         <div className="flex items-start gap-2 text-sm">
           <span className="mt-0.5 size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
           <span>
-            <span className="font-medium">100% refund</span> within {graceLabel(policy.grace.hours)} of
+            <span className="font-medium">100% of paid</span> within {graceLabel(policy.grace.hours)} of
             booking
             {policy.grace.minLeadDays > 0
               ? `, when booked at least ${daysLabel(policy.grace.minLeadDays)} ahead`
@@ -124,7 +124,7 @@ function TimelinePreview({ policy }: { policy: CancellationPolicy }) {
             aria-hidden
           />
           <span>
-            <span className="font-medium">{row.refundPercent}% refund</span> until{' '}
+            <span className="font-medium">{row.refundPercent}% of paid</span> until{' '}
             {format(row.deadline, 'MMM d, yyyy')} ({daysLabel(row.daysBefore)} before)
           </span>
         </div>
@@ -133,7 +133,7 @@ function TimelinePreview({ policy }: { policy: CancellationPolicy }) {
         <div className="flex items-start gap-2 text-sm">
           <span className="bg-muted-foreground/50 mt-0.5 size-2 shrink-0 rounded-full" aria-hidden />
           <span>
-            <span className="font-medium">{policy.fallbackRefundPercent}% refund</span> after that
+            <span className="font-medium">{policy.fallbackRefundPercent}% of paid</span> after that
           </span>
         </div>
       ) : null}
@@ -328,7 +328,7 @@ function PolicyFields({
               <SelectContent>
                 {[0, 25, 50, 75, 100].map((percent) => (
                   <SelectItem key={percent} value={String(percent)}>
-                    {percent}% refund
+                    {percent}% of paid
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -645,7 +645,7 @@ export function PropertyCancellationPolicySection({
       id="cancellation"
       title="Cancellation policy"
       icon={Shield}
-      description="Refund rules when a guest cancels."
+      description="Refund rules based on what the guest has paid."
     >
       <PreviewCard
         policy={policy}

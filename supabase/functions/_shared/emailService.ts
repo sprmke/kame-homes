@@ -1566,7 +1566,7 @@ export async function sendBookingCancelledGuest(
       { label: 'Stay', value: `${c.displayCheckInDate} to ${c.displayCheckOutDate}` },
       { label: 'Reason', value: cancellationReasonLabel(ctx.reasonCode) },
       ...(ctx.policyTitle ? [{ label: 'Policy', value: ctx.policyTitle }] : []),
-      ...(ctx.refundPercent != null ? [{ label: 'Policy refund', value: `${ctx.refundPercent}%` }] : []),
+      ...(ctx.refundPercent != null ? [{ label: 'Policy refund', value: `${ctx.refundPercent}% of paid` }] : []),
       { label: 'Refund', value: cancellationPeso(ctx.refundDuePhp) },
     ],
     note: ctx.reasonNote ?? null,

@@ -255,6 +255,8 @@ Public exposure: resolved via **`get-guest-payment-info`** (same request as paym
 
 Compact card on Property Settings with the guest preview and **Manage**. The Manage sheet has preset cards (Flexible, Moderate, Limited, Firm, Strict, Non-refundable, Custom), a live timeline preview with a sample check-in, an optional free-cancellation window (hours + minimum lead days), fee rules for pet/additional fees, and the guest cancellation mode (**Cancel right away** vs **Ask me first**). **Custom** adds a tier builder (up to 5 rows, days 0–365, refund 0–100, sorted, validated).
 
+**Percentages apply to what the guest has actually paid** (down payment + settled balance), not the full stay value. This matches the app's payment model: guests pay a down payment at booking and the balance at check-in, so a 50% policy returns 50% of the down payment instead of wiping it out. The security deposit is always refunded. Once the balance is paid, guest cancellations always go through **Ask me first**, even if the policy says instant.
+
 Stored in `properties.settings.cancellationPolicy` (v2 shape) with the current version id at `properties.settings.cancellationPolicyVersionId`. Every change appends a row to `property_cancellation_policy_versions` and logs `property.cancellation_policy_updated`. Saving while live bookings exist asks **"Apply to new bookings only?"** with the count from `cancellation-policy-impact`; existing bookings keep their snapshot.
 
 Legacy v1 shapes are mapped on read (no data migration): `grace_period` → grace-only custom, `full_before_checkin(N)` → 100% at N days, `moderate(h,N)` → grace + 100% at N days, `partial_before_checkin(N,p)` → p% at N days, `non_refundable` → Non-refundable, free text → custom with `needsReview` and request mode. A property with no saved policy resolves to **unset** (listing says "Ask the host about cancellation") instead of a silent default.
@@ -479,15 +481,15 @@ Keep UI and edge copies in sync when changing rules.
 
 ---
 
-**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, F5 / Cmd+Ctrl+R, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing** only after you change a field on this visit (load-time sync such as GAF tower/unit from profile does not prompt). Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
+**Unsaved changes.** Leaving with unsaved edits (another menu item, browser back, F5 / Cmd+Ctrl+R, closing the tab) asks to **Save & leave**, **Discard**, or **Keep editing** only after you change a field on this visit. Load-time sync never prompts or enables **Save Changes**: GAF tower/unit from the profile, unit-type defaults (bedrooms, bathrooms, max adults/children), a stale preferred owner parking healed to the first active listing, and the initial map auto-locate for an address with no pin. Save & leave runs the same validation as Save and stays on the page if it fails. Shared guard: [`unsaved-changes.md`](../../../../architecture/unsaved-changes.md).
 
 ## Testing
 
-| Layer | Path / spec                                                                      | Manual                                      |
-| ----- | -------------------------------------------------------------------------------- | ------------------------------------------- |
-| Unit  | Document requirements resolution, cleaning buffer mirrors when changed           | —                                           |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`) | OTP payment method, live Maps, media upload |
-| N/A   | —                                                                                | —                                           |
+| Layer | Path / spec                                                                                                                                                                                       | Manual                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Unit  | Document requirements resolution, cleaning buffer mirrors when changed                                                                                                                            | —                                           |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`); `ui/e2e/features/team/propertySettingsCleanNavigation.spec.ts` clean-load no prompt vs real-edit prompt (`@ci`) | OTP payment method, live Maps, media upload |
+| N/A   | —                                                                                                                                                                                                 | —                                           |
 
 ---
 
