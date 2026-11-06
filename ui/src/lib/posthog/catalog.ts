@@ -85,6 +85,7 @@ export const APP_ANALYTICS_EVENTS = [
   'smart_pricing_applied',
   'calendar_sync_connected',
   'settings_saved',
+  'property_lifecycle_changed',
   'analytics_module_viewed',
   'announcement_published',
   'ai_assistant_action_confirmed',

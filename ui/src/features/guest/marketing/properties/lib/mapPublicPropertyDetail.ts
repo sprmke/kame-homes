@@ -44,6 +44,7 @@ export function mapApiPropertyToResolved(dto: PublicPropertyDetailDto): Resolved
     name: dto.name,
     type: dto.type.toUpperCase(),
     description: dto.description,
+    acceptingBookings: dto.acceptingBookings !== false,
     location: dto.locationLabel,
     address: dto.address,
     city: dto.city,

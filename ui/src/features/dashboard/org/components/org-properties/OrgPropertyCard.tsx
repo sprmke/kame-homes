@@ -12,7 +12,7 @@ import {
 import { toast } from 'sonner';
 
 import { OrgPropertyImageCarousel } from '@/features/dashboard/org/components/org-properties/OrgPropertyImageCarousel';
-import { OrgPropertyStatusBadge } from '@/features/dashboard/org/components/org-properties/OrgPropertyStatusBadge';
+import { PropertyLifecycleBadge } from '@/features/dashboard/org/components/org-properties/PropertyLifecycleBadge';
 import { absoluteGuestCalendarUrl } from '@/features/dashboard/org/lib/guestPublicPaths';
 import { orgPropertyCardModel } from '@/features/dashboard/org/lib/orgPropertyCardModel';
 import {
@@ -229,7 +229,7 @@ export function OrgPropertyCard({
           onSurfaceClick={() => navigate(dashboardHref)}
         />
         <div className="pointer-events-none absolute left-3 top-3 z-10">
-          <OrgPropertyStatusBadge status={property.status} />
+          <PropertyLifecycleBadge property={property} />
         </div>
         <div className="absolute right-3 top-3 z-[3] opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
           <OrgPropertyActionsMenu
@@ -297,7 +297,7 @@ export function OrgPropertyListRow({
             onSurfaceClick={() => navigate(dashboardHref)}
           />
           <div className="pointer-events-none absolute left-2 top-2 z-10">
-            <OrgPropertyStatusBadge status={property.status} />
+            <PropertyLifecycleBadge property={property} />
           </div>
         </div>
 

@@ -527,9 +527,9 @@ export const TEAM_PERMISSIONS: TeamPermission[] = [
     icon: Settings,
   },
   {
-    id: 'settings.dangerZone:edit',
-    name: 'Archive / restore',
-    description: 'Archive or restore property (not delete)',
+    id: 'settings.listingStatus:edit',
+    name: 'Listing status',
+    description: 'Pause, archive, or restore property (not delete)',
     category: 'Settings',
     icon: Settings,
   },
