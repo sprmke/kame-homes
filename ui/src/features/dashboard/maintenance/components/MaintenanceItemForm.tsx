@@ -24,6 +24,7 @@ import {
   isRecurrenceScheduleDirty,
 } from '@/features/dashboard/finance/lib/recurrence';
 import { MaintenanceItemFormPreview } from '@/features/dashboard/maintenance/components/MaintenanceItemFormPreview';
+import { MAINTENANCE_CATEGORY_SUGGESTIONS } from '@/features/dashboard/maintenance/lib/maintenanceCategories';
 import {
   buildMaintenanceItemFormSteps,
   clampMaintenanceItemFormStepIndex,
@@ -119,19 +120,6 @@ export function telegramReminderPayloadFromForm(
     marked_complete: values.marked_complete,
   };
 }
-
-const CATEGORY_SUGGESTIONS = [
-  'Supplies',
-  'Utilities',
-  'Appliance',
-  'Amenities',
-  'Cleaning',
-  'Pest Control',
-  'Safety',
-  'Plumbing',
-  'Electrical',
-  'Other',
-];
 
 export type MaintenanceItemFormWizardState = {
   stepIndex: number;
@@ -369,7 +357,7 @@ export const MaintenanceItemForm = forwardRef<MaintenanceItemFormHandle, Props>(
                     <CategoryCombobox
                       value={field.value ?? ''}
                       onChange={field.onChange}
-                      suggestions={CATEGORY_SUGGESTIONS}
+                      suggestions={MAINTENANCE_CATEGORY_SUGGESTIONS}
                     />
                   )}
                 />

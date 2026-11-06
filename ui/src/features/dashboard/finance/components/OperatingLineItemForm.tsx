@@ -18,6 +18,7 @@ import { requiredPositiveMoney } from '@/features/dashboard/bookings/lib/moneyFi
 import { CategoryCombobox } from '@/features/dashboard/finance/components/CategoryCombobox';
 import { OperatingLineItemFormPreview } from '@/features/dashboard/finance/components/OperatingLineItemFormPreview';
 import { TelegramReminderSchedulePreview } from '@/features/dashboard/finance/components/TelegramReminderSchedulePreview';
+import { FINANCE_CATEGORY_SUGGESTIONS } from '@/features/dashboard/finance/lib/financeCategories';
 import { manilaTodayIso } from '@/features/dashboard/finance/lib/financePeriod';
 import {
   FINANCE_DEFAULT_REMINDER_TEMPLATE,
@@ -127,17 +128,6 @@ export function telegramReminderPayloadFromForm(
     marked_paid: values.marked_paid,
   };
 }
-
-const CATEGORY_SUGGESTIONS = [
-  'Rent',
-  'Amortization',
-  'Utilities',
-  'Supplies',
-  'Maintenance',
-  'Marketing',
-  'Staff',
-  'Other',
-];
 
 export type OperatingLineItemFormWizardState = {
   stepIndex: number;
@@ -425,7 +415,7 @@ export const OperatingLineItemForm = forwardRef<OperatingLineItemFormHandle, Pro
                     <CategoryCombobox
                       value={field.value ?? ''}
                       onChange={field.onChange}
-                      suggestions={CATEGORY_SUGGESTIONS}
+                      suggestions={FINANCE_CATEGORY_SUGGESTIONS}
                     />
                   )}
                 />
