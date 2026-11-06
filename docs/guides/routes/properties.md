@@ -63,7 +63,7 @@ This is where guests browse homes, open a listing, save favorites, contact the h
 - Q: What's the difference between the booking form and a custom form link on my listing?
   A: The main booking flow uses the standard reservation form after guests pick dates. Separate form links are for custom questionnaires or previews, and they don't replace the official booking form yet.
 - Q: Why doesn't my inactive property show on my public host page?
-  A: Only active listings appear there; archived or draft units stay out of public view until you publish them again.
+  A: Only active listings appear there. A paused listing keeps its page but shows "Not taking new bookings"; archived, suspended, and unapproved listings stay out of public view until they go live again.
 - Q: Will cheaper listings bury mine in search?
   A: Guests cannot sort by lowest price. The default is **Recommended** (ratings / reviews). Budget guests use price-range filters instead, and those still keep Recommended order inside their budget.
 - Q: How do I change photos, amenities, or which sections show on my listing?

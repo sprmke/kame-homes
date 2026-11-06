@@ -13,7 +13,7 @@ Source of truth for tier assignments: `pricing_plans` seed migrations under `sup
 
 ## Tier ladder
 
-**Billing is org-level only** (see [`org-level-billing-migration.md`](../workflow/done/org-level-billing-migration.md)) — there is no `property_subscriptions` table anymore. An org picks one tier and enrolls however many properties it wants covered; the total is `price_php` (per-property rate) × enrolled count, promo-discounted by `discount_percent` then volume-discounted by `volume_discount_tiers`. A property left out of the org's subscription resolves to Free.
+**Billing is org-level only** (see [`org-level-billing-migration.md`](../workflow/done/org-level-billing-migration.md)) — there is no `property_subscriptions` table anymore. An org picks one tier and enrolls however many properties it wants covered; the total is `price_php` (per-property rate) × enrolled count, promo-discounted by `discount_percent` then volume-discounted by `volume_discount_tiers`. A property left out of the org's subscription resolves to Free. **Archived properties are not billed**: archiving un-slots the property (`property_removed` event) so it drops off the next cycle, and plan changes never re-slot an archived listing. Paused and suspended listings stay billed.
 
 Internal `code` and current display `name` were swapped once during migration history — **use `code` when reading code, `name` when talking to a host.**
 

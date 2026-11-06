@@ -31,7 +31,7 @@ Route: `/org/:orgSlug/property/:propertySlug/settings`
 | Integrations       | Done      | Done       | Done | Telegram + AI optional; GAF/pet via Resend inbound                                                                              |
 | AI features        | Moved     | n/a        | Done | Removed from property settings; configured in org Settings → AI features                                                        |
 | Activity           | Read-only | n/a        | Done | Summary row + **Manage** → modal with full property activity feed (`ActivityLogPanel`). Section shown only with `activity:view` |
-| Danger Zone        | Done      | Done       | Done | Archive + delete with confirmations                                                                                             |
+| Listing status     | Done      | Done       | Done | Pause, archive, restore, and delete with impact sheets                                                                          |
 
 > **Also editable in Page Editor:** Photos & Videos, Brand color, Description, Amenities, House Rules, and Cancellation — same fields, same storage. **External reviews and vouchers** are Settings-only (**Reviews & vouchers**). **Socials** are Settings-only.
 
@@ -45,7 +45,7 @@ Many section values can also be **seeded from another property** via org **Prope
 
 ### Permissions (Phase 5)
 
-Route/nav: `settings:view`. Each section has its own edit leaf (`settings.basicInfo:edit`, `settings.media:edit`, …). Shared listing fields (media, amenities, house rules, cancellation) use the same `settings.*` ids from Public Pages (Q2). Socials are Settings-only. Integrations is `settings.integrations:view` only. Archive/restore: `settings.dangerZone:edit`. Permanent delete stays owner-only (D10). Payment OTP still required **in addition to** `settings.payment:edit`. Profile/content saves go through `update-property` with the matching section leaf (no longer owner-only).
+Route/nav: `settings:view`. Each section has its own edit leaf (`settings.basicInfo:edit`, `settings.media:edit`, …). Shared listing fields (media, amenities, house rules, cancellation) use the same `settings.*` ids from Public Pages (Q2). Socials are Settings-only. Integrations is `settings.integrations:view` only. Listing status (pause / archive / restore): `settings.listingStatus:edit` (renamed from `settings.dangerZone:edit`; existing roles were remapped). Permanent delete stays owner-only (D10). Payment OTP still required **in addition to** `settings.payment:edit`. Profile/content saves go through `update-property` with the matching section leaf (no longer owner-only).
 
 ---
 
@@ -57,12 +57,18 @@ Property Settings is where you complete operational setup: basic info, capacity,
 
 - Q: Do I have to fill out every section before anything saves?
   A: No. **Save Changes** only saves the sections you've edited that pass validation, so you can finish contact details today and payment later. Incomplete required areas still show a warning dot until you get to them.
-- Q: What's the difference between Archive and Delete?
-  A: Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it's blocked if any bookings exist, so use Archive instead for units with past stays.
+- Q: What's the difference between Pause, Archive, and Delete?
+  A: Pause stops new bookings for a while and keeps everything else running, including your bill. Archive retires the property: records stay, automations stop, and it leaves your bill from the next cycle. Delete permanently removes a property that has no records.
+- Q: What happens to guests with an upcoming stay when I archive?
+  A: Archiving is blocked while any booking is still open, so no guest is left without a stay. Finish or cancel those bookings first, then archive.
 - Q: Why can't I restore my archived property?
-  A: Restore only appears when the listing is verified and the listing contract is current. A new listing has to be approved first, and an ended contract has to be renewed. The card under **Danger Zone** tells you which one applies.
-- Q: Can guests still book a property I archived?
-  A: No. The public page and its direct booking link stop taking new bookings. Guests who already have a booking keep their form, trip page, and stay guide.
+  A: Restore only appears when the listing is verified and the listing contract is current. A new listing has to be approved first, and an ended contract has to be renewed. The listing status card shows which one applies.
+- Q: Can guests still book a property I paused or archived?
+  A: No. A paused listing keeps its public page but shows "Not taking new bookings". An archived, suspended, or unapproved listing is hidden and its direct booking link shows the same closed message. Guests who already have a booking keep their form, trip page, and stay guide.
+- Q: What turns off when I archive?
+  A: New bookings, calendar imports, the calendar export link, scheduled social posts, Smart Pricing, Telegram digests, inbox AI replies, and the voice receptionist. Refunds, cancellation refunds, and review requests keep running.
+- Q: Does deleting a property refund my current billing period?
+  A: No. Delete is allowed mid-period with no refund, and the slot drops off the next cycle.
 - Q: Where do guests see my cancellation policy and house rules?
   A: House rules and cancellation policy appear on your public property listing. The booking form also shows the policy with the exact deadline dates for the stay and asks the guest to agree to it. After booking, the trip page shows the policy that applied when they booked, plus their refund if they cancel. Automated email wording is edited separately on the Templates page.
 - Q: If I change my cancellation policy, do existing bookings change too?
@@ -117,17 +123,29 @@ Logic: `ui/src/features/dashboard/org/lib/propertySettingsCompletion.ts`, `ui/sr
 
 ---
 
-## Active vs Archive
+## Listing status
 
-Both use the same column: `properties.status` (`ACTIVE` | `INACTIVE`).
+`properties.status` stays the only public-live flag (`ACTIVE` | `INACTIVE`).
+`properties.inactive_reason` records why it is inactive, and the two always agree
+(`properties_lifecycle_status_check`).
 
-| Control                   | What it does                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Archive** (Danger Zone) | Sets `status = INACTIVE` immediately via `update-property`.                                                               |
-| **Restore** (Danger Zone) | Sets `status = ACTIVE` when the property is archived, but only if the listing is verified and the contract is not locked. |
+| State                | Set by                             | Public page           | New bookings | Existing stays | Automations                  | Billed                  |
+| -------------------- | ---------------------------------- | --------------------- | ------------ | -------------- | ---------------------------- | ----------------------- |
+| Live                 | Approval or host resume            | Shown                 | Open         | Work           | On                           | Yes                     |
+| Paused               | Host                               | Shown, no booking CTA | Blocked      | Work           | On                           | Yes                     |
+| Pending verification | System on create                   | Hidden                | Blocked      | Work           | Off except booking emails    | Yes                     |
+| Suspended            | Contract cron / consideration deny | Hidden                | Blocked      | Work           | Off except money and reviews | Yes                     |
+| Archived             | Host                               | Hidden                | Blocked      | Must be none   | Off except money and reviews | No, from the next cycle |
 
-**Inactive** properties keep all bookings, settings, integrations, and media. Nothing is deleted.
-New bookings through the public `?property=` link are refused while the property is not `ACTIVE`.
+**Actions**
+
+- **Pause / Resume** → `POST property-lifecycle { action: "pause" | "resume" }`
+- **Archive** → `POST property-lifecycle { action: "archive" }`. Blocked (409 `ARCHIVE_BLOCKED`) while a booking is in `PENDING_REVIEW`, `PENDING_DOCUMENTS`, `PENDING_GAF`, `PENDING_PARKING_REQUEST`, `PENDING_PET_REQUEST`, `READY_FOR_CHECKIN`, `READY_FOR_CHECKOUT`, or `PENDING_SD_REFUND`, or while a cancellation request or refund is open. The 409 `details` carry the booking list. On success it disables iCal feeds and export, cancels scheduled publications, and un-slots the property from the org subscription.
+- **Restore** → `POST property-lifecycle { action: "restore" }`. Re-runs `canHostActivate` (listing authorization approved, contract not locked, no active tower/unit peer) and re-slots the property into the subscription. Automations and iCal stay off until the host turns them back on.
+- **Delete** → owner only, `DELETE delete-property { propertyId, confirmName }`.
+
+`update-property` rejects `status` with 400. Team members are read-only on an archived
+property except for the listing-status leaf, so they can restore but not edit other settings.
 
 ---
 
@@ -433,27 +451,31 @@ Read-only. Summary: "Who did what on this property." **Manage** opens a large mo
 
 ---
 
-## Danger Zone
+## Listing status and delete
+
+### Pause / Resume
+
+- Impact sheet → `POST property-lifecycle` (`settings.listingStatus:edit`)
+- Pause is instant and reversible. Resume re-checks the listing authorization, contract lock, and tower/unit peer.
 
 ### Archive
 
-- Confirmation modal → `update-property` with `status: INACTIVE` (`settings.dangerZone:edit`)
-- Does **not** delete data
+- Impact sheet lists booking blockers, what stops, what keeps working, team access, and the billing line
+- `POST property-lifecycle { action: "archive" }`. Pre-check and a post-write re-check both read open bookings, cancellation requests, and refunds; a booking that lands mid-archive rolls the state back.
+- On success: `status = INACTIVE`, `inactive_reason = archived`, `archived_at`, `archived_by`; iCal feeds disabled, export disabled, scheduled posts marked failed, subscription slot removed.
 
 ### Restore
 
-- Shown when property is archived (Inactive) **and** the listing is verified with no contract lock
-- When it is not allowed, the card shows the reason instead of the button (waiting for approval, or renew the contract)
-- Confirmation modal → `update-property` with `status: ACTIVE` (`settings.dangerZone:edit`)
-- **409** when the listing authorization is not approved, or `listingAuthorization.lifecycle.accessLockedAt` is set, or another org already has an ACTIVE listing for the same tower+unit — toast shows the server message; property stays Inactive
+- Shown only when the server's `allowedActions` include `restore`. Otherwise the card shows `activationBlock.message` (waiting for approval, contract ended, extension declined, unit handed over).
+- `POST property-lifecycle { action: "restore" }`; **409** when the listing is not approved, the contract is locked, or another ACTIVE listing holds the tower+unit. Automations stay off.
 
 ### Delete
 
-- Confirmation modal with destructive warning
-- **DELETE** `delete-property` with `{ propertyId }`
-- **Blocked** when `guest_submissions` exist for this property (409)
-- On success: removes property row (cascades Telegram/app settings integrations), cleans gallery storage
-- Navigates to `/org/:orgSlug/properties`
+- Owner only. Impact sheet lists what cascades (inbox threads, reviews, payment history, team access, marketing records) and requires typing the property name.
+- **DELETE** `delete-property` with `{ propertyId, confirmName }`
+- **Blocked** (409 `DELETE_BLOCKED`) while `guest_submissions`, `finance_line_items`, `maintenance_items`, `import_batches`, or `import_batch_rows` reference the property, or while the listing verification is `pending`. The message names each blocker with a count.
+- On success: removes the property row, drops the subscription slot with a `property_removed` event, cleans every property-scoped storage prefix (gallery, marketing media, listing docs, app-settings assets, guest chat attachments), and emails removed team members.
+- Navigates to `/org/:orgSlug/properties`.
 
 **Recommendation:** Prefer **Archive** for units with booking history. Use **Delete** only for mistaken/empty properties.
 
@@ -461,16 +483,16 @@ Read-only. Summary: "Who did what on this property." **Manage** opens a large mo
 
 ## API reference (this page)
 
-| Action                                                            | Endpoint                                                                                      |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Profile + settings                                                | `PATCH update-property`                                                                       |
-| Payment + building forms + email automations + workflow documents | `PATCH app-settings?property_id=` (payment fields require `settingsVerificationToken`)        |
-| Payment OTP (org owner)                                           | `POST settings-verification?property_id=` (`send_otp`, `verify_otp`)                          |
-| Media upload/delete                                               | `POST` / `DELETE upload-property-media?property_id=`                                          |
-| Payment QR / signature                                            | `POST upload-app-settings-asset?property_id=`                                                 |
-| Archive                                                           | `PATCH update-property` `{ status: "INACTIVE" }`                                              |
-| Restore                                                           | `PATCH update-property` `{ status: "ACTIVE" }` (requires verified listing, unlocked contract) |
-| Delete                                                            | `DELETE delete-property` `{ propertyId }`                                                     |
+| Action                                                            | Endpoint                                                                               |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Profile + settings                                                | `PATCH update-property`                                                                |
+| Payment + building forms + email automations + workflow documents | `PATCH app-settings?property_id=` (payment fields require `settingsVerificationToken`) |
+| Payment OTP (org owner)                                           | `POST settings-verification?property_id=` (`send_otp`, `verify_otp`)                   |
+| Media upload/delete                                               | `POST` / `DELETE upload-property-media?property_id=`                                   |
+| Payment QR / signature                                            | `POST upload-app-settings-asset?property_id=`                                          |
+| Listing status + impact                                           | `GET property-lifecycle?property_id=&impact=1`                                         |
+| Pause / Resume / Archive / Restore                                | `POST property-lifecycle` `{ property_id, action }`                                    |
+| Delete                                                            | `DELETE delete-property` `{ propertyId, confirmName }`                                 |
 
 ---
 
@@ -495,11 +517,11 @@ Keep UI and edge copies in sync when changing rules.
 
 ## Testing
 
-| Layer | Path / spec                                                                                                                                                                                               | Manual                                      |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Unit  | `propertySettingsSave.test.ts`, `propertySettingsCompletion.test.ts`, `propertyEmailAutomation.test.ts`                                                                                                   | —                                           |
-| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`); `ui/e2e/features/team/propertySettingsCleanNavigation.spec.ts` clean-load no prompt vs real-edit prompt (`@ci`)         | OTP payment method, live Maps, media upload |
-| N/A   | —                                                                                                                                                                                                         | —                                           |
+| Layer | Path / spec                                                                                                                                                                                       | Manual                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Unit  | `propertySettingsSave.test.ts`, `propertySettingsCompletion.test.ts`, `propertyEmailAutomation.test.ts`                                                                                           | —                                           |
+| E2E   | `ui/e2e/features/dashboard/dashboardModulesSmoke.spec.ts` settings shell (`@ci`); `ui/e2e/features/team/propertySettingsCleanNavigation.spec.ts` clean-load no prompt vs real-edit prompt (`@ci`) | OTP payment method, live Maps, media upload |
+| N/A   | —                                                                                                                                                                                                 | —                                           |
 
 ---
 
