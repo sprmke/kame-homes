@@ -4,6 +4,10 @@
 
 import type { SupabaseClient } from './supabaseJs.ts';
 
+import {
+  resolvePropertyLifecycleState,
+  stateAcceptsNewBookings,
+} from './propertyLifecycleState.ts';
 import { isPercentOffVoucherCode, isStaycationVoucherCode, voucherPercentFor } from './voucher.ts';
 
 export type AppliedVoucherSnapshot = {
@@ -102,6 +106,21 @@ export async function assertVoucherEligible(
   if (!sourceId) throw new Error('VOUCHER_INVALID: Missing voucher selection.');
   if (sourceId === opts.redeemingBookingId) {
     throw new Error('VOUCHER_INVALID: Cannot apply a voucher from the same booking.');
+  }
+
+  // Defense in depth: a voucher can only be redeemed on a new booking, and a closed listing
+  // takes no new bookings. Keep the message explicit so the wallet can explain it.
+  const { data: listing } = await supabase
+    .from('properties')
+    .select('status, inactive_reason')
+    .eq('id', opts.propertyId)
+    .maybeSingle();
+  const listingState = resolvePropertyLifecycleState({
+    status: (listing?.status as string | null) ?? null,
+    inactive_reason: (listing?.inactive_reason as string | null) ?? null,
+  });
+  if (!stateAcceptsNewBookings(listingState)) {
+    throw new Error('VOUCHER_PROPERTY_CLOSED: This place is not taking new bookings right now.');
   }
 
   const { data: redeeming, error: redeemingErr } = await supabase

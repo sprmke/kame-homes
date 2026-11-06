@@ -26,6 +26,7 @@ import { buildExportCalendar, loadExportRanges } from '../_shared/calendarSyncRu
 import type { CalendarFeedProvider } from '../_shared/calendarSyncService.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createServiceClient } from '../_shared/orgAuth.ts';
+import { automationAllowed, loadPropertyLifecycleStates } from '../_shared/propertyLifecycle.ts';
 import { readPropertySlugFromUrl, resolvePropertyIdBySlug } from '../_shared/propertyScope.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
 import { publicGetRateLimitGate } from '../_shared/publicEndpointRateLimit.ts';
@@ -35,6 +36,14 @@ const PROVIDERS: readonly CalendarFeedProvider[] = ['airbnb', 'booking_com', 'vr
 function notFound(req: Request): Response {
   return new Response('Not found', {
     status: 404,
+    headers: { ...corsHeaders(req), 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
+/** Archived / suspended listings keep the URL but stop publishing availability. */
+function gone(req: Request): Response {
+  return new Response('Gone', {
+    status: 410,
     headers: { ...corsHeaders(req), 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }
@@ -81,6 +90,12 @@ serve(async (req) => {
 
     const propertyId = await resolvePropertyIdBySlug(slug);
     if (!propertyId) return notFound(req);
+
+    // Archived, suspended and unverified listings stop publishing availability. Paused keeps
+    // the feed alive because the listing is still public and may resume at any time.
+    const lifecycleStates = await loadPropertyLifecycleStates([propertyId]);
+    const lifecycleState = lifecycleStates.get(propertyId) ?? 'archived';
+    if (!automationAllowed(lifecycleState, 'ical_export')) return gone(req);
 
     const supabase = createServiceClient();
     const { data: exportRow } = await supabase

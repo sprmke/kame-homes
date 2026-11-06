@@ -9,6 +9,7 @@ import { DatabaseService } from './databaseService.ts';
 import { listAllParkingIds, listAllPropertyIds } from './propertyCron.ts';
 import { addDaysToIso, daysBetweenIso } from './financeRecurrence.ts';
 import { normalizeTelegramChatId } from './telegramMarketing.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 export type FinanceReminderInterval =
   'hourly' | 'every_2_hours' | 'every_4_hours' | 'every_12_hours' | 'daily_noon';
@@ -457,7 +458,10 @@ export async function runFinanceDueReminders(options?: {
   parkingId?: string;
 }) {
   if (!options?.propertyId && !options?.parkingId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const parkingIds = await listAllParkingIds();
     const assets: Array<Record<string, unknown>> = [];
     for (const propertyId of propertyIds) {

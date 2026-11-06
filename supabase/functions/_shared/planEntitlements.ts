@@ -1125,6 +1125,9 @@ async function listOrganizationPropertyIds(organizationId: string): Promise<stri
     .from('properties')
     .select('id')
     .eq('organization_id', organizationId)
+    // Archived listings are off the bill from the next cycle (D3). They must not be re-slotted
+    // by a plan change either. `is.null` keeps live properties, because `neq` alone drops NULLs.
+    .or('inactive_reason.is.null,inactive_reason.neq.archived')
     .order('created_at', { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => row.id as string);

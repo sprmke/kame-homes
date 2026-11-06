@@ -562,6 +562,40 @@ export const ACTIVITY_ACTION_CATALOG = {
     targetType: 'property',
     summary: (c) => `${c.actorName} deleted the property ${label(c, 'a property')}`,
   },
+  'property.paused': {
+    category: 'property',
+    severity: 'notice',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} paused new bookings for ${label(c, 'a property')}`,
+  },
+  'property.resumed': {
+    category: 'property',
+    severity: 'notice',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} resumed bookings for ${label(c, 'a property')}`,
+  },
+  'property.archived': {
+    category: 'property',
+    severity: 'warning',
+    targetType: 'property',
+    summary: (c) =>
+      `${c.actorName} archived ${label(c, 'a property')}` +
+      (typeof c.metadata.billing_removed === 'boolean' && c.metadata.billing_removed
+        ? ' and removed it from the plan'
+        : ''),
+  },
+  'property.restored': {
+    category: 'property',
+    severity: 'notice',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} restored ${label(c, 'a property')}`,
+  },
+  'property.suspended': {
+    category: 'property',
+    severity: 'warning',
+    targetType: 'property',
+    summary: (c) => `${c.actorName} suspended ${label(c, 'a property')}`,
+  },
   'property.cancellation_policy_updated': {
     category: 'property',
     severity: 'notice',

@@ -37,16 +37,13 @@ import {
   guestBookingAccessTokenFromRequest,
   mintGuestBookingAccessToken,
 } from '../_shared/guestBookingAccessToken.ts';
-import {
-  propertyAcceptsNewBookings,
-  propertyNotAcceptingBookingsError,
-} from '../_shared/propertyListingGate.ts';
 import { maintenanceModeResponse } from '../_shared/platformSettingsCache.ts';
 import { captureFaultIfServerError } from '../_shared/httpResponse.ts';
 import {
-  captureSnapshotForBooking,
-  PolicyChangedError,
-} from '../_shared/cancellationService.ts';
+  assertPropertyAcceptsNewBookings,
+  PropertyLifecycleError,
+} from '../_shared/propertyLifecycle.ts';
+import { captureSnapshotForBooking, PolicyChangedError } from '../_shared/cancellationService.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -163,10 +160,9 @@ serve(async (req) => {
       isSaveToDatabaseEnabled && bookingId ? await DatabaseService.getRawData(bookingId) : null;
 
     if (isSaveToDatabaseEnabled && propertyId && !existingBookingRow) {
-      if (!(await propertyAcceptsNewBookings(propertyId))) {
-        console.warn('[submit-form] rejected: listing is not accepting new bookings');
-        throw propertyNotAcceptingBookingsError();
-      }
+      // New bookings only. An existing booking keeps editing while the listing is paused or
+      // archived; the lifecycle gate lives in one place and is mirrored by a DB trigger.
+      await assertPropertyAcceptsNewBookings(propertyId);
     }
 
     // Check for overlapping bookings (only if saving to database)
@@ -609,6 +605,24 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           error: 'policy_changed',
+          message: error.message,
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (
+      error instanceof PropertyLifecycleError &&
+      error.code === 'PROPERTY_NOT_ACCEPTING_BOOKINGS'
+    ) {
+      console.warn('[submit-form] rejected: listing is not accepting new bookings');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'property_not_accepting_bookings',
           message: error.message,
         }),
         {

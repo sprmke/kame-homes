@@ -33,6 +33,7 @@ import {
 } from './utils.ts';
 import { formatReceiptVerdictLabel } from './receiptValidationService.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 const MANILA_TZ = 'Asia/Manila';
 
@@ -677,7 +678,10 @@ async function sendAdminTemplateForBooking(
   booking: BookingRow
 ): Promise<{ ok: boolean; error?: string }> {
   const adminBookingBase = await resolveAdminBookingPathBase(propertyIdFromRow(booking));
-  const text = applyPlaceholders(template, buildAdminBookingPlaceholders(booking, adminBookingBase));
+  const text = applyPlaceholders(
+    template,
+    buildAdminBookingPlaceholders(booking, adminBookingBase)
+  );
   const unresolved = text.match(/\{\{[^}]+\}\}/g);
   if (unresolved?.length) {
     console.warn('[telegram-admin] unresolved placeholders:', unresolved.join(', '));
@@ -820,7 +824,10 @@ export async function runAdminHourlyAlerts(opts?: {
   AdminHourlyCronResult & { properties?: Array<AdminHourlyCronResult & { propertyId: string }> }
 > {
   if (!opts?.propertyId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const properties: Array<AdminHourlyCronResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       const result = await runAdminHourlyAlerts({ ...opts, propertyId });

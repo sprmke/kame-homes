@@ -1,7 +1,7 @@
 /**
  * update-property — PATCH property details (team RBAC + Phase 5 section leaves).
- * Permanent delete stays on delete-property (owner-only). Archive/restore uses
- * settings.dangerZone:edit.
+ * Permanent delete stays on delete-property (owner-only). Pause/archive/restore stays on
+ * property-lifecycle — `status` is rejected here so no caller can bypass the lifecycle gates.
  */
 
 import {
@@ -11,10 +11,6 @@ import {
   verifyPropertyAccess,
 } from '../_shared/orgAuth.ts';
 import { buildActorContext, diffRecord, logActivity } from '../_shared/activityLog.ts';
-import {
-  readListingAuthorizationFromSettings,
-  resolveListingActivationBlock,
-} from '../_shared/listingAuthorization.ts';
 import {
   DUPLICATE_PROPERTY_NAME_MESSAGE,
   findPropertyNameConflict,
@@ -47,6 +43,13 @@ serveAuthenticated('update-property', async (req) => {
   const propertyId = typeof body.propertyId === 'string' ? body.propertyId.trim() : '';
   if (!propertyId) {
     return jsonError(req, 'propertyId is required');
+  }
+
+  // Lifecycle changes are not a profile field edit: pause / archive / restore go through
+  // `property-lifecycle` so the activation gates, booking pre-checks and billing slot stay
+  // in one place. This also closes the AI assistant path that used the same patch.
+  if (body.status !== undefined) {
+    return jsonError(req, 'Use property-lifecycle to change a listing status', 400);
   }
 
   const needed = updatePropertyPatchPermissions(body);
@@ -124,24 +127,6 @@ serveAuthenticated('update-property', async (req) => {
     patch.max_guests = Math.round(body.maxGuests);
   }
 
-  if (typeof body.status === 'string') {
-    const status = body.status.trim().toUpperCase();
-    if (status !== 'ACTIVE' && status !== 'INACTIVE') {
-      return jsonError(req, 'status must be ACTIVE or INACTIVE');
-    }
-    if (status === 'ACTIVE' && String(property.status ?? '').toUpperCase() !== 'ACTIVE') {
-      // Host activation is not a plain field edit: a listing may only go live with an
-      // approved listing authorization and no contract lock.
-      const activationBlock = resolveListingActivationBlock(
-        readListingAuthorizationFromSettings(property.settings)
-      );
-      if (activationBlock) {
-        return jsonError(req, activationBlock.message, 409);
-      }
-    }
-    patch.status = status;
-  }
-
   if (body.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)) {
     const incoming = body.settings as Record<string, unknown>;
     const currentSettings =
@@ -217,9 +202,7 @@ serveAuthenticated('update-property', async (req) => {
     }
   }
 
-  const resultingStatus = String(
-    (patch.status as string | undefined) ?? property.status ?? 'ACTIVE'
-  ).toUpperCase();
+  const resultingStatus = String(property.status ?? 'ACTIVE').toUpperCase();
   const resultingTower = (patch.tower as string | undefined) ?? property.tower;
   const resultingUnit = (patch.unit_number as string | undefined) ?? property.unit_number;
 

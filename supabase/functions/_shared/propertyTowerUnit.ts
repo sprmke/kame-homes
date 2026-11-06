@@ -283,7 +283,7 @@ export async function activatePropertyAfterListingApproval(
 ): Promise<ActivatePropertyResult> {
   const { data, error } = await supabase
     .from('properties')
-    .select('id, tower, unit_number, status')
+    .select('id, tower, unit_number, status, inactive_reason')
     .eq('id', propertyId)
     .maybeSingle();
 
@@ -296,13 +296,29 @@ export async function activatePropertyAfterListingApproval(
   const tower = typeof data.tower === 'string' ? data.tower.trim() : '';
   const unitNumber = typeof data.unit_number === 'string' ? data.unit_number.trim() : '';
   const status = String(data.status ?? '');
+  const inactiveReason = String(data.inactive_reason ?? '');
+
+  // Approval clears the verification/contract block only. A host pause or a host archive
+  // outlives it: the listing stays closed until the host acts.
+  const hostHold = inactiveReason === 'paused' || inactiveReason === 'archived';
+  if (hostHold) {
+    return { activatedPropertyIds: [], archivedPeers: [] };
+  }
+
+  const activatePatch = {
+    status: 'ACTIVE',
+    inactive_reason: null,
+    archived_at: null,
+    archived_by: null,
+    paused_at: null,
+  };
 
   // No tower+unit identity to contest — activate directly.
   if (!tower || !unitNumber) {
     if (status !== 'ACTIVE') {
       const { error: activateError } = await supabase
         .from('properties')
-        .update({ status: 'ACTIVE' })
+        .update(activatePatch)
         .eq('id', propertyId);
       if (activateError) {
         console.error('[propertyTowerUnit] activate property:', activateError.message);
@@ -320,7 +336,7 @@ export async function activatePropertyAfterListingApproval(
 
     const { error: archiveError } = await supabase
       .from('properties')
-      .update({ status: 'INACTIVE' })
+      .update({ status: 'INACTIVE', inactive_reason: 'succession', paused_at: null })
       .eq('id', peer.id)
       .eq('status', 'ACTIVE');
 
@@ -336,7 +352,7 @@ export async function activatePropertyAfterListingApproval(
   if (status !== 'ACTIVE') {
     const { error: activateError } = await supabase
       .from('properties')
-      .update({ status: 'ACTIVE' })
+      .update(activatePatch)
       .eq('id', propertyId);
 
     if (activateError) {

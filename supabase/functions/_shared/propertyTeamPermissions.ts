@@ -91,7 +91,7 @@ export const TEAM_PERMISSION_IDS = [
   'settings.payment:edit',
   'settings.buildingForms:edit',
   'settings.emailAutomations:edit',
-  'settings.dangerZone:edit',
+  'settings.listingStatus:edit',
   'team:view',
   'team.invitations:add',
   'team.invitations:edit',

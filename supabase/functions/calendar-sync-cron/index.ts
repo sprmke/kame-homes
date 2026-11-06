@@ -31,6 +31,7 @@ import { createServiceClient } from '../_shared/orgAuth.ts';
 import { resolveScopedPropertyAccess } from '../_shared/propertyScope.ts';
 import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 import { isFeatureAvailable, featureUnavailableResponse } from '../_shared/featureAvailability.ts';
+import { automationAllowed, loadPropertyLifecycleStates } from '../_shared/propertyLifecycle.ts';
 import { captureSentryException } from '../_shared/sentry.ts';
 import { reportCronPartialFailure } from '../_shared/sentryCron.ts';
 
@@ -168,13 +169,24 @@ serve(async (req) => {
       conflicts: 0,
       errors: 0,
       skippedNoEntitlement: 0,
+      skippedLifecycle: 0,
     };
     const entitlementCache = new Map<string, boolean>();
+    const lifecycleStates = await loadPropertyLifecycleStates(
+      feeds.map((feed) => feed.property_id)
+    );
 
     for (const feed of feeds) {
       if (Date.now() - startedAt > TIME_BUDGET_MS) {
         console.log('[calendar-sync-cron] time budget hit - remaining feeds pick up next tick');
         break;
+      }
+
+      // Archived / suspended / unverified listings stop importing. Paused keeps syncing.
+      const lifecycleState = lifecycleStates.get(feed.property_id) ?? 'archived';
+      if (!automationAllowed(lifecycleState, 'ical_import')) {
+        summary.skippedLifecycle++;
+        continue;
       }
 
       let entitled = entitlementCache.get(feed.property_id);
@@ -218,7 +230,11 @@ serve(async (req) => {
       cron: 'calendar-sync-cron',
       attempted: summary.feedsProcessed + summary.errors,
       failed: summary.errors,
-      extra: { run_id: runId, skipped_no_entitlement: summary.skippedNoEntitlement },
+      extra: {
+        run_id: runId,
+        skipped_no_entitlement: summary.skippedNoEntitlement,
+        skipped_lifecycle: summary.skippedLifecycle,
+      },
     });
     if (cronRun) {
       await recordJobHeartbeat('calendar-sync-cron', { ok: true, startedAt: heartbeatStartedAt });

@@ -37,6 +37,7 @@ import {
 } from './propertyTelegramCredentials.ts';
 import { ensureTelegramMarketingSettingsRow } from './propertySettingsSeed.ts';
 import { normalizeTelegramTemplateText } from './telegramTemplateNormalize.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 export type TelegramMarketingSettings = {
   id: number;
@@ -368,7 +369,10 @@ export async function runTelegramDailyReminder(opts?: {
   }
 > {
   if (!opts?.propertyId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const properties: Array<TelegramDailyReminderResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       const result = await runTelegramDailyReminder({ ...opts, propertyId });
