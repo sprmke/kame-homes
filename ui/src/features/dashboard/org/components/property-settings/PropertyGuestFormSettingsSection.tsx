@@ -278,7 +278,11 @@ export function PropertyGuestFormSettingsSection({
 }: {
   draft: PropertyProfileDraft;
   disabled?: boolean;
-  onChange: <K extends keyof PropertyProfileDraft>(key: K, value: PropertyProfileDraft[K]) => void;
+  onChange: <K extends keyof PropertyProfileDraft>(
+    key: K,
+    value: PropertyProfileDraft[K],
+    options?: { markEdited?: boolean }
+  ) => void;
   setField: <K extends keyof PropertyProfileDraft>(
     key: K,
     value: PropertyProfileDraft[K],
@@ -309,14 +313,15 @@ export function PropertyGuestFormSettingsSection({
   }, [activeParkings, draft.preferredOwnerParkingId]);
 
   // Heal stale preferred (deleted/inactive listing). Empty/"None" is allowed —
-  // create-parking backfills preferred when a listing is added.
+  // create-parking backfills preferred when a listing is added. Not a host edit:
+  // keep Save chrome and the leave prompt off.
   useEffect(() => {
     if (disabled || !firstActiveParkingId) return;
     const current = draft.preferredOwnerParkingId.trim();
     if (!current) return;
     if (activeParkings.some((p) => p.id === current)) return;
-    setField('preferredOwnerParkingId', firstActiveParkingId, 'guest-form-preferred-owner-parking');
-  }, [activeParkings, disabled, draft.preferredOwnerParkingId, firstActiveParkingId, setField]);
+    onChange('preferredOwnerParkingId', firstActiveParkingId, { markEdited: false });
+  }, [activeParkings, disabled, draft.preferredOwnerParkingId, firstActiveParkingId, onChange]);
 
   const fields = (
     <PropertyGuestFormSettingsFields

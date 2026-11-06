@@ -97,9 +97,15 @@ function FieldGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-5">{children}</div>;
 }
 
+type ProfileFieldChangeOptions = { markEdited?: boolean };
+
 type ProfileSectionsProps = {
   draft: PropertyProfileDraft;
-  onChange: <K extends keyof PropertyProfileDraft>(key: K, value: PropertyProfileDraft[K]) => void;
+  onChange: <K extends keyof PropertyProfileDraft>(
+    key: K,
+    value: PropertyProfileDraft[K],
+    options?: ProfileFieldChangeOptions
+  ) => void;
   disabled?: boolean;
   slugPreview: string;
   towerConflict: PropertyTowerUnitConflict | null;
@@ -212,11 +218,17 @@ export function PropertyProfileMainSections({
       draft.maxAdults !== defaults.maxAdults ||
       draft.maxChildren !== defaults.maxChildren
     ) {
-      onChange('bedrooms', defaults.bedrooms);
-      onChange('bathrooms', defaults.bathrooms);
-      onChange('maxAdults', defaults.maxAdults);
-      onChange('maxChildren', defaults.maxChildren);
-      onChange('maxGuests', propertyGuestCapacityTotal(defaults.maxAdults, defaults.maxChildren));
+      // Derived sync, not a host edit: keep Save chrome and the leave prompt off.
+      const options = { markEdited: false };
+      onChange('bedrooms', defaults.bedrooms, options);
+      onChange('bathrooms', defaults.bathrooms, options);
+      onChange('maxAdults', defaults.maxAdults, options);
+      onChange('maxChildren', defaults.maxChildren, options);
+      onChange(
+        'maxGuests',
+        propertyGuestCapacityTotal(defaults.maxAdults, defaults.maxChildren),
+        options
+      );
     }
   }, [draft.unitTypeId, unitTypes, onChange]);
 
@@ -878,16 +890,16 @@ export function PropertyProfileMainSections({
               mapsUrl: draft.mapsUrl,
               placeId: draft.placeId,
             }}
-            onChange={(next) => {
-              onChange('address', next.address);
-              onChange('city', next.city);
-              onChange('province', next.province);
-              onChange('country', next.country);
-              onChange('zipCode', next.zipCode);
-              onChange('latitude', next.latitude);
-              onChange('longitude', next.longitude);
-              onChange('mapsUrl', next.mapsUrl);
-              onChange('placeId', next.placeId);
+            onChange={(next, options) => {
+              onChange('address', next.address, options);
+              onChange('city', next.city, options);
+              onChange('province', next.province, options);
+              onChange('country', next.country, options);
+              onChange('zipCode', next.zipCode, options);
+              onChange('latitude', next.latitude, options);
+              onChange('longitude', next.longitude, options);
+              onChange('mapsUrl', next.mapsUrl, options);
+              onChange('placeId', next.placeId, options);
             }}
           />
         </AdminSection>
