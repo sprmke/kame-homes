@@ -443,6 +443,13 @@ export function PropertyListingStatusSection({
                 ) : null
               ) : null}
 
+              {pendingAction === 'restore' ? (
+                <p className="text-muted-foreground text-sm">
+                  Calendar sync, the calendar export link, scheduled posts, Smart Pricing, Telegram,
+                  and AI replies stay off until you turn them back on.
+                </p>
+              ) : null}
+
               <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
