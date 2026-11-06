@@ -254,6 +254,39 @@ rewrites, headers`). JSON parsers keep the last one, so the first redirect block
 | --------------- | ----------- | ---------------------------------------------------------------------------------------------- | ------------------ |
 | `debug/pwa-e2e` | `6f2df4014` | ancestor of `develop`; `git cherry` empty; no unique files; no open PR; no worktree; no remote | Deleted local only |
 
+## 2026-11-06 release cleanup
+
+Every branch below was merged into `develop` and promoted to `main` in the same session (#303,
+#308-#316). Each was checked with `git merge-base --is-ancestor <branch> develop`, `git cherry
+develop <branch>` (no `+` lines) and `git branch-audit.sh` before deletion.
+
+| Branch                                     | Tip SHA     | Checks                                                                    | Action                           |
+| ------------------------------------------ | ----------- | ------------------------------------------------------------------------- | -------------------------------- |
+| `feat/cancellation-paid-refund`            | `0ce391e4d` | merged via #313; no unpublished patches; no worktree                      | Deleted local + remote           |
+| `fix/settings-clean-navigation`            | `7cb8e03ac` | merged via #314; remote deleted; **worktree has active uncommitted work** | Remote deleted, local kept       |
+| `feat/mobile-app-chrome`                   | `af315c99c` | merged via #315; worktree clean                                           | Worktree removed, branch deleted |
+| `feat/settings-cleanup-and-clarity`        | `611776b60` | merged via #312; worktree clean                                           | Worktree removed, branch deleted |
+| `feat/property-lifecycle-p0`               | `1b39a44e7` | merged via #311; worktree clean                                           | Worktree removed, branch deleted |
+| `feat/parking-substep-no-revert`           | `12da2eec4` | merged via #310; no worktree                                              | Deleted local + remote           |
+| `fix/airbnb-pricing-display`               | `980277e40` | merged via #309; worktree clean                                           | Worktree removed, branch deleted |
+| `fix/ai-example-card-height`               | `e2a480976` | merged via #308; worktree clean                                           | Worktree removed, branch deleted |
+| `feat/finance-maintenance-category-picker` | `7befc590b` | merged via #303; no worktree                                              | Deleted local + remote           |
+| `feat/weekly-ops-report`                   | `a31244062` | already contained in `develop`; remote was gone                           | Deleted local                    |
+| `fix/help-icon-alignment`                  | `6a8a9038a` | identical to `develop` (work landed as #304)                              | Deleted local                    |
+| `ui/mobile-native-sizing`                  | `96023251e` | ancestor of `develop`                                                     | Deleted local                    |
+
+Kept on purpose:
+
+- `wip/guest-landing-v3` (`642cb737b`) - parked preview, its own commit says it is not part of a
+  release and still needs a route guide.
+- `fix/settings-clean-navigation` - merged, but the main worktree holds uncommitted document-review
+  and notifications work from another session. Delete the branch once that work is committed to its
+  own branch.
+- `dependabot/*` remotes - unmerged major bumps owned by open PRs into `main`.
+
+Result: one worktree (the main checkout), `develop` and `main` in sync with `origin`, and no stale
+merged branch left except the one blocked by uncommitted work.
+
 ## Re-running this audit
 
 ```bash
