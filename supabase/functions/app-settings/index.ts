@@ -9,7 +9,6 @@ import {
   invalidateAppSettingsCache,
   loadAppSettingsRow,
   serializeAppSettingsForAdmin,
-  validateEmailList,
   validateGafContactNumber,
   validateGafTextField,
   validateOptionalEmail,
@@ -273,26 +272,16 @@ serveAuthenticated('app-settings', async (req, user) => {
       if (err) return jsonError(req, err);
       patch.email_reply_to = body.emailReplyTo.trim() || null;
     }
-    if (typeof body.parkingOwnerEmails === 'string') {
-      const trimmed = body.parkingOwnerEmails.trim();
-      if (trimmed) {
-        const err = validateEmailList(trimmed, 'parking owner');
-        if (err) return jsonError(req, err);
-        patch.parking_owner_emails = trimmed;
-      } else {
-        patch.parking_owner_emails = null;
-      }
-    }
     if (typeof body.sdRefundCronEmailLeadHours === 'number') {
       const minutes = Math.round(body.sdRefundCronEmailLeadHours * 60);
       if (!Number.isFinite(minutes) || minutes < 0 || minutes > 10080) {
-        return jsonError(req, 'SD refund email lead must be 0–168 hours');
+        return jsonError(req, 'Check-out email lead must be 0-168 hours');
       }
       patch.sd_refund_cron_email_lead_minutes = minutes;
     } else if (typeof body.sdRefundCronEmailLeadMinutes === 'number') {
       const n = Math.floor(body.sdRefundCronEmailLeadMinutes);
       if (n < 0 || n > 10080) {
-        return jsonError(req, 'SD refund email lead must be 0–10080 minutes');
+        return jsonError(req, 'Check-out email lead must be 0-10080 minutes');
       }
       patch.sd_refund_cron_email_lead_minutes = n;
     }

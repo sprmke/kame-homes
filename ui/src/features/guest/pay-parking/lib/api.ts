@@ -3,12 +3,6 @@ import {
   type GuestPayParkingPathOptions,
 } from '@/features/guest/lib/guestPublicPaths';
 
-import { publicEdgeFetch } from '@/lib/api/publicEdgeFetch';
-import { withAntiSpam, type AntiSpamRequestFields } from '@/lib/security/antiSpamRequest';
-import { antiSpamErrorMessage, isAntiSpamFailure } from '@/lib/security/antiSpamResponse';
-
-import type { PayParkingVehicleValues } from './payParkingSchema';
-
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
@@ -66,56 +60,6 @@ export async function fetchPayParking(bookingId: string): Promise<PayParkingBoot
     throw new Error(typeof msg === 'string' ? msg : 'Form unavailable');
   }
   return json.data as PayParkingBootstrap;
-}
-
-export type SubmitPayParkingOptions = {
-  /** When false, saves vehicle fields without sending the parking owner broadcast. Default true. */
-  sendParkingBroadcast?: boolean;
-  /** When set, sends the parking email to this address only (no BCC broadcast list). */
-  parkingOwnerEmail?: string;
-};
-
-export type SubmitPayParkingResult = {
-  broadcastSent: boolean;
-  sentToOwnerEmail: string | null;
-};
-
-export async function submitPayParking(
-  bookingId: string,
-  values: PayParkingVehicleValues,
-  options: SubmitPayParkingOptions = {},
-  antiSpam?: AntiSpamRequestFields
-): Promise<SubmitPayParkingResult> {
-  const sendParkingBroadcast = options.sendParkingBroadcast !== false;
-  const parkingOwnerEmail = (options.parkingOwnerEmail ?? '').trim();
-  const res = await publicEdgeFetch('submit-pay-parking', {
-    method: 'POST',
-    headers: fnHeaders(),
-    body: JSON.stringify(
-      withAntiSpam(
-        {
-          bookingId,
-          carPlateNumber: values.carPlateNumber,
-          carBrandModel: values.carBrandModel,
-          carColor: values.carColor,
-          sendParkingBroadcast,
-          ...(parkingOwnerEmail ? { parkingOwnerEmail } : {}),
-        },
-        antiSpam
-      )
-    ),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json.success) {
-    if (isAntiSpamFailure(res.status, json)) {
-      throw new Error(antiSpamErrorMessage(res.status, json));
-    }
-    throw new Error(json.error ?? json.message ?? `Submit failed (${res.status})`);
-  }
-  const broadcastSent = json.data?.broadcastSent === true;
-  const sentToOwnerEmail =
-    typeof json.data?.sentToOwnerEmail === 'string' ? json.data.sentToOwnerEmail : null;
-  return { broadcastSent, sentToOwnerEmail };
 }
 
 export type BuildPayParkingPathOptions = GuestPayParkingPathOptions;

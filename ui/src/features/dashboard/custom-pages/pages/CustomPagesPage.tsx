@@ -12,10 +12,14 @@ import {
   StayDatesLinkModal,
   type StayDatesLinkPage,
 } from '@/features/dashboard/custom-pages/components/StayDatesLinkModal';
+import { copyGuestLink } from '@/features/dashboard/custom-pages/lib/copyGuestLink';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
 import { orgPropertyCardModel } from '@/features/dashboard/org/lib/orgPropertyCardModel';
-import { buildPropertyGuestPublicPages } from '@/features/dashboard/property/lib/propertyGuestPublicPages';
+import {
+  buildPropertyGuestPublicPages,
+  type PropertyGuestPublicPage,
+} from '@/features/dashboard/property/lib/propertyGuestPublicPages';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import { hasPropertyPermission } from '@/features/dashboard/team/lib/propertyPermissions';
 
@@ -57,26 +61,27 @@ export function CustomPagesPage() {
   const sharePages = useMemo(() => pages.filter((page) => page.group === 'share'), [pages]);
   const bookingPages = useMemo(() => pages.filter((page) => page.group === 'booking'), [pages]);
 
-  const copyMenuItems = useMemo(
-    () =>
-      sharePages.map((page) => ({
-        key: page.id,
-        label: page.label,
-        href: absoluteGuestPath(page.path),
-        Icon: page.icon,
-      })),
-    [sharePages]
-  );
-
-  /** Copy opens the matching picker; pages without one copy straight away in the card. */
-  function copyHandlerFor(pageId: string) {
-    const page = pages.find((candidate) => candidate.id === pageId);
-    if (!page?.copyPicker) return undefined;
+  /** Same action for the card copy button and the header menu. */
+  function runCopyAction(page: PropertyGuestPublicPage) {
     if (page.copyPicker === 'stay-dates') {
-      return () => setDatesLink(pageId as StayDatesLinkPage);
+      if (page.id === 'calendar' || page.id === 'messages') setDatesLink(page.id);
+      return;
     }
-    return () => setBookingLink(page.copyPicker as BookingLinkKind);
+    if (page.copyPicker === 'sd-refund' || page.copyPicker === 'guest-review') {
+      setBookingLink(page.copyPicker);
+      return;
+    }
+    void copyGuestLink(absoluteGuestPath(page.copyPath ?? page.path), page.label);
   }
+
+  const shareablePages = pages.filter((page) => page.guestShareable);
+  const copyMenuItems = shareablePages.map((page, index) => ({
+    key: page.id,
+    label: page.label,
+    Icon: page.icon,
+    separatorBefore: index > 0 && shareablePages[index - 1]?.group !== page.group,
+    onSelect: () => runCopyAction(page),
+  }));
 
   return (
     <AdminMobilePage
@@ -101,6 +106,7 @@ export function CustomPagesPage() {
                     coverUrl={coverUrl}
                     variant="editable"
                     canEdit={canEditPage(page.id)}
+                    onCopy={() => runCopyAction(page)}
                   />
                 </li>
               ))}
@@ -121,7 +127,7 @@ export function CustomPagesPage() {
                     propertyName={propertyName}
                     coverUrl={coverUrl}
                     variant="static"
-                    onCopy={copyHandlerFor(page.id)}
+                    onCopy={() => runCopyAction(page)}
                   />
                 </li>
               ))}
@@ -142,7 +148,7 @@ export function CustomPagesPage() {
                     propertyName={propertyName}
                     coverUrl={coverUrl}
                     variant="static"
-                    onCopy={copyHandlerFor(page.id)}
+                    onCopy={() => runCopyAction(page)}
                   />
                 </li>
               ))}

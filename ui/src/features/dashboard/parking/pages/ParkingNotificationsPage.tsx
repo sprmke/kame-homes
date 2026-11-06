@@ -18,6 +18,7 @@ import { TelegramNotificationsTelegramSection } from '@/features/dashboard/booki
 import { TelegramChatSettingsCard } from '@/features/dashboard/bookings/components/TelegramChatSettingsCard';
 import { TelegramFinanceSettingsCard } from '@/features/dashboard/bookings/components/TelegramFinanceSettingsCard';
 import { InAppNotificationsSection } from '@/features/dashboard/notifications/components/InAppNotificationsSection';
+import { NOTIFICATIONS_HOW_IT_WORKS } from '@/features/dashboard/notifications/lib/notificationsHelpCopy';
 import {
   IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL,
   IN_APP_NOTIFICATIONS_SECTION_ID,
@@ -25,6 +26,8 @@ import {
 } from '@/features/dashboard/notifications/lib/notificationsPaths';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { TelegramParkingSettingsCard } from '@/features/dashboard/parking/components/TelegramParkingSettingsCard';
+
+import { HowItWorksButton } from '@/components/help/HowItWorksButton';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { parkingDashboardPageTitle, usePageTitle } from '@/lib/pageTitle';
 
@@ -107,6 +110,12 @@ export function ParkingNotificationsPage() {
         subtitle="Manage in-app notifications and Telegram alerts for this parking slot."
         titleId="parking-notifications-heading"
         className="flex min-h-0 flex-1 flex-col"
+        heroTrailing={
+          <HowItWorksButton hero feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
+        }
+        desktopActions={
+          <HowItWorksButton feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
+        }
       >
         <AdminSectionNavLayout
           className="min-h-0 flex-1"

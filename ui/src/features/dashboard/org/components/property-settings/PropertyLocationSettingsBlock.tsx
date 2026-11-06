@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,11 +27,13 @@ import {
 import { useGuardedClose } from '@/hooks/useGuardedClose';
 import { cn } from '@/lib/utils';
 
+type LocationChangeOptions = { markEdited?: boolean };
+
 type Props = {
   value: PropertyLocationFields;
   disabled?: boolean;
   persistPending?: boolean;
-  onChange: (next: PropertyLocationFields) => void;
+  onChange: (next: PropertyLocationFields, options?: LocationChangeOptions) => void;
   /** Persist to the server (modal Save). Draft-only if omitted. */
   onPersist?: (next: PropertyLocationFields) => Promise<void>;
   onFieldInteract?: (fieldId: string) => void;
@@ -53,7 +55,10 @@ export function PropertyLocationSettingsBlock({
   const [manageOpen, setManageOpen] = useState(false);
   const [session, setSession] = useState<PropertyLocationFields | null>(null);
   const [sessionBaseline, setSessionBaseline] = useState<PropertyLocationFields | null>(null);
+  /** Initial map auto-locate filled the pin. Savable, but not a host edit for the leave prompt. */
+  const [autoLocated, setAutoLocated] = useState(false);
   const [saving, setSaving] = useState(false);
+  const sessionDirtyRef = useRef(false);
 
   const summaryAddress = value.address.trim() || 'No address set';
   const mapsUrl =
@@ -76,15 +81,22 @@ export function PropertyLocationSettingsBlock({
   const sessionDirty = Boolean(
     session && sessionBaseline && !propertyLocationFieldsEqual(session, sessionBaseline)
   );
+  sessionDirtyRef.current = sessionDirty;
   const sessionValid = session ? isPropertyLocationManageValid(session) : false;
   const canSave = Boolean(
-    session && sessionDirty && sessionValid && !disabled && !saving && !persistPending
+    session &&
+    (sessionDirty || autoLocated) &&
+    sessionValid &&
+    !disabled &&
+    !saving &&
+    !persistPending
   );
 
   const openManage = () => {
     const snapshot = clonePropertyLocationFields(value);
     setSession(snapshot);
     setSessionBaseline(clonePropertyLocationFields(snapshot));
+    setAutoLocated(false);
     setManageOpen(true);
   };
 
@@ -92,6 +104,7 @@ export function PropertyLocationSettingsBlock({
     setManageOpen(false);
     setSession(null);
     setSessionBaseline(null);
+    setAutoLocated(false);
     setSaving(false);
   };
 
@@ -134,7 +147,19 @@ export function PropertyLocationSettingsBlock({
     onSave: handleSave,
   });
 
-  const applySessionPatch = (patch: Partial<PropertyLocationFields>) => {
+  const applySessionPatch = (
+    patch: Partial<PropertyLocationFields>,
+    options?: LocationChangeOptions
+  ) => {
+    if (options?.markEdited === false) {
+      // Initial map auto-locate: seed the pin without making the session dirty.
+      // Ignore a late geocode response after the host has already edited the session.
+      if (sessionDirtyRef.current) return;
+      setSession((prev) => (prev ? { ...prev, ...patch } : prev));
+      setSessionBaseline((prev) => (prev ? { ...prev, ...patch } : prev));
+      setAutoLocated(true);
+      return;
+    }
     setSession((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
@@ -160,7 +185,7 @@ export function PropertyLocationSettingsBlock({
         value={value}
         disabled={disabled || persistPending}
         onFieldInteract={onFieldInteract}
-        onChange={(patch) => onChange({ ...value, ...patch })}
+        onChange={(patch, options) => onChange({ ...value, ...patch }, options)}
       />
     );
   }

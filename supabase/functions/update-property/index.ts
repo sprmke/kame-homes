@@ -12,6 +12,10 @@ import {
 } from '../_shared/orgAuth.ts';
 import { buildActorContext, diffRecord, logActivity } from '../_shared/activityLog.ts';
 import {
+  readListingAuthorizationFromSettings,
+  resolveListingActivationBlock,
+} from '../_shared/listingAuthorization.ts';
+import {
   DUPLICATE_PROPERTY_NAME_MESSAGE,
   findPropertyNameConflict,
 } from '../_shared/propertyNameConflict.ts';
@@ -124,6 +128,16 @@ serveAuthenticated('update-property', async (req) => {
     const status = body.status.trim().toUpperCase();
     if (status !== 'ACTIVE' && status !== 'INACTIVE') {
       return jsonError(req, 'status must be ACTIVE or INACTIVE');
+    }
+    if (status === 'ACTIVE' && String(property.status ?? '').toUpperCase() !== 'ACTIVE') {
+      // Host activation is not a plain field edit: a listing may only go live with an
+      // approved listing authorization and no contract lock.
+      const activationBlock = resolveListingActivationBlock(
+        readListingAuthorizationFromSettings(property.settings)
+      );
+      if (activationBlock) {
+        return jsonError(req, activationBlock.message, 409);
+      }
     }
     patch.status = status;
   }

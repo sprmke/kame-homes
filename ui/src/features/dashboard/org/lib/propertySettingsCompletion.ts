@@ -31,7 +31,6 @@ import {
 } from '@/features/dashboard/org/lib/propertyTowerUnit';
 
 import {
-  validateAdminEmailList,
   validateOptionalAdminEmail,
   validateOptionalAdminUrl,
 } from '@/lib/validation/adminSettings';
@@ -371,19 +370,11 @@ export function computePropertySettingsCompletion(
   if (operational) {
     const emailReplyErr = requireAdminEmail(
       operational.emailReplyTo,
-      'Property email',
-      'Enter property email'
+      'Team email',
+      'Enter team email'
     );
     if (emailReplyErr) {
       addFieldError('email-reply-to', emailReplyErr, 'email-automations');
-    }
-
-    const parkingOwnersErr = validateAdminEmailList(
-      operational.parkingOwnerEmails,
-      'parking owner'
-    );
-    if (parkingOwnersErr) {
-      addFieldError('parking-owner-emails', parkingOwnersErr, 'email-automations');
     }
 
     const leadHours = operational.sdRefundCronEmailLeadHours;
@@ -394,7 +385,7 @@ export function computePropertySettingsCompletion(
     ) {
       addFieldError(
         'sd-lead-hours',
-        `SD refund email lead must be 0–${SD_REFUND_CRON_EMAIL_LEAD_MAX_HOURS} hours`,
+        `Check-out email lead must be 0-${SD_REFUND_CRON_EMAIL_LEAD_MAX_HOURS} hours`,
         'email-automations'
       );
     }

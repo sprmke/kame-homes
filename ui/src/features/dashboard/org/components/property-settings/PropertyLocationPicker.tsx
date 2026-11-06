@@ -15,10 +15,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+type PropertyLocationChangeOptions = { markEdited?: boolean };
+
 type PropertyLocationPickerProps = {
   value: PropertyLocationFields;
   disabled?: boolean;
-  onChange: (patch: Partial<PropertyLocationFields>) => void;
+  onChange: (
+    patch: Partial<PropertyLocationFields>,
+    options?: PropertyLocationChangeOptions
+  ) => void;
   addressError?: string | null;
   mapError?: string | null;
   onFieldInteract?: (fieldId: string) => void;
@@ -44,12 +49,14 @@ export function PropertyLocationPicker({
   valueRef.current = value;
 
   const applyLocation = useCallback(
-    (patch: Partial<PropertyLocationFields>) => {
-      if ('address' in patch) onFieldInteract?.('property-address');
-      if ('latitude' in patch || 'longitude' in patch) {
-        onFieldInteract?.('property-location-map');
+    (patch: Partial<PropertyLocationFields>, options?: PropertyLocationChangeOptions) => {
+      if (options?.markEdited !== false) {
+        if ('address' in patch) onFieldInteract?.('property-address');
+        if ('latitude' in patch || 'longitude' in patch) {
+          onFieldInteract?.('property-location-map');
+        }
       }
-      onChange(patch);
+      onChange(patch, options);
     },
     [onChange, onFieldInteract]
   );
@@ -90,7 +97,7 @@ export function PropertyLocationPicker({
   );
 
   const geocodeAddress = useCallback(
-    (address: string) => {
+    (address: string, options?: PropertyLocationChangeOptions) => {
       const trimmed = address.trim();
       if (!trimmed || !geocoderRef.current) return;
 
@@ -99,7 +106,7 @@ export function PropertyLocationPicker({
         const location = locationFromGeocoderResult(results[0]);
         if (!location?.latitude || location.longitude == null) return;
         skipInputSyncRef.current = true;
-        applyLocation(location);
+        applyLocation(location, options);
         if (inputRef.current) {
           inputRef.current.value = location.address;
         }
@@ -202,7 +209,7 @@ export function PropertyLocationPicker({
     if (!value.address.trim()) return;
 
     initialGeocodeDoneRef.current = true;
-    geocodeAddress(value.address);
+    geocodeAddress(value.address, { markEdited: false });
   }, [geocodeAddress, ready, value.address, value.latitude, value.longitude]);
 
   useEffect(() => {

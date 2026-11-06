@@ -183,7 +183,9 @@ export function AiStudioSampleCard({
       >
         <span
           className={cn(
-            'bg-muted/40 flex w-full items-center justify-center p-3',
+            // min-h-0: keep the frame at the fixed shape instead of letting the art's
+            // intrinsic height stretch it, so every example card is the same height.
+            'bg-muted/40 flex w-full min-h-0 items-center justify-center p-3',
             compact ? 'aspect-square' : 'aspect-[4/5]'
           )}
         >

@@ -8,12 +8,10 @@ import {
   Home,
   Image as ImageIcon,
   Info,
-  Mail,
   MapPin,
   Save,
   ScrollText,
   Sparkles,
-  Wallet,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,14 +24,11 @@ import {
   type AdminSectionNavItem,
 } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { PropertyIntegrationsPanel } from '@/features/dashboard/bookings/components/PropertyIntegrationsPanel';
-import type { AppSettingsDto } from '@/features/dashboard/bookings/hooks/useAppSettings';
 import { PropertyLocationPicker } from '@/features/dashboard/org/components/property-settings/PropertyLocationPicker';
-import { PropertyPaymentMethodsSection } from '@/features/dashboard/org/components/property-settings/PropertyPaymentMethodsSection';
 import {
   PropertySettingsSectionAlert,
   SettingsField,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
-import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
 import { useParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
@@ -45,13 +40,6 @@ import {
   formatParkingCode,
   formatParkingDisplayName,
 } from '@/features/dashboard/org/lib/parkingSlotDisplay';
-import {
-  paymentMethodsDraftIsDirty,
-  setPaymentMethodQrUrl,
-  syncLegacyPaymentFieldsFromMethods,
-  type PropertyPaymentMethod,
-} from '@/features/dashboard/org/lib/paymentMethods';
-import { computePaymentSettingsFingerprint } from '@/features/dashboard/org/lib/settingsVerificationFingerprint';
 import {
   orgParkingsPath,
   parkingNotificationsPath,
@@ -70,7 +58,6 @@ import {
   useDeleteParking,
   useUpdateParking,
 } from '@/features/dashboard/parking/hooks/useUpdateParking';
-import { useUploadParkingSettingsAsset } from '@/features/dashboard/parking/hooks/useUploadParkingSettingsAsset';
 import {
   mergeParkingAutomationToggles,
   type ParkingAutomationToggles,
@@ -93,13 +80,10 @@ import {
   parkingLocationDraftFromSettings,
   parkingLocationDraftIsDirty,
   parkingLocationSettingsPatch,
-  parkingOperationalDraftFromSettings,
-  parkingOperationalDraftIsDirty,
   parkingProfileDraftFromParking,
   parkingProfileDraftIsDirty,
   parkingProfileSettingsPatch,
   PARKING_DESCRIPTION_MAX,
-  type ParkingOperationalDraft,
   type ParkingProfileDraft,
 } from '@/features/dashboard/parking/lib/parkingSettingsForm';
 import { setParkingSettingsIssueSections } from '@/features/dashboard/parking/lib/parkingSettingsIssuesStore';
@@ -130,27 +114,13 @@ const SECTIONS: AdminSectionNavItem[] = [
   { id: 'details', label: 'Parking Details', icon: Home },
   { id: 'features', label: 'Amenities', icon: Sparkles },
   { id: 'location', label: 'Location', icon: MapPin },
-  { id: 'payment', label: 'Payment', icon: Wallet },
-  { id: 'email', label: 'Email', icon: Mail },
-  { id: 'booking-automation', label: 'Booking Automation', icon: Zap },
+  { id: 'automations', label: 'Automations', icon: Zap },
   { id: 'integrations', label: 'Integrations', icon: Globe },
   { id: 'activity', label: 'Activity', icon: ScrollText },
   { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
 
 const readOnlyFieldClass = 'bg-muted/40';
-
-function parkingPaymentSettingsDto(
-  settings: NonNullable<ReturnType<typeof useParkingSettings>['data']>
-): AppSettingsDto {
-  const gcashQrImageUrl = settings.gcashQrImageUrl?.trim() ?? '';
-  return {
-    gcashQrImageUrl,
-    fieldSources: {
-      gcashQrImageUrl: gcashQrImageUrl ? 'db' : 'default',
-    },
-  } as AppSettingsDto;
-}
 
 function parkingTypeLabel(value: string): string {
   return PARKING_TYPES.find((type) => type.value === value)?.label ?? value;
@@ -165,7 +135,6 @@ export function useParkingSettingsController() {
   const updateParking = useUpdateParking(orgSlug);
   const deleteParking = useDeleteParking(orgSlug);
   const updateSettings = useUpdateParkingSettings();
-  const uploadQr = useUploadParkingSettingsAsset();
 
   const [profileBaseline, setProfileBaseline] = useState(() =>
     parkingProfileDraftFromParking(parking, inheritedBrandColor)
@@ -174,10 +143,6 @@ export function useParkingSettingsController() {
   const [coverImage, setCoverImage] = useState(() =>
     parkingCoverImageFromSettings(parking.settings)
   );
-  const [operationalBaseline, setOperationalBaseline] = useState<ParkingOperationalDraft | null>(
-    null
-  );
-  const [operationalDraft, setOperationalDraft] = useState<ParkingOperationalDraft | null>(null);
   const [featuresBaseline, setFeaturesBaseline] = useState(() =>
     parkingFeaturesDraftFromSettings(parking.settings)
   );
@@ -200,14 +165,6 @@ export function useParkingSettingsController() {
   const [automationDraft, setAutomationDraft] = useState(automationBaseline);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [interactedFields, setInteractedFields] = useState<Record<string, boolean>>({});
-  const [paymentOtpOpen, setPaymentOtpOpen] = useState(false);
-  const [paymentOtpFingerprint, setPaymentOtpFingerprint] = useState('');
-  const [qrUploadingMethodId, setQrUploadingMethodId] = useState<string | null>(null);
-  const paymentOtpSucceededRef = useRef(false);
-  const pendingSaveScopeRef = useRef<readonly ParkingSettingsSectionId[] | null>(null);
-  const pendingSaveDeferredRef = useRef<{
-    resolve: (ok: boolean) => void;
-  } | null>(null);
 
   const { userEdited, markUserEdited, resetUserEdited } = useSettingsUserEdited();
 
@@ -223,7 +180,6 @@ export function useParkingSettingsController() {
   );
 
   const profileDirtyRef = useRef(false);
-  const operationalDirtyRef = useRef(false);
   const automationDirtyRef = useRef(false);
   const featuresDirtyRef = useRef(false);
   const locationDirtyRef = useRef(false);
@@ -287,15 +243,10 @@ export function useParkingSettingsController() {
 
   useEffect(() => {
     if (!settings) return;
-    if (operationalDirtyRef.current) return;
-    const values = parkingOperationalDraftFromSettings(settings);
-    setOperationalDraft(values);
-    setOperationalBaseline(values);
-    if (!automationDirtyRef.current) {
-      const nextAutomation = mergeParkingAutomationToggles(settings.automationToggles);
-      setAutomationDraft(nextAutomation);
-      setAutomationBaseline(nextAutomation);
-    }
+    if (automationDirtyRef.current) return;
+    const nextAutomation = mergeParkingAutomationToggles(settings.automationToggles);
+    setAutomationDraft(nextAutomation);
+    setAutomationBaseline(nextAutomation);
   }, [settings]);
 
   const profileDirty = parkingProfileDraftIsDirty(
@@ -304,11 +255,6 @@ export function useParkingSettingsController() {
     inheritedBrandColor
   );
   profileDirtyRef.current = profileDirty;
-  const operationalDirty =
-    operationalDraft && operationalBaseline
-      ? parkingOperationalDraftIsDirty(operationalDraft, operationalBaseline)
-      : false;
-  operationalDirtyRef.current = operationalDirty;
   const automationDirty = JSON.stringify(automationDraft) !== JSON.stringify(automationBaseline);
   automationDirtyRef.current = automationDirty;
   const featuresDirty = parkingFeaturesDraftIsDirty(featuresDraft, featuresBaseline);
@@ -318,18 +264,12 @@ export function useParkingSettingsController() {
   const detailsDirty = parkingDetailsDraftIsDirty(detailsDraft, detailsBaseline);
   detailsDirtyRef.current = detailsDirty;
   const isDirty =
-    profileDirty ||
-    operationalDirty ||
-    automationDirty ||
-    featuresDirty ||
-    locationDirty ||
-    detailsDirty;
+    profileDirty || automationDirty || featuresDirty || locationDirty || detailsDirty;
 
   const isArchived = parking.status === 'INACTIVE';
 
   const { completion: draftCompletion } = useParkingSettingsCompletionForDraft({
     profile: profileDraft,
-    operational: operationalDraft,
     details: detailsDraft,
     features: featuresDraft,
     location: locationDraft,
@@ -339,7 +279,6 @@ export function useParkingSettingsController() {
 
   const { completion: savedCompletion } = useParkingSettingsCompletionForDraft({
     profile: profileBaseline,
-    operational: operationalBaseline,
     details: detailsBaseline,
     features: featuresBaseline,
     location: locationBaseline,
@@ -384,15 +323,13 @@ export function useParkingSettingsController() {
     settingsLoading ||
     updateParking.isPending ||
     updateSettings.isPending ||
-    deleteParking.isPending ||
-    uploadQr.isPending;
+    deleteParking.isPending;
   const fullPageSavePlan = planParkingSettingsSave({
     dirty: {
       profile: profileDirty,
       details: detailsDirty,
       features: featuresDirty,
       location: locationDirty,
-      payment: Boolean(operationalDirty),
       automation: automationDirty,
     },
     completion: draftCompletion,
@@ -414,29 +351,9 @@ export function useParkingSettingsController() {
     setProfileDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const setPaymentMethods = (methods: PropertyPaymentMethod[]) => {
-    markUserEdited();
-    const legacy = syncLegacyPaymentFieldsFromMethods(methods);
-    setOperationalDraft((current) =>
-      current
-        ? {
-            ...current,
-            paymentMethods: methods,
-            paymentProvider: legacy.paymentProvider,
-            gcashName: legacy.gcashName,
-            gcashNumber: legacy.gcashNumber,
-          }
-        : current
-    );
-  };
-
   const handleSave = async (options?: {
-    skipPaymentVerification?: boolean;
-    settingsVerificationToken?: string;
     scopeSectionIds?: readonly ParkingSettingsSectionId[] | null;
   }): Promise<boolean> => {
-    if (!operationalDraft || !operationalBaseline) return false;
-
     if (!isDirty) {
       toast.message('No changes to save');
       return false;
@@ -448,7 +365,6 @@ export function useParkingSettingsController() {
         details: detailsDirty,
         features: featuresDirty,
         location: locationDirty,
-        payment: Boolean(operationalDirty),
         automation: automationDirty,
       },
       completion: draftCompletion,
@@ -470,23 +386,6 @@ export function useParkingSettingsController() {
       return false;
     }
 
-    const paymentChanged =
-      plan.savePayment &&
-      paymentMethodsDraftIsDirty(
-        operationalDraft.paymentMethods,
-        operationalBaseline.paymentMethods
-      );
-
-    if (paymentChanged && !options?.skipPaymentVerification) {
-      const fingerprint = await computePaymentSettingsFingerprint(operationalDraft.paymentMethods);
-      setPaymentOtpFingerprint(fingerprint);
-      setPaymentOtpOpen(true);
-      pendingSaveScopeRef.current = options?.scopeSectionIds ?? null;
-      return await new Promise<boolean>((resolve) => {
-        pendingSaveDeferredRef.current = { resolve };
-      });
-    }
-
     setShowValidationErrors(false);
 
     try {
@@ -499,20 +398,6 @@ export function useParkingSettingsController() {
           settings: settingsPatch,
         });
         setProfileBaseline(profileDraft);
-        savedSomething = true;
-      }
-
-      if (plan.savePayment) {
-        await updateSettings.mutateAsync({
-          paymentMethods: operationalDraft.paymentMethods,
-          paymentProvider: operationalDraft.paymentProvider,
-          gcashName: operationalDraft.gcashName.trim() || null,
-          gcashNumber: operationalDraft.gcashNumber.trim() || null,
-          ...(options?.settingsVerificationToken
-            ? { settingsVerificationToken: options.settingsVerificationToken }
-            : {}),
-        });
-        setOperationalBaseline(operationalDraft);
         savedSomething = true;
       }
 
@@ -548,54 +433,9 @@ export function useParkingSettingsController() {
       }
       return false;
     } catch (error) {
-      if (options?.settingsVerificationToken) {
-        revertPaymentDraft();
-      }
       toast.error(friendlyToastError(error, 'Could not save settings'));
       return false;
-    } finally {
-      setPaymentOtpOpen(false);
-      paymentOtpSucceededRef.current = false;
     }
-  };
-
-  const revertPaymentDraft = useCallback(() => {
-    setOperationalDraft((current) => {
-      if (!current || !operationalBaseline) return current;
-      return {
-        ...current,
-        paymentMethods: operationalBaseline.paymentMethods,
-        paymentProvider: operationalBaseline.paymentProvider,
-        gcashName: operationalBaseline.gcashName,
-        gcashNumber: operationalBaseline.gcashNumber,
-      };
-    });
-  }, [operationalBaseline]);
-
-  const handlePaymentOtpOpenChange = (open: boolean) => {
-    if (!open && !paymentOtpSucceededRef.current) {
-      revertPaymentDraft();
-      const deferred = pendingSaveDeferredRef.current;
-      pendingSaveDeferredRef.current = null;
-      deferred?.resolve(false);
-    }
-    if (!open) paymentOtpSucceededRef.current = false;
-    setPaymentOtpOpen(open);
-  };
-
-  const handlePaymentOtpVerified = (verificationToken: string) => {
-    paymentOtpSucceededRef.current = true;
-    const scopeSectionIds = pendingSaveScopeRef.current;
-    pendingSaveScopeRef.current = null;
-    const deferred = pendingSaveDeferredRef.current;
-    pendingSaveDeferredRef.current = null;
-    void handleSave({
-      skipPaymentVerification: true,
-      settingsVerificationToken: verificationToken,
-      scopeSectionIds,
-    }).then((ok) => {
-      deferred?.resolve(ok);
-    });
   };
 
   const handleDelete = async () => {
@@ -659,17 +499,12 @@ export function useParkingSettingsController() {
     updateParking,
     deleteParking,
     updateSettings,
-    uploadQr,
     profileBaseline,
     setProfileBaseline,
     profileDraft,
     setProfileDraft,
     coverImage,
     setCoverImage,
-    operationalBaseline,
-    setOperationalBaseline,
-    operationalDraft,
-    setOperationalDraft,
     featuresBaseline,
     setFeaturesBaseline,
     featuresDraft,
@@ -698,16 +533,8 @@ export function useParkingSettingsController() {
     setShowValidationErrors,
     interactedFields,
     setInteractedFields,
-    paymentOtpOpen,
-    setPaymentOtpOpen,
-    paymentOtpFingerprint,
-    setPaymentOtpFingerprint,
-    qrUploadingMethodId,
-    setQrUploadingMethodId,
-    paymentOtpSucceededRef,
     markFieldInteracted,
     profileDirtyRef,
-    operationalDirtyRef,
     automationDirtyRef,
     featuresDirtyRef,
     locationDirtyRef,
@@ -716,7 +543,6 @@ export function useParkingSettingsController() {
     parkingCode,
     parkingSlugPrefix,
     profileDirty,
-    operationalDirty,
     automationDirty,
     featuresDirty,
     locationDirty,
@@ -733,11 +559,7 @@ export function useParkingSettingsController() {
     saveDisabledByValidation,
     saveDisabled,
     setProfileField,
-    setPaymentMethods,
     handleSave,
-    revertPaymentDraft,
-    handlePaymentOtpOpenChange,
-    handlePaymentOtpVerified,
     handleDelete,
     handleArchive,
     handleRestore,
@@ -755,11 +577,9 @@ export function ParkingSettingsCard() {
     settingsLoading,
     updateParking,
     deleteParking,
-    uploadQr,
     profileDraft,
     coverImage,
     setCoverImage,
-    operationalDraft,
     featuresDraft,
     setFeaturesDraft,
     newCustomFeatureInput,
@@ -775,10 +595,6 @@ export function ParkingSettingsCard() {
     restoreOpen,
     setRestoreOpen,
     automationDraft,
-    paymentOtpOpen,
-    paymentOtpFingerprint,
-    qrUploadingMethodId,
-    setQrUploadingMethodId,
     markFieldInteracted,
     displayName,
     parkingCode,
@@ -793,10 +609,7 @@ export function ParkingSettingsCard() {
     saveDisabledByValidation,
     saveDisabled,
     setProfileField,
-    setPaymentMethods,
     handleSave,
-    handlePaymentOtpOpenChange,
-    handlePaymentOtpVerified,
     handleDelete,
     handleArchive,
     handleRestore,
@@ -810,18 +623,10 @@ export function ParkingSettingsCard() {
     onSave: () => handleSave(),
   });
 
-  const settingsReady = !settingsLoading && settings && operationalDraft;
+  const settingsReady = !settingsLoading && settings;
 
   return (
     <>
-      <SensitiveSettingsOtpDialog
-        open={paymentOtpOpen}
-        onOpenChange={handlePaymentOtpOpenChange}
-        scope="parking"
-        patchFingerprint={paymentOtpFingerprint}
-        onVerified={handlePaymentOtpVerified}
-        busy={busy}
-      />
       <AdminMobilePage
         title="Settings"
         subtitle="Manage your parking slot's details, photos, and configurations."
@@ -1075,62 +880,16 @@ export function ParkingSettingsCard() {
             </AdminSection>
 
             <AdminSection
-              id="payment"
-              title="Payment"
-              icon={Wallet}
-              description="How guests pay for parking."
-            >
-              <PropertyPaymentMethodsSection
-                data={parkingPaymentSettingsDto(settings)}
-                methods={operationalDraft.paymentMethods}
-                disabled={busy}
-                resolveFieldError={resolveFieldError}
-                markFieldInteracted={markFieldInteracted}
-                onChange={setPaymentMethods}
-                onMethodQrFile={(methodId, file) => {
-                  markFieldInteracted(`payment-method-${methodId}-qr`);
-                  setQrUploadingMethodId(methodId);
-                  void uploadQr
-                    .mutateAsync(file)
-                    .then((uploaded) => {
-                      setPaymentMethods(
-                        setPaymentMethodQrUrl(
-                          operationalDraft.paymentMethods,
-                          methodId,
-                          uploaded.url
-                        )
-                      );
-                    })
-                    .catch((err) => {
-                      toast.error(friendlyToastError(err, 'Upload failed'));
-                    })
-                    .finally(() => {
-                      setQrUploadingMethodId(null);
-                    });
-                }}
-                qrUploadingMethodId={qrUploadingMethodId}
-              />
-            </AdminSection>
-
-            <AdminSection
-              id="email"
-              title="Email"
-              icon={Mail}
-              description="Reservation and booking status emails."
+              id="automations"
+              title="Automations"
+              icon={Zap}
+              description="Emails sent automatically and host actions taken for you."
             >
               <ParkingEmailAutomationSection
                 value={automationDraft}
                 disabled={busy}
                 onChange={setAutomationToggle}
               />
-            </AdminSection>
-
-            <AdminSection
-              id="booking-automation"
-              title="Booking Automation"
-              icon={Zap}
-              description="Automate host-side actions on new requests."
-            >
               <ParkingBookingAutomationSection
                 value={automationDraft}
                 disabled={busy}

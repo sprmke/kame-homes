@@ -2,7 +2,7 @@
 title: 'Curated support FAQs'
 status: active
 tags: [guides, support, faqs, help-center]
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Curated support FAQs
@@ -149,6 +149,15 @@ Yes. Use Import beside New booking on a property. Upload a CSV or Excel file, or
 
 Yes. Return to step at the bottom left moves the booking to a previous status. Existing fields and documents get reset, and no emails go out. It always names the step you are moving to and asks you to confirm first.
 
+### Does adding parking after review send the booking back to Pending Review?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+- order: 35
+
+No. The booking keeps its current status and Parking shows as an outstanding step under Pending Documents. Once the booking is Ready for Check-in, the same parking step stays available as late parking. Complete the parking step before you proceed to the next stage.
+
 ### Why can't I cancel this booking?
 
 - category: Bookings
@@ -157,6 +166,15 @@ Yes. Return to step at the bottom left moves the booking to a previous status. E
 - order: 40
 
 Cancelling is only available up to Ready for Check-in. Once a booking reaches Ready for Check-out the stay has already happened, so it gets finished or refunded instead of cancelled.
+
+### Why don't I see a down payment or security deposit on an Airbnb booking?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+- order: 45
+
+Airbnb collects the stay payment and any deposit on their platform, so those fields are hidden and left at zero. You still record the booking rate, pet fee, and any additional fee. The Pricing tab says Stay paid through Airbnb.
 
 ### Can I close calendar dates without creating a booking?
 
@@ -210,7 +228,16 @@ No. These are standalone parking listings such as tower slots or motorcycle bays
 - source: docs/guides/routes/org/parking/settings.md
 - order: 30
 
-Everything in basic info, photos, location, amenities, and payment flows to your public parking page. Keep the cover photo, description, and GCash details accurate before sharing the link.
+Basic info, photos, location, and amenities flow to your public parking page. Keep the cover photo and description accurate before sharing the link. Guests pay through PayMongo at checkout, so there are no payment details to fill in.
+
+### Why is there no Payment section on parking settings?
+
+- category: Parking
+- audience: host
+- source: docs/guides/routes/org/parking/settings.md
+- order: 55
+
+Guests pay for parking through PayMongo when they book, so you do not enter payment methods for a slot. Anything saved there before is kept for history but is no longer used or shown.
 
 ### How do weekend parking rates work?
 
@@ -257,6 +284,24 @@ Adding a parking slot needs the Add parking permission. Owners always have it, a
 
 Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it is blocked if any bookings exist, so use Archive instead for units with past stays.
 
+### Why can't I restore my archived property?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 12
+
+Restore needs a verified listing and a current listing contract. A new listing has to be approved first, and an ended contract has to be renewed. The Danger Zone card tells you which one applies.
+
+### Can guests still book a property I archived?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 13
+
+No. The public page and its direct booking link stop taking new bookings. Guests who already booked keep their form, trip page, and stay guide.
+
 ### Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
 
 - category: Property Settings
@@ -300,7 +345,34 @@ Open Public Pages, then Stay Guide, then Edit, then Content. Expand a section to
 - source: docs/guides/routes/org/properties.md
 - order: 60
 
-No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist.
+No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist. Guests with a coming stay still get their form, trip page, and stay guide.
+
+### Where do GAF and pet request emails go?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 70
+
+They go to the building admin email shown read-only in Email automations. It comes from your development's PMO email, which the platform team sets in Super Admin. If it is empty, GAF and pet emails cannot send, but it never blocks saving the rest of the page.
+
+### What does free parking on your own slots do?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 80
+
+When a guest from this property books one of your own parking slots, they skip payment. Slots owned by other hosts are still paid. The option only appears when Allow Parking is on and you have at least one active parking slot, and it does nothing while Allow Parking is off.
+
+### Why did the Parking owners field disappear?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 90
+
+Property parking broadcast emails were retired. Parking now uses Find parking and the shareable parking link, so there is no owner BCC list to maintain. Nothing you set there affects email today.
 
 ### Do I need a different Telegram bot for every notification module?
 
@@ -428,6 +500,15 @@ Yes. When you edit or delete a recurring transaction, you choose whether the cha
 
 Yes. The summary cards, charts, and transaction list all use the selected range. Booking income is counted for the nights that fall inside it.
 
+### Can I use my own category for an expense?
+
+- category: Billing & Finance
+- audience: host
+- source: docs/guides/routes/org/property/finance.md
+- order: 60
+
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the transaction and works in filters, charts, and reports like the built-in categories.
+
 ### How do I get Telegram reminders for maintenance tasks?
 
 - category: Maintenance & Operations
@@ -463,6 +544,15 @@ Yes. When you add or edit a reminder, set it as a recurring series. One-off task
 - order: 40
 
 Viewing reminders is included on every plan. PDF export needs the reporting feature, which starts on Starter, and the export permission on your team role.
+
+### Can I use my own category for a maintenance task?
+
+- category: Maintenance & Operations
+- audience: host
+- source: docs/guides/routes/org/property/maintenance.md
+- order: 50
+
+Yes. Pick Other (type your own), then type the category name and press Enter (or choose Use "..."). It saves with the reminder and works in filters, cards, and reports like the built-in categories.
 
 ### What can I ask the AI assistant?
 
@@ -705,7 +795,7 @@ Showcase is a shareable one-page landing link with animated templates. It is sep
 - source: docs/guides/routes/org/property/public-pages.md
 - order: 30
 
-Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays from check-out onward are listed.
+Find parking now copies a plain marketplace link, so it works without a booking. Refund and guest review links still need a specific stay: open Public Pages, go to Booking links, choose Copy link, then pick the stay. Only stays ready for check-out or pending SD refund are listed. Completed stays are hidden because the refund is already settled.
 
 ### Is there a Save button in the page editor?
 
@@ -1021,7 +1111,7 @@ The public page shows published answers for guests and hosts. Signed-in hosts ge
 - audience: host
 - source: docs/guides/routes/trip.md
 
-Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. With an instant policy they cancel right away. With "Ask me first", custom or unset policies, they send a request you approve or decline from the booking. If the guest paid nothing yet, the refund is zero and nothing is owed.
+Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. Refunds are based on what the guest has actually paid, not the full stay value: a guest who paid only the down payment gets a percentage of that down payment back, and the security deposit is always refunded. With an instant policy they cancel right away while only the down payment is paid. With "Ask me first", custom or unset policies, or once the balance is paid, they send a request you approve or decline. If the guest paid nothing yet, the refund is zero and nothing is owed.
 
 ### Can I change my cancellation policy without changing existing bookings?
 

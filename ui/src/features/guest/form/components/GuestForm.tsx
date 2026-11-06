@@ -1277,7 +1277,12 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
       };
 
       // Check if it's a booking overlap error
-      if (errorMessage.includes('BOOKING_OVERLAP') || errorMessage.includes('already booked')) {
+      if (errorMessage.includes('PROPERTY_NOT_ACCEPTING_BOOKINGS')) {
+        toast.error("This place isn't taking new bookings right now", {
+          id: 'property-closed',
+          duration: 7000,
+        });
+      } else if (errorMessage.includes('BOOKING_OVERLAP') || errorMessage.includes('already booked')) {
         // Show prominent warning toast for booking overlap
         toast.error('Those dates are already booked', {
           id: 'booking-error',

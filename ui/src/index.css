@@ -2118,6 +2118,22 @@
   transform: none;
 }
 
+/* Public Pages date-link picker — full-width month inside the standard modal. */
+.stay-dates-calendar.rdp-root:not(.calendar-availability):not(.hero-search-calendar) {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.stay-dates-calendar.rdp-root:not(.calendar-availability):not(.hero-search-calendar) .rdp-months,
+.stay-dates-calendar.rdp-root:not(.calendar-availability):not(.hero-search-calendar) .rdp-month,
+.stay-dates-calendar.rdp-root:not(.calendar-availability):not(.hero-search-calendar)
+  .rdp-month_grid {
+  width: 100%;
+  max-width: none;
+}
+
 /* Hero search date picker — scoped from admin calendar globals above */
 .hero-search-calendar.rdp-root {
   --rdp-accent-color: hsl(var(--primary));

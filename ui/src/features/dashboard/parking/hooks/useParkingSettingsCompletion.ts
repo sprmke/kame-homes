@@ -7,24 +7,20 @@ import { useParkingSlotConflict } from '@/features/dashboard/org/hooks/useParkin
 import { DEFAULT_PARKING_RESIDENCE_NAME } from '@/features/dashboard/org/lib/parkingResidences';
 import { isValidParkingSlotNumber } from '@/features/dashboard/org/lib/parkingSlotDisplay';
 import type { ParkingFeaturesDraft } from '@/features/dashboard/parking/components/ParkingFeaturesSection';
-import { useParkingSettings } from '@/features/dashboard/parking/hooks/useParkingSettings';
 import { parkingFeaturesDraftFromSettings } from '@/features/dashboard/parking/lib/parkingFeaturesConstants';
 import { computeParkingSettingsCompletion } from '@/features/dashboard/parking/lib/parkingSettingsCompletion';
 import {
   parkingCoverImageFromSettings,
   parkingDetailsDraftFromSettings,
   parkingLocationDraftFromSettings,
-  parkingOperationalDraftFromSettings,
   parkingProfileDraftFromParking,
   type ParkingDetailsDraft,
   type ParkingLocationDraft,
-  type ParkingOperationalDraft,
   type ParkingProfileDraft,
 } from '@/features/dashboard/parking/lib/parkingSettingsForm';
 
 type CompletionInput = {
   profile: ParkingProfileDraft;
-  operational: ParkingOperationalDraft | null;
   details: ParkingDetailsDraft;
   features: ParkingFeaturesDraft;
   location: ParkingLocationDraft;
@@ -34,7 +30,6 @@ type CompletionInput = {
 
 export function useParkingSettingsCompletionForDraft({
   profile,
-  operational,
   details,
   features,
   location,
@@ -57,7 +52,6 @@ export function useParkingSettingsCompletionForDraft({
     () =>
       computeParkingSettingsCompletion({
         profile,
-        operational,
         details,
         features,
         location,
@@ -65,7 +59,7 @@ export function useParkingSettingsCompletionForDraft({
         appSettings: appSettings ?? null,
         slotConflict,
       }),
-    [profile, operational, details, features, location, coverImage, appSettings, slotConflict]
+    [profile, details, features, location, coverImage, appSettings, slotConflict]
   );
 
   return { completion };
@@ -74,16 +68,11 @@ export function useParkingSettingsCompletionForDraft({
 /** Saved parking snapshot — for sidebar indicators outside the settings editor. */
 export function useSavedParkingSettingsCompletion() {
   const { parking } = useParkingContext();
-  const { data: settings } = useParkingSettings();
   const inheritedBrandColor = useOrgBrandColor();
 
   const profile = useMemo(
     () => parkingProfileDraftFromParking(parking, inheritedBrandColor),
     [parking, inheritedBrandColor]
-  );
-  const operational = useMemo(
-    () => (settings ? parkingOperationalDraftFromSettings(settings) : null),
-    [settings]
   );
   const details = useMemo(
     () => parkingDetailsDraftFromSettings(parking.settings, parking.acceptedVehicleTypes),
@@ -104,7 +93,6 @@ export function useSavedParkingSettingsCompletion() {
 
   return useParkingSettingsCompletionForDraft({
     profile,
-    operational,
     details,
     features,
     location,

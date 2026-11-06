@@ -138,7 +138,6 @@ serve(async (req) => {
       {
         saveToDatabase: true,
         sendGafRequestEmail: false,
-        sendParkingBroadcastEmail: false,
         sendPetRequestEmail: false,
         sendBookingAcknowledgementEmail: false,
         sendReadyForCheckinEmail: false,

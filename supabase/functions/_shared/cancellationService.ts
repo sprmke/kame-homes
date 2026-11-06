@@ -99,6 +99,15 @@ export function isHostCancellable(status: string | null | undefined): boolean {
   return HOST_CANCELLABLE_STATUSES.has(String(status ?? '').trim() as never);
 }
 
+/**
+ * Once the guest has settled the balance, a cancellation moves real money, so
+ * it always goes through host approval even when the policy is "instant".
+ * Instant self-cancel is for down-payment-only bookings.
+ */
+export function guestMustRequestCancellation(booking: BookingRow): boolean {
+  return Number(booking.guest_balance_paid_amount ?? 0) > 0;
+}
+
 export async function loadPropertyCancellationContext(propertyId: string): Promise<{
   policy: CancellationPolicy | null;
   versionId: string | null;
@@ -729,9 +738,11 @@ export function buildGuestCancellationPayload(input: {
     input.checkInTime,
     now
   );
+  const mustRequest = guestMustRequestCancellation(booking);
   const canCancel =
     guestCancellable &&
     !input.openRequest &&
+    !mustRequest &&
     str(booking.status) !== 'CANCELLED' &&
     !str(booking.external_source);
 
@@ -749,8 +760,14 @@ export function buildGuestCancellationPayload(input: {
     outcome: input.outcome,
     canCancel,
     canRequest:
-      canCancel &&
-      (policy === null || policy.needsReview || policy.guestCancellation === 'request'),
+      guestCancellable &&
+      !input.openRequest &&
+      str(booking.status) !== 'CANCELLED' &&
+      !str(booking.external_source) &&
+      (mustRequest ||
+        policy === null ||
+        policy.needsReview ||
+        policy.guestCancellation === 'request'),
     canWithdraw: Boolean(input.openRequest),
     request: input.openRequest
       ? {

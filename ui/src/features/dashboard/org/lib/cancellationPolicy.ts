@@ -102,33 +102,33 @@ export const CANCELLATION_PRESETS: {
   {
     id: 'flexible',
     label: 'Flexible',
-    summary: 'Full refund up to 1 day before check-in.',
+    summary: 'Full refund of what you paid up to 1 day before check-in.',
   },
   {
     id: 'moderate',
     label: 'Moderate',
-    summary: 'Full refund up to 5 days before check-in.',
+    summary: 'Full refund of what you paid up to 5 days before check-in.',
     recommended: true,
   },
   {
     id: 'limited',
     label: 'Limited',
-    summary: 'Full refund up to 14 days before check-in.',
+    summary: 'Full refund of what you paid up to 14 days before check-in.',
   },
   {
     id: 'firm',
     label: 'Firm',
-    summary: 'Full refund up to 30 days before, 50% up to 7 days before.',
+    summary: 'Full refund of what you paid up to 30 days before, 50% up to 7 days before.',
   },
   {
     id: 'strict',
     label: 'Strict',
-    summary: '50% refund up to 7 days before check-in.',
+    summary: '50% of what you paid, up to 7 days before check-in.',
   },
   {
     id: 'non_refundable',
     label: 'Non-refundable',
-    summary: 'No refund after booking.',
+    summary: 'No refund of your down payment after booking.',
   },
   {
     id: 'custom',
@@ -541,7 +541,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Flexible',
-        description: 'Full refund up to 1 day before check-in.',
+        description: 'Full refund of what you paid up to 1 day before check-in.',
         tone: 'positive',
         showListingHighlight: true,
         shortLabel: 'Free cancellation',
@@ -554,7 +554,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Moderate',
-        description: 'Full refund up to 5 days before check-in.',
+        description: 'Full refund of what you paid up to 5 days before check-in.',
         tone: 'positive',
         showListingHighlight: true,
         shortLabel: 'Free cancellation',
@@ -567,7 +567,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Limited',
-        description: 'Full refund up to 14 days before check-in.',
+        description: 'Full refund of what you paid up to 14 days before check-in.',
         tone: 'positive',
         showListingHighlight: true,
         shortLabel: 'Free cancellation',
@@ -580,7 +580,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Firm',
-        description: 'Full refund up to 30 days before check-in, 50% up to 7 days before.',
+        description: 'Full refund of what you paid up to 30 days before check-in, 50% up to 7 days before.',
         tone: 'neutral',
         showListingHighlight: true,
         shortLabel: 'Partial refund',
@@ -593,7 +593,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Strict',
-        description: '50% refund up to 7 days before check-in.',
+        description: '50% of what you paid, up to 7 days before check-in.',
         tone: 'neutral',
         showListingHighlight: true,
         shortLabel: 'Partial refund',
@@ -606,7 +606,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Non-refundable',
-        description: 'No refund after the booking is confirmed.',
+        description: 'No refund of your down payment after the booking is confirmed.',
         tone: 'warning',
         showListingHighlight: false,
         shortLabel: 'Non-refundable',
@@ -620,7 +620,7 @@ export function resolveCancellationPolicyDisplay(
         return {
           presetId: 'custom',
           title: legacyTitle || `Free cancellation for ${policy.grace.hours} hours`,
-          description: note || `Full refund if the guest cancels within ${policy.grace.hours} hours of booking.`,
+          description: note || `Full refund of what you paid if the guest cancels within ${policy.grace.hours} hours of booking.`,
           tone: 'positive',
           showListingHighlight: true,
           shortLabel: 'Free cancellation',
@@ -650,12 +650,12 @@ export function resolveCancellationPolicyDisplay(
         title:
           legacyTitle ||
           (timeline.length === 1
-            ? `${first.refundPercent}% refund ${daysLabel(first.daysBefore)} before check-in`
+            ? `${first.refundPercent}% of what you paid, ${daysLabel(first.daysBefore)} before check-in`
             : 'Tiered refunds'),
         description:
           note ||
           timeline
-            .map((row) => `${row.refundPercent}% refund at least ${daysLabel(row.daysBefore)} before check-in`)
+            .map((row) => `${row.refundPercent}% of what you paid at least ${daysLabel(row.daysBefore)} before check-in`)
             .join(', ') +
             (policy.fallbackRefundPercent > 0
               ? `, ${policy.fallbackRefundPercent}% after that.`

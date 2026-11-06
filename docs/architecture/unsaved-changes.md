@@ -2,7 +2,7 @@
 title: 'Unsaved-changes guard — leave / close confirmation for every editable surface'
 status: active
 tags: [architecture, ui, forms, router, ux]
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # Unsaved-changes guard
@@ -45,17 +45,17 @@ main.tsx  createBrowserRouter([{ path: '*', element: <AppShell/> }])
    useGuardedClose(...)          modals / sheets / inline editors (also registers globally)
 ```
 
-| Piece                                                   | Path                                                         |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| Router (data router, required by `useBlocker`)          | `ui/src/main.tsx`                                            |
-| Provider (blocker, `beforeunload`, reload keys, dialog) | `ui/src/components/forms/UnsavedChangesProvider.tsx`         |
-| Context + `useUnsavedChangesContext`                    | `ui/src/components/forms/unsavedChangesContext.ts`           |
-| Confirm dialog (`AlertDialog`)                          | `ui/src/components/forms/UnsavedChangesDialog.tsx`           |
-| Page/card hook + `useRunUnguarded`                      | `ui/src/hooks/useUnsavedChangesGuard.ts`                     |
-| Modal hook                                              | `ui/src/hooks/useGuardedClose.ts`                            |
-| Registry (dirty getters, save-all, discard)             | `ui/src/lib/unsavedChanges/registry.ts` (+ `.test.ts`)       |
-| Refresh shortcut predicate                              | `ui/src/lib/unsavedChanges/reloadShortcut.ts` (+ `.test.ts`) |
-| E2E                                                     | `ui/e2e/features/org/unsavedChangesGuard.spec.ts`            |
+| Piece                                                   | Path                                                                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Router (data router, required by `useBlocker`)          | `ui/src/main.tsx`                                                                                                 |
+| Provider (blocker, `beforeunload`, reload keys, dialog) | `ui/src/components/forms/UnsavedChangesProvider.tsx`                                                              |
+| Context + `useUnsavedChangesContext`                    | `ui/src/components/forms/unsavedChangesContext.ts`                                                                |
+| Confirm dialog (`AlertDialog`)                          | `ui/src/components/forms/UnsavedChangesDialog.tsx`                                                                |
+| Page/card hook + `useRunUnguarded`                      | `ui/src/hooks/useUnsavedChangesGuard.ts`                                                                          |
+| Modal hook                                              | `ui/src/hooks/useGuardedClose.ts`                                                                                 |
+| Registry (dirty getters, save-all, discard)             | `ui/src/lib/unsavedChanges/registry.ts` (+ `.test.ts`)                                                            |
+| Refresh shortcut predicate                              | `ui/src/lib/unsavedChanges/reloadShortcut.ts` (+ `.test.ts`)                                                      |
+| E2E                                                     | `ui/e2e/features/org/unsavedChangesGuard.spec.ts`, `ui/e2e/features/team/propertySettingsCleanNavigation.spec.ts` |
 
 ### Design decisions
 
@@ -112,3 +112,20 @@ chat composers, guest drafts persisted by `useOfflineFormDraft`.
 `ui/src/hooks/useSettingsUserEdited.ts`). Load-time normalization (for example
 syncing building-forms GAF tower/unit from the property profile) must not count as
 dirty for navigation guards.
+
+Normalization effects must call the field setter with `{ markEdited: false }` (or a
+dedicated silent setter). Never route a normalization through `markFieldInteracted`,
+through a user-facing `setField`, or through the default `onChange`, because those
+mark the host as having edited the form even when the host only opened the page.
+
+Known load-time syncs that must stay silent:
+
+| Surface                              | Sync                                                                      | File                                   |
+| ------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------- |
+| Property settings → Property Details | Unit-type defaults (bedrooms, bathrooms, max adults/children, max guests) | `PropertyProfileSettingsSections.tsx`  |
+| Property settings → Guest Form       | Stale preferred owner parking healed to the first active listing          | `PropertyGuestFormSettingsSection.tsx` |
+| Property settings → Location         | Initial map auto-locate from an address that has no pin                   | `PropertyLocationPicker.tsx`           |
+
+For a modal's initial auto-locate, the session can seed its baseline so closing stays
+prompt-free while **Save** remains available for the auto-filled pin
+(`PropertyLocationSettingsBlock.tsx`).

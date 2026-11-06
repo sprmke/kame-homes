@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { ClipboardList } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import {
@@ -10,6 +11,7 @@ import {
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useParkings } from '@/features/dashboard/org/hooks/useParkings';
 import type { PropertyProfileDraft } from '@/features/dashboard/org/lib/propertySettingsForm';
+import { orgParkingsPath } from '@/features/dashboard/org/lib/tenantPaths';
 
 import { FieldLabel } from '@/components/forms/FieldLabel';
 import { Button } from '@/components/ui/button';
@@ -27,15 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CLEANING_BUFFER_OPTIONS } from '@/lib/cleaningBuffer';
 import { cn } from '@/lib/utils';
-
-function cleaningBufferLabel(minutes: number): string {
-  return (
-    CLEANING_BUFFER_OPTIONS.find((option) => option.value === minutes)?.label ??
-    `${minutes} minutes`
-  );
-}
 
 function GuestFormToggleRow({
   id,
@@ -93,14 +87,13 @@ function guestFormSummaryParts(draft: PropertyProfileDraft): {
   if (draft.allowParking) enabled.push('Parking');
   if (draft.allowSurpriseDecor) enabled.push('Decor');
   if (draft.complimentaryOwnerParking && draft.allowParking) {
-    enabled.push('Complimentary parking');
+    enabled.push('Free own parking');
   }
 
   const primary =
     enabled.length > 0 ? enabled.join(' · ') : 'No optional guest form sections enabled';
 
-  const secondaryParts = [cleaningBufferLabel(draft.cleaningBufferMinutes)];
-  return { primary, secondary: secondaryParts.join(' · ') };
+  return { primary, secondary: '' };
 }
 
 export function PropertyGuestFormSettingsSummary({
@@ -148,6 +141,7 @@ function PropertyGuestFormSettingsFields({
   setField,
   resolveFieldError,
   activeParkings,
+  parkingsPath,
 }: {
   draft: PropertyProfileDraft;
   disabled?: boolean;
@@ -159,8 +153,10 @@ function PropertyGuestFormSettingsFields({
   ) => void;
   resolveFieldError: (fieldId: string) => string | null;
   activeParkings: { id: string; name: string }[];
+  parkingsPath: string;
 }) {
   const fieldError = resolveFieldError;
+  const canConfigureParking = draft.allowParking && activeParkings.length > 0;
 
   return (
     <>
@@ -173,6 +169,10 @@ function PropertyGuestFormSettingsFields({
           disabled={disabled}
           onCheckedChange={(value) => onChange('allowPets', value)}
         />
+
+        <p className="text-muted-foreground/90 pt-2 text-[11px] font-semibold uppercase tracking-wider">
+          Parking
+        </p>
         <GuestFormToggleRow
           id="guest-form-allow-parking"
           label="Allow Parking"
@@ -181,6 +181,58 @@ function PropertyGuestFormSettingsFields({
           disabled={disabled}
           onCheckedChange={(value) => onChange('allowParking', value)}
         />
+        {draft.allowParking && activeParkings.length === 0 ? (
+          <p className="text-muted-foreground text-xs leading-snug">
+            Add a parking slot in{' '}
+            <Link to={parkingsPath} className="text-primary font-medium hover:underline">
+              Parking
+            </Link>{' '}
+            to offer your own slots.
+          </p>
+        ) : null}
+        {canConfigureParking ? (
+          <>
+            <GuestFormToggleRow
+              id="guest-form-complimentary-owner-parking"
+              label="Free parking on your own slots"
+              help="Guests from this property who book one of your parking slots don't pay for it. Other hosts' slots are still paid."
+              checked={draft.complimentaryOwnerParking}
+              disabled={disabled}
+              onCheckedChange={(value) => onChange('complimentaryOwnerParking', value)}
+            />
+            <SettingsField
+              id="guest-form-preferred-owner-parking"
+              label="Preferred parking"
+              help="The slot we suggest first when you use Use your parking or share a parking link."
+              error={fieldError('guest-form-preferred-owner-parking')}
+            >
+              <Select
+                value={draft.preferredOwnerParkingId || '__none__'}
+                onValueChange={(value) =>
+                  setField(
+                    'preferredOwnerParkingId',
+                    value === '__none__' ? '' : value,
+                    'guest-form-preferred-owner-parking'
+                  )
+                }
+                disabled={disabled}
+              >
+                <SelectTrigger id="guest-form-preferred-owner-parking">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {activeParkings.map((parking) => (
+                    <SelectItem key={parking.id} value={parking.id}>
+                      {parking.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingsField>
+          </>
+        ) : null}
+
         <GuestFormToggleRow
           id="guest-form-allow-surprise-decor"
           label="Allow Surprise Decor"
@@ -189,80 +241,7 @@ function PropertyGuestFormSettingsFields({
           disabled={disabled}
           onCheckedChange={(value) => onChange('allowSurpriseDecor', value)}
         />
-        <GuestFormToggleRow
-          id="guest-form-complimentary-owner-parking"
-          label="Complimentary own parking"
-          help="Skip payment when guests book your org’s parking for this stay."
-          checked={draft.complimentaryOwnerParking}
-          disabled={disabled || !draft.allowParking}
-          onCheckedChange={(value) => onChange('complimentaryOwnerParking', value)}
-        />
       </div>
-
-      {activeParkings.length > 0 ? (
-        <SettingsField
-          id="guest-form-preferred-owner-parking"
-          label="Preferred parking"
-          error={fieldError('guest-form-preferred-owner-parking')}
-          className="mt-4"
-        >
-          <Select
-            value={draft.preferredOwnerParkingId || '__none__'}
-            onValueChange={(value) =>
-              setField(
-                'preferredOwnerParkingId',
-                value === '__none__' ? '' : value,
-                'guest-form-preferred-owner-parking'
-              )
-            }
-            disabled={disabled || !draft.allowParking}
-          >
-            <SelectTrigger id="guest-form-preferred-owner-parking">
-              <SelectValue placeholder="None" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">None</SelectItem>
-              {activeParkings.map((parking) => (
-                <SelectItem key={parking.id} value={parking.id}>
-                  {parking.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingsField>
-      ) : null}
-
-      <SettingsField
-        id="guest-form-cleaning-buffer"
-        label="Cleaning Time"
-        required
-        error={fieldError('guest-form-cleaning-buffer')}
-        help="Time needed to clean between a checkout and the next check-in on the same day."
-        className="mt-4"
-      >
-        <Select
-          value={String(draft.cleaningBufferMinutes)}
-          onValueChange={(value) =>
-            setField('cleaningBufferMinutes', Number(value), 'guest-form-cleaning-buffer')
-          }
-          disabled={disabled}
-        >
-          <SelectTrigger
-            id="guest-form-cleaning-buffer"
-            aria-invalid={Boolean(fieldError('guest-form-cleaning-buffer'))}
-            className={cn(fieldError('guest-form-cleaning-buffer') && 'border-destructive')}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CLEANING_BUFFER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </SettingsField>
     </>
   );
 }
@@ -278,7 +257,11 @@ export function PropertyGuestFormSettingsSection({
 }: {
   draft: PropertyProfileDraft;
   disabled?: boolean;
-  onChange: <K extends keyof PropertyProfileDraft>(key: K, value: PropertyProfileDraft[K]) => void;
+  onChange: <K extends keyof PropertyProfileDraft>(
+    key: K,
+    value: PropertyProfileDraft[K],
+    options?: { markEdited?: boolean }
+  ) => void;
   setField: <K extends keyof PropertyProfileDraft>(
     key: K,
     value: PropertyProfileDraft[K],
@@ -309,14 +292,15 @@ export function PropertyGuestFormSettingsSection({
   }, [activeParkings, draft.preferredOwnerParkingId]);
 
   // Heal stale preferred (deleted/inactive listing). Empty/"None" is allowed —
-  // create-parking backfills preferred when a listing is added.
+  // create-parking backfills preferred when a listing is added. Not a host edit:
+  // keep Save chrome and the leave prompt off.
   useEffect(() => {
     if (disabled || !firstActiveParkingId) return;
     const current = draft.preferredOwnerParkingId.trim();
     if (!current) return;
     if (activeParkings.some((p) => p.id === current)) return;
-    setField('preferredOwnerParkingId', firstActiveParkingId, 'guest-form-preferred-owner-parking');
-  }, [activeParkings, disabled, draft.preferredOwnerParkingId, firstActiveParkingId, setField]);
+    onChange('preferredOwnerParkingId', firstActiveParkingId, { markEdited: false });
+  }, [activeParkings, disabled, draft.preferredOwnerParkingId, firstActiveParkingId, onChange]);
 
   const fields = (
     <PropertyGuestFormSettingsFields
@@ -326,6 +310,7 @@ export function PropertyGuestFormSettingsSection({
       setField={setField}
       resolveFieldError={resolveFieldError}
       activeParkings={activeParkings}
+      parkingsPath={orgSlug ? orgParkingsPath(orgSlug) : '/org'}
     />
   );
 
@@ -335,7 +320,7 @@ export function PropertyGuestFormSettingsSection({
         id="guest-form"
         title="Guest Form"
         icon={ClipboardList}
-        description="Pets, parking, and decor on the booking form."
+        description="Optional requests guests can add: pets, parking, decor."
       >
         {fields}
       </AdminSection>
@@ -347,7 +332,7 @@ export function PropertyGuestFormSettingsSection({
       id="guest-form"
       title="Guest Form"
       icon={ClipboardList}
-      description="Pets, parking, and decor on the booking form."
+      description="Optional requests guests can add: pets, parking, decor."
     >
       <PropertyGuestFormSettingsSummary
         draft={draft}
@@ -380,7 +365,7 @@ export function PropertyGuestFormSettingsSection({
               className="min-h-[44px] w-full sm:ml-auto sm:w-auto"
               onClick={() => setManageOpen(false)}
             >
-              Save
+              Done
             </Button>
           </ResponsiveModalFooter>
         </ResponsiveModalContent>

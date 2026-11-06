@@ -25,6 +25,7 @@ it before claiming UI work done.
 ## Do not
 
 - Hand-roll `beforeunload`, `useBlocker`, `window.confirm`, or a per-feature "leave?" dialog.
+- Route a load-time normalization (unit-type defaults, stale preferred parking, initial map auto-locate) through `markFieldInteracted` or the default `onChange`; use `{ markEdited: false }` so opening the page never counts as an edit. See `docs/architecture/unsaved-changes.md`.
 - Call `setOpen(false)` directly from Cancel / X / Esc on a dirty modal (use `requestClose`).
 - Add `<BrowserRouter>`; the app uses `createBrowserRouter` so `useBlocker` works.
 

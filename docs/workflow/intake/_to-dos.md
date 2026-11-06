@@ -33,7 +33,7 @@ kind: backlog
   → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
 - 📋 Live identity verification to simplify real identity checks
   → **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
-- 🔵 Booking detail: email sent history, quick resend, and view sent email content.
+- 🚧 Booking detail: email sent history, quick resend, and view sent email content.
 - 🔵 Cleanup tasks
   - Cleanup unused settings and email templates related to Parking.
   - Clean up unused env variables.
@@ -51,7 +51,7 @@ kind: backlog
 - 🚧 Improve and refine default amenities and house rules
 - 🚧 Refine and improve cancellation policy options
   → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
-- Fix issue where google map is not rendering properly on both dashboard and public page
+- ✅ Fix issue where google map is not rendering properly on both dashboard and public page
 - ✅ Display warning message if user refresh the page when editing on a page (ex. Settings). Right now, we only display the default browser warning and not our custom popup modal warning
 - ✅ Cleanup usages of "—" on email templates and across the app. If we need to use it, then please ensure that we use the normal "-". But please analyze carefully if it's good UX to use - at all. Then make sure to apply all usages across the entire app that it's still using it. From UI, email templates and other locations that we are using it from our app.
 - Refine templates
@@ -65,6 +65,15 @@ kind: backlog
 - Refine landing page
 - ✅ Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
 - Refine Channel sync modal
+- Reposition light/dark switch
+- Improve paid/pro subscription badge/flow
+- Control for auto transition to ready for check-in status?
+- Refine edit booking detail page
+- Make sure updated with new changes and features that we have
+  - Subscriptions tier & validation
+  - Team access
+  - Updated tests (unit, e2e, integration)
+  - Updated guide docs for support Q/A and guides
 - Improve ? helper notes from tooltip to a new whole modal with detailed instruction and graphics/images
   - Pricing -> Channel Sync
 

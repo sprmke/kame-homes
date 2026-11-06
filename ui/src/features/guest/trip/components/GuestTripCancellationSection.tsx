@@ -319,7 +319,7 @@ export function GuestTripCancellationSection({
         <div className="bg-muted/40 mt-3 flex items-start gap-2 rounded-xl p-3 text-sm">
           <CalendarClock className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            {nextDeadline.refundPercent}% refund until{' '}
+            {nextDeadline.refundPercent}% of paid until{' '}
             <span className="font-medium">{formatManila(nextDeadline.deadlineIso)}</span>
           </span>
         </div>
@@ -327,7 +327,9 @@ export function GuestTripCancellationSection({
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-muted-foreground text-xs">If you cancel now</p>
+          <p className="text-muted-foreground text-xs">
+            {cancellation.canRequest ? 'If your host approves' : 'If you cancel now'}
+          </p>
           <p className="text-lg font-semibold">
             {cancellation.outcome.refundDuePhp > 0
               ? formatMoney(cancellation.outcome.refundDuePhp)

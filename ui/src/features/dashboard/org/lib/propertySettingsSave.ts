@@ -74,7 +74,6 @@ const FIELD_SECTIONS: Record<string, PropertySettingsSectionId> = {
   'gaf-owner-phone': 'building-forms',
   'gaf-owner-signature': 'building-forms',
   'email-reply-to': 'email-automations',
-  'parking-owner-emails': 'email-automations',
   'sd-lead-hours': 'email-automations',
   'sd-max-age': 'email-automations',
   'guest-form-allow-pets': 'guest-form',
@@ -82,7 +81,7 @@ const FIELD_SECTIONS: Record<string, PropertySettingsSectionId> = {
   'guest-form-allow-surprise-decor': 'guest-form',
   'guest-form-preferred-owner-parking': 'guest-form',
   'guest-form-complimentary-owner-parking': 'guest-form',
-  'guest-form-cleaning-buffer': 'guest-form',
+  'property-cleaning-buffer': 'details',
   'cancellation-policy': 'cancellation',
   'cancellation-custom-title': 'cancellation',
   'cancellation-custom-description': 'cancellation',
@@ -148,7 +147,8 @@ function detailsFieldsDirty(draft: PropertyProfileDraft, baseline: PropertyProfi
     draft.floors !== baseline.floors ||
     draft.checkInTime !== baseline.checkInTime ||
     draft.checkOutTime !== baseline.checkOutTime ||
-    draft.selfCheckIn !== baseline.selfCheckIn
+    draft.selfCheckIn !== baseline.selfCheckIn ||
+    draft.cleaningBufferMinutes !== baseline.cleaningBufferMinutes
   );
 }
 
@@ -213,8 +213,7 @@ export function propertySettingsSectionDirty(
         profileDraft.allowParking !== profileBaseline.allowParking ||
         profileDraft.allowSurpriseDecor !== profileBaseline.allowSurpriseDecor ||
         profileDraft.preferredOwnerParkingId !== profileBaseline.preferredOwnerParkingId ||
-        profileDraft.complimentaryOwnerParking !== profileBaseline.complimentaryOwnerParking ||
-        profileDraft.cleaningBufferMinutes !== profileBaseline.cleaningBufferMinutes
+        profileDraft.complimentaryOwnerParking !== profileBaseline.complimentaryOwnerParking
       );
     case 'cancellation':
       return !cancellationPolicyEqual(
@@ -270,8 +269,6 @@ export function propertySettingsSectionDirty(
         operationalDraft &&
         operationalBaseline &&
         (operationalDraft.emailReplyTo.trim() !== operationalBaseline.emailReplyTo.trim() ||
-          operationalDraft.parkingOwnerEmails.trim() !==
-            operationalBaseline.parkingOwnerEmails.trim() ||
           operationalDraft.sdRefundCronEmailLeadHours !==
             operationalBaseline.sdRefundCronEmailLeadHours ||
           operationalDraft.sdRefundCronMaxCheckoutAgeDays !==
@@ -396,6 +393,9 @@ function dirtyFieldIdsInSection(
       if (profileDraft.selfCheckIn !== profileBaseline.selfCheckIn) {
         ids.push('property-self-check-in');
       }
+      if (profileDraft.cleaningBufferMinutes !== profileBaseline.cleaningBufferMinutes) {
+        ids.push('property-cleaning-buffer');
+      }
       break;
     case 'cancellation': {
       const draftPolicy = profileDraft.cancellationPolicy;
@@ -420,9 +420,6 @@ function dirtyFieldIdsInSection(
       }
       if (profileDraft.complimentaryOwnerParking !== profileBaseline.complimentaryOwnerParking) {
         ids.push('guest-form-complimentary-owner-parking');
-      }
-      if (profileDraft.cleaningBufferMinutes !== profileBaseline.cleaningBufferMinutes) {
-        ids.push('guest-form-cleaning-buffer');
       }
       break;
     case 'location':
@@ -497,13 +494,6 @@ function dirtyFieldIdsInSection(
         operationalDraft.emailReplyTo.trim() !== operationalBaseline.emailReplyTo.trim()
       ) {
         ids.push('email-reply-to');
-      }
-      if (
-        operationalDraft &&
-        operationalBaseline &&
-        operationalDraft.parkingOwnerEmails.trim() !== operationalBaseline.parkingOwnerEmails.trim()
-      ) {
-        ids.push('parking-owner-emails');
       }
       if (
         operationalDraft &&
@@ -798,6 +788,7 @@ export function buildProfilePatchForSections(
     settings.checkInTime = fullSettings.checkInTime;
     settings.checkOutTime = fullSettings.checkOutTime;
     settings.selfCheckIn = fullSettings.selfCheckIn;
+    settings.cleaningBufferMinutes = fullSettings.cleaningBufferMinutes;
     hasSettings = true;
   }
   if (sectionSet.has('amenities')) {
@@ -855,7 +846,6 @@ export function buildProfilePatchForSections(
 
 export type AppSettingsPatchBody = {
   emailReplyTo?: string;
-  parkingOwnerEmails?: string;
   sdRefundCronEmailLeadHours?: number;
   sdRefundCronMaxCheckoutAgeDays?: number;
   automationToggles?: PropertyAutomationToggles;
@@ -913,7 +903,6 @@ export function buildAppSettingsPatchForSections(
   }
   if (sectionSet.has('email-automations')) {
     patch.emailReplyTo = draft.emailReplyTo;
-    patch.parkingOwnerEmails = draft.parkingOwnerEmails;
     patch.sdRefundCronEmailLeadHours = draft.sdRefundCronEmailLeadHours;
     patch.sdRefundCronMaxCheckoutAgeDays = draft.sdRefundCronMaxCheckoutAgeDays;
     patch.automationToggles = draft.automationToggles;
@@ -1058,7 +1047,6 @@ export function applySavedOperationalSections(
       ...next,
       emailTo: saved.emailTo,
       emailReplyTo: saved.emailReplyTo,
-      parkingOwnerEmails: saved.parkingOwnerEmails,
       sdRefundCronEmailLeadHours: saved.sdRefundCronEmailLeadHours,
       sdRefundCronMaxCheckoutAgeDays: saved.sdRefundCronMaxCheckoutAgeDays,
       defaultParkingRateGuest: saved.defaultParkingRateGuest,
