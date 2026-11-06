@@ -266,6 +266,24 @@ Adding a parking slot needs the Add parking permission. Owners always have it, a
 
 Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it is blocked if any bookings exist, so use Archive instead for units with past stays.
 
+### Why can't I restore my archived property?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 12
+
+Restore needs a verified listing and a current listing contract. A new listing has to be approved first, and an ended contract has to be renewed. The Danger Zone card tells you which one applies.
+
+### Can guests still book a property I archived?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 13
+
+No. The public page and its direct booking link stop taking new bookings. Guests who already booked keep their form, trip page, and stay guide.
+
 ### Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
 
 - category: Property Settings
@@ -309,7 +327,7 @@ Open Public Pages, then Stay Guide, then Edit, then Content. Expand a section to
 - source: docs/guides/routes/org/properties.md
 - order: 60
 
-No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist.
+No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist. Guests with a coming stay still get their form, trip page, and stay guide.
 
 ### Do I need a different Telegram bot for every notification module?
 
