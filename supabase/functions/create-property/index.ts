@@ -108,6 +108,7 @@ serveAuthenticated('create-property', async (req, user) => {
       name,
       slug,
       status: 'INACTIVE',
+      inactive_reason: 'pending_verification',
       tower,
       unit_number: unitNumber,
       tower_and_unit: towerAndUnit,

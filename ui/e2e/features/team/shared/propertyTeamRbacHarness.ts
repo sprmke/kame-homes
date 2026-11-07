@@ -119,20 +119,8 @@ export const FULL_ACCESS_PERMISSIONS = [
   'publicPages.stayGuide:edit',
   'publicPages.showcase:edit',
   'settings:view',
-  'settings.integrations:view',
   'settings.basicInfo:edit',
-  'settings.media:edit',
-  'settings.propertyDetails:edit',
-  'settings.amenities:edit',
-  'settings.houseRules:edit',
-  'settings.guestForm:edit',
-  'settings.cancellationPolicy:edit',
-  'settings.location:edit',
-  'settings.socials:edit',
-  'settings.payment:edit',
-  'settings.buildingForms:edit',
-  'settings.emailAutomations:edit',
-  'settings.dangerZone:edit',
+  'settings.listingStatus:edit',
   'team:view',
   'team.invitations:add',
   'team.members:edit',
@@ -200,7 +188,7 @@ export const READ_ONLY_PERMISSIONS = [
   'reviews:view',
 ] as const;
 
-export type TeamRbacTemplate = 'full_access' | 'operations' | 'read_only';
+export type TeamRbacTemplate = 'full_access' | 'operations' | 'read_only' | 'owner';
 
 export const teamRbacPaths = {
   /** Property dashboard index (KPI widgets — prefer `bookings` for shell/nav smoke). */
@@ -226,7 +214,7 @@ export const orgHubPaths = {
 } as const;
 
 function permissionsForTemplate(template: TeamRbacTemplate): readonly string[] {
-  if (template === 'full_access') return FULL_ACCESS_PERMISSIONS;
+  if (template === 'full_access' || template === 'owner') return FULL_ACCESS_PERMISSIONS;
   if (template === 'operations') return OPERATIONS_PERMISSIONS;
   return READ_ONLY_PERMISSIONS;
 }
@@ -324,9 +312,12 @@ function propertyList(multiProperty = false) {
   };
 }
 
-function propertyAccessPayload(permissions: readonly string[]) {
+function propertyAccessPayload(
+  permissions: readonly string[],
+  accessKind: 'member' | 'owner' = 'member'
+) {
   return {
-    accessKind: 'member' as const,
+    accessKind,
     permissions: [...permissions],
     memberId: 'member-team-e2e-001',
     propertyId: TEAM_E2E_PROPERTY_ID,
@@ -1245,8 +1236,70 @@ export async function installPropertyTeamRbacMocks(
         await fulfillJson(route, { success: true, data: { parkings: [] } });
         return;
       case 'property-access':
-        await fulfillJson(route, { success: true, data: propertyAccessPayload(permissions) });
+        await fulfillJson(route, {
+          success: true,
+          data: propertyAccessPayload(permissions, template === 'owner' ? 'owner' : 'member'),
+        });
         return;
+      case 'property-lifecycle': {
+        const lifecycle = {
+          propertyId: 'property-1',
+          name: 'Solea Mactan',
+          slug: 'solea-mactan',
+          state: 'live',
+          inactiveReason: null,
+          inactiveReasonLabel: null,
+          archivedAt: null,
+          pausedAt: null,
+          canHostActivate: true,
+          activationBlock: null,
+          allowedActions: ['pause', 'archive'],
+          canDelete: permissions.includes('settings.listingStatus:edit'),
+          acceptsNewBookings: true,
+        };
+        if (url.searchParams.get('impact') === '1') {
+          await fulfillJson(route, {
+            success: true,
+            data: {
+              lifecycle,
+              impact: {
+                propertyId: 'property-1',
+                state: 'live',
+                bookings: {
+                  blocking: [],
+                  blockingCount: 0,
+                  upcoming: 0,
+                  inHouse: 0,
+                  pendingSdRefunds: 0,
+                  history: 0,
+                },
+                cancellationRequestsOpen: 0,
+                refundsOpen: 0,
+                calendar: { importFeeds: 0, exportEnabled: false },
+                marketing: { scheduledPosts: 0 },
+                team: { members: 0, pendingInvitations: 0 },
+                subscription: { billed: false },
+                deleteBlockers: {
+                  total: 0,
+                  bookings: 0,
+                  finance: 0,
+                  maintenance: 0,
+                  importBatches: 0,
+                },
+                cascade: {
+                  inboxThreads: 0,
+                  reviews: 0,
+                  paymentTransactions: 0,
+                  marketingRecords: 0,
+                },
+              },
+            },
+          });
+          return;
+        }
+        await fulfillJson(route, { success: true, data: { lifecycle } });
+        return;
+      }
       case 'property-entitlements':
         await fulfillJson(route, {
           success: true,

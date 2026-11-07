@@ -85,6 +85,7 @@ import { useNotificationsList } from '@/features/dashboard/notifications/hooks/u
 import { ListingContractRenewalProvider } from '@/features/dashboard/org/components/listing-authorization/ListingContractRenewalProvider';
 import { ListingVerificationSidebarCta } from '@/features/dashboard/org/components/listing-authorization/ListingVerificationSidebarCta';
 import { OrgSettingsIssuesSync } from '@/features/dashboard/org/components/OrgSettingsIssuesSync';
+import { PropertyLifecycleBanner } from '@/features/dashboard/org/components/PropertyLifecycleBanner';
 import { SectionNavIssueDot } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 import {
   type OrgContextValue,
@@ -275,9 +276,16 @@ export function AdminLayout({ children, fillMain: fillMainProp = false }: Props)
 export function AdminLayoutOutlet() {
   return (
     <AdminLayout>
+      <PropertyLifecycleBannerSlot />
       <Outlet />
     </AdminLayout>
   );
+}
+
+/** Archived / paused / suspended banner. Org and parking shells have no property context. */
+function PropertyLifecycleBannerSlot() {
+  const tenant = useOptionalOrgContext();
+  return tenant ? <PropertyLifecycleBanner /> : null;
 }
 
 function AdminLayoutShell({ children, fillMain = false }: Props) {

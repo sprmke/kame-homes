@@ -49,21 +49,31 @@ test.describe('@ci parking guest and host outcomes', () => {
 
   test('host can decline a pending request and the guest sees the request close out', async ({
     page,
+    browser,
   }) => {
     setParkingScreenSuite('outcome-decline');
     const state = createParkingFlowState();
     await installParkingFlowMocks(page, state);
 
     await submitGuestParkingRequest(page, { skipScreens: true });
-    await page.goto(parkingFlowPaths.hostBookings);
-    await captureParkingScreen(page, 'host-bookings-list', { role: 'host' });
-    await page.getByRole('button', { name: 'Open booking for Jamie Park' }).click();
-    await captureParkingScreen(page, 'host-booking-detail-pending', { role: 'host' });
-    await page.getByRole('button', { name: parkingFlowLabels.decline }).click();
 
-    await expect(page.getByText('No host')).toBeVisible();
-    await expect(page.getByText('Request declined')).toBeVisible();
-    await captureParkingScreen(page, 'host-booking-declined', { role: 'host' });
+    // A fresh host context avoids restoring the guest page's persisted query cache.
+    const hostContext = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+    const hostPage = await hostContext.newPage();
+    try {
+      await installParkingFlowMocks(hostPage, state);
+      await hostPage.goto(parkingFlowPaths.hostBookings);
+      await captureParkingScreen(hostPage, 'host-bookings-list', { role: 'host' });
+      await hostPage.getByRole('button', { name: 'Open booking for Jamie Park' }).click();
+      await captureParkingScreen(hostPage, 'host-booking-detail-pending', { role: 'host' });
+      await hostPage.getByRole('button', { name: parkingFlowLabels.decline }).click();
+
+      await expect(hostPage.getByText('No host')).toBeVisible();
+      await expect(hostPage.getByText('Request declined')).toBeVisible();
+      await captureParkingScreen(hostPage, 'host-booking-declined', { role: 'host' });
+    } finally {
+      await hostContext.close();
+    }
 
     await page.goto(parkingFlowPaths.guestStatus);
     await expect(

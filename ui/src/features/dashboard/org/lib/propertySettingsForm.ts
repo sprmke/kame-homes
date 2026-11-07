@@ -355,7 +355,6 @@ export type PropertyProfileUpdatePayload = {
   residenceName?: string;
   address?: string;
   maxGuests?: number;
-  status?: 'ACTIVE' | 'INACTIVE';
   settings?: Record<string, unknown>;
   /** Page Editor autosave — server requires `publicPagesAutosave` plan feature. */
   publicPagesAutosaveGate?: boolean;
@@ -407,7 +406,6 @@ export function propertyProfileDraftToUpdatePayload(
 ): PropertyProfileUpdatePayload {
   const payload: PropertyProfileUpdatePayload = {
     propertyId,
-    status: draft.status,
   };
 
   const name = draft.name.trim();

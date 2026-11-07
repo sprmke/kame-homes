@@ -489,6 +489,14 @@ export function PropertyDetailPage() {
                 forceDesktopChrome ? 'block' : forceMobileChrome ? 'hidden' : '@5xl:block hidden'
               )}
             >
+              {propertyData.acceptingBookings === false ? (
+                <div className="border-warning/40 bg-warning/10 mb-3 rounded-lg border p-3">
+                  <p className="text-sm font-semibold">Not taking new bookings</p>
+                  <p className="text-muted-foreground text-xs">
+                    Contact the host if you want to plan a stay later.
+                  </p>
+                </div>
+              ) : null}
               <BookingCard
                 baseRate={propertyData.pricing.baseRate}
                 currency={propertyData.pricing.currency}
@@ -533,6 +541,7 @@ export function PropertyDetailPage() {
             baseRate={propertyData.pricing.baseRate}
             rating={showRatingInBooking ? (propertyData.rating ?? null) : null}
             reviews={propertyData.reviews ?? 0}
+            closed={propertyData.acceptingBookings === false}
             onReserve={reserve}
           />
         ) : null}
@@ -585,16 +594,23 @@ function PropertyReserveCta({
   baseRate,
   rating,
   reviews,
+  closed = false,
   onReserve,
 }: {
   editorPreview: boolean;
   baseRate: number;
   rating: number | null;
   reviews: number;
+  closed?: boolean;
   onReserve: () => void;
 }) {
   const reduceMotion = useReducedMotion();
-  const content = (
+  const content = closed ? (
+    <div className="min-w-0">
+      <p className="text-sm font-semibold">Not taking new bookings</p>
+      <p className="text-muted-foreground text-xs">Contact the host to plan a stay later.</p>
+    </div>
+  ) : (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-1">

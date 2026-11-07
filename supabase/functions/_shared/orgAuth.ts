@@ -45,6 +45,9 @@ export type AuthenticatedUser = {
   email: string;
 };
 
+/** Team leaves that change state — used for the archived read-only rule. */
+const MUTATING_TEAM_PERMISSION_RE = /:(edit|add|delete|manage)$/;
+
 export type OrgRow = {
   id: string;
   owner_id: string;
@@ -83,6 +86,10 @@ export type PropertyRow = {
   slug: string;
   type: string;
   status: string;
+  inactive_reason: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
+  paused_at: string | null;
   address: string | null;
   tower_and_unit: string | null;
   tower: string | null;
@@ -319,6 +326,20 @@ export async function verifyPropertyAccess(
 
   const orgRow = org as OrgRow;
   const propertyRow = property as PropertyRow;
+
+  // Archived is read-only for team members (owner / platform admin still manage it).
+  // Restoring needs the lifecycle leaf, which stays available so a member can undo the archive.
+  const archived = String(propertyRow.inactive_reason ?? '') === 'archived';
+  if (
+    archived &&
+    orgRow.owner_id !== user.id &&
+    !isPlatformAdmin(user.email) &&
+    requiredPermission &&
+    MUTATING_TEAM_PERMISSION_RE.test(requiredPermission) &&
+    requiredPermission !== 'settings.listingStatus:edit'
+  ) {
+    throw forbiddenResponse('This property is archived. Restore it to make changes.');
+  }
 
   if (orgRow.owner_id === user.id) {
     const ctx: PropertyAccessContext = {
@@ -1243,6 +1264,9 @@ export function serializeProperty(property: PropertyRow) {
     slug: property.slug,
     type: property.type,
     status: property.status,
+    inactiveReason: property.inactive_reason ?? null,
+    archivedAt: property.archived_at ?? null,
+    pausedAt: property.paused_at ?? null,
     address: property.address,
     towerAndUnit: property.tower_and_unit,
     tower: property.tower,

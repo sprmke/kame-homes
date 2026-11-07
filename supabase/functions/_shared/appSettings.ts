@@ -101,6 +101,9 @@ export type GuestPaymentInfoDto = {
   petFee: number;
   /** Flat per-booking down payment (`app_settings.default_down_payment`). */
   downPayment: number;
+  /** Listing lifecycle state — drives the guest "not taking bookings" screen. */
+  listingState: 'pending_verification' | 'live' | 'paused' | 'suspended' | 'archived';
+  acceptingBookings: boolean;
 } & GafDetailsResolved;
 
 export type AppSettingsFieldSource = 'db' | 'default';
@@ -136,6 +139,10 @@ import { loadDevelopmentPmoEmailByName } from './developmentSerialize.ts';
 import { resolveGuestFormSettings } from './guestFormSettings.ts';
 import { getDefaultPropertyId } from './propertyScope.ts';
 import { loadPropertyPricing } from './propertyPricing.ts';
+import {
+  resolvePropertyLifecycleState,
+  stateAcceptsNewBookings,
+} from './propertyLifecycleState.ts';
 import { resolvePublicGuestAppOrigin } from './publicAppOrigin.ts';
 import {
   DEFAULT_PAYMENT_PROVIDER,
@@ -526,13 +533,25 @@ export async function serializeGuestPaymentInfo(
   propertyId?: string | null
 ): Promise<GuestPaymentInfoDto> {
   const resolvedPropertyId = propertyId ?? (await getDefaultPropertyId());
-  const [s, guestForm, pricing] = await Promise.all([
+  const [s, guestForm, pricing, lifecycleRow] = await Promise.all([
     resolveAppSettings(resolvedPropertyId),
     resolveGuestFormSettings(resolvedPropertyId),
     loadPropertyPricing(resolvedPropertyId),
+    createServiceClient()
+      .from('properties')
+      .select('status, inactive_reason')
+      .eq('id', resolvedPropertyId)
+      .maybeSingle(),
   ]);
 
+  const listingState = resolvePropertyLifecycleState({
+    status: (lifecycleRow.data?.status as string | null) ?? null,
+    inactive_reason: (lifecycleRow.data?.inactive_reason as string | null) ?? null,
+  });
+
   return {
+    listingState,
+    acceptingBookings: stateAcceptsNewBookings(listingState),
     gcashName: s.gcashName,
     gcashNumber: s.gcashNumber,
     gcashQrImageUrl: s.gcashQrImageUrl,

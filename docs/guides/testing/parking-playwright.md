@@ -11,49 +11,56 @@ Feature-scoped Playwright coverage for the standalone parking marketplace flow (
 
 ## Scope
 
-| Spec                                            | What it covers                                                                                   |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `guest/parkingGuestRequest.spec.ts`             | Guest submit → waiting screen; mocked payment after accept                                       |
-| `guest/parkingMarketplaceEdgeCases.spec.ts`     | `no_parking_available`; stay picker + **`linkStay` auto-select**                                 |
-| `guest/guestFormParkingCta.spec.ts`             | Guest form success → **Need parking?** CTA links to `/parkings`                                  |
-| `host/parkingHostClaim.spec.ts`                 | Host accept → **Awaiting Payment** (Phase 3)                                                     |
-| `host/parkingHostNewBooking.spec.ts`            | Host **New booking** modal on parking dashboard                                                  |
-| `flows/parkingGuestHostOutcomes.spec.ts`        | Expire, decline, cancel while searching                                                          |
-| `flows/parkingGuestHostSideBySide.spec.ts`      | **Two-window demo** — full happy path, decline, cancel after accept, direct link                 |
-| `legacy/payParkingFlow.spec.ts`                 | Legacy `/properties/:slug/parking/:bookingId` **redirects** to find/`linkStay` or request status |
-| `property/propertyBookingLinkedParking.spec.ts` | Parking panel match + host **Find parking** popup (`linkStay` or linked request)                 |
-| `live/parkingGuestHostLocal.spec.ts`            | Local Supabase accept path (requires `./dev.sh`)                                                 |
-| `shared/parkingFlowHarness.ts`                  | Shared mocks + helpers                                                                           |
-| `shared/payParkingFlowHarness.ts`               | Legacy pay-parking redirect mocks                                                                |
-| `shared/propertyBookingParkingHarness.ts`       | Property booking + linked parking + owner-default mocks                                          |
-| `shared/parkingLiveLocalHarness.ts`             | Local stack helpers                                                                              |
-| `shared/parkingSideBySideHelpers.ts`            | Side-by-side browser launch + demo pacing                                                        |
+| Spec                                            | What it covers                                                                                                              |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `guest/parkingGuestRequest.spec.ts`             | Guest submit → waiting screen; mocked payment after accept                                                                  |
+| `guest/parkingMarketplaceEdgeCases.spec.ts`     | `no_parking_available`; stay picker + **`linkStay` auto-select**                                                            |
+| `guest/guestFormParkingCta.spec.ts`             | Guest form success → **Need parking?** CTA links to `/parkings`                                                             |
+| `host/parkingHostClaim.spec.ts`                 | Host accept → **Awaiting Payment** (Phase 3)                                                                                |
+| `host/parkingHostNewBooking.spec.ts`            | Host **New booking** modal on parking dashboard                                                                             |
+| `flows/parkingGuestHostOutcomes.spec.ts`        | Expire, decline, cancel while searching                                                                                     |
+| `flows/parkingGuestHostSideBySide.spec.ts`      | **Two-window demo** — full happy path, decline, cancel after accept, direct link                                            |
+| `flows/parkingGuestHostExtraScenarios.spec.ts`  | **Two-window extras** — auto-accept, free own slot, payment expiry resume, cancel while searching, endorsement retry + chat |
+| `legacy/payParkingFlow.spec.ts`                 | Legacy `/properties/:slug/parking/:bookingId` **redirects** to find/`linkStay` or request status                            |
+| `property/propertyBookingLinkedParking.spec.ts` | Parking panel match + host **Find parking** popup (`linkStay` or linked request)                                            |
+| `live/parkingGuestHostLocal.spec.ts`            | Local Supabase accept path (requires `./dev.sh`)                                                                            |
+| `shared/parkingFlowHarness.ts`                  | Shared mocks + helpers                                                                                                      |
+| `shared/payParkingFlowHarness.ts`               | Legacy pay-parking redirect mocks                                                                                           |
+| `shared/propertyBookingParkingHarness.ts`       | Property booking + linked parking + owner-default mocks                                                                     |
+| `shared/parkingLiveLocalHarness.ts`             | Local stack helpers                                                                                                         |
+| `shared/parkingSideBySideHelpers.ts`            | Side-by-side browser launch + demo pacing                                                                                   |
 
 ## Coverage matrix
 
-| Scenario                                                     | Spec                                      | Notes                                                          |
-| ------------------------------------------------------------ | ----------------------------------------- | -------------------------------------------------------------- |
-| Marketplace submit → host accept → guest pay → complete      | Side-by-side + `parkingGuestRequest`      | Payment mocked via `create-parking-payment-checkout`           |
-| Host decline / request expire / guest cancel while searching | `parkingGuestHostOutcomes` + side-by-side |                                                                |
-| Cancel after host accept (awaiting payment)                  | Side-by-side                              |                                                                |
-| Direct booking link (`?dl=`)                                 | Side-by-side                              | Host pricing card + guest form                                 |
-| `no_parking_available` on submit                             | `parkingMarketplaceEdgeCases`             |                                                                |
-| Link marketplace request to property stay                    | `parkingMarketplaceEdgeCases`             | Manual stay picker                                             |
-| Host-shared `linkStay` auto-selects stay                     | `parkingMarketplaceEdgeCases`             | Confirm step without tapping stay card                         |
-| Guest form success → find parking CTA                        | `guestFormParkingCta`                     | Post-submit when `needParking: true`                           |
-| Legacy pay-parking → marketplace find / linked request       | `payParkingFlow`                          | Redirect-only; vehicle form retired                            |
-| Property booking linked parking panel                        | `propertyBookingLinkedParking`            | Host sees match status + host contact, not legacy owner fields |
-| Host **Find parking** → `linkStay` / linked request popup    | `propertyBookingLinkedParking`            | Unlinked vs already matched                                    |
-| Host new parking booking modal                               | `parkingHostNewBooking`                   |                                                                |
-| Real local Supabase submit + accept                          | `parkingGuestHostLocal`                   | No guest auth / no PayMongo yet                                |
+| Scenario                                                     | Spec                                       | Notes                                                          |
+| ------------------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------- |
+| Marketplace submit → host accept → guest pay → complete      | Side-by-side + `parkingGuestRequest`       | Payment mocked via `create-parking-payment-checkout`           |
+| Host decline / request expire / guest cancel while searching | `parkingGuestHostOutcomes` + side-by-side  |                                                                |
+| Cancel after host accept (awaiting payment)                  | Side-by-side                               |                                                                |
+| Direct booking link (`?dl=`)                                 | Side-by-side                               | Host pricing card + guest form                                 |
+| Auto-accept top match                                        | Extra side-by-side + `parkingGuestRequest` | No host click; guest lands on pay-to-confirm                   |
+| Free parking on the host own slot                            | Extra side-by-side                         | Linked stay, no PayMongo, confirms instantly                   |
+| Payment window expiry → next batch                           | Extra side-by-side                         | Guest returns to searching; host can accept again              |
+| Cancel while searching → host list updates                   | Extra side-by-side                         | Fresh host context avoids the persisted query cache            |
+| Endorsement send failure → Retry → chat                      | Extra side-by-side                         | Failure copy, Retry, host contact, chat thread                 |
+| Host cancels a paid booking                                  | Extra side-by-side                         | Host Cancel action, then guest sees Request cancelled          |
+| Losing the claim race                                        | Extra side-by-side                         | 409 already_claimed toast, Accept removed, request moves on    |
+| Payment window closes before paying                          | `parkingGuestRequest`                      | 409 on Pay now, toast, search resumes in batch 2               |
+| Host sees guest contact and vehicle details                  | `parkingHostClaim`                         | Email, phone, plate, and vehicle on the request detail         |
+| `no_parking_available` on submit                             | `parkingMarketplaceEdgeCases`              |                                                                |
+| Link marketplace request to property stay                    | `parkingMarketplaceEdgeCases`              | Manual stay picker                                             |
+| Host-shared `linkStay` auto-selects stay                     | `parkingMarketplaceEdgeCases`              | Confirm step without tapping stay card                         |
+| Guest form success → find parking CTA                        | `guestFormParkingCta`                      | Post-submit when `needParking: true`                           |
+| Legacy pay-parking → marketplace find / linked request       | `payParkingFlow`                           | Redirect-only; vehicle form retired                            |
+| Property booking linked parking panel                        | `propertyBookingLinkedParking`             | Host sees match status + host contact, not legacy owner fields |
+| Host **Find parking** → `linkStay` / linked request popup    | `propertyBookingLinkedParking`             | Unlinked vs already matched                                    |
+| Host new parking booking modal                               | `parkingHostNewBooking`                    |                                                                |
+| Real local Supabase submit + accept                          | `parkingGuestHostLocal`                    | No guest auth / no PayMongo yet                                |
 
 ### Intentional gaps (not automated)
 
 - Real PayMongo Payment Link + webhook settlement
-- Payment window expiry / resume-search UX
-- Endorsement resend button
 - IP/device anti-spam, super-admin payout ledger
-- Guest chat sheet open assertion (mock exists; not asserted in chromium-only specs)
 - Seeded guest account on local live stack (use mocked suite for full guest flows)
 
 ## Runner setup
@@ -63,6 +70,7 @@ Feature-scoped Playwright coverage for the standalone parking marketplace flow (
   - `bun run test:e2e:parking` — mocked chromium suite (excludes live local)
   - `bun run test:e2e:parking:headed`
   - `bun run test:e2e:parking:side-by-side` — **two headed windows** (guest + host)
+  - `bun run test:e2e:parking:side-by-side:headless` — same two-context flow without windows (CI / restricted machines)
   - `bun run test:e2e:parking:side-by-side:slow`
   - `bun run test:e2e:parking:side-by-side:video` / `:slow:video`
   - `bun run test:e2e:parking:free-workflow` / `:headed` / `:slow` / `:slow:video` — Free-tier manual Automation Triggers
@@ -101,6 +109,13 @@ Both windows share the same mocked parking-request state, so host actions update
 | Host decline        | Guest waiting → host decline → guest no-host                                              |
 | Cancel after accept | Guest awaiting payment → cancel request                                                   |
 | Direct link         | Host pricing card + guest submit via `?dl=` token                                         |
+| Auto-accept         | Host setting claims the top match; guest pays without an Accept click                     |
+| Free own slot       | Linked stay + free own parking confirms with no PayMongo                                  |
+| Payment expiry      | Payment window closes, search resumes in batch 2, host accepts again                      |
+| Cancel searching    | Guest cancels before accept; a new host session sees the cancelled request                |
+| Endorsement retry   | PMO send fails, guest taps Retry, host contact and chat appear                            |
+| Host cancel paid    | Host cancels after payment; guest sees Request cancelled                                  |
+| Claim race          | Second host gets Already claimed; the request moves to Awaiting payment                   |
 
 ### Slow / demo pacing
 
@@ -149,7 +164,7 @@ PLAYWRIGHT_INSPECT=1 bun run test:e2e:parking:side-by-side
 - **Phase 8:** `parking-pricing` (direct link token), `directLinkToken` on submit
 - **Property admin shell:** `list-organizations`, `list-properties`, `property-access`, `property-entitlements`, `get-booking-ai-review`, `get-booking-ai-assistant-audit`, `notifications-list`, `guest_submissions` REST
 
-Claim sets **`PENDING_PAYMENT`** (not `PENDING_REVIEW`). Payment mock flips to **`PENDING_REVIEW`** with endorsement sent + host contact reveal.
+Claim sets **`PENDING_PAYMENT`** (not `PENDING_REVIEW`). Payment mock flips to **`PENDING_REVIEW`** with endorsement sent + host contact reveal. The extra scenarios also model auto-accept (`PENDING_PAYMENT` without a claim click), complimentary own parking (`PENDING_REVIEW` at ₱0), payment expiry (back to `PENDING_HOST_ACCEPTANCE`, batch 2), and a failed endorsement (`endorsementSendError`, host contact hidden until Retry).
 
 ## Local Supabase-backed flow
 

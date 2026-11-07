@@ -125,6 +125,10 @@ checklist and main button never disagree.
 
 ### Phase
 
+- **Listing state:** the trip portal, documents, cancellation, refunds, and chat keep working when the
+  listing is paused, suspended, or archived. The public listing link and stay guide depend on the
+  listing, so a closed listing may show a "not taking new bookings" page or hide the listing action.
+
 `guestTripPhase(status, Manila timing)`: `requested` (pending review) · `confirmed` (documents
 stage) · `arriving` · `arrival_day` (check-in day, including night 1) · `staying` ·
 `checkout_day` · `checked_out` · `refund_pending` · `completed` · `cancelled`.

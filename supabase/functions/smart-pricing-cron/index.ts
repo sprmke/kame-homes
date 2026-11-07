@@ -16,6 +16,7 @@ import { verifyCronSecret } from '../_shared/cronSecretGate.ts';
 import { serveCronPost } from '../_shared/serveEdge.ts';
 import { resolveOrgIdForProperty } from '../_shared/aiUsageService.ts';
 import { manilaTodayYmd } from '../_shared/calendarAvailabilityManila.ts';
+import { automationAllowed, loadPropertyLifecycleStates } from '../_shared/propertyLifecycle.ts';
 import { maybeRunSmartPricingAi } from '../_shared/smartPricingAi.ts';
 import { capturePostHogEvent } from '../_shared/posthog.ts';
 import {
@@ -68,11 +69,23 @@ serveCronPost('smart-pricing-cron', cronSecretOk, async () => {
   let applied = 0;
   let notified = 0;
   let skippedNotEntitled = 0;
+  let skippedLifecycle = 0;
   const errors: Array<{ propertyId: string; error: string }> = [];
+
+  const lifecycleStates = await loadPropertyLifecycleStates(
+    (rows ?? []).map((row) => row.property_id as string)
+  );
 
   for (const row of rows ?? []) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
     const propertyId = row.property_id as string;
+
+    // Paused keeps pricing on (prices apply when it resumes). Suspended / archived stop.
+    const lifecycleState = lifecycleStates.get(propertyId) ?? 'archived';
+    if (!automationAllowed(lifecycleState, 'smart_pricing')) {
+      skippedLifecycle += 1;
+      continue;
+    }
 
     try {
       const entitlements = await resolvePropertyEntitlements(propertyId);
@@ -141,6 +154,7 @@ serveCronPost('smart-pricing-cron', cronSecretOk, async () => {
     applied,
     notified,
     skippedNotEntitled,
+    skippedLifecycle,
     errors,
   };
 });

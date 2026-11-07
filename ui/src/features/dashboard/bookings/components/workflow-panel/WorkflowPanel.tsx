@@ -95,7 +95,10 @@ import {
   type BookingWorkflowEmailKind,
 } from '@/features/dashboard/bookings/lib/bookingWorkflowEmail';
 import { DEFAULT_DOCUMENT_REQUIREMENTS } from '@/features/dashboard/bookings/lib/documentRequirements';
-import { pendingDocStepUsesApprovalModal } from '@/features/dashboard/bookings/lib/pendingDocApproval';
+import {
+  approvedPdfUrlForDocStep,
+  pendingDocStepUsesApprovalModal,
+} from '@/features/dashboard/bookings/lib/pendingDocApproval';
 import type { BookingRow } from '@/features/dashboard/bookings/lib/types';
 import {
   defaultPendingDocNestedKey,
@@ -319,6 +322,7 @@ function WorkflowPanelInner({
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [docApprovalModalSub, setDocApprovalModalSub] = useState<PendingDocNestedKey | null>(null);
   const [docRejectSub, setDocRejectSub] = useState<PendingDocNestedKey | null>(null);
+  const [recheckDocSub, setRecheckDocSub] = useState<PendingDocNestedKey | null>(null);
   const kanbanAutoConfirmKeyRef = useRef<string | null>(null);
 
   const transitionMut = useTransitionBooking();
@@ -485,6 +489,31 @@ function WorkflowPanelInner({
       toast.error('Could not copy to clipboard');
     }
   }, [sdGuestFormUrl]);
+
+  const recheckPendingDoc = useCallback(
+    async (sub: PendingDocNestedKey) => {
+      if (recheckDocSub) return;
+      const before = approvedPdfUrlForDocStep(booking, sub, documentRequirements);
+      setRecheckDocSub(sub);
+      try {
+        await queryClient.refetchQueries({ queryKey: BOOKING_QUERY_KEY(booking.id) });
+        const data = queryClient.getQueryData<BookingRow | null>(BOOKING_QUERY_KEY(booking.id));
+        const after = data ? approvedPdfUrlForDocStep(data, sub, documentRequirements) : before;
+        if (after && after !== before) {
+          toast.success('Approved document received');
+        } else if (before) {
+          toast.message('Approval is up to date');
+        } else {
+          toast.message('No new approval yet');
+        }
+      } catch (err) {
+        toast.error(friendlyToastError(err, 'Could not check for updates'));
+      } finally {
+        setRecheckDocSub(null);
+      }
+    },
+    [booking, documentRequirements, queryClient, recheckDocSub]
+  );
 
   const recheckGuestSdSubmission = useCallback(async () => {
     const before = booking.status;
@@ -835,6 +864,7 @@ function WorkflowPanelInner({
           canUploadDocs={canMutate && !workflowActions.contentReadOnly}
           onUploadApprovalDoc={setDocApprovalModalSub}
           onRejectApprovalDoc={setDocRejectSub}
+          onRecheckApprovalDoc={recheckPendingDoc}
           pricingValues={subFormDrafts.pricingValues}
           onPricingChange={subFormDrafts.setPricingValues}
           propertyPricingLoaded={propertyPricingLoaded}
@@ -888,6 +918,7 @@ function WorkflowPanelInner({
               canUploadDocs={canMutate && !workflowActions.contentReadOnly}
               onUploadApprovalDoc={setDocApprovalModalSub}
               onRejectApprovalDoc={setDocRejectSub}
+              onRecheckApprovalDoc={recheckPendingDoc}
               pricingValues={subFormDrafts.pricingValues}
               onPricingChange={subFormDrafts.setPricingValues}
               propertyPricingLoaded={propertyPricingLoaded}

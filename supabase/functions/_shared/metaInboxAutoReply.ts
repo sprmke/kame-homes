@@ -22,6 +22,7 @@ import {
   updateConversationAfterMessage,
 } from './socialInboxService.ts';
 import { isFeatureAvailable } from './featureAvailability.ts';
+import { automationAllowed, loadPropertyLifecycleStates } from './propertyLifecycle.ts';
 import { capturePostHogEvent } from './posthog.ts';
 import type { SocialPlatform } from './socialInboxTypes.ts';
 
@@ -42,6 +43,18 @@ export async function maybeAutoReplyToInboundDm(
   const conv = await getConversationByExternalThread(orgId, platform, threadId);
   if (!conv || conv.conversation_type !== 'dm') return;
   if (isAutoReplyPausedByHandoff(conv)) return;
+
+  // Archived / suspended / unverified listings stop the AI auto-reply. Paused keeps it,
+  // and the reply context can say the listing is not taking bookings.
+  const propertyId = (conv.property_id as string | null) ?? null;
+  if (propertyId) {
+    const lifecycleStates = await loadPropertyLifecycleStates([propertyId]);
+    if (!automationAllowed(lifecycleStates.get(propertyId) ?? 'archived', 'inbox_ai_auto_reply')) {
+      console.log('[metaInboxAutoReply] skipped: listing lifecycle does not allow auto-reply');
+      return;
+    }
+  }
+
   if (!isWithinMessagingWindowFromInbound(conv.last_inbound_at)) return;
   if (!(await isAutoReplyEntitled(orgId, (conv.property_id as string | null) ?? null))) return;
 

@@ -5010,7 +5010,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'propose_update_property_profile',
     description:
-      'Update a property profile (name, address, max guests, status, tower/unit, or residence name). Requires the matching settings.* permission. For amenities, house rules, cancellation policy, or capacity/contact details use propose_update_property_settings instead.',
+      'Update a property profile (name, address, max guests, tower/unit, or residence name). Requires the matching settings.* permission. For amenities, house rules, cancellation policy, or capacity/contact details use propose_update_property_settings instead. Listing status (pause, archive, restore) is not editable here.',
     parameters: {
       type: 'object',
       properties: {
@@ -5018,7 +5018,6 @@ export const TOOL_DECLARATIONS = [
         name: { type: 'string' },
         address: { type: 'string' },
         maxGuests: { type: 'number' },
-        status: { type: 'string', enum: ['ACTIVE', 'INACTIVE'] },
         tower: { type: 'string' },
         unitNumber: { type: 'string' },
         residenceName: { type: 'string' },

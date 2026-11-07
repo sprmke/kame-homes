@@ -59,6 +59,7 @@ type Props = {
   canUploadDocs?: boolean;
   onUploadApprovalDoc?: (sub: PendingDocNestedKey) => void;
   onRejectApprovalDoc?: (sub: PendingDocNestedKey) => void;
+  onRecheckApprovalDoc?: (sub: PendingDocNestedKey) => void;
 
   // Pricing sub-form
   pricingValues: ReviewPricingFormValues | null;
@@ -105,6 +106,7 @@ export function WorkflowSubFormHost({
   canUploadDocs = false,
   onUploadApprovalDoc,
   onRejectApprovalDoc,
+  onRecheckApprovalDoc,
   pricingValues,
   onPricingChange,
   propertyPricingLoaded,
@@ -232,6 +234,7 @@ export function WorkflowSubFormHost({
           canUpload={canUploadDocs}
           onUpload={onUploadApprovalDoc}
           onReject={onRejectApprovalDoc}
+          onRecheck={onRecheckApprovalDoc}
           onPreview={onPreview}
         />
       )}

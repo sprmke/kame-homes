@@ -4,13 +4,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import dayjs from 'dayjs';
-import {
-  Upload,
-  Settings,
-  ClipboardPaste,
-  PartyPopper,
-  User,
-} from 'lucide-react';
+import { Upload, Settings, ClipboardPaste, PartyPopper, User } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -26,6 +20,7 @@ import {
   maxAllowedCheckOutTime,
   minAllowedCheckInTime,
 } from '@/features/guest/calendar/lib/guestCalendarAvailability';
+import { GuestBookingsClosedNotice } from '@/features/guest/form/components/GuestBookingsClosedNotice';
 import { GuestFormGuestsSection } from '@/features/guest/form/components/GuestFormGuestsSection';
 import {
   GuestFormInfoCallout,
@@ -1142,10 +1137,10 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         if (errorData.error === 'policy_changed') {
           setCancellationAccepted(false);
           await refetchPublicProperty();
-          toast.error('The host updated the cancellation policy. Review it and tick the box again.');
-          throw new Error(
-            'The cancellation policy changed. Review the new terms and try again.'
+          toast.error(
+            'The host updated the cancellation policy. Review it and tick the box again.'
           );
+          throw new Error('The cancellation policy changed. Review the new terms and try again.');
         }
         throw new Error(
           errorData.error ||
@@ -1282,7 +1277,10 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
           id: 'property-closed',
           duration: 7000,
         });
-      } else if (errorMessage.includes('BOOKING_OVERLAP') || errorMessage.includes('already booked')) {
+      } else if (
+        errorMessage.includes('BOOKING_OVERLAP') ||
+        errorMessage.includes('already booked')
+      ) {
         // Show prominent warning toast for booking overlap
         toast.error('Those dates are already booked', {
           id: 'booking-error',
@@ -1605,6 +1603,23 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
         <h2 className="text-destructive text-lg font-bold sm:text-xl">Link unavailable</h2>
         <p className="text-muted-foreground max-w-md text-sm">{completionError}</p>
       </div>
+    );
+  }
+
+  // A new booking on a listing that is paused, archived, suspended or waiting for approval.
+  // Editing an existing booking (`bookingId`) stays open: guests keep their stay.
+  if (
+    !bookingId &&
+    !isCompletionMode &&
+    guestPaymentInfoFetched &&
+    !guestPaymentInfoPlaceholder &&
+    guestPaymentInfo.acceptingBookings === false
+  ) {
+    return (
+      <GuestBookingsClosedNotice
+        propertyName={guestPaymentInfo.propertyName}
+        organizationName={guestPaymentInfo.organizationName}
+      />
     );
   }
 

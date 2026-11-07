@@ -26,6 +26,7 @@ import {
   mintGeminiLiveEphemeralToken,
 } from '../_shared/geminiLiveEphemeral.ts';
 import { resolvePropertyGuestName } from '../_shared/propertyGuestName.ts';
+import { automationAllowed, resolvePropertyLifecycleState } from '../_shared/propertyLifecycle.ts';
 import { buildGuestReceptionistContext } from '../_shared/guestReceptionistContext.ts';
 import { VOICE_RECEPTIONIST_TOOL_DECLARATIONS } from '../_shared/voiceReceptionistTool.ts';
 import {
@@ -81,12 +82,22 @@ serveAuthenticated('voice-receptionist-start', async (req, user) => {
       getGlobalVoiceReceptionistSettings(),
       sb
         .from('properties')
-        .select('id, organization_id, name, tower, unit_number, tower_and_unit')
+        .select(
+          'id, organization_id, name, tower, unit_number, tower_and_unit, status, inactive_reason'
+        )
         .eq('slug', propertySlug)
-        .eq('status', 'ACTIVE')
         .maybeSingle(),
     ]);
     if (propertyError || !propertyRow) {
+      return jsonError(req, 'Property not found', 404);
+    }
+    // Paused keeps the receptionist (the listing is still public). Suspended, archived and
+    // unverified listings do not take calls for new bookings.
+    const lifecycleState = resolvePropertyLifecycleState({
+      status: (propertyRow.status as string | null) ?? null,
+      inactive_reason: (propertyRow.inactive_reason as string | null) ?? null,
+    });
+    if (!automationAllowed(lifecycleState, 'voice_receptionist')) {
       return jsonError(req, 'Property not found', 404);
     }
     const propertyId = propertyRow.id as string;

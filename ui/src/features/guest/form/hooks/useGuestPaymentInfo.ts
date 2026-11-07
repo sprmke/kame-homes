@@ -49,6 +49,9 @@ export type GuestPaymentInfo = {
   petFee: number;
   /** Property Default down payment (flat, per booking). */
   downPayment: number;
+  /** Listing lifecycle state. Anything other than `live` blocks a new booking. */
+  listingState: 'pending_verification' | 'live' | 'paused' | 'suspended' | 'archived';
+  acceptingBookings: boolean;
 };
 
 export const DEFAULT_GUEST_PAYMENT_INFO: GuestPaymentInfo = {
@@ -79,6 +82,8 @@ export const DEFAULT_GUEST_PAYMENT_INFO: GuestPaymentInfo = {
   defaultParkingRateGuest: 400,
   petFee: 300,
   downPayment: 1500,
+  listingState: 'live',
+  acceptingBookings: true,
 };
 
 function guestPaymentInfoUrl(propertySlug: string | null): string {

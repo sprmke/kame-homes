@@ -52,6 +52,10 @@ export type Property = {
   slug: string;
   type: string;
   status: string;
+  /** Why the listing is inactive. Null when live. */
+  inactiveReason?: string | null;
+  archivedAt?: string | null;
+  pausedAt?: string | null;
   address: string | null;
   towerAndUnit: string | null;
   tower: string | null;

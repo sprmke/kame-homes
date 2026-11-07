@@ -721,6 +721,13 @@ static_files = [
 
 [functions.delete-property]
 verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.property-lifecycle]
+verify_jwt = false
 
 [functions.create-parking]
 verify_jwt = false

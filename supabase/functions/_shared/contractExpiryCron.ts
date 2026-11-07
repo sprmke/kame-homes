@@ -51,6 +51,7 @@ type ListingRow = {
   id: string;
   name: string;
   status: string;
+  inactive_reason?: string | null;
   organization_id: string;
   settings: Record<string, unknown> | null;
 };
@@ -84,22 +85,49 @@ async function persistLifecycle(
   target.listing.settings = settings;
 }
 
-/** Archive this listing only. */
+/** Archive this listing only. Parkings have no inactive_reason column yet (P7 parity). */
 async function setListingInactive(
   supabase: SupabaseClient,
   target: ListingTarget
 ): Promise<number> {
-  if (target.listing.status !== 'ACTIVE') return 0;
+  const table = listingTableForKind(target.listingKind);
+
+  if (target.listingKind === 'parking') {
+    if (target.listing.status !== 'ACTIVE') return 0;
+    const { data, error } = await supabase
+      .from(table)
+      .update({ status: 'INACTIVE' })
+      .eq('id', target.listing.id)
+      .eq('status', 'ACTIVE')
+      .select('id')
+      .limit(1);
+    if (error) {
+      throw new Error(`Failed to archive listing ${target.listing.id}: ${error.message}`);
+    }
+    if (data?.length) target.listing.status = 'INACTIVE';
+    return data?.length ?? 0;
+  }
+
+  // Properties record why they are inactive. A paused listing lapses into suspended; an
+  // archived listing is never touched (the host retired it and lapse email is skipped).
+  if (String(target.listing.inactive_reason ?? '') === 'archived') return 0;
+
   const { data, error } = await supabase
-    .from(listingTableForKind(target.listingKind))
-    .update({ status: 'INACTIVE' })
+    .from(table)
+    .update({ status: 'INACTIVE', inactive_reason: 'contract_lapsed', paused_at: null })
     .eq('id', target.listing.id)
-    .eq('status', 'ACTIVE')
-    .select('id');
+    // Live rows carry a NULL reason; paused rows are already INACTIVE. Archived rows are
+    // skipped in `processListing` and must never be rewritten here.
+    .or('inactive_reason.is.null,inactive_reason.eq.paused')
+    .select('id')
+    .limit(1);
   if (error) {
     throw new Error(`Failed to archive listing ${target.listing.id}: ${error.message}`);
   }
-  if (data?.length) target.listing.status = 'INACTIVE';
+  if (data?.length) {
+    target.listing.status = 'INACTIVE';
+    target.listing.inactive_reason = 'contract_lapsed';
+  }
   return data?.length ?? 0;
 }
 
@@ -138,6 +166,15 @@ async function processListing(
   todayYmd: string,
   counters: Record<string, number>
 ): Promise<void> {
+  // A host-archived listing is out of the contract lifecycle entirely: no lapse notices,
+  // no lock, no status churn.
+  if (
+    target.listingKind === 'property' &&
+    String(target.listing.inactive_reason ?? '') === 'archived'
+  ) {
+    return;
+  }
+
   const authorization = resolveListingAuthorization(
     target.listing.settings,
     target.org.settings,
@@ -227,14 +264,20 @@ async function loadListings(
   listingKind: ListingKind,
   orgsById: Map<string, OrgRow>
 ): Promise<ListingTarget[]> {
-  const { data, error } = await supabase
-    .from(listingTableForKind(listingKind))
-    .select('id, name, status, organization_id, settings');
+  // Parkings do not have `inactive_reason` yet (P7 parity), so each kind keeps its own
+  // explicit column list instead of a `select('*')`.
+  const query =
+    listingKind === 'property'
+      ? supabase
+          .from('properties')
+          .select('id, name, status, inactive_reason, organization_id, settings')
+      : supabase.from('parkings').select('id, name, status, organization_id, settings');
+  const { data, error } = await query;
   if (error) throw new Error(`list ${listingKind} failed: ${error.message}`);
 
   const targets: ListingTarget[] = [];
   for (const row of data ?? []) {
-    const listing = row as ListingRow;
+    const listing = row as unknown as ListingRow;
     const org = orgsById.get(listing.organization_id);
     if (!org) continue;
     targets.push({ listingKind, listing, org });

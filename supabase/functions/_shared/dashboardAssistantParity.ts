@@ -167,6 +167,10 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'preview-guest-stay-guide': read,
   'property-access': read,
   'property-entitlements': read,
+  'property-lifecycle': handoff(
+    'property.settings',
+    'Listing status changes (pause / archive / restore)'
+  ),
   'property-templates-preview': read,
   'resolve-owner-default-parking': read,
   'resolve-booking-property': read,
@@ -179,10 +183,7 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'calendar-sync-settings': tool('get_channel_sync_status', 'propose_run_channel_sync'),
   'cancel-booking': tool('propose_cancel_booking'),
   'record-booking-refund': excluded('property.booking', 'Refund sent / proof recording'),
-  'respond-cancellation-request': handoff(
-    'property.booking',
-    'Guest cancellation request review'
-  ),
+  'respond-cancellation-request': handoff('property.booking', 'Guest cancellation request review'),
   'claim-parking-booking': tool('propose_claim_parking_booking'),
   'decline-parking-booking': tool('propose_decline_parking_booking'),
   'finance-line-items': tool(

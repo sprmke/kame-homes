@@ -36,6 +36,9 @@ export type PublicPropertyDetailDto = {
   name: string;
   type: string;
   status: 'ACTIVE';
+  /** Host-facing lifecycle state. `paused` keeps the page but takes no bookings. */
+  listingState?: 'pending_verification' | 'live' | 'paused' | 'suspended' | 'archived';
+  acceptingBookings?: boolean;
   description: string | null;
   locationLabel: string;
   address: string;
@@ -142,6 +145,8 @@ export type ResolvedPropertyDetail = {
   name: string;
   type: string;
   description: string | null;
+  /** False when the listing is paused or otherwise closed to new bookings. */
+  acceptingBookings?: boolean;
   location: string;
   address: string;
   city: string;

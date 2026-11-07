@@ -22,13 +22,16 @@ export type SideBySideBrowsers = {
 
 export async function launchParkingSideBySideBrowsers(): Promise<SideBySideBrowsers> {
   const slowMo = readPositiveIntEnv('PLAYWRIGHT_SLOW_MO');
+  // Headed by default so a human can watch both windows. CI and restricted
+  // machines can set this to 1 to run the same two-context scenario headless.
+  const headless = process.env.PLAYWRIGHT_SIDE_BY_SIDE_HEADLESS === '1';
   const guestBrowser = await chromium.launch({
-    headless: false,
+    headless,
     slowMo,
     args: ['--window-position=0,40', '--window-size=900,980'],
   });
   const hostBrowser = await chromium.launch({
-    headless: false,
+    headless,
     slowMo,
     args: ['--window-position=920,40', '--window-size=900,980'],
   });

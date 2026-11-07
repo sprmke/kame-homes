@@ -15,7 +15,7 @@ export const SETTINGS_SECTION_EDIT_IDS = [
   'settings.payment:edit',
   'settings.buildingForms:edit',
   'settings.emailAutomations:edit',
-  'settings.dangerZone:edit',
+  'settings.listingStatus:edit',
 ] as const;
 
 /** Old id → leaf ids (access-preserving). */
