@@ -1155,6 +1155,14 @@ Open the cancelled booking. The Cancellation card shows the refund amount and wh
 
 Yes. On the Pending Docs card, open the ... menu on the received Approved GAF or Approved pet form row and choose Reject document. Pick a reason, add a note if it helps, then confirm. The file is removed and the step goes back to awaiting, so the booking cannot move forward until a new copy arrives. Nothing is emailed automatically, so request it again the same way you did before. You can reject a document once every 30 seconds, up to five times an hour.
 
+### The approval email hasn't arrived yet. How do I check?
+
+- category: Bookings
+- audience: host
+- source: docs/guides/routes/org/property/bookings-detail.md
+
+On the Pending Docs card, open the ... menu on the Approved GAF or Approved pet form row and tap Recheck. It reloads the booking and updates the status if the reply arrived. The row also updates on its own when the approval comes in, so Recheck is just a manual nudge. If you already have the signed copy, choose Upload file from the same menu.
+
 ### Why does the guest see a different cancellation policy than my listing?
 
 - category: Bookings
