@@ -4,7 +4,7 @@ import type {
   OrgPropertiesViewMode,
 } from '@/features/dashboard/org/lib/orgPropertiesFilters';
 import {
-  ORG_PROPERTY_STATUSES,
+  ORG_PROPERTY_LIFECYCLE_OPTIONS,
   ORG_PROPERTY_TYPES,
 } from '@/features/dashboard/org/lib/orgPropertyDisplay';
 
@@ -22,7 +22,7 @@ type Props = {
 
 const STATUS_OPTIONS = [
   { value: 'all' as const, label: 'All status' },
-  ...ORG_PROPERTY_STATUSES.map((status) => ({
+  ...ORG_PROPERTY_LIFECYCLE_OPTIONS.map((status) => ({
     value: status.value,
     label: status.label,
   })),

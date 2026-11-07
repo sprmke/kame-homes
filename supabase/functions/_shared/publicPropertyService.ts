@@ -5,6 +5,12 @@
 
 import { loadAuthUserProfile } from './authUserProfile.ts';
 import { createServiceClient } from './orgAuth.ts';
+import {
+  resolvePropertyLifecycleState,
+  stateAcceptsNewBookings,
+  stateHasPublicPage,
+  type PropertyLifecycleState,
+} from './propertyLifecycleState.ts';
 import { resolveOrgSettings } from './orgSettings.ts';
 import { normalizePropertyMediaItems } from './propertyMedia.ts';
 import { loadPropertyPricing } from './propertyPricing.ts';
@@ -60,6 +66,9 @@ export type PublicPropertyDetailDto = {
   name: string;
   type: string;
   status: 'ACTIVE';
+  /** Host-facing lifecycle state. `paused` still serves the page but takes no bookings. */
+  listingState: PropertyLifecycleState;
+  acceptingBookings: boolean;
   description: string | null;
   locationLabel: string;
   address: string;
@@ -305,7 +314,7 @@ export async function loadPublicPropertyById(
   const { data: property, error } = await supabase
     .from('properties')
     .select(
-      'id, organization_id, name, slug, type, status, address, tower_and_unit, residence_name, tower, unit_number, max_guests, settings, updated_at'
+      'id, organization_id, name, slug, type, status, inactive_reason, address, tower_and_unit, residence_name, tower, unit_number, max_guests, settings, updated_at'
     )
     .eq('id', propertyId)
     .maybeSingle();
@@ -316,7 +325,15 @@ export async function loadPublicPropertyById(
   }
 
   const row = property as PropertyRow | null;
-  if (!row || (row.status !== 'ACTIVE' && !options?.allowInactive)) return null;
+  if (!row) return null;
+
+  const listingState = resolvePropertyLifecycleState({
+    status: row.status ?? null,
+    inactive_reason: (row as { inactive_reason?: string | null }).inactive_reason ?? null,
+  });
+  // Paused keeps the public page so shared links, QR codes and indexed pages still work.
+  // Suspended, archived and unverified listings 404 for anonymous guests.
+  if (!stateHasPublicPage(listingState) && !options?.allowInactive) return null;
 
   const settings = (row.settings ?? {}) as Record<string, unknown>;
   const enabledAmenities = readStringArray(settings, 'enabledAmenities');
@@ -453,6 +470,8 @@ export async function loadPublicPropertyById(
     name: row.name,
     type: normalizePropertyTypeLabel(row.type),
     status: 'ACTIVE',
+    listingState,
+    acceptingBookings: stateAcceptsNewBookings(listingState),
     description: readString(settings, 'description') || null,
     locationLabel: buildLocationLabel(city, province ?? '', country),
     address: (row.address ?? readString(settings, 'address')) || '',

@@ -1,11 +1,15 @@
-import { orgPropertySearchHaystack } from '@/features/dashboard/org/lib/orgPropertyDisplay';
+import {
+  orgPropertyLifecycleState,
+  orgPropertySearchHaystack,
+} from '@/features/dashboard/org/lib/orgPropertyDisplay';
+import type { PropertyLifecycleState } from '@/features/dashboard/org/lib/propertyLifecycle';
 import type { Property } from '@/features/dashboard/org/types';
 
 export type OrgPropertiesViewMode = 'table' | 'grid' | 'list';
 
 export type OrgPropertiesFilters = {
   search: string;
-  status: 'all' | 'ACTIVE' | 'INACTIVE';
+  status: 'all' | PropertyLifecycleState;
   type: 'all' | string;
 };
 
@@ -17,7 +21,10 @@ export function filterOrgProperties(
 
   return properties.filter((property) => {
     const matchesSearch = !query || orgPropertySearchHaystack(property).includes(query);
-    const matchesStatus = filters.status === 'all' || property.status === filters.status;
+    // "All status" hides archived listings; pick Archived to see them.
+    const state = orgPropertyLifecycleState(property);
+    const matchesStatus =
+      filters.status === 'all' ? state !== 'archived' : state === filters.status;
     const matchesType =
       filters.type === 'all' ||
       property.type.trim().toUpperCase() === filters.type.trim().toUpperCase();

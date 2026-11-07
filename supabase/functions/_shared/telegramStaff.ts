@@ -25,6 +25,7 @@ import {
 import { manilaNowMatchesSingleSlot } from './telegramMarketingCronSync.ts';
 import { formatTimeForDisplay, DEFAULT_CHECK_IN_TIME, DEFAULT_CHECK_OUT_TIME } from './utils.ts';
 import { computeTotalGuestBalanceFromBooking } from './totalGuestBalance.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 const DEFAULT_STAFF_NO_BOOKINGS_TEMPLATE =
   '📋 No bookings for today.\n\n' +
@@ -731,7 +732,10 @@ export async function runStaffDailySummary(opts?: {
   StaffDailySummaryResult & { properties?: Array<StaffDailySummaryResult & { propertyId: string }> }
 > {
   if (!opts?.propertyId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const properties: Array<StaffDailySummaryResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       const result = await runStaffDailySummary({ ...opts, propertyId });

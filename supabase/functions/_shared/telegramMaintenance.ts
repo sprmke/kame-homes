@@ -9,6 +9,7 @@ import { DatabaseService } from './databaseService.ts';
 import { listAllPropertyIds } from './propertyCron.ts';
 import { addDaysToIso, daysBetweenIso } from './financeRecurrence.ts';
 import { normalizeTelegramChatId } from './telegramMarketing.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 export type MaintenanceReminderInterval =
   'hourly' | 'every_2_hours' | 'every_4_hours' | 'every_12_hours' | 'daily_noon';
@@ -404,7 +405,10 @@ export async function runMaintenanceDueReminders(options?: {
   propertyId?: string;
 }): Promise<MaintenanceDueRemindersResult> {
   if (!options?.propertyId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const properties: Array<MaintenanceDueRemindersResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       properties.push({

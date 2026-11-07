@@ -19,6 +19,7 @@ import {
   PlanFeatureRequiredError,
   requireMarketingPublishAllowed,
 } from '../_shared/planEntitlements.ts';
+import { automationAllowed, loadPropertyLifecycleStates } from '../_shared/propertyLifecycle.ts';
 import {
   resolveOrganizationIdForProperty,
   resolveScopedPropertyAccess,
@@ -151,6 +152,12 @@ serveAuthenticated('publish-to-meta', async (req, user) => {
 
   if (req.method !== 'POST') {
     return jsonError(req, 'Method not allowed', 405);
+  }
+
+  // Archived, suspended and unverified listings stop publishing. Paused stays available.
+  const lifecycleStates = await loadPropertyLifecycleStates([propertyId]);
+  if (!automationAllowed(lifecycleStates.get(propertyId) ?? 'archived', 'meta_scheduled_post')) {
+    return jsonError(req, 'Restore this property before publishing posts.', 409);
   }
 
   const body = await readJsonBody(req);

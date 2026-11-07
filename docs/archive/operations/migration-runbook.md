@@ -458,6 +458,31 @@ Incremental schema after Phase 0 is enumerated in **§1.3** (filenames + purpose
 
 ---
 
+## 11. Additive: property lifecycle reasons (November 2026)
+
+| Migration                                               | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Reversible?                                                                           |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `20261321000000_property_lifecycle.sql`                 | Adds `properties.inactive_reason`, `archived_at`, `archived_by`, `paused_at`; backfills every existing `INACTIVE` row by precedence (no approved listing authorization → `pending_verification`, `accessLockedAt` → `contract_lapsed`, an `ACTIVE` same tower/unit peer in another org → `succession`, else `archived`); adds `properties_lifecycle_status_check` (`ACTIVE` ⇔ reason null) and `properties_inactive_reason_check`. Adds a `BEFORE INSERT` guard on `guest_submissions` that rejects new guest bookings on a non-`ACTIVE` property (OTA imports and `IMPORTED` rows exempt). | Yes — columns and constraints can be dropped; the backfilled values are derived data. |
+| `20261321000100_property_listing_status_permission.sql` | Renames the Settings team leaf `settings.dangerZone:edit` → `settings.listingStatus:edit` on `property_members.permissions`, `saved_permissions`, `property_invitations.permissions`, and `property_custom_roles.permissions`.                                                                                                                                                                                                                                                                                                                                                              | Yes — run the same helper with the arguments reversed.                                |
+
+Run the backfill dry-run before applying to a real database:
+
+```sql
+SELECT
+  CASE
+    WHEN COALESCE(p.settings #>> '{listingAuthorization,baseStatus}', o.settings #>> '{verification,baseStatus}') IS DISTINCT FROM 'approved' THEN 'pending_verification'
+    WHEN COALESCE(p.settings #>> '{listingAuthorization,lifecycle,accessLockedAt}', o.settings #>> '{verification,propertyLifecycle,accessLockedAt}') IS NOT NULL THEN 'contract_lapsed'
+    ELSE 'archived'
+  END AS reason,
+  count(*)
+FROM public.properties p
+JOIN public.organizations o ON o.id = p.organization_id
+WHERE p.status = 'INACTIVE'
+GROUP BY 1;
+```
+
+Narrow the `archived` bucket by checking succession peers (same `lower(tower)` + `unit_number`, `ACTIVE`, different org).
+
 ## 10. Additive: listing authorization backfill (August 2026)
 
 Verification scope split — see [`docs/workflow/in-progress/verification-scope-split.md`](../../workflow/for-testing/verification-scope-split.md).

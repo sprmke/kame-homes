@@ -95,9 +95,19 @@ serveSuperAdmin('decide-contract-consideration', async (req, user) => {
       }
     }
 
+    const grantPatch =
+      listingKind === 'property'
+        ? {
+            status: 'ACTIVE',
+            inactive_reason: null,
+            archived_at: null,
+            archived_by: null,
+            paused_at: null,
+          }
+        : { status: 'ACTIVE' };
     const { error: actError, data: activated } = await supabase
       .from(table)
-      .update({ status: 'ACTIVE' })
+      .update(grantPatch)
       .eq('id', listingId)
       .eq('status', 'INACTIVE')
       .select('id');
@@ -118,12 +128,20 @@ serveSuperAdmin('decide-contract-consideration', async (req, user) => {
       ),
     };
   } else if (decision === 'deny') {
-    const { data: archived, error: archError } = await supabase
-      .from(table)
-      .update({ status: 'INACTIVE' })
-      .eq('id', listingId)
-      .eq('status', 'ACTIVE')
-      .select('id');
+    const denyPatch =
+      listingKind === 'property'
+        ? { status: 'INACTIVE', inactive_reason: 'consideration_denied', paused_at: null }
+        : { status: 'INACTIVE' };
+    // Properties may already be inactive (paused or contract_lapsed). The denial reason must
+    // still replace it; only an archived listing stays archived.
+    let denyQuery = supabase.from(table).update(denyPatch).eq('id', listingId);
+    if (listingKind === 'property') {
+      // Live rows have a NULL reason, so `neq` alone would miss them.
+      denyQuery = denyQuery.or('inactive_reason.is.null,inactive_reason.neq.archived');
+    } else {
+      denyQuery = denyQuery.eq('status', 'ACTIVE');
+    }
+    const { data: archived, error: archError } = await denyQuery.select('id');
     if (archError) return jsonError(req, archError.message, 500);
     archivedCount = archived?.length ?? 0;
 

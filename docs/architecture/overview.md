@@ -236,6 +236,8 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 
 ## 7. Data and files
 
+**Listing lifecycle:** `properties.status` is the public-live flag and `properties.inactive_reason` records why a listing is closed (`pending_verification`, `paused`, `contract_lapsed`, `consideration_denied`, `succession`, `archived`); the two always agree by DB constraint. Host actions (`pause` / `resume` / `archive` / `restore`) and the impact payload live in `_shared/propertyLifecycle.ts` + `property-lifecycle`; `update-property` rejects `status`. Archived listings keep every record, stop automations, and leave the bill from the next cycle; delete is owner-only, typed-name, and blocked by named records. Plan: [`workflow/in-progress/property-archive-and-delete-lifecycle`](../workflow/in-progress/property-archive-and-delete-lifecycle.md).
+
 **Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
 
 | Cluster  | Examples                                                                                                                                                                                                           | Access                                    |

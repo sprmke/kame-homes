@@ -282,7 +282,7 @@ Adding a parking slot needs the Add parking permission. Owners always have it, a
 - source: docs/guides/routes/org/property/settings.md
 - order: 10
 
-Archive hides the property from active use but keeps all bookings and history. Delete permanently removes an empty property, and it is blocked if any bookings exist, so use Archive instead for units with past stays.
+Pause stops new bookings for a while and keeps everything else running, including your bill. Archive retires the property: records stay, automations stop, and it leaves your bill from the next cycle. Delete permanently removes a property that has no records, so use Archive for a unit with past stays.
 
 ### Why can't I restore my archived property?
 
@@ -291,7 +291,7 @@ Archive hides the property from active use but keeps all bookings and history. D
 - source: docs/guides/routes/org/property/settings.md
 - order: 12
 
-Restore needs a verified listing and a current listing contract. A new listing has to be approved first, and an ended contract has to be renewed. The Danger Zone card tells you which one applies.
+Restore needs a verified listing and a current listing contract. A new listing has to be approved first, and an ended contract has to be renewed. The Listing status card tells you which one applies.
 
 ### Can guests still book a property I archived?
 
@@ -300,7 +300,25 @@ Restore needs a verified listing and a current listing contract. A new listing h
 - source: docs/guides/routes/org/property/settings.md
 - order: 13
 
-No. The public page and its direct booking link stop taking new bookings. Guests who already booked keep their form, trip page, and stay guide.
+No. A paused listing keeps its page but shows Not taking new bookings. An archived, suspended, or unapproved listing is hidden, and its direct booking link shows the same closed message. Guests who already booked keep their form, trip page, and stay guide.
+
+### Does archiving stop my bill?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 14
+
+Yes, from the next cycle. Archiving removes the property from your plan, so the current period is still paid and the next invoice is lower. Paused and suspended properties stay on your bill.
+
+### What stops when I archive a property?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 15
+
+New bookings, calendar imports, the calendar export link, scheduled social posts, Smart Pricing, Telegram digests, inbox AI replies, and the voice receptionist. Refunds, cancellation refunds, and review requests keep running.
 
 ### Where do I configure which documents guests must submit (GAF, pet approval, etc.)?
 
@@ -345,7 +363,7 @@ Open Public Pages, then Stay Guide, then Edit, then Content. Expand a section to
 - source: docs/guides/routes/org/properties.md
 - order: 60
 
-No. Archive keeps every booking and all history and only hides the property from active use. Delete is the action that removes a property, and it is blocked when bookings exist. Guests with a coming stay still get their form, trip page, and stay guide.
+No. Archive keeps every booking and all history and stops automations. Archiving is blocked until open stays finish or are cancelled, so no guest with a coming stay is left without a guide. Delete only works on a property with no records.
 
 ### Where do GAF and pet request emails go?
 

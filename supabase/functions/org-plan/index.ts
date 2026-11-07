@@ -72,7 +72,7 @@ serveAuthenticated('org-plan', async (req) => {
 
   const { data: properties, error: propertiesError } = await supabase
     .from('properties')
-    .select('id, name, slug, status')
+    .select('id, name, slug, status, inactive_reason')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: true });
   if (propertiesError) return jsonError(req, propertiesError.message, 500);
@@ -178,6 +178,7 @@ serveAuthenticated('org-plan', async (req) => {
       name: row.name as string,
       slug: row.slug as string,
       status: row.status as string,
+      inactiveReason: (row.inactive_reason as string | null) ?? null,
     })),
     subscription,
     assignedPropertyIds,

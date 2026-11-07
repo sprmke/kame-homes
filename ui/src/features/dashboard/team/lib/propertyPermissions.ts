@@ -69,7 +69,8 @@ export const SETTINGS_SECTION_EDIT_PERMISSION = {
   'building-forms': 'settings.buildingForms:edit',
   'email-automations': 'settings.emailAutomations:edit',
   integrations: null,
-  danger: 'settings.dangerZone:edit',
+  // Section id stays `danger` for the settings-save pipeline; the leaf is lifecycle-scoped.
+  danger: 'settings.listingStatus:edit',
 } as const satisfies Record<
   import('@/features/dashboard/org/lib/propertySettingsCompletion').PropertySettingsSectionId,
   TeamPermissionId | null
