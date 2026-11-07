@@ -73,7 +73,7 @@ export const parkingGuestStatusLabels = {
   findingHost: 'Finding a host',
   searchingNearby: 'Searching for hosts nearby',
   payToConfirm: 'Pay to confirm',
-  payDetail: 'A host accepted - confirm before the timer ends.',
+  payDetail: 'A host accepted. Confirm before the timer ends.',
   parkingConfirmed: 'Parking confirmed',
   requestCancelled: 'Request cancelled',
   noHostAvailable: 'No host available',
@@ -125,6 +125,12 @@ export type ParkingFlowState = {
   lastSubmitBody: Record<string, unknown> | null;
   /** When true, submit-parking-booking-request returns no_parking_available. */
   rejectSubmitNoParking: boolean;
+  /** Host automation: claim the first candidate without a manual Accept. */
+  autoAcceptTopMatch: boolean;
+  /** Same-org linked stay on the host's own slot: confirm at zero without PayMongo. */
+  complimentaryOwnerParking: boolean;
+  /** Simulate a PMO endorsement send failure so the guest sees Retry. */
+  endorsementSendFails: boolean;
 };
 
 const MOCK_HOST_CONTACT = {
@@ -158,6 +164,9 @@ export function createParkingFlowState(): ParkingFlowState {
     supportEscalationPhone: '+639171234567',
     lastSubmitBody: null,
     rejectSubmitNoParking: false,
+    autoAcceptTopMatch: false,
+    complimentaryOwnerParking: false,
+    endorsementSendFails: false,
   };
 }
 
@@ -174,16 +183,68 @@ export function markParkingFlowUnavailable(
   state.paymentExpiresAt = null;
 }
 
-export function fulfillParkingPayment(state: ParkingFlowState) {
-  if (state.status !== 'PENDING_PAYMENT') return;
-  state.status = 'PENDING_REVIEW';
-  state.expiresAt = null;
-  state.paymentExpiresAt = null;
+function applyEndorsementOutcome(state: ParkingFlowState) {
+  if (state.endorsementSendFails) {
+    state.endorsementSentAt = null;
+    state.endorsementSendError = 'The building admin email is not configured.';
+    state.endorsementEmailSnapshot = null;
+    state.hostContact = null;
+    return;
+  }
   state.endorsementSentAt = new Date().toISOString();
   state.endorsementSendError = null;
   state.endorsementEmailSnapshot = MOCK_ENDORSEMENT_SNAPSHOT;
   state.hostContact = MOCK_HOST_CONTACT;
+}
+
+function markClaimed(state: ParkingFlowState, status: 'PENDING_PAYMENT' | 'PENDING_REVIEW') {
+  state.status = status;
+  state.broadcastResponse = 'claimed';
+  state.parkingId = PARKING_ID;
+  state.parkingLabel = 'Tower 1 · B2 · 12A';
   state.parkingSlug = 'slot-12a';
+  state.expiresAt = null;
+  state.paymentExpiresAt =
+    status === 'PENDING_PAYMENT' ? new Date(Date.now() + 45 * 60_000).toISOString() : null;
+}
+
+/** Paid parking: confirmation plus the endorsement outcome. */
+export function fulfillParkingPayment(state: ParkingFlowState) {
+  if (state.status !== 'PENDING_PAYMENT') return;
+  markClaimed(state, 'PENDING_REVIEW');
+  applyEndorsementOutcome(state);
+}
+
+/** Auto-accept top match: the host never taps Accept. */
+export function applyAutoAccept(state: ParkingFlowState) {
+  markClaimed(state, 'PENDING_PAYMENT');
+  state.endorsementNote = state.endorsementNote ?? 'Accepted automatically by your settings.';
+}
+
+/** Same-org own slot with Free parking on your own slots: no PayMongo. */
+export function applyComplimentaryOwnerParking(state: ParkingFlowState) {
+  markClaimed(state, 'PENDING_REVIEW');
+  applyEndorsementOutcome(state);
+}
+
+/** Payment window expired: release the claim and search the next batch. */
+export function expireParkingPaymentAndResumeSearch(state: ParkingFlowState) {
+  if (state.status !== 'PENDING_PAYMENT') return;
+  state.status = 'PENDING_HOST_ACCEPTANCE';
+  state.broadcastResponse = 'pending';
+  state.parkingId = null;
+  state.parkingLabel = null;
+  state.parkingSlug = null;
+  state.endorsementNote = null;
+  state.paymentExpiresAt = null;
+  state.batchNumber += 1;
+  state.expiresAt = new Date(Date.now() + 45 * 60_000).toISOString();
+}
+
+/** Guest-facing Retry after a failed endorsement send. */
+export function retryParkingEndorsement(state: ParkingFlowState) {
+  state.endorsementSendFails = false;
+  applyEndorsementOutcome(state);
 }
 
 function effectiveStatus(state: ParkingFlowState) {
@@ -669,11 +730,16 @@ export async function installParkingFlowMocks(page: Page, state: ParkingFlowStat
         state.linkedPropertyBookingId =
           typeof body?.linkedPropertyBookingId === 'string' ? body.linkedPropertyBookingId : null;
         state.lastSubmitBody = body ?? null;
+        if (state.complimentaryOwnerParking && state.linkedPropertyBookingId) {
+          applyComplimentaryOwnerParking(state);
+        } else if (state.autoAcceptTopMatch) {
+          applyAutoAccept(state);
+        }
         await fulfillJson(route, {
           success: true,
           data: {
             bookingId: state.bookingId,
-            status: 'PENDING_HOST_ACCEPTANCE',
+            status: state.status,
             expiresAt: state.expiresAt,
           },
         });
@@ -704,10 +770,7 @@ export async function installParkingFlowMocks(page: Page, state: ParkingFlowStat
         await fulfillJson(route, { success: true, data: { cancelled: true } });
         return;
       case 'request-parking-endorsement':
-        state.endorsementSentAt = new Date().toISOString();
-        state.endorsementSendError = null;
-        state.endorsementEmailSnapshot = MOCK_ENDORSEMENT_SNAPSHOT;
-        state.hostContact = MOCK_HOST_CONTACT;
+        retryParkingEndorsement(state);
         await fulfillJson(route, { success: true, data: { sent: true } });
         return;
       case 'list-linkable-property-bookings':
@@ -740,9 +803,12 @@ export async function installParkingFlowMocks(page: Page, state: ParkingFlowStat
               messages: [
                 {
                   id: 'msg-e2e-001',
-                  body: 'Hi, I am on my way to the slot.',
-                  senderRole: 'guest',
-                  createdAt: '2026-08-24T16:10:00.000Z',
+                  conversation_id: 'chat-e2e-001',
+                  direction: 'inbound',
+                  body_text: 'Hi, I am on my way to the slot.',
+                  sent_at: '2026-08-24T16:10:00.000Z',
+                  delivery_status: 'delivered',
+                  is_ai_generated: false,
                 },
               ],
             },
