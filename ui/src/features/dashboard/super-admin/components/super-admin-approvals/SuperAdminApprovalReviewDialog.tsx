@@ -15,6 +15,7 @@ import { VerificationDocThumbnail } from '@/features/dashboard/org/components/ve
 import { VerificationStatusBadge } from '@/features/dashboard/org/components/verification/VerificationStatusBadge';
 import { ORG_SOCIAL_PROOF_PLATFORMS } from '@/features/dashboard/org/lib/orgVerification';
 import { VERIFICATION_TIER2_DOC_LABELS } from '@/features/dashboard/org/lib/verificationCopy';
+import { IdentityPreScreenBlock } from '@/features/verification/components/IdentityPreScreenBlock';
 import {
   formatSuperAdminApprovalDate,
   superAdminApprovalDialogBodyClass,
@@ -586,6 +587,9 @@ export function SuperAdminApprovalReviewDialog({ approval, onOpenChange }: Props
               </div>
             ) : (
               <div className="space-y-6">
+                {detail.identityVerification ? (
+                  <IdentityPreScreenBlock summary={detail.identityVerification} />
+                ) : null}
                 {dualTierQueue ? (
                   <ApprovalReviewTierSwitcher
                     reviewTier={reviewTier}

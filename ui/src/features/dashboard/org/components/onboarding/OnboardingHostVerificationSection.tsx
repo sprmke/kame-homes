@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { OnboardingProofUpload } from '@/features/dashboard/org/components/onboarding/OnboardingProofUpload';
 import {
   propertyAccessScreenshotHelp,
@@ -14,6 +16,8 @@ type Props = {
   socialProofError: string | null;
   onSocialProofChange: (file: File | null, preview: string | null) => void;
   onUploadError: (message: string | null) => void;
+  /** Optional live-capture action rendered above the Valid ID field. */
+  verifyAction?: ReactNode;
 };
 
 export function OnboardingHostVerificationSection({
@@ -26,6 +30,7 @@ export function OnboardingHostVerificationSection({
   socialProofError,
   onSocialProofChange,
   onUploadError,
+  verifyAction,
 }: Props) {
   return (
     <div className="border-border space-y-4 rounded-xl border p-3 sm:p-4">
@@ -35,6 +40,7 @@ export function OnboardingHostVerificationSection({
           Upload a government-issued photo ID that matches your host name.
         </p>
       </div>
+      {verifyAction}
       <OnboardingProofUpload
         id="onboarding-valid-id"
         label="Valid ID"

@@ -12,6 +12,7 @@ import {
 } from '@/features/dashboard/bookings/lib/adminSidebarNav';
 import { OrgListingVerificationRollup } from '@/features/dashboard/org/components/listing-authorization/OrgListingVerificationRollup';
 import { OnboardingHostVerificationSection } from '@/features/dashboard/org/components/onboarding/OnboardingHostVerificationSection';
+import { HostIdentityVerifyButton } from '@/features/verification/components/HostIdentityVerifyButton';
 import { OnboardingProofUpload } from '@/features/dashboard/org/components/onboarding/OnboardingProofUpload';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { RecommendedBadgePreview } from '@/features/dashboard/org/components/verification/RecommendedBadgePreview';
@@ -906,6 +907,16 @@ export function GetVerifiedModal({
         setUploadError(message);
         if (message) toast.error(message);
       }}
+      verifyAction={
+        org && !validId.previewUrl && !validId.file ? (
+          <HostIdentityVerifyButton
+            organizationId={org.id}
+            onDocumentCaptured={(file) =>
+              setValidId({ file, previewUrl: URL.createObjectURL(file), path: null })
+            }
+          />
+        ) : null
+      }
     />
   );
 
