@@ -11,6 +11,15 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 ---
 
+## Identity verification
+
+Migration **`20261320120000_identity_verification.sql`**. Two service-role-only tables:
+
+- **`identity_verifications`** — one row per verification event. `subject_kind` (`guest` | `org_owner`), optional `guest_user_id` / `booking_id` / `guest_slot`, required `subject_email_hash` (sha256 of the lowercased email + pepper). Verdict + `method` + `flags` jsonb + extracted fields + `document_number_hash` (hashed, never raw) + `signature_valid` / `liveness_passed` / `liveness_grade` / `face_match_verdict` + `document_front_path` / `selfie_path`. Partial unique indexes enforce one live verdict per guest account, per organization, and per booking slot.
+- **`identity_verification_sessions`** — ephemeral handoff sessions: `token_hash` (never the token), status machine, `expires_at` (10 minutes), `result_id`.
+
+`guest_submissions` gains `primary_identity_verification_id` … `guest5_identity_verification_id` (`ON DELETE SET NULL`) and `identity_capture_mode` (`live` | `upload` | `legacy`). `guest_profiles` gains `identity_verified_at`. Legacy `valid_id_url` columns remain the source of truth for attachments. Full spec: **[[identity-verification]]**.
+
 ## 6. Data model (`guest_submissions`)
 
 **`organizations`** / **`properties`** (migration **`20260629180000_multi_tenancy_foundation.sql`**; **`tower`** + **`unit_number`** + global unique pair in **`20260821140000_properties_tower_unit_columns.sql`**; **`properties.slug`** globally unique in **`20260821150000_properties_slug_globally_unique.sql`** — required because guest **`?property=`** resolves by slug alone): single-owner orgs (`owner_id` → `auth.users`), properties per org (`organization_id`), slug-based URLs. **`tower`** is one of `Monaco` \| `Bali` \| `Barbados`; **`unit_number`** is exactly four digits; **`tower_and_unit`** remains the display string (`Monaco 2604`). **Today:** duplicate tower+unit pairs are rejected on **`create-organization`**, **`create-property`**, and **`update-property`** regardless of status. **Planned ([#120](https://github.com/sprmke/kame-space/issues/120)):** uniqueness only among **`ACTIVE`** properties so successive sublessees / hosts can reuse the same unit after prior listings are **`INACTIVE`**. Display **name** uniqueness is **per organization** (not a cross-host lock). **`guest_submissions`**, **`finance_line_items`**, **`maintenance_items`**, and singleton settings tables gain optional-then-required **`property_id`**; default backfill assigns **Kame Space** / **Monaco 2604**.

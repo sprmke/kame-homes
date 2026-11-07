@@ -13,6 +13,16 @@ Kame Space is a **multi-tenant short-term rental platform**: public listings and
 
 ---
 
+**Identity verification (2026-11-07).** One shared guided capture module
+(`ui/src/features/verification/`) used by the guest booking form, host Get Verified, the guest
+account profile, and the super-admin review. Desktop starts a session, a QR hands it to the
+phone, the phone captures the document with a frame guide, reads the PhilSys QR, and runs an
+optional on-device liveness check. The server writes a structured verdict with flags instead of
+a bare image. Capture images live in the private `identity-captures` bucket for 7 days; at
+booking submit the front image is copied into `valid-ids` so GAF attachments are unchanged.
+Spec: [`identity-verification.md`](./identity-verification.md) · privacy:
+[`data-privacy-identity.md`](./data-privacy-identity.md).
+
 ## Contents
 
 1. [The whole system](#1-the-whole-system)
