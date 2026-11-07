@@ -37,6 +37,35 @@ test.describe('@smoke @ci property booking workflow proceed', () => {
     await expectNoUnnamedInteractiveControls(page);
   });
 
+  test('pending docs approval row uses one overflow menu for recheck and upload', async ({
+    page,
+  }) => {
+    const parkingState = createParkingFlowState();
+    const propertyState = createPropertyBookingParkingState({ linked: false });
+    await installParkingFlowMocks(page, parkingState);
+    await installPropertyBookingParkingMocks(page, parkingState, propertyState, {
+      bookingOverrides: {
+        status: 'PENDING_DOCUMENTS',
+        need_parking: false,
+        approved_gaf_pdf_url: null,
+      },
+    });
+
+    await page.goto(propertyBookingParkingPaths.bookingDetail);
+    await expect(page.getByRole('heading', { name: 'Maria Santos' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    await expect(page.getByText('Awaiting approval')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'About Awaiting approval' })).toBeVisible();
+    /* The row keeps a single action surface: no duplicate inline upload. */
+    await expect(page.getByRole('button', { name: 'Upload Approved GAF' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Actions for Approved GAF' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Recheck' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Upload file' })).toBeVisible();
+  });
+
   test('host can proceed PENDING_REVIEW to PENDING_DOCUMENTS on paid plan', async ({ page }) => {
     const parkingState = createParkingFlowState();
     const propertyState = createPropertyBookingParkingState({ linked: false });
