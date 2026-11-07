@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  applyAutoAccept,
   createParkingFlowState,
   guestPayForParking,
   installParkingFlowMocks,
+  parkingFlowLabels,
   parkingGuestStatusLabels,
   submitGuestParkingRequest,
 } from '../shared/parkingFlowHarness';
@@ -59,5 +61,36 @@ test.describe('@smoke @ci parking guest flow', () => {
     ).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText('Access')).toBeVisible();
     await captureParkingScreen(page, 'guest-paid-final', { role: 'guest' });
+  });
+
+  test('guest sees the search resume when the payment window closes before paying', async ({
+    page,
+  }) => {
+    setParkingScreenSuite('guest-payment-window-closed');
+    const state = createParkingFlowState();
+    await installParkingFlowMocks(page, state);
+
+    await submitGuestParkingRequest(page, { skipScreens: true });
+    applyAutoAccept(state);
+    state.paymentWindowExpiredOnCheckout = true;
+
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: parkingGuestStatusLabels.payToConfirm })
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: parkingFlowLabels.payNow }).click();
+    await expect(page.getByText('This payment window closed. We are searching again.')).toBeVisible(
+      { timeout: 15_000 }
+    );
+    expect(state.status).toBe('PENDING_HOST_ACCEPTANCE');
+    expect(state.batchNumber).toBe(2);
+
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: parkingGuestStatusLabels.findingHost })
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Checking more hosts nearby')).toBeVisible();
+    await captureParkingScreen(page, 'guest-payment-window-closed', { role: 'guest' });
   });
 });

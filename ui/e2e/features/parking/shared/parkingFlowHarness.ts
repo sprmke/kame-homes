@@ -94,6 +94,7 @@ export const parkingHostStatusLabels = {
   pendingReview: 'Pending Review',
   readyForCheckin: 'Ready for Check-in',
   completed: 'Completed',
+  cancelled: 'Cancelled',
 } as const;
 
 export type ParkingFlowState = {
@@ -131,6 +132,10 @@ export type ParkingFlowState = {
   complimentaryOwnerParking: boolean;
   /** Simulate a PMO endorsement send failure so the guest sees Retry. */
   endorsementSendFails: boolean;
+  /** Another host wins the claim race; this host gets 409 already_claimed. */
+  claimFailsAlreadyClaimed: boolean;
+  /** Guest taps Pay now after the payment window closed; checkout returns 409. */
+  paymentWindowExpiredOnCheckout: boolean;
 };
 
 const MOCK_HOST_CONTACT = {
@@ -167,6 +172,8 @@ export function createParkingFlowState(): ParkingFlowState {
     autoAcceptTopMatch: false,
     complimentaryOwnerParking: false,
     endorsementSendFails: false,
+    claimFailsAlreadyClaimed: false,
+    paymentWindowExpiredOnCheckout: false,
   };
 }
 
@@ -752,6 +759,18 @@ export async function installParkingFlowMocks(page: Page, state: ParkingFlowStat
         await fulfillJson(route, { success: true, data: guestStatusPayload(state) });
         return;
       case 'create-parking-payment-checkout':
+        if (state.paymentWindowExpiredOnCheckout) {
+          expireParkingPaymentAndResumeSearch(state);
+          await fulfillJson(
+            route,
+            {
+              success: false,
+              error: 'This payment window closed. We are searching again.',
+            },
+            409
+          );
+          return;
+        }
         fulfillParkingPayment(state);
         await fulfillJson(route, {
           success: true,
@@ -864,6 +883,11 @@ export async function installParkingFlowMocks(page: Page, state: ParkingFlowStat
         });
         return;
       case 'claim-parking-booking':
+        if (state.claimFailsAlreadyClaimed) {
+          markClaimed(state, 'PENDING_PAYMENT');
+          await fulfillJson(route, { success: false, error: 'already_claimed' }, 409);
+          return;
+        }
         if (state.broadcastResponse !== 'pending') {
           await fulfillJson(route, { success: false, error: 'already_claimed' }, 409);
           return;

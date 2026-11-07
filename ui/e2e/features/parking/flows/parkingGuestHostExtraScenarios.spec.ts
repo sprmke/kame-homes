@@ -236,6 +236,127 @@ test.describe('parking guest and host extra scenarios', () => {
     }
   });
 
+  test('host can cancel a paid booking and the guest sees it cancelled', async ({
+    page: _page,
+  }, testInfo) => {
+    test.setTimeout(sideBySideTimeoutMs());
+    test.skip(
+      testInfo.project.name !== 'chromium-side-by-side',
+      'Run this scenario with the chromium-side-by-side project.'
+    );
+
+    const state = createParkingFlowState();
+    setParkingScreenSuite('side-by-side-host-cancel-paid');
+    const browsers = await launchParkingSideBySideBrowsers();
+
+    try {
+      const { guestPage, hostPage } = browsers;
+      await installParkingFlowMocks(guestPage, state);
+      await installParkingFlowMocks(hostPage, state);
+
+      await submitGuestParkingRequest(guestPage, { skipScreens: true });
+      await openHostBooking(hostPage);
+      await hostAcceptPendingBooking(hostPage);
+      await guestPage.reload();
+      await expect(
+        guestPage.getByRole('heading', { name: parkingGuestStatusLabels.payToConfirm })
+      ).toBeVisible({ timeout: 15_000 });
+      await guestPayForParking(guestPage, state);
+
+      // Fresh host context so the paid status is not served from the 15s cache.
+      const freshContext = await browsers.hostBrowser.newContext({
+        viewport: { width: 900, height: 960 },
+      });
+      const freshHostPage = await freshContext.newPage();
+      try {
+        await installParkingFlowMocks(freshHostPage, state);
+        await freshHostPage.goto(parkingFlowPaths.hostBookingDetail);
+        await expect(
+          freshHostPage.getByText(parkingHostStatusLabels.pendingReview).first()
+        ).toBeVisible({ timeout: 15_000 });
+        const cancelResponse = freshHostPage.waitForResponse(
+          (response) =>
+            response.url().includes('/functions/v1/transition-parking-booking') && response.ok()
+        );
+        await freshHostPage.getByRole('button', { name: 'Cancel', exact: true }).first().click();
+        await cancelResponse;
+        await expect(
+          freshHostPage.getByText(parkingHostStatusLabels.cancelled).first()
+        ).toBeVisible({ timeout: 15_000 });
+        await captureParkingScreen(freshHostPage, 'host-cancelled-paid', { role: 'host' });
+      } finally {
+        await freshContext.close();
+      }
+
+      expect(state.status).toBe('CANCELLED');
+      // Fresh guest context so the confirmed status is not restored from cache.
+      const guestContext = await browsers.guestBrowser.newContext({
+        viewport: { width: 900, height: 960 },
+      });
+      const freshGuestPage = await guestContext.newPage();
+      try {
+        await installParkingFlowMocks(freshGuestPage, state);
+        await freshGuestPage.goto(parkingFlowPaths.guestStatus);
+        await expect(
+          freshGuestPage.getByRole('heading', { name: parkingGuestStatusLabels.requestCancelled })
+        ).toBeVisible({ timeout: 15_000 });
+        await captureParkingScreen(freshGuestPage, 'guest-cancelled-by-host', { role: 'guest' });
+      } finally {
+        await guestContext.close();
+      }
+    } finally {
+      await closeParkingSideBySideBrowsers(browsers);
+    }
+  });
+
+  test('losing the claim race shows Already claimed and moves the request on', async ({
+    page: _page,
+  }, testInfo) => {
+    test.setTimeout(sideBySideTimeoutMs());
+    test.skip(
+      testInfo.project.name !== 'chromium-side-by-side',
+      'Run this scenario with the chromium-side-by-side project.'
+    );
+
+    const state = createParkingFlowState();
+    state.claimFailsAlreadyClaimed = true;
+    setParkingScreenSuite('side-by-side-claim-race');
+    const browsers = await launchParkingSideBySideBrowsers();
+
+    try {
+      const { guestPage, hostPage } = browsers;
+      await installParkingFlowMocks(guestPage, state);
+      await installParkingFlowMocks(hostPage, state);
+
+      await submitGuestParkingRequest(guestPage, { skipScreens: true });
+      await openHostBooking(hostPage);
+      await hostAcceptPendingBooking(hostPage);
+
+      await expect(hostPage.getByText('Already claimed')).toBeVisible({ timeout: 15_000 });
+      await captureParkingScreen(hostPage, 'host-claim-race-toast', { role: 'host' });
+
+      const freshContext = await browsers.hostBrowser.newContext({
+        viewport: { width: 900, height: 960 },
+      });
+      const freshHostPage = await freshContext.newPage();
+      try {
+        await installParkingFlowMocks(freshHostPage, state);
+        await freshHostPage.goto(parkingFlowPaths.hostBookingDetail);
+        await expect(
+          freshHostPage.getByText(parkingHostStatusLabels.awaitingPayment).first()
+        ).toBeVisible({ timeout: 15_000 });
+        await expect(
+          freshHostPage.getByRole('button', { name: parkingFlowLabels.accept })
+        ).toHaveCount(0);
+        await captureParkingScreen(freshHostPage, 'host-claim-race-detail', { role: 'host' });
+      } finally {
+        await freshContext.close();
+      }
+    } finally {
+      await closeParkingSideBySideBrowsers(browsers);
+    }
+  });
+
   test('failed endorsement shows Retry, then reveals host contact and chat', async ({
     page: _page,
   }, testInfo) => {
