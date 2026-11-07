@@ -186,3 +186,30 @@ Shown on the last step, never gated by `?dev=true`. Checkboxes (all on by defaul
 ## Pending / follow-ups
 
 - [ ] `ui/src/features/guest/form/routes/index.tsx` (`guestFormRoutes`) is an **orphaned** route module — not imported by the app router. The routes actually served come from `ui/src/features/guest/property/routes/index.tsx`.
+
+---
+
+## Identity verification (2026-11-07)
+
+Each adult guest slot accepts **either** a gallery/photo file **or** a live identity
+verification. The UI (`GuestIdentityCapture`) offers "Verify your ID" first and
+"Upload a photo instead" as an equal fallback.
+
+- A completed verification stores its id on `primaryIdentityVerificationId` /
+  `guest2IdentityVerificationId` … `guest5IdentityVerificationId`.
+- At submit, `DatabaseService.processFormData` validates the verdict belongs to this booking's
+  `guestEmail` hash and slot, copies the captured front image into `valid-ids` under the
+  deterministic key, and writes `valid_id_url` exactly as an upload would. GAF attachments,
+  admin previews and `GuestAvatar` are unchanged.
+- `identity_capture_mode` is `live` when any slot used the camera path.
+- The schema now accepts `validId || primaryIdentityVerificationId` for ages 18+.
+
+Guide for the phone side: [`verify.md`](./verify.md). Spec:
+[`../../architecture/identity-verification.md`](../../architecture/identity-verification.md).
+
+**Host Q&A**
+
+- Q: Does the guest still have to upload a photo?
+  A: No. A live verification replaces it, and the captured photo is filed for you.
+- Q: What if the guest's camera is blocked?
+  A: They use "Upload a photo instead" and nothing else changes.

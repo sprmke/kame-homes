@@ -130,3 +130,22 @@ Saved-properties grid (the guest's heart/favorites list). See [favorites.md](./f
 - [stays.md](./stays.md) · [favorites.md](./favorites.md)
 - [auth.md](../auth.md) — checkout modal auth
 - [properties.md](../properties.md) — save heart / favorites gate
+
+---
+
+## Identity card (2026-11-07)
+
+`/account/profile` renders `GuestIdentityCard` below the profile form: current verdict badge,
+masked name, expiry, "Verify again", and **Delete verification**.
+
+- Data: `identity-verification-mine` (signed-in guest).
+- Deleting calls `identity-verification-delete`: the verdict row and every capture for its
+  session are removed; bookings keep their existing `valid_id_url`.
+- The card is outside the profile form, so it never participates in the form's dirty state.
+
+**Guest Q&A**
+
+- Q: Can I verify once and use it for later bookings?
+  A: Yes, while signed in and while the verification has not expired.
+- Q: Can I remove it?
+  A: Yes, Delete verification removes the result and its photos.

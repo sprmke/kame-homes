@@ -23,6 +23,11 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 ALLOWLIST=(
+  # Retention sweep: `update ... select('id')` is a bounded daily batch by design — the
+  # predicate is `expires_at < now()` / `created_at < cutoff` and the file work below is
+  # capped at BATCH rows per run. There is no `.range()`/`.limit()` shape for an update.
+  'identity-captures-purge-cron/index.ts'
+
   # Query builder is created once (`.select('id, name')`) and reused across two
   # mutually exclusive branches (`.eq('id', orgId).maybeSingle()` vs
   # `.eq('slug', orgSlug).maybeSingle()`), so the bound and the `.select(` are in

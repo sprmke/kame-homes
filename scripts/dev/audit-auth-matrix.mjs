@@ -168,6 +168,9 @@ const NO_SCOPE_NEEDED_ALLOWLIST = new Set([
   'notification-preferences', // reads/writes only the caller's own row (eq user_id = caller)
   'dashboard-assistant-feedback', // 404 unless the message's conversation.user_id is the caller
   'get-feature-availability', // platform-wide off-keys for the signed-in host; no org/property row to scope
+  'identity-session-cancel', // loads the session by id and 404s unless guest_user_id or the org owner matches the caller
+  'identity-verification-delete', // `row.guest_user_id !== user.id` -> 404; captures are removed under the row's own session prefix
+  'identity-verification-mine', // queries `guest_user_id = user.id`; there is no cross-subject read to scope
 ]);
 
 /**

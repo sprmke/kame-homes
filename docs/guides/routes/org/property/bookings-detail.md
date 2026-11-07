@@ -205,23 +205,23 @@ Every transition/cancel call goes through `transition-booking` / `cancel-booking
 
 On the **Activity** tab (view mode, last tab), `EntityActivityHistory` lists org-scoped audit rows for this booking (`list-activity-log`, `targetType=booking`, `targetId=<bookingId>`), placed under `BookingAiAssistantAuditCard` (when the assistant has acted on this booking) and above the booking meta card. Hosts need `activity:view` on the property (same gate as org Activity settings).
 
-| Host action                                             | Edge handler                             | Activity action                                                                                                    |
-| ------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Proceed / Return / Mark complete / Cancel               | `transition-booking` / orchestrator      | `booking.status_changed`, `booking.document_substep_completed`, `booking.cancelled`                                |
-| Edit booking / autosave / reschedule / clear asset      | `update-booking-details`                 | `booking.details_edited` (`metadata.operation`, e.g. `clear_asset`)                                                |
-| Reject approved GAF / pet file                          | `update-booking-details` (`review_document`) | `booking.document_rejected` (`requirement_id`, `asset_label`, `rejection_reason`)                             |
-| Automation Triggers send / resend (GAF, pet, ack, RFCI) | `send-booking-workflow-email`            | `booking.workflow_email_sent` (`email_kind`, `email_kind_label`)                                                   |
-| Resend Check-out & SD email                             | `send-sd-refund-form-email`              | `booking.workflow_email_sent` (`email_kind: sd_refund_form_request`)                                               |
-| Send custom template                                    | `send-property-custom-template-email`    | `booking.custom_template_sent`                                                                                     |
-| Upload booking document (Progress, edit, or assistant)  | `upload-booking-asset` / assistant apply | `booking.document_uploaded`; plus `booking.receipt_validated` (`source: upload`) when inline AI persists a verdict |
-| Assistant send workflow email                           | assistant confirm                        | `booking.workflow_email_sent` (`actor_type: ai_assistant`)                                                         |
-| Issue GAF/pet share link                                | `issue-booking-document-share-token`     | `booking.share_link_issued`                                                                                        |
-| Copy / mint stay guide link                             | `issue-guest-stay-guide-token`           | `booking.stay_guide_link_issued`                                                                                   |
-| Copy guest form completion link (OTA)                   | `issue-guest-form-completion-token`      | `booking.guest_form_link_issued`                                                                                   |
-| Copy guest trip link                                    | `issue-guest-trip-link`                  | `booking.trip_link_issued`                                                                                         |
-| Run / Recheck AI Summary (inline job)                   | `booking-ai-review`                      | `booking.ai_review_run` (skipped on cache-only GET-style early returns)                                            |
-| Validate receipts backfill                              | `validate-booking-receipts` (edge only)  | `booking.receipt_validated` (`source: backfill`, batch `count`)                                                    |
-| Host review / response                                  | review handlers                          | `review.*`                                                                                                         |
+| Host action                                             | Edge handler                                 | Activity action                                                                                                    |
+| ------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Proceed / Return / Mark complete / Cancel               | `transition-booking` / orchestrator          | `booking.status_changed`, `booking.document_substep_completed`, `booking.cancelled`                                |
+| Edit booking / autosave / reschedule / clear asset      | `update-booking-details`                     | `booking.details_edited` (`metadata.operation`, e.g. `clear_asset`)                                                |
+| Reject approved GAF / pet file                          | `update-booking-details` (`review_document`) | `booking.document_rejected` (`requirement_id`, `asset_label`, `rejection_reason`)                                  |
+| Automation Triggers send / resend (GAF, pet, ack, RFCI) | `send-booking-workflow-email`                | `booking.workflow_email_sent` (`email_kind`, `email_kind_label`)                                                   |
+| Resend Check-out & SD email                             | `send-sd-refund-form-email`                  | `booking.workflow_email_sent` (`email_kind: sd_refund_form_request`)                                               |
+| Send custom template                                    | `send-property-custom-template-email`        | `booking.custom_template_sent`                                                                                     |
+| Upload booking document (Progress, edit, or assistant)  | `upload-booking-asset` / assistant apply     | `booking.document_uploaded`; plus `booking.receipt_validated` (`source: upload`) when inline AI persists a verdict |
+| Assistant send workflow email                           | assistant confirm                            | `booking.workflow_email_sent` (`actor_type: ai_assistant`)                                                         |
+| Issue GAF/pet share link                                | `issue-booking-document-share-token`         | `booking.share_link_issued`                                                                                        |
+| Copy / mint stay guide link                             | `issue-guest-stay-guide-token`               | `booking.stay_guide_link_issued`                                                                                   |
+| Copy guest form completion link (OTA)                   | `issue-guest-form-completion-token`          | `booking.guest_form_link_issued`                                                                                   |
+| Copy guest trip link                                    | `issue-guest-trip-link`                      | `booking.trip_link_issued`                                                                                         |
+| Run / Recheck AI Summary (inline job)                   | `booking-ai-review`                          | `booking.ai_review_run` (skipped on cache-only GET-style early returns)                                            |
+| Validate receipts backfill                              | `validate-booking-receipts` (edge only)      | `booking.receipt_validated` (`source: backfill`, batch `count`)                                                    |
+| Host review / response                                  | review handlers                              | `review.*`                                                                                                         |
 
 Orchestrator emails on **Proceed** are not duplicated here; the status transition row covers that step. Pure reads (`get-booking-asset-url`, preview, list activity) emit nothing.
 
@@ -451,21 +451,21 @@ This is the page a host opens to manage one specific booking end to end: guest d
 
 ## API reference
 
-| Action                              | Endpoint                                                                                                                                                                                       |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Load booking                        | Supabase `guest_submissions` select (admin session)                                                                                                                                            |
-| Save edit-form and progress fields  | `POST update-booking-details`                                                                                                                                                                  |
-| Reschedule / clear detail assets    | `POST update-booking-details`                                                                                                                                                                  |
+| Action                              | Endpoint                                                                                                                                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Load booking                        | Supabase `guest_submissions` select (admin session)                                                                                                                                             |
+| Save edit-form and progress fields  | `POST update-booking-details`                                                                                                                                                                   |
+| Reschedule / clear detail assets    | `POST update-booking-details`                                                                                                                                                                   |
 | Reject an approved GAF / pet file   | `POST update-booking-details` (`operation: 'review_document'`, `decision: 'reject'`) — **409** if the status moved; **429** with `retryAfterSec` when the 30 s / 5-per-hour review limit is hit |
-| Advance/back a workflow step        | `POST transition-booking` — **409** if another host already moved status; **409 `ai_verdict_blocked`** when an AI `invalid` receipt verdict blocks it (retry with `override_ai_verdict: true`) |
-| Cancel booking                      | `POST cancel-booking`                                                                                                                                                                          |
-| Upload/replace a guest document     | `POST upload-booking-asset`                                                                                                                                                                    |
-| Manually run check-out automation   | `POST sd-refund-cron` (scoped to `{ bookingId }`)                                                                                                                                              |
-| Resend Check-out Instructions email | `POST send-sd-refund-form-email`                                                                                                                                                               |
-| Issue/refresh guest stay-guide link | `POST issue-guest-stay-guide-token`                                                                                                                                                            |
-| Optional admin receipt re-validate  | `POST validate-booking-receipts` (not called from booking detail UI)                                                                                                                           |
-| Trigger AI summary job              | `POST booking-ai-review` (`{ bookingId, refresh? }`)                                                                                                                                           |
-| Poll AI summary job                 | `GET get-booking-ai-review` (includes computed `stale_sections`)                                                                                                                               |
+| Advance/back a workflow step        | `POST transition-booking` — **409** if another host already moved status; **409 `ai_verdict_blocked`** when an AI `invalid` receipt verdict blocks it (retry with `override_ai_verdict: true`)  |
+| Cancel booking                      | `POST cancel-booking`                                                                                                                                                                           |
+| Upload/replace a guest document     | `POST upload-booking-asset`                                                                                                                                                                     |
+| Manually run check-out automation   | `POST sd-refund-cron` (scoped to `{ bookingId }`)                                                                                                                                               |
+| Resend Check-out Instructions email | `POST send-sd-refund-form-email`                                                                                                                                                                |
+| Issue/refresh guest stay-guide link | `POST issue-guest-stay-guide-token`                                                                                                                                                             |
+| Optional admin receipt re-validate  | `POST validate-booking-receipts` (not called from booking detail UI)                                                                                                                            |
+| Trigger AI summary job              | `POST booking-ai-review` (`{ bookingId, refresh? }`)                                                                                                                                            |
+| Poll AI summary job                 | `GET get-booking-ai-review` (includes computed `stale_sections`)                                                                                                                                |
 
 ---
 
@@ -490,11 +490,11 @@ Endpoints: `cancel-booking` (host), `respond-cancellation-request` (approve/decl
 
 ## Testing
 
-| Layer | Path / spec                                                                                                                                                                                                                                                                                                                             | Manual                         |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Layer | Path / spec                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Manual                         |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | Unit  | `supabase/functions/_shared/statusMachine_test.ts`, `workflowOrchestrator_test.ts`, `bookingDetailsPatch_test.ts` (parking sub-step reset, review permissions + rejection reasons), `totalGuestBalance_test.ts`, `propertyTemplateEmailSections_test.ts`; `ui/src/features/dashboard/bookings/lib/workflow.test.ts`, `pendingDocStatusGroups.test.ts` (received / rejected inbound rows), `bookingPricingRows.test.ts`, `bookingFinance.test.ts`, `totalGuestBalance.test.ts` | —                              |
-| E2E   | `ui/e2e/features/bookings/propertyBookingProceed.spec.ts` (`@smoke` proceed flow); parking free-manual workflow spec for plan skip                                                                                                                                                                                                      | Resend inbound GAF approval    |
-| N/A   | —                                                                                                                                                                                                                                                                                                                                       | Real email sends on transition |
+| E2E   | `ui/e2e/features/bookings/propertyBookingProceed.spec.ts` (`@smoke` proceed flow); parking free-manual workflow spec for plan skip                                                                                                                                                                                                                                                                                                                                            | Resend inbound GAF approval    |
+| N/A   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Real email sends on transition |
 
 ---
 
@@ -505,3 +505,26 @@ Endpoints: `cancel-booking` (host), `respond-cancellation-request` (approve/decl
 - [`.cursor/rules/booking-workflow.mdc`](../../../../../.cursor/rules/booking-workflow.mdc) — canonical status enum, transition graph, side-effect matrix
 - [`.cursor/rules/admin-auth.mdc`](../../../../../.cursor/rules/admin-auth.mdc) §5 — workflow side effects + property email automations
 - [`docs/archive/planning/NEW_FLOW_PLAN.md`](../../../../archive/planning/NEW_FLOW_PLAN.md) §3.1
+
+---
+
+## Identity verdict on guest rows (2026-11-07)
+
+Each guest slot can carry a live identity verdict. `VerificationResultBadge` renders
+`Verified` / `Partially verified` / `Needs review` / `Not accepted` / `Expired`, with a
+tooltip that says what was actually checked.
+
+- Reading a verdict uses the existing `bookings.detail.guests:view` leaf.
+- Overriding a blocking identity flag uses the existing `aiVerdictOverride` path, not a second
+  mechanism.
+- The GAF request still attaches `valid_id_url`; the live path writes that same column.
+- The capture itself is not shown in the booking gallery: it lives in `identity-captures` and
+  expires in 7 days. The `valid-ids` copy is what the host already sees.
+
+**Host Q&A**
+
+- Q: Why does a row say "Needs review"?
+  A: The capture worked but no strong proof was produced (for example the liveness check could
+  not run). Nothing is blocked; it is a prompt to look.
+- Q: Can I still proceed if the ID is flagged?
+  A: Yes, with the same override used for receipts, and it is recorded in the activity log.

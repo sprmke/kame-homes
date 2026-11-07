@@ -224,3 +224,17 @@ After onboarding finishes, hosts land on the listing dashboard. The **Setup Guid
 | Unit   | setup guide / org creation validators when pure                                                                     | —                        |
 | E2E    | `ui/e2e/features/onboarding/onboardingSmoke.spec.ts` (`@ci`) — org step + property listing selection → verify intro | —                        |
 | Manual | Full verification upload + review                                                                                   | Manual host verification |
+
+---
+
+## Identity verification (2026-11-07)
+
+Onboarding creates the organization at submit, so there is no `organization_id` to attach a
+live verdict to yet. Onboarding therefore keeps the existing Valid ID upload.
+
+Live capture is available immediately after onboarding from **Get Verified** on the dashboard
+(`HostIdentityVerifyButton`), which produces the same Valid ID file the existing upload path
+expects **and** records an `org_owner` verdict for the reviewer.
+
+See [`verify.md`](./verify.md) and
+[`../../architecture/identity-verification.md`](../../architecture/identity-verification.md).
