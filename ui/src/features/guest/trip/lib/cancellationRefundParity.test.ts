@@ -56,7 +56,6 @@ describe('cancellation refund client/server parity', () => {
       const clientOutcome = client.computeCancellationOutcome({
         policy: fixture.policy ? clientPolicy.buildCancellationPreset(fixture.policy) : null,
         booking: { ...BASE_BOOKING, ...fixture.booking },
-        bookedAt: '2026-11-20T00:00:00.000Z',
         cancelledAt: fixture.cancelledAt,
         checkInTime: '14:00',
         initiator: fixture.initiator,
@@ -65,7 +64,6 @@ describe('cancellation refund client/server parity', () => {
       const serverOutcome = server.computeCancellationOutcome({
         policy: fixture.policy ? serverPolicy.buildCancellationPreset(fixture.policy) : null,
         booking: { ...BASE_BOOKING, ...fixture.booking },
-        bookedAt: '2026-11-20T00:00:00.000Z',
         cancelledAt: fixture.cancelledAt,
         checkInTime: '14:00',
         initiator: fixture.initiator,

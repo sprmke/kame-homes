@@ -72,6 +72,7 @@ export type GuestTrip = {
       unset: boolean;
       capturedFrom: string | null;
     };
+    nonRefundable: boolean;
     outcome: {
       mode:
         | 'computed'
@@ -81,7 +82,6 @@ export type GuestTrip = {
         | 'not_cancellable';
       refundPercent: number | null;
       checkInInstantIso: string;
-      graceUntilIso: string | null;
       cancellableUntilIso: string;
       deadlines: Array<{
         daysBefore: number;

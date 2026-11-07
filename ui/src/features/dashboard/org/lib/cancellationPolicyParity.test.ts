@@ -16,7 +16,7 @@ const RAW_INPUTS: unknown[] = [
   client.buildCancellationPreset('flexible'),
   client.buildCancellationPreset('moderate'),
   client.buildCancellationPreset('firm'),
-  client.buildCancellationPreset('strict'),
+  client.buildCancellationPreset('standard'),
   client.buildCancellationPreset('non_refundable'),
   client.buildCancellationPreset('custom', {
     tiers: [
@@ -25,8 +25,6 @@ const RAW_INPUTS: unknown[] = [
       { daysBefore: 2, refundPercent: 25 },
     ],
     fallbackRefundPercent: 0,
-    grace: { enabled: true, hours: 24, minLeadDays: 7 },
-    guestCancellation: 'instant',
   }),
 ];
 

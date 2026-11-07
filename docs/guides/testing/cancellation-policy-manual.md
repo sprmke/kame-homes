@@ -10,14 +10,15 @@ with a short deadline so you can cross it in one sitting.
 ## 1. Policy setup
 
 1. Property Settings → Cancellation policy → Manage.
-2. Pick each preset. The timeline preview updates with exact sample dates.
+2. Pick each preset. The example updates with exact sample dates and peso refunds for a guest who paid ₱2,000.
 3. Pick Custom. Add 3 rows out of order. They sort by days before. Set a refund that increases
    closer to check-in → the save is blocked with a clear message.
-4. Turn the free-cancellation window on. Set 24 hours / 7 days ahead. Save.
-5. With 2+ live bookings, saving asks "Apply to new bookings only?" with the count. Confirm.
+4. Pick Non-refundable → the warning says the down payment is not returned. Save.
+5. Save. No "new bookings only" prompt appears.
 6. Activity log shows `property.cancellation_policy_updated`; `property_cancellation_policy_versions`
    has a new row.
 7. Close the sheet with unsaved edits → Save / Discard / Keep editing.
+8. Confirm the sheet has no free-cancellation window, fee rules, instant/request setting, or note.
 
 ## 2. Booking-time snapshot
 
@@ -33,7 +34,7 @@ with a short deadline so you can cross it in one sitting.
 
 ## 3. Guest instant cancel
 
-1. Policy = Flexible, guest paid a down payment, cancel inside the grace window.
+1. Policy = Flexible, guest paid only the down payment, cancel before the first deadline.
 2. Trip page → Cancel booking → refund preview equals the down payment, retained 0.
 3. Confirm → status `CANCELLED`, `cancelled_by = guest`, reason stored, `booking_refunds` row
    created with `awaiting_guest_details`.
@@ -44,7 +45,7 @@ with a short deadline so you can cross it in one sitting.
 
 ## 4. Guest request → host approve
 
-1. Policy = custom or "Ask me first".
+1. Policy = unset or migrated free text; or the guest has already paid the balance.
 2. Trip page → Request to cancel → request created, badge on the booking list, host notification.
 3. Guest gets "request received"; host gets the request email.
 4. Guest withdraws → request `withdrawn`, badge gone.
@@ -73,11 +74,13 @@ with a short deadline so you can cross it in one sitting.
 ## 7. Money and time
 
 1. Cancel exactly at the deadline (14:00 Asia/Manila) → the tier applies.
-2. Book 3 days before check-in → no grace window.
+2. Book 3 days before check-in → the last deadline has passed, so the fallback applies.
 3. Voucher applied → refund base excludes the discount.
-4. Pet fee set to Never refund → excluded from the refund base.
+4. Every paid amount follows the policy. The security deposit is collected at check-in, so it is not part of the pre-check-in example.
 5. Unset policy → guest sees "Ask the host", request mode, host decides.
-6. Nothing paid → refund ₱0, no "you lose" copy.
+6. Down payment only under Firm 50% → refund is 50% of the down payment, not ₱0.
+7. Custom 0% schedule → the non-refundable warning shows on the booking form and trip page.
+8. Nothing paid → refund ₱0, no "you lose" copy.
 
 ## 8. Mobile
 
