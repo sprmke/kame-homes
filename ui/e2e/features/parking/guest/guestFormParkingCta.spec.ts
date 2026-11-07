@@ -72,7 +72,7 @@ test.describe('guest form parking CTA', () => {
     await expect(page.getByText('Need parking?')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Find parking near your stay' })).toHaveAttribute(
       'href',
-      '/parkings'
+      '/parkings?linkStay=property-booking-success-001'
     );
   });
 });

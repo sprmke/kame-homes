@@ -16,7 +16,7 @@ test.describe('parking host-assisted booking', () => {
 
     await page.goto(parkingFlowPaths.hostBookings);
     await page.getByRole('button', { name: 'New booking' }).click();
-    await expect(page.getByText('New Parking Booking')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New booking' })).toBeVisible();
 
     await fillGuestParkingRegistrationForm(page, {
       guestName: 'Alex Rivera',
