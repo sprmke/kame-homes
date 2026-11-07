@@ -43,6 +43,10 @@ Feature-scoped Playwright coverage for the standalone parking marketplace flow (
 | Payment window expiry → next batch                           | Extra side-by-side                         | Guest returns to searching; host can accept again              |
 | Cancel while searching → host list updates                   | Extra side-by-side                         | Fresh host context avoids the persisted query cache            |
 | Endorsement send failure → Retry → chat                      | Extra side-by-side                         | Failure copy, Retry, host contact, chat thread                 |
+| Host cancels a paid booking                                  | Extra side-by-side                         | Host Cancel action, then guest sees Request cancelled          |
+| Losing the claim race                                        | Extra side-by-side                         | 409 already_claimed toast, Accept removed, request moves on    |
+| Payment window closes before paying                          | `parkingGuestRequest`                      | 409 on Pay now, toast, search resumes in batch 2               |
+| Host sees guest contact and vehicle details                  | `parkingHostClaim`                         | Email, phone, plate, and vehicle on the request detail         |
 | `no_parking_available` on submit                             | `parkingMarketplaceEdgeCases`              |                                                                |
 | Link marketplace request to property stay                    | `parkingMarketplaceEdgeCases`              | Manual stay picker                                             |
 | Host-shared `linkStay` auto-selects stay                     | `parkingMarketplaceEdgeCases`              | Confirm step without tapping stay card                         |
@@ -110,6 +114,8 @@ Both windows share the same mocked parking-request state, so host actions update
 | Payment expiry      | Payment window closes, search resumes in batch 2, host accepts again                      |
 | Cancel searching    | Guest cancels before accept; a new host session sees the cancelled request                |
 | Endorsement retry   | PMO send fails, guest taps Retry, host contact and chat appear                            |
+| Host cancel paid    | Host cancels after payment; guest sees Request cancelled                                  |
+| Claim race          | Second host gets Already claimed; the request moves to Awaiting payment                   |
 
 ### Slow / demo pacing
 
