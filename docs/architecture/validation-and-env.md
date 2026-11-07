@@ -179,6 +179,13 @@ When invoking `supabase functions serve` manually, `./dev.sh` / `bun run dev:api
 | Variable                                 | Notes                                                                                                                                                       |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GUEST_BOOKING_ACCESS_SECRET`            | HMAC secret for guest PII link tokens (`_shared/guestBookingAccessToken.ts`). Optional — falls back to `SUPABASE_SERVICE_ROLE_KEY`.                         |
+| `IDENTITY_SESSION_SECRET`                | **Required.** HMAC for the 10-minute identity capture handoff token (`_shared/identitySessionToken.ts`).                                                    |
+| `IDENTITY_HASH_PEPPER`                   | **Required.** Pepper for `subject_email_hash` and `document_number_hash`. Missing → the submit endpoint returns 500; it is deliberately not defaulted.      |
+| `PHILSYS_PUBLIC_KEY`                     | Optional. Ed25519 public key (raw 32 bytes or SPKI, base64) for PhilID v1 QR verification. Without it a QR read is decoded but **not** signature-verified.  |
+| `IDENTITY_VERDICT_VALIDITY_DAYS`         | Optional, default `365`. Verdict lifetime, capped by the document expiry.                                                                                   |
+| `IDENTITY_CAPTURE_RETENTION_DAYS`        | Optional, default `7`. Capture bucket retention enforced by `identity-captures-purge-cron`.                                                                 |
+| `IDENTITY_PURGE_CRON_SECRET`             | Optional. `x-identity-purge-cron-secret`; the handler fails open until it is set, matching every sibling cron.                                              |
+| `IDENTITY_APP_ORIGINS`                   | Optional, comma-separated. Allowlist for the origin embedded in the handoff URL. Unset locally → the browser `Origin` header is trusted.                    |
 | `GUEST_BOOKING_ACCESS_ENFORCE`           | `true` → `get-form`, `get-sd-form`, `get-guest-review` require valid `?access=` token (or booking within legacy grace). Default off until dev verification. |
 | `GUEST_BOOKING_ACCESS_LEGACY_GRACE_DAYS` | When enforce is on, bare UUID still works for N days after `guest_submissions.created_at`. Default **30**. `0` = no grace.                                  |
 | `AI_PLATFORM_DAILY_COST_USD_CAP`         | Platform-wide daily AI USD ceiling in `assertOrgAndPropertyAiQuota`. Default **150**; `0` = disabled.                                                       |

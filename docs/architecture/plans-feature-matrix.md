@@ -404,3 +404,10 @@ Cancellation is part of the core booking loop, so it is **available on every tie
 `bookings.detail.workflow:edit` permission; there is no separate refund leaf. The refund reminder
 cron follows the same automation posture as the SD refund cron and is not a new entitlement.
 Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
+
+## Identity verification (2026-11-07)
+
+**No new plan key.** Guest identity verification is not plan-gated (guest safety, core booking
+loop). AI extraction reuses `aiValidations`. Host Tier 1 ungated, Tier 2 stays
+`recommendedBadgeEligible`. Team RBAC N/A (owner-only submission; `bookings.detail.guests:view`
+covers reading; `aiVerdictOverride` covers overriding). See identity-verification.md.

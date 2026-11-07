@@ -610,3 +610,11 @@ select cron.unschedule(<jobid>);
 ---
 
 _Last updated to match repo behavior as of the Phase 4 `gmail-listener` + `sd-refund-cron` implementation and `supabase/config.toml` (`verify_jwt = false` for both)._
+
+### identity-captures-purge-cron
+
+Daily retention sweep for live identity verification. Expires orphaned sessions, flips
+verdicts past `expires_at` to `expired`, and deletes capture files for terminal sessions older
+than `IDENTITY_CAPTURE_RETENTION_DAYS` (default 7). Secret header
+`x-identity-purge-cron-secret` from `IDENTITY_PURGE_CRON_SECRET`; fail-open until it is set,
+matching every sibling cron. One `system.cron_run`-style summary per run, never one per file.
