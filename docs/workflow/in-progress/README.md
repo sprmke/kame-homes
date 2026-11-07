@@ -2,7 +2,7 @@
 title: 'In progress'
 status: active
 tags: [workflow, in-progress]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: reference
 ---
@@ -14,6 +14,8 @@ Implementation **started** — plan not fully complete. Partial phases or v1 sli
 Plans with **implementation complete** and only manual QA left live in [`../for-testing/`](../for-testing/) (**🧪**). **Start QA:** [`production-readiness/qa/QA-BATCH.md`](./production-readiness/qa/QA-BATCH.md).
 
 **Disposition snapshot:** [`MODULE-DISPOSITION.md`](./production-readiness/qa/MODULE-DISPOSITION.md) — what closes vs what needs code.
+
+**Moved in 2026-11-07:** [`live-identity-verification.md`](./live-identity-verification.md) — started. One shared guided live-capture module for the guest booking form and host/org verification: desktop starts it, a QR hands it to the phone, the phone captures the document with a frame guide and auto-capture, reads the PhilSys QR or passport MRZ, runs an optional on-device liveness challenge, and submits a structured verdict instead of a bare image. Corrected before build: guest identity is booking-scoped (the form is anonymous), the capture image is copied into `valid-ids` so GAF attachments are untouched, and desktop polling replaces Realtime.
 
 **Moved in 2026-11-06:** [`settings-cleanup-and-clarity.md`](./settings-cleanup-and-clarity.md) — started. Retires the legacy Parking owners BCC field, the hidden `emailParkingBroadcast` toggle, the dead Parking Request template and orphan pay-parking code; fixes complimentary own parking being honored with Allow Parking off; rewrites Email automations copy and moves the toggles inline; merges parking Automations and removes the parking Payment section (guests pay through PayMongo). Expand now, contract (schema drop) after one release soak.
 

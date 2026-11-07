@@ -2,7 +2,7 @@
 title: 'Tasks To Plan'
 status: active
 tags: [planning, intake, backlog]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: intake
 kind: backlog
 ---
@@ -959,7 +959,7 @@ Example:
 
 📋 Live Identity Verification — guided capture, phone handoff, PhilSys QR, liveness
 
-→ **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md) — Replace today's "pick a file from your gallery" identity capture — on both the guest booking form and the host/org verification flow — with one shared guided live capture module: desktop starts it, a QR hands it to the phone, the phone...
+→ **In progress:** [`../in-progress/live-identity-verification.md`](../in-progress/live-identity-verification.md) — Replace today's "pick a file from your gallery" identity capture — on both the guest booking form and the host/org verification flow — with one shared guided live capture module: desktop starts it, a QR hands it to the phone, the phone...
 
 ===
 
