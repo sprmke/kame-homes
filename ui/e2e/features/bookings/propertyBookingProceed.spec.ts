@@ -62,8 +62,15 @@ test.describe('@smoke @ci property booking workflow proceed', () => {
     await expect(page.getByRole('button', { name: 'Upload Approved GAF' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Actions for Approved GAF' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Recheck' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Upload file' })).toBeVisible();
+    /* Dropdown on desktop, bottom sheet on phone/tablet. */
+    const recheck = page
+      .getByRole('menuitem', { name: 'Recheck' })
+      .or(page.getByRole('option', { name: 'Recheck' }));
+    const upload = page
+      .getByRole('menuitem', { name: 'Upload file' })
+      .or(page.getByRole('option', { name: 'Upload file' }));
+    await expect(recheck).toBeVisible();
+    await expect(upload).toBeVisible();
   });
 
   test('host can proceed PENDING_REVIEW to PENDING_DOCUMENTS on paid plan', async ({ page }) => {
