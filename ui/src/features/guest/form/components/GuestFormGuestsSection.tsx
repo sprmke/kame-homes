@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Minus, Plus, UserRound } from 'lucide-react';
 
-import { GuestFormValidIdUpload } from '@/features/guest/form/components/GuestFormValidIdUpload';
+import { GuestIdentityCapture } from '@/features/guest/form/components/GuestIdentityCapture';
 import { PropertyGuestLimitReminder } from '@/features/guest/form/components/PropertyGuestLimitReminder';
 import {
   computeOccupancyGuestCountsByAge,
@@ -35,12 +35,19 @@ type GuestNameField =
 type GuestAgeField = 'primaryGuestAge' | 'guest2Age' | 'guest3Age' | 'guest4Age' | 'guest5Age';
 type GuestValidIdField =
   'validId' | 'guest2ValidId' | 'guest3ValidId' | 'guest4ValidId' | 'guest5ValidId';
+type GuestIdentityField =
+  | 'primaryIdentityVerificationId'
+  | 'guest2IdentityVerificationId'
+  | 'guest3IdentityVerificationId'
+  | 'guest4IdentityVerificationId'
+  | 'guest5IdentityVerificationId';
 
 type GuestSlotConfig = {
   index: number;
   nameField: GuestNameField;
   ageField: GuestAgeField;
   validIdField: GuestValidIdField;
+  identityField: GuestIdentityField;
 };
 
 const GUEST_SLOTS: GuestSlotConfig[] = [
@@ -49,30 +56,35 @@ const GUEST_SLOTS: GuestSlotConfig[] = [
     nameField: 'primaryGuestName',
     ageField: 'primaryGuestAge',
     validIdField: 'validId',
+    identityField: 'primaryIdentityVerificationId',
   },
   {
     index: 2,
     nameField: 'guest2Name',
     ageField: 'guest2Age',
     validIdField: 'guest2ValidId',
+    identityField: 'guest2IdentityVerificationId',
   },
   {
     index: 3,
     nameField: 'guest3Name',
     ageField: 'guest3Age',
     validIdField: 'guest3ValidId',
+    identityField: 'guest3IdentityVerificationId',
   },
   {
     index: 4,
     nameField: 'guest4Name',
     ageField: 'guest4Age',
     validIdField: 'guest4ValidId',
+    identityField: 'guest4IdentityVerificationId',
   },
   {
     index: 5,
     nameField: 'guest5Name',
     ageField: 'guest5Age',
     validIdField: 'guest5ValidId',
+    identityField: 'guest5IdentityVerificationId',
   },
 ];
 
@@ -85,6 +97,8 @@ type GuestFormGuestsSectionProps = {
   /** Bumps when an existing booking is loaded so visible guest slots expand. */
   seedKey?: string | number;
   guestCapacity?: PropertyGuestCapacity;
+  /** Resolves the property for the identity session (public guest endpoint). */
+  propertySlug?: string;
 };
 
 function clearGuestSlot(
@@ -97,6 +111,7 @@ function clearGuestSlot(
   form.setValue(slot.nameField, '');
   form.setValue(slot.ageField, null as unknown as number | undefined);
   form.setValue(slot.validIdField, undefined);
+  form.setValue(slot.identityField, undefined);
   onValidIdPreviewChange(previewKey, null);
   onValidIdImageErrorChange(previewKey, false);
 }
@@ -109,7 +124,9 @@ export function GuestFormGuestsSection({
   onValidIdImageErrorChange,
   seedKey,
   guestCapacity = DEFAULT_PROPERTY_GUEST_CAPACITY,
+  propertySlug = '',
 }: GuestFormGuestsSectionProps) {
+  const guestEmailForIdentity = String(form.watch('guestEmail') ?? '');
   const maxVisibleGuests = Math.min(
     MAX_GUESTS,
     guestCapacity.maxAdults + guestCapacity.maxChildren
@@ -307,7 +324,16 @@ export function GuestFormGuestsSection({
                   control={form.control}
                   name={slot.validIdField}
                   render={({ field: { onChange, value, ...field } }) => (
-                    <GuestFormValidIdUpload
+                    <GuestIdentityCapture
+                      label="Valid ID"
+                      guestSlot={slot.index}
+                      guestName={String(form.watch(slot.nameField) ?? '')}
+                      email={guestEmailForIdentity}
+                      propertySlug={propertySlug}
+                      identityVerificationId={form.watch(slot.identityField) || undefined}
+                      onIdentityChange={(id) =>
+                        form.setValue(slot.identityField, id, { shouldValidate: true })
+                      }
                       preview={validIdPreviews[previewKey] ?? null}
                       value={value as File | undefined}
                       imageLoadError={validIdImageErrors[previewKey] ?? false}

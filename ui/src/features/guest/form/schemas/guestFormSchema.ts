@@ -199,6 +199,14 @@ function buildGuestFormSchema(options: GuestFormSchemaOptions) {
       guest3ValidId: z.instanceof(File).optional(),
       guest4ValidId: z.instanceof(File).optional(),
       guest5ValidId: z.instanceof(File).optional(),
+      // A live identity verification satisfies the ID requirement without a File. The
+      // server copies the captured photo into `valid-ids` at submit so GAF attachments keep
+      // working. Either a file or an id is required per adult guest.
+      primaryIdentityVerificationId: z.string().optional(),
+      guest2IdentityVerificationId: z.string().optional(),
+      guest3IdentityVerificationId: z.string().optional(),
+      guest4IdentityVerificationId: z.string().optional(),
+      guest5IdentityVerificationId: z.string().optional(),
 
       // Unit and owner information — populated from property settings on load
       unitOwner: z.string().default(''),
@@ -212,30 +220,35 @@ function buildGuestFormSchema(options: GuestFormSchemaOptions) {
           name: data.primaryGuestName,
           age: data.primaryGuestAge,
           validId: data.validId,
+          identityId: data.primaryIdentityVerificationId,
           prefix: 'primary',
         },
         {
           name: data.guest2Name,
           age: data.guest2Age,
           validId: data.guest2ValidId,
+          identityId: data.guest2IdentityVerificationId,
           prefix: 'guest2',
         },
         {
           name: data.guest3Name,
           age: data.guest3Age,
           validId: data.guest3ValidId,
+          identityId: data.guest3IdentityVerificationId,
           prefix: 'guest3',
         },
         {
           name: data.guest4Name,
           age: data.guest4Age,
           validId: data.guest4ValidId,
+          identityId: data.guest4IdentityVerificationId,
           prefix: 'guest4',
         },
         {
           name: data.guest5Name,
           age: data.guest5Age,
           validId: data.guest5ValidId,
+          identityId: data.guest5IdentityVerificationId,
           prefix: 'guest5',
         },
       ] as const;
@@ -308,7 +321,7 @@ function buildGuestFormSchema(options: GuestFormSchemaOptions) {
         const age = guest.age;
         if (age == null) return;
 
-        if (requiresValidId(age) && !guest.validId) {
+        if (requiresValidId(age) && !guest.validId && !guest.identityId) {
           const field =
             guest.prefix === 'primary'
               ? 'validId'
