@@ -129,7 +129,7 @@
     "autoprefixer": "^10.4.16",
     "eslint": "^8.53.0",
     "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.4.4",
     "eslint-plugin-unicorn": "56",
     "fake-indexeddb": "^6.2.7",
