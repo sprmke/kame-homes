@@ -17,7 +17,7 @@
  *
  * Auth: marketing:view (read), marketing.media:add (upload), marketing.media:delete
  * (delete / restore); every route also resolves the `marketingMediaLibrary` plan feature.
- * Plan: docs/workflow/for-testing/marketing-video-editor-multitrack.md §5.4.
+ * Plan: docs/workflow/in-progress/marketing-video-editor-multitrack.md §5.4.
  *
  * activity-log: marketing.media_deleted / marketing.media_restored. Uploads are N/A (staging
  * artifacts, high volume), as with upload-marketing-asset; blocked attempts are plain 403s.

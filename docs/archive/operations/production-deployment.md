@@ -24,7 +24,7 @@ Ship **migrations**, **Edge Functions**, **Secrets**, **Google integrations**, *
 | **Multi-tenant work** | **`develop`**             | [`kame-homes`](https://vercel.com/kame-works/kame-homes) **Preview**                                    | **MULTI_TENANT_DEV** `fwor…` — `deploy:supabase:dev`, `cd-dev.yml`           |
 | **Multi-tenant prod** | **`main`** _(at release)_ | [`kame-homes`](https://vercel.com/kame-works/kame-homes) **Production**                                 | **MULTI_TENANT_PROD** _(create at release)_ — legacy data migration required |
 
-Full design + actionable tasks: [`ci-cd-dev-prod-design.md`](../../workflow/in-progress/ci-cd-environments/ci-cd-dev-prod-design.md), [`ci-cd-dev-prod.md`](../../workflow/in-progress/ci-cd-environments/ci-cd-dev-prod.md). Architecture summary + ref inventory: [`docs/architecture/deployment.md`](../../architecture/deployment.md).
+Full design + actionable tasks: [`ci-cd-dev-prod-design.md`](../../workflow/done/ci-cd-environments/ci-cd-dev-prod-design.md), [`ci-cd-dev-prod.md`](../../workflow/done/ci-cd-environments/ci-cd-dev-prod.md). Architecture summary + ref inventory: [`docs/architecture/deployment.md`](../../architecture/deployment.md).
 
 ---
 

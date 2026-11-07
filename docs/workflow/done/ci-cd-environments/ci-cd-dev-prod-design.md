@@ -1,17 +1,17 @@
 ---
 title: 'CI/CD to dev and production (Supabase + Vercel)'
-status: active
-stage: in-progress
+status: done
+stage: done
 kind: design
-tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, operations, multi-tenancy]
-updated: 2026-11-06
+tags: [workflow, done, deployment, ci-cd, supabase, vercel, operations, multi-tenancy]
+updated: 2026-11-07
 ---
 
 # CI/CD to dev and production — Design
 
 ## Status
 
-**In progress** — Phases A–C shipped in repo; Phase F (environments wiring) active; Phase B prod deferred.
+**Closed 2026-11-07** — Phases A–C shipped in repo. The dual-track targets (separate mt-dev/mt-prod projects, Phase B cutover) were superseded by the one-project cutover on 2026-11-02; see [`README.md`](./README.md).
 
 - Spec: this file.
 - **Implementation plan:** [`ci-cd-dev-prod.md`](./ci-cd-dev-prod.md)

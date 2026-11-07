@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: in-progress
 title: 'Org Activity & Audit Log — follow-ups (RBAC leaves, cron rows, notice emitters, partitioning)'
-status: planned
-tags: [workflow, planned, activity-log, audit-log, rbac, governance]
-updated: 2026-09-10
+status: in-progress
+tags: [workflow, in-progress, activity-log, audit-log, rbac, governance]
+updated: 2026-11-07
 kind: plan
 ---
 
@@ -11,19 +11,31 @@ kind: plan
 
 **Split from** [`../in-progress/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md) on 2026-09-10 so the core plan (Phases 0–6) can close to `for-testing`. **None of these block the feature.** The always-on `audit-logging` rule + skill keep coverage from rotting — any _new_ change to the surfaces below must still emit or mark N/A.
 
+**Status (2026-11-07):** part of this bundle shipped as side effects of other plans, so the file moved to `in-progress/`.
+
+| Item                                       | State                                                                                                                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Dedicated Activity RBAC leaves          | **Partial** — `org.activity:view` and listing `activity:view` shipped (team permission catalogs + `list-activity-log`). Export leaves (`*.activity:export`) are still open.                |
+| 2. `system.cron_run` per-run rows          | **Partial** — `cancellation-refund-cron`, `review-lifecycle-cron`, `calendar-sync-cron` and `voice-receptionist-reaper` emit. Shared `logCronRun` helper and the remaining crons are open. |
+| 3. Low-value `notice` emitters             | **Open** — catalog entries exist; OTP `security.*` events and several upload handlers are unwired.                                                                                         |
+| 4. Support-ticket / guest-profile handlers | **Open** — catalog entries exist; handlers intentionally unwired pending the scoping decision.                                                                                             |
+| 5. Monthly partitioning                    | **Open** — retention cron ships; partitioning does not.                                                                                                                                    |
+
 ## Items
 
 ### 1. Dedicated Activity RBAC leaves
 
 `org.activity:view` / `org.activity:export` + `property.activity:view` / `property.activity:export`, seeded into the Full Access / Operations / Read Only templates via a data migration (precedent: `granular-team-permissions`).
 
-- **Why deferred:** touches the ~1.5k-line team-permission catalogs on both server (`_shared/orgTeamPermissions.ts`, `propertyTeamPermissions.ts`) and client (`propertyTeamConstants.ts`, `propertyPermissionCatalog.ts`, org equivalents) + a seeded-template migration.
-- **Current gate (correct + safe):** `list-activity-log` / `activity-log-export` key on `accessKind` — owner / org-admin / platform-admin see all; listing-scoped members see only their assigned property / parking rows and never `scope='org'`. Export is additionally owner/org-admin + `activityLogExport` plan feature.
-- **Scope when started:** add the four leaves, wire the route/nav filters to them (replacing the current `org.dashboard:view` / `bookings:view` reuse), seed migration, update `plans-feature-matrix.md` RBAC section + the three route guides. Parking stays coarse until parking granular RBAC ships.
+- **Shipped (verified 2026-11-07):** `org.activity:view` and listing `activity:view` exist in the server + client catalogs and in `list-activity-log` / `activityLogVisibility.ts`. The route/nav filters and the seeded templates use them.
+- **Still open:** the two export leaves (`org.activity:export`, `property.activity:export`). Export today is gated by `accessKind` (owner / org-admin) plus the `activityLogExport` plan feature, which is correct but coarse.
+- **Scope when started:** add the export leaves, seed them into the templates, update `plans-feature-matrix.md` RBAC section + the three route guides. Parking stays coarse until parking granular RBAC ships.
 
 ### 2. `system.cron_run` per-run summary rows
 
 One row per run for `sd-refund-cron`, `contract-expiry-cron`, `calendar-sync-cron`, `smart-pricing-cron`, parking expiry / reminder crons, `platform-billing-cron`, `analytics-ai-review-cron`, etc. — e.g. "SD refund cron advanced 3 bookings to PENDING_SD_REFUND".
+
+- **Partial (2026-11):** `cancellation-refund-cron`, `review-lifecycle-cron`, `calendar-sync-cron` and `voice-receptionist-reaper` already emit a `system.cron_run` row. The shared `logCronRun` helper and the remaining crons are still open.
 
 - **Why deferred:** every cron-driven _transition_ already lands a `booking.status_changed` / parking status row (per Open Question 7), so the feed is not missing events — this is a nicer operational roll-up, not a coverage gap.
 - **Scope:** a thin `logCronRun({ cron, message, counts })` helper called at the end of each cron's `run()`; `system.cron_run` catalog entry already exists.

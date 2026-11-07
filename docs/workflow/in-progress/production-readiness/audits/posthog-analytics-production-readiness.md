@@ -2,7 +2,7 @@
 title: 'PostHog analytics and error tracking — production readiness'
 status: for-testing
 tags: [workflow, for-testing, posthog, analytics, observability, privacy]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 origin_stage: for-testing
@@ -475,4 +475,4 @@ without blocking first useful dashboards.
 
 None that block Phase 0–3. EU consent banner is a later add if we market there.
 Legacy-prod instrumentation waits on the dual-track cutover decision in
-`docs/workflow/in-progress/ci-cd-environments/`.
+`docs/workflow/done/ci-cd-environments/`.

@@ -1,10 +1,10 @@
 ---
 title: 'Support content refresh + docs → FAQ sync'
-stage: in-progress
-status: planned
+stage: for-testing
+status: for-testing
 tags:
   [help-support, faqs, documentation, route-guides, ai-knowledge-base, public-pages, skills, guest]
-updated: 2026-11-06
+updated: 2026-11-07
 kind: plan
 ---
 

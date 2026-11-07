@@ -1,9 +1,9 @@
 ---
 title: Booking detail activity log coverage
-status: in-progress
+status: for-testing
 tags: [workflow, activity-log, bookings]
-updated: 2026-11-06
-stage: in-progress
+updated: 2026-11-07
+stage: for-testing
 kind: feature
 ---
 

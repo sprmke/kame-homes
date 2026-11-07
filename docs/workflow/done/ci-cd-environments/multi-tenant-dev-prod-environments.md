@@ -1,13 +1,15 @@
 ---
 title: 'Multi-tenant environments — phased plan (dev now · prod at release)'
-status: active
-tags: [workflow, in-progress, deployment, supabase, vercel, multi-tenancy]
-updated: 2026-09-16
-stage: in-progress
+status: done
+tags: [workflow, done, deployment, supabase, vercel, multi-tenancy]
+updated: 2026-11-07
+stage: done
 kind: plan
 ---
 
 # Multi-tenant environments — phased plan
+
+**Closed 2026-11-07.** Superseded by the one-project cutover (2026-11-02): a single Supabase project serves `develop` and `kamespace.com`, and there is no hosted dev environment. The table below is historical. See [`README.md`](./README.md).
 
 ## Decision (2026-08-09)
 

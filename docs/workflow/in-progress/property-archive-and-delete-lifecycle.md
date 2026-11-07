@@ -1,9 +1,9 @@
 ---
 stage: in-progress
 title: 'Property archive and delete: lifecycle, guardrails, and clear host UX'
-status: in progress
+status: in-progress
 tags: [workflow, planned, property, settings, lifecycle, billing, guest, ux-copy]
-updated: 2026-11-06
+updated: 2026-11-07
 kind: plan
 ---
 
@@ -53,7 +53,7 @@ Nothing records **why** a property is inactive, so the UI cannot explain it, and
 
 `update-property` accepts `status: 'ACTIVE'` from anyone with `settings.dangerZone:edit`. It only checks the tower/unit peer conflict. It does **not** check listing authorization or `accessLockedAt`.
 
-- A brand-new, unverified property shows **"Restore Property"** in the Danger Zone (because it starts `INACTIVE`). Clicking it publishes the listing without super-admin approval. The docs say the listing "stays inactive until super-admin approves" (`docs/workflow/for-testing/host-onboarding-setup-guide.md`).
+- A brand-new, unverified property shows **"Restore Property"** in the Danger Zone (because it starts `INACTIVE`). Clicking it publishes the listing without super-admin approval. The docs say the listing "stays inactive until super-admin approves" (`docs/workflow/in-progress/host-onboarding-setup-guide.md`).
 - A contract-locked or consideration-denied listing can be restored the same way, undoing the contract lifecycle.
 - A non-owner team member with `settings.dangerZone:edit` can do either.
 - The AI assistant tool `propose_update_property_profile` accepts `status` and goes through the same service, so it has the same bypass.

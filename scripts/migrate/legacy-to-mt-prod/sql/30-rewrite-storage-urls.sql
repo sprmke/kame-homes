@@ -1,5 +1,5 @@
 -- 30-rewrite-storage-urls.sql — legacy URL rewrite across all public text/jsonb columns (idempotent).
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §2.5.
+-- Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md §2.5.
 --
 -- Rewrites, in every BASE TABLE column of `public`:
 --   http(s)://<legacy project ref>.supabase.co   → https://<target host>

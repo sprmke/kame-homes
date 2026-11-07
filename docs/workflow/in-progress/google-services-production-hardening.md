@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: in-progress
 title: 'Google services production hardening (post-launch follow-ups)'
-status: planned
+status: in-progress
 tags: [planning, google, maps, gemini, fonts, billing, legacy-cleanup, production-hardening]
-updated: 2026-11-03
+updated: 2026-11-07
 split_from: kamespace-05-google-services-verification
 ---
 
@@ -59,7 +59,7 @@ split_from: kamespace-05-google-services-verification
 
 ### Phase 2: Gemini, fonts, support
 
-- [ ] **H-06** Gemini: paid API key, restricted to the Generative Language API, per project, quota tier and budget alert. Track execution in [`ai-paid-provider-and-production-quotas.md`](./ai-paid-provider-and-production-quotas.md).
+- [ ] **H-06** Gemini: paid API key, restricted to the Generative Language API, per project, quota tier and budget alert. Track execution in [`ai-paid-provider-and-production-quotas.md`](../planned/ai-paid-provider-and-production-quotas.md).
 - [ ] **H-07** Self-host the fonts in `ui/public/fonts` and drop `fonts.googleapis.com` / `fonts.gstatic.com` from the CSP, or add the disclosure to the privacy page. Check the PWA precache budget if self-hosting.
 - [ ] **H-08** `GoogleSignInButton` visual check at 375 / 768 / 1024; short Workspace-admin help answer for hosts whose admin blocks third-party apps (`human-copy`).
 - [ ] **H-09** Add a System Health probe for the Google provider if the pattern allows it without exposing secrets.

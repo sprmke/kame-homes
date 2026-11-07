@@ -1,9 +1,9 @@
 ---
 title: 'Dev / staging environment'
-status: active
-tags: [workflow, in-progress, deployment]
-updated: 2026-08-09
-stage: in-progress
+status: done
+tags: [workflow, done, deployment]
+updated: 2026-11-07
+stage: done
 kind: plan
 ---
 
@@ -14,6 +14,8 @@ kind: plan
 - Dev bootstrap: [`docs/archive/operations/dev-staging-environment.md`](../../../archive/operations/dev-staging-environment.md)
 - **mt-dev setup (now):** [`multi-tenant-dev-prod-setup.md`](../../../archive/operations/multi-tenant-dev-prod-setup.md)
 - **Active plan + status:** [`multi-tenant-dev-prod-environments.md`](./multi-tenant-dev-prod-environments.md) · [`ci-cd-environment-matrix.md`](../../../archive/operations/ci-cd-environment-matrix.md)
+
+**Closed 2026-11-07.** No hosted dev/staging environment exists. `dev.kamehomes.space` was retired; use local (`./dev.sh`) or a Vercel preview URL. The checklist below is historical. See [`README.md`](./README.md).
 
 ## Summary (2026-08-09)
 

@@ -1,6 +1,6 @@
 # Marketing video editor (multi-track) and media library
 
-Videos tab of Marketing Studio. Replaces the scene slideshow with a CapCut-style timeline: photos, video, text and audio each sit on their own track. Hosts upload media to a per-property library with plan quotas. Plan and history: [`../workflow/for-testing/marketing-video-editor-multitrack.md`](../workflow/for-testing/marketing-video-editor-multitrack.md).
+Videos tab of Marketing Studio. Replaces the scene slideshow with a CapCut-style timeline: photos, video, text and audio each sit on their own track. Hosts upload media to a per-property library with plan quotas. Plan and history: [`../workflow/in-progress/marketing-video-editor-multitrack.md`](../workflow/in-progress/marketing-video-editor-multitrack.md).
 
 ## Rollout and flags
 

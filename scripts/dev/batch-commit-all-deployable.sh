@@ -175,7 +175,7 @@ commit_paths "docs: feature availability architecture route guides and workflow"
   docs/workflow/in-progress/production-readiness/HANDOFF.md \
   docs/workflow/planned/README.md \
   docs/workflow/planned/google-services-production-hardening.md \
-  docs/workflow/planned/kamespace-04-domain-move-kamespace-com.md \
+  docs/workflow/done/kamespace-04-domain-move-kamespace-com.md \
   docs/workflow/done/kamespace-05-google-services-verification.md \
   docs/workflow/planned/supabase-capacity-and-operational-readiness.md \
   docs/workflow/wont-do/module-status-management.md \

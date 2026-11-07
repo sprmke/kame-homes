@@ -1,17 +1,17 @@
 ---
 title: 'Mobile app chrome: header and tab bar'
-status: active
-tags: [workflow, planned, mobile, ui, pwa]
-updated: 2026-11-06
-stage: planned
+status: in-progress
+tags: [workflow, in-progress, mobile, ui, pwa]
+updated: 2026-11-07
+stage: in-progress
 kind: plan
 ---
 
 # Mobile app chrome: header and tab bar
 
-Scope: the **shell chrome only** on phone/tablet (`max-lg`), for both the public site and the host dashboard. That means the top header (page name, tenant scope, actions) and the bottom bar (tab bar + contextual action bar). Per-page content redesign stays in [`dashboard-mobile-native-v2.md`](./dashboard-mobile-native-v2.md); this plan delivers the shell primitives that plan assumed (its `NativeTopBar`, `LargeTitleHeader`, `BottomTabBar` restyle, decisions D1 and D4) so v2's per-page phases can build on them.
+Scope: the **shell chrome only** on phone/tablet (`max-lg`), for both the public site and the host dashboard. That means the top header (page name, tenant scope, actions) and the bottom bar (tab bar + contextual action bar). Per-page content redesign stays in [`dashboard-mobile-native-v2.md`](../planned/dashboard-mobile-native-v2.md); this plan delivers the shell primitives that plan assumed (its `NativeTopBar`, `LargeTitleHeader`, `BottomTabBar` restyle, decisions D1 and D4) so v2's per-page phases can build on them.
 
-No code has been written for this plan.
+**Progress (2026-11-06):** Phase 1 (docked bottom bar, `--safe-*` + `--mobile-bottom-bar-h` tokens, keyboard hide) shipped in `9910a95fc`. Phase 1b (public detail back control, `useMobileBack` + `getPublicBackTarget`) shipped in `0e15fc997`. Both are on `develop`. Phase 2 onwards has no code yet.
 
 ## 1. Review of what ships today
 

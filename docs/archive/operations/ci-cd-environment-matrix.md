@@ -9,7 +9,7 @@ updated: 2026-08-09
 
 > **Superseded 2026-11-03:** one environment. `cd-prod.yml` is the only backend pipeline; `dev.kamehomes.space` no longer exists.
 
-**Phased plan:** [`ci-cd-environments/README.md`](../../workflow/in-progress/ci-cd-environments/README.md)
+**Phased plan:** [`ci-cd-environments/README.md`](../../workflow/done/ci-cd-environments/README.md)
 
 ---
 

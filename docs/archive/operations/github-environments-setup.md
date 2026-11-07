@@ -9,7 +9,7 @@ updated: 2026-08-09
 
 **Full matrix (git / Vercel / URLs / secrets):** [`ci-cd-environment-matrix.md`](./ci-cd-environment-matrix.md)
 
-**Phased plan:** [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md)
+**Phased plan:** [`multi-tenant-dev-prod-environments.md`](../../workflow/done/ci-cd-environments/multi-tenant-dev-prod-environments.md)
 
 GitHub Environment names are **not** git branch names:
 
@@ -130,7 +130,7 @@ At release: protect **`main`** as the multi-tenant prod line (after **`develop` 
 
 ## Related
 
-- Status + todos: [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md)
+- Status + todos: [`multi-tenant-dev-prod-environments.md`](../../workflow/done/ci-cd-environments/multi-tenant-dev-prod-environments.md)
 - Setup guide: [`multi-tenant-dev-prod-setup.md`](./multi-tenant-dev-prod-setup.md)
 - Legacy migration: [`legacy-to-mt-prod-migration.md`](./legacy-to-mt-prod-migration.md)
-- CI/CD implementation plan (in progress): [`ci-cd-dev-prod.md`](../../workflow/in-progress/ci-cd-environments/ci-cd-dev-prod.md)
+- CI/CD implementation plan (in progress): [`ci-cd-dev-prod.md`](../../workflow/done/ci-cd-environments/ci-cd-dev-prod.md)

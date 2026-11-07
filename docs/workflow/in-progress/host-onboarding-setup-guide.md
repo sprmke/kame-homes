@@ -1,16 +1,18 @@
 ---
 title: 'Host onboarding setup guide (post-registration overlay)'
-stage: for-testing
-status: for-testing
+stage: in-progress
+status: in-progress
 tags: [workflow, in-progress, onboarding, dashboard, ux]
-updated: 2026-11-04
+updated: 2026-11-07
 ---
 
 # Host onboarding setup guide (post-registration overlay)
 
-> **Stage:** [`for-testing`](../for-testing/README.md). **Phase 0** research complete. **Phase 1** step assembly +
-> progress model + Phase 1b persistence (`set_org_setup_guide_state` RPC,
-> `setup-guide-state` edge, `useSetupGuideStateWrite`, shell/launcher/redirect). Next: **Phase 2b** settings controllers.
+> **Stage:** [`in-progress`](../in-progress/README.md). Phases 0–10 are in code: org, property and
+> parking step blocks, settings controllers, reward grant/expire, and the launcher are wired.
+> **Still open:** reward reminder / unlock emails (T-7/T-3/T-1 + the grant "unlocked Pro" email
+> and notification event type) and wider Deno coverage for the grant/skip paths. Manual QA runs
+> after those land.
 
 ## Goal
 

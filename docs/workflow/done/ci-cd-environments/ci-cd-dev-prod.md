@@ -1,25 +1,29 @@
 ---
 title: 'CI/CD dual-track (develop → multi-tenant; main → legacy prod)'
-status: active
-stage: in-progress
+status: done
+stage: done
 kind: plan
-tags: [workflow, in-progress, deployment, ci-cd, supabase, vercel, multi-tenancy]
-updated: 2026-11-06
+tags: [workflow, done, deployment, ci-cd, supabase, vercel, multi-tenancy]
+updated: 2026-11-07
 ---
 
 # CI/CD Dual-Track Implementation Plan
 
 ## Shipped summary (2026-08-08)
 
-| Phase | Scope                                                                   | Status                                                                                                                                                                                                                            |
-| ----- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** | Dual-track inventory, Vercel verify, manual dev deploy                  | **Done** (operator)                                                                                                                                                                                                               |
-| **B** | CI scripts + GitHub Actions (`cd-dev`, preprod/prod/rollback scaffolds) | **Done** (repo)                                                                                                                                                                                                                   |
-| **C** | Docs, agent rules, `scripts/README.md`                                  | **Done**                                                                                                                                                                                                                          |
-| **D** | Legacy live cutover (`main` / `zftt…` → multi-tenant for real users)    | **Deferred** — separate approval window                                                                                                                                                                                           |
-| Phase | Scope                                                                   | Status                                                                                                                                                                                                                            |
-| ----- | -----                                                                   | ------                                                                                                                                                                                                                            |
-| **F** | mt-dev now · mt-prod at release (`develop`/`main`, subdomains)          | **In progress** — Phase A active; Phase B pending — [`multi-tenant-dev-prod-environments.md`](./multi-tenant-dev-prod-environments.md) · [`ci-cd-environment-matrix.md`](../../../archive/operations/ci-cd-environment-matrix.md) |
+| Phase | Scope                                                                   | Status              |
+| ----- | ----------------------------------------------------------------------- | ------------------- |
+| **A** | Dual-track inventory, Vercel verify, manual dev deploy                  | **Done** (operator) |
+| **B** | CI scripts + GitHub Actions (`cd-dev`, preprod/prod/rollback scaffolds) | **Done** (repo)     |
+| **C** | Docs, agent rules, `scripts/README.md`                                  | **Done**            |
+
+> **Closed 2026-11-07.** The dual-track architecture this plan describes was superseded by the one-project cutover (single Supabase project, `kamespace.com`). Phases A–C shipped and remain in use; D–F are obsolete. See [`README.md`](./README.md).
+
+| **D** | Legacy live cutover (`main` / `zftt…` → multi-tenant for real users) | **Deferred** — separate approval window |
+
+| Phase | Scope                                                          | Status                                                                                                                                                                                                                            |
+| ----- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F** | mt-dev now · mt-prod at release (`develop`/`main`, subdomains) | **In progress** — Phase A active; Phase B pending — [`multi-tenant-dev-prod-environments.md`](./multi-tenant-dev-prod-environments.md) · [`ci-cd-environment-matrix.md`](../../../archive/operations/ci-cd-environment-matrix.md) |
 
 **One-time operator steps:**
 

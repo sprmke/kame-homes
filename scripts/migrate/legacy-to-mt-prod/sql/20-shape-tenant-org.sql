@@ -1,5 +1,5 @@
 -- 20-shape-kame-homes.sql — tenant shaping after the develop upgrade (idempotent, slug-keyed).
--- Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5 Phase 3.
+-- Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 3.
 --
 -- Owner-confirmed decisions (2026-10-25):
 --   org name/slug   = "Kame Homes" / "kame-homes"   (§12.1 — supersedes the rebrand

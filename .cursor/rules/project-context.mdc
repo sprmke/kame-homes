@@ -54,7 +54,7 @@ Stale if a skill mentions Next.js App Router, tRPC, Drizzle, Neon, or AWS S3 for
 - Imports: UI `@/`; edge relative `../_shared/...`.
 - Supabase deploy: blocked unless user says **`kamewave`** (`.cursor/rules/no-prod-deploy.mdc`). One project: **`develop`** deploys the same database production uses, so `deploy:supabase:dev` is a production action.
 - Local dev: `./dev.sh` (full stack) or `./dev.sh --ui-only`. There is **no hosted dev environment**; `dev.kamehomes.space` was removed 2026-11-03. Preview deployments use `*.vercel.app`, and `bun run deploy:supabase:dev` writes to production.
-- CI/CD: **`docs/workflow/in-progress/ci-cd-environments/`** · matrix **`ci-cd-environment-matrix.md`**.
+- CI/CD: **`docs/workflow/done/ci-cd-environments/`** · matrix **`ci-cd-environment-matrix.md`**.
 
 ## Docs sync
 
