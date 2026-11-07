@@ -2,7 +2,7 @@
 title: 'Database operations'
 status: active
 tags: [workflow, planned, production-readiness, database, migrations]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -117,16 +117,16 @@ The repo has good CI checks; add the production-safety layer:
 
 Currently undefined. Needed before launch because this system stores guest PII:
 
-| Data                                        | Retention                                                                                                  | Basis                                                                  |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Guest PII (IDs, receipts, vaccination docs) | Define a limit and purge                                                                                   | Privacy obligation; these are the most sensitive objects in the system |
-| Booking records                             | Long (financial/legal)                                                                                     |                                                                        |
-| Activity log                                | Partitioning already deferred in [`activity-log-followups.md`](../../../planned/activity-log-followups.md) |                                                                        |
-| AI usage ledger                             | Define                                                                                                     | Grows fastest                                                          |
-| Inbox messages                              | Define                                                                                                     |                                                                        |
-| Notifications                               | Short; purge read + old                                                                                    |                                                                        |
-| Rate-limit rows                             | Sweep aggressively                                                                                         | Otherwise the limiter's table becomes the bottleneck                   |
-| Query/AI caches                             | TTL sweep (doc 12)                                                                                         |                                                                        |
+| Data                                        | Retention                                                                                       | Basis                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Guest PII (IDs, receipts, vaccination docs) | Define a limit and purge                                                                        | Privacy obligation; these are the most sensitive objects in the system |
+| Booking records                             | Long (financial/legal)                                                                          |                                                                        |
+| Activity log                                | Partitioning already deferred in [`activity-log-followups.md`](../../activity-log-followups.md) |                                                                        |
+| AI usage ledger                             | Define                                                                                          | Grows fastest                                                          |
+| Inbox messages                              | Define                                                                                          |                                                                        |
+| Notifications                               | Short; purge read + old                                                                         |                                                                        |
+| Rate-limit rows                             | Sweep aggressively                                                                              | Otherwise the limiter's table becomes the bottleneck                   |
+| Query/AI caches                             | TTL sweep (doc 12)                                                                              |                                                                        |
 
 Each needs a cron, and each purge of guest data needs an audit trail.
 

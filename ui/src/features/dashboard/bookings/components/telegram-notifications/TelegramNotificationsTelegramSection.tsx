@@ -9,12 +9,11 @@ import { FeatureUnavailablePanel } from '@/components/feature-availability/Featu
 import { useFeatureAvailability } from '@/lib/featureAvailability/useFeatureAvailability';
 
 type Props = {
-  moduleCount: number;
   helpAction: ReactNode;
   children: ReactNode;
 };
 
-export function TelegramNotificationsTelegramSection({ moduleCount, helpAction, children }: Props) {
+export function TelegramNotificationsTelegramSection({ helpAction, children }: Props) {
   const telegram = useFeatureAvailability('notifications.telegram');
   const delivery = useFeatureAvailability('notifications.telegram.delivery');
   const settings = useFeatureAvailability('notifications.telegram.settings');
@@ -25,7 +24,7 @@ export function TelegramNotificationsTelegramSection({ moduleCount, helpAction, 
   if (!telegram.available && !telegram.isLoading) {
     return (
       <>
-        <AdminSectionGroupHeading title="Telegram notifications" count={moduleCount} />
+        <AdminSectionGroupHeading title="Telegram notifications" />
         <FeatureUnavailablePanel
           label={telegram.label}
           message={telegram.message}
@@ -41,7 +40,6 @@ export function TelegramNotificationsTelegramSection({ moduleCount, helpAction, 
     <TelegramNotificationsSettingsProvider settingsEditable={settingsEditable}>
       <AdminSectionGroupHeading
         title="Telegram notifications"
-        count={moduleCount}
         badge={showTierBadge ? <TierBadge feature="telegramNotifications" /> : undefined}
         action={helpAction}
       />

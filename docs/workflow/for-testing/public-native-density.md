@@ -2,7 +2,7 @@
 title: 'Public pages: native element sizing'
 status: for-testing
 tags: [workflow, ui, mobile, marketing, guest]
-updated: 2026-11-04
+updated: 2026-11-07
 stage: for-testing
 kind: plan
 ---
@@ -196,7 +196,7 @@ branch, same local data. Screenshots: viewport-only, light mode.
 
 Verification: type-check, `eslint` (0 errors) and `bun run build` pass. Visual check: before/after
 viewport screenshots at 390x844 for `/`, `/about`, `/for-hosts`, `/contact`, `/properties`,
-`/properties/kame-home`, sign-in and the booking gate. The signed-in booking wizard, account pages
+`/properties/solea-mactan`, sign-in and the booking gate. The signed-in booking wizard, account pages
 and a real-device pass (safe areas, docked search) still need a manual look.
 
 ## Out of scope

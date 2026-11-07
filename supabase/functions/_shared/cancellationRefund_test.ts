@@ -14,7 +14,6 @@ import {
 
 const CHECK_IN_DATE = '2026-12-20';
 const CHECK_IN_TIME = '14:00';
-const BOOKED_30_DAYS_EARLY = '2026-11-20T00:00:00.000Z';
 
 function booking(overrides: Partial<CancellationMoneyInput> = {}): CancellationMoneyInput {
   return {
@@ -36,7 +35,6 @@ function booking(overrides: Partial<CancellationMoneyInput> = {}): CancellationM
 function outcome(input: {
   policy?: ReturnType<typeof buildCancellationPreset> | null;
   cancelledAt: string;
-  bookedAt?: string;
   initiator?: 'guest' | 'host' | 'ota' | 'system';
   booking?: Partial<CancellationMoneyInput>;
   overrideRefundPhp?: number | null;
@@ -44,7 +42,6 @@ function outcome(input: {
   return computeCancellationOutcome({
     policy: input.policy === undefined ? buildCancellationPreset('moderate') : input.policy,
     booking: booking(input.booking),
-    bookedAt: input.bookedAt ?? BOOKED_30_DAYS_EARLY,
     cancelledAt: input.cancelledAt,
     checkInTime: CHECK_IN_TIME,
     initiator: input.initiator ?? 'guest',
@@ -58,25 +55,18 @@ Deno.test('check-in instant is 14:00 Asia/Manila (06:00Z)', () => {
   assertEquals(manilaYmdFromDate(new Date('2026-12-20T06:00:00.000Z')), '2026-12-20');
 });
 
-Deno.test('grace window refunds 100% of cash paid', () => {
-  const result = outcome({ cancelledAt: '2026-11-20T12:00:00.000Z' });
+Deno.test('100% tier refunds everything the guest paid', () => {
+  const result = outcome({ cancelledAt: '2026-12-17T06:00:00.000Z' });
   assertEquals(result.mode, 'computed');
   assertEquals(result.refundPercent, 100);
-  assertEquals(result.appliedRule?.kind, 'grace');
+  assertEquals(result.appliedRule?.kind, 'tier');
   assertEquals(result.amountPaidPhp, 2000);
   assertEquals(result.refundDuePhp, 2000);
   assertEquals(result.retainedPhp, 0);
 });
 
-Deno.test('moderate tier still refunds 100% inside 5 days', () => {
-  const result = outcome({ cancelledAt: '2026-12-10T06:00:00.000Z' });
-  assertEquals(result.appliedRule?.kind, 'tier');
-  assertEquals(result.refundPercent, 100);
-  assertEquals(result.refundDuePhp, 2000);
-});
-
 Deno.test('after the last deadline the fallback is 0 and nothing is owed', () => {
-  const result = outcome({ cancelledAt: '2026-12-16T06:00:00.000Z' });
+  const result = outcome({ cancelledAt: '2026-12-18T06:00:00.000Z' });
   assertEquals(result.refundPercent, 0);
   assertEquals(result.refundDuePhp, 0);
   assertEquals(result.retainedPhp, 2000);
@@ -89,7 +79,6 @@ Deno.test('firm 50% refunds half of what the guest paid', () => {
     booking: { downPayment: 8000 },
   });
   assertEquals(result.refundPercent, 50);
-  // Paid pool: 7,500 stay + 500 pet. 50% of each.
   assertEquals(result.refundablePaidPhp, 8000);
   assertEquals(result.retainedPhp, 4000);
   assertEquals(result.refundDuePhp, 4000);
@@ -101,8 +90,7 @@ Deno.test('guest who paid only the down payment still gets a partial refund', ()
     cancelledAt: '2026-12-10T06:00:00.000Z',
     booking: { downPayment: 2000 },
   });
-  // 50% of 1,500 stay + 50% of 500 pet = 1,000. This is the whole point of the
-  // paid-based basis: a 50% policy must not wipe out a down payment.
+  // 50% of the 2,000 paid. A 50% policy must not wipe out a down payment.
   assertEquals(result.refundDuePhp, 1000);
   assertEquals(result.retainedPhp, 1000);
 });
@@ -113,17 +101,18 @@ Deno.test('fully paid booking refunds 50% of the stay plus the deposit', () => {
     cancelledAt: '2026-12-10T06:00:00.000Z',
     booking: { downPayment: 2000, guestBalancePaid: 10000 },
   });
-  // Cash paid 12,000: 1,500 SD + 10,000 stay + 500 pet.
-  // 50% of stay + 50% of pet + the full SD = 5,000 + 250 + 1,500 = 6,750.
+  // Cash paid 12,000: 1,500 SD + 10,500 stay and fees.
+  // 50% of 10,500 + the full 1,500 SD = 6,750.
   assertEquals(result.amountPaidPhp, 12000);
   assertEquals(result.securityDepositHeldPhp, 1500);
+  assertEquals(result.refundablePaidPhp, 10500);
   assertEquals(result.refundDuePhp, 6750);
   assertEquals(result.retainedPhp, 5250);
 });
 
 Deno.test('nothing paid means nothing owed', () => {
   const result = outcome({
-    cancelledAt: '2026-11-20T12:00:00.000Z',
+    cancelledAt: '2026-12-10T06:00:00.000Z',
     booking: { downPayment: 0 },
   });
   assertEquals(result.amountPaidPhp, 0);
@@ -149,22 +138,32 @@ Deno.test('after check-in defaults to 0% and is flagged', () => {
   assertEquals(result.refundDuePhp, 0);
 });
 
-Deno.test('last-minute booking gets no grace window', () => {
+Deno.test('non-refundable keeps the down payment', () => {
   const result = outcome({
-    bookedAt: '2026-12-17T00:00:00.000Z',
-    cancelledAt: '2026-12-17T01:00:00.000Z',
+    policy: buildCancellationPreset('non_refundable'),
+    cancelledAt: '2026-12-10T06:00:00.000Z',
+    booking: { downPayment: 2000 },
   });
-  assertEquals(result.appliedRule?.kind, 'fallback');
-  assertEquals(result.refundPercent, 0);
+  assertEquals(result.refundDuePhp, 0);
+  assertEquals(result.retainedPhp, 2000);
 });
 
-Deno.test('grace is capped at check-in', () => {
+Deno.test('security deposit comes back even under a non-refundable policy', () => {
   const result = outcome({
-    bookedAt: '2026-12-19T00:00:00.000Z',
-    cancelledAt: '2026-12-19T23:00:00.000Z',
-    booking: { downPayment: 3000 },
+    policy: buildCancellationPreset('non_refundable'),
+    cancelledAt: '2026-12-10T06:00:00.000Z',
+    booking: { downPayment: 2000, guestBalancePaid: 10000 },
   });
-  // Booked < 7 days ahead → no grace; 5-day deadline already passed.
+  assertEquals(result.securityDepositHeldPhp, 1500);
+  assertEquals(result.refundDuePhp, 1500);
+  assertEquals(result.retainedPhp, 10500);
+});
+
+Deno.test('last-minute booking inside the deadline gets the fallback', () => {
+  const result = outcome({
+    cancelledAt: '2026-12-18T01:00:00.000Z',
+  });
+  assertEquals(result.appliedRule?.kind, 'fallback');
   assertEquals(result.refundPercent, 0);
 });
 
@@ -192,27 +191,12 @@ Deno.test('override below policy is allowed and warned', () => {
 
 Deno.test('voucher discount does not reduce the refund of cash paid', () => {
   const result = outcome({
-    cancelledAt: '2026-12-16T06:00:00.000Z',
+    cancelledAt: '2026-12-17T06:00:00.000Z',
     booking: { voucherDiscount: 2000 },
   });
-  // The guest still paid the same down payment; the discount reduced the amount
-  // due, not the cash already handed over.
   assertEquals(result.amountPaidPhp, 2000);
   assertEquals(result.refundablePaidPhp, 2000);
-});
-
-Deno.test('pet fee never_refund is retained once the fee has been paid', () => {
-  const policy = buildCancellationPreset('custom', {
-    tiers: [{ daysBefore: 7, refundPercent: 100 }],
-    feeRules: { petFee: 'never_refund', additionalFees: 'follow_policy' },
-  });
-  const result = outcome({
-    policy,
-    cancelledAt: '2026-12-10T06:00:00.000Z',
-    booking: { downPayment: 2000, guestBalancePaid: 10000 },
-  });
-  // 100% of 10,000 stay + the 1,500 SD; the 500 pet fee is retained.
-  assertEquals(result.refundDuePhp, 11500);
+  assertEquals(result.refundDuePhp, 2000);
 });
 
 Deno.test('unset policy is host-decides, not a silent 0%', () => {
@@ -234,7 +218,7 @@ Deno.test('deadlines are sorted and the next deadline is the nearest upcoming', 
     policy: buildCancellationPreset('firm'),
     cancelledAt: '2026-12-10T06:00:00.000Z',
   });
-  assertEquals(result.deadlines.map((deadline) => deadline.daysBefore), [30, 7]);
+  assertEquals(result.deadlines.map((deadline) => deadline.daysBefore), [14, 7]);
   assertEquals(result.nextDeadline?.daysBefore, 7);
 });
 

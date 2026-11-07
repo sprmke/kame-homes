@@ -28,9 +28,8 @@ import { PropertyMediaUpload } from '@/features/dashboard/org/components/propert
 import {
   PropertySettingsSectionAlert,
   SettingsField,
-  SettingsManageButton,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
-import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import { PropertySettingsSummaryRow } from '@/features/dashboard/org/components/property-settings/PropertySettingsSummaryRow';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { TowerUnitConflictAlert } from '@/features/dashboard/org/components/TowerUnitConflictAlert';
 import { useResidenceUnitTypes } from '@/features/dashboard/org/hooks/useResidenceUnitTypes';
@@ -39,6 +38,7 @@ import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDis
 import {
   HOUSE_RULE_CUSTOM_MAX_LENGTH,
   MUTUALLY_EXCLUSIVE_HOUSE_RULES,
+  resolveHouseRulesForDisplay,
   type CustomHouseRule,
 } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
 import type { PropertyLocationFields } from '@/features/dashboard/org/lib/propertyLocation';
@@ -55,6 +55,7 @@ import { type PropertySettingsSectionId } from '@/features/dashboard/org/lib/pro
 import {
   CUSTOM_AMENITY_MAX_LENGTH,
   PROPERTY_TYPES,
+  resolveAmenityLabels,
   type CustomAmenity,
   type PropertyMediaItem,
 } from '@/features/dashboard/org/lib/propertySettingsConstants';
@@ -63,6 +64,8 @@ import {
   propertyGuestCapacityTotal,
   type PropertyProfileDraft,
 } from '@/features/dashboard/org/lib/propertySettingsForm';
+import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import { summarizeSettingsLabels } from '@/features/dashboard/org/lib/propertySettingsSummaryLabels';
 import { isValidUnitNumber } from '@/features/dashboard/org/lib/propertyTowerUnit';
 import type { PropertyTowerUnitConflict } from '@/features/dashboard/org/lib/propertyTowerUnitConflict';
 
@@ -184,6 +187,18 @@ export function PropertyProfileMainSections({
     PROPERTY_TYPES.find((type) => type.value === draft.type)?.label ?? draft.type;
   const readOnlyFieldClass = 'bg-muted/40';
   const { data: unitTypes = [] } = useResidenceUnitTypes(effectiveResidence);
+
+  const amenitySummary = summarizeSettingsLabels(
+    resolveAmenityLabels(draft.enabledAmenities, draft.customAmenities)
+  );
+  const houseRuleSummary = summarizeSettingsLabels(
+    resolveHouseRulesForDisplay({
+      enabledIds: draft.enabledHouseRules,
+      customRules: draft.customHouseRules,
+      checkInTime: draft.checkInTime,
+      checkOutTime: draft.checkOutTime,
+    }).map((rule) => rule.text)
+  );
 
   const handleUnitTypeChange = (unitTypeId: string) => {
     markFieldInteracted('property-unit-type');
@@ -786,18 +801,13 @@ export function PropertyProfileMainSections({
             />
           ) : (
             <>
-              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-                <p className="min-w-0 text-xs font-medium sm:text-sm">
-                  {draft.enabledAmenities.length} amenities selected
-                  {draft.customAmenities.length > 0
-                    ? ` · ${draft.customAmenities.length} custom`
-                    : ''}
-                </p>
-                <SettingsManageButton
-                  needsAttention={propertySettingsSectionHasIssue('amenities', issueSectionIds)}
-                  onClick={() => setAmenitiesManageOpen(true)}
-                />
-              </div>
+              <PropertySettingsSummaryRow
+                labels={amenitySummary}
+                emptyLabel="No amenities selected"
+                countNoun="amenity"
+                needsAttention={propertySettingsSectionHasIssue('amenities', issueSectionIds)}
+                onManage={() => setAmenitiesManageOpen(true)}
+              />
               <PropertyAmenitiesManageDialog
                 open={amenitiesManageOpen}
                 onOpenChange={setAmenitiesManageOpen}
@@ -838,15 +848,12 @@ export function PropertyProfileMainSections({
             />
           ) : (
             <>
-              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-                <p className="min-w-0 text-xs font-medium sm:text-sm">
-                  {draft.enabledHouseRules.length} rules selected
-                  {draft.customHouseRules.length > 0
-                    ? ` · ${draft.customHouseRules.length} custom`
-                    : ''}
-                </p>
-                <SettingsManageButton onClick={() => setHouseRulesManageOpen(true)} />
-              </div>
+              <PropertySettingsSummaryRow
+                labels={houseRuleSummary}
+                emptyLabel="No house rules selected"
+                countNoun="rule"
+                onManage={() => setHouseRulesManageOpen(true)}
+              />
               <PropertyHouseRulesManageDialog
                 open={houseRulesManageOpen}
                 onOpenChange={setHouseRulesManageOpen}

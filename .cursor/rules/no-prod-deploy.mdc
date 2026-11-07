@@ -95,5 +95,5 @@ Also **do not**:
 
 - **`docs/archive/operations/production-deployment.md`** — prod cutover checklist
 - **`docs/archive/operations/migration-runbook.md`** — § applying to production
-- **`docs/workflow/in-progress/ci-cd-environments/`** — dual-track CI/CD (`develop`/mt-dev vs `main`/legacy prod; mt-prod at release)
+- **`docs/workflow/done/ci-cd-environments/`** — closed CI/CD decision history (dual-track superseded by the one-project cutover)
 - **`docs/architecture/deployment.md`** — environment matrix

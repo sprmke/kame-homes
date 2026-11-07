@@ -381,7 +381,25 @@ They go to the building admin email shown read-only in Email automations. It com
 - source: docs/guides/routes/org/property/settings.md
 - order: 80
 
-When a guest from this property books one of your own parking slots, they skip payment. Slots owned by other hosts are still paid. The option only appears when Allow Parking is on and you have at least one active parking slot, and it does nothing while Allow Parking is off.
+When a guest from this property books one of your own parking slots, they skip payment. Slots owned by other hosts are still paid. The switch stays visible but grayed out until Allow Parking is on and you have at least one active parking slot. The line under it tells you which one is missing, and the Parking link takes you to your slot list. The option does nothing while Allow Parking is off.
+
+### Why are next-stay vouchers off by default?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 82
+
+Vouchers are opt-in. New properties start with the switch off so guests are never promised a discount you have not configured. Turn it on under Reviews & vouchers, Manage on Next-stay vouchers, then pick your prizes and reveal style. Turning it off later skips the voucher step for new stays; codes guests already claimed still work.
+
+### How long does external review approval take?
+
+- category: Property Settings
+- audience: host
+- source: docs/guides/routes/org/property/settings.md
+- order: 84
+
+Every Airbnb or Facebook review you add needs a proof screenshot and admin approval. Our team checks submissions manually, so it can take some time. Only approved reviews appear on your public listing. Editing a review sends it back for review, and approved text is hidden until it is approved again.
 
 ### Why did the Parking owners field disappear?
 
@@ -427,6 +445,42 @@ Leave Chat ID empty, tap Scan for chats in that field, then choose your group fr
 - order: 40
 
 Yes. Use Save and test in that module. It confirms the bot token and chat ID before alerts start.
+
+### What are the cards at the top of the Notifications page?
+
+- category: Notifications
+- audience: host
+- source: docs/guides/routes/org/property/notifications.md
+- order: 50
+
+Unread and Messages count what is waiting for you. Telegram on and Connected show how many Telegram modules are switched on, and how many have a bot token plus chat ID. Tap a card to open the tab it describes. Settings such as phone push and per-group switches live behind Manage in the header.
+
+### Where do I turn on phone notifications?
+
+- category: Notifications
+- audience: host
+- source: docs/guides/routes/org/property/notifications.md
+- order: 60
+
+Open Notifications and tap Manage in the header. Notifications on this device is the per-device switch, and Push preferences picks which groups can buzz you. The Activity list also covers your whole organization, not just one property.
+
+### Can I see what was sent to my Telegram groups?
+
+- category: Notifications
+- audience: host
+- source: docs/guides/routes/org/property/notifications.md
+- order: 70
+
+Yes. Open Notifications and switch to the Telegram tab. It lists the last 15 days of messages with the module, the text and the time, newest first. A rejected send is kept with Telegram's reason so you can fix the chat ID.
+
+### How do I pause every Telegram alert at once?
+
+- category: Notifications
+- audience: host
+- source: docs/guides/routes/org/property/notifications.md
+- order: 80
+
+Open Manage, switch to the Telegram tab, and turn off Telegram delivery. Every module keeps its own switch and settings, so turning delivery back on restores your setup. In-app Activity keeps recording either way.
 
 ### Why can't I reply to some Facebook or Instagram messages?
 
@@ -1129,7 +1183,7 @@ The public page shows published answers for guests and hosts. Signed-in hosts ge
 - audience: host
 - source: docs/guides/routes/trip.md
 
-Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. Refunds are based on what the guest has actually paid, not the full stay value: a guest who paid only the down payment gets a percentage of that down payment back, and the security deposit is always refunded. With an instant policy they cancel right away while only the down payment is paid. With "Ask me first", custom or unset policies, or once the balance is paid, they send a request you approve or decline. If the guest paid nothing yet, the refund is zero and nothing is owed.
+Guests cancel from their trip page. They see the policy that applied when they booked, the next refund deadline and the exact refund before they confirm. Refunds are based on what the guest has actually paid, not the full stay value: a guest who paid only the down payment gets a percentage of that down payment back, and the security deposit is collected at check-in, so it is not part of a pre-check-in cancellation; a host cancellation after check-in still returns it. While only the down payment is paid, the guest can cancel right away. Once the balance is paid, or when the policy is unset or was migrated from free text, they send a request you approve or decline. If the guest paid nothing yet, the refund is zero and nothing is owed.
 
 ### Can I change my cancellation policy without changing existing bookings?
 
@@ -1137,7 +1191,7 @@ Guests cancel from their trip page. They see the policy that applied when they b
 - audience: host
 - source: docs/guides/routes/org/property/settings.md
 
-Yes. The policy is copied onto each booking when the guest books, so a change only applies to new bookings. Property Settings shows how many upcoming bookings keep their current policy before you save. Guests on an existing booking keep the terms they agreed to.
+Yes. The policy is copied onto each booking when the guest books, so a change only applies to new bookings. Existing guests keep the terms they agreed to. There is no save prompt about upcoming bookings.
 
 ### How do I send a refund after a cancellation?
 
@@ -1177,7 +1231,7 @@ The trip page shows the policy the guest booked with, not your current listing p
 - audience: guest
 - source: docs/guides/routes/trip.md
 
-Guests cannot self-cancel after check-in. The host handles early departures and any goodwill refund from the booking. Host-initiated cancellations still work at any live stage and always refund what the guest paid before check-in.
+Guests cannot self-cancel after check-in. The host handles early departures and any goodwill refund from the booking. Host-initiated cancellations still work at any live stage and always refund what the guest paid.
 
 ### Can I cancel an Airbnb booking from Kame Space?
 

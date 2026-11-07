@@ -624,7 +624,7 @@ export async function serializeAppSettingsForAdmin(
     tiktokUrl: branding.tiktok.value,
     automationToggles: mergePropertyAutomationToggles(row?.automation_toggles),
     externalReviews: normalizeExternalReviewsDraft(row?.external_reviews),
-    vouchersEnabled: row?.vouchers_enabled !== false,
+    vouchersEnabled: row?.vouchers_enabled === true,
     voucherPrizes: normalizeVoucherPrizes(row?.voucher_prizes),
     voucherRevealStyle: normalizeVoucherRevealStyle(row?.voucher_reveal_style),
     documentRequirementsOverride: Array.isArray(row?.document_requirements_override)

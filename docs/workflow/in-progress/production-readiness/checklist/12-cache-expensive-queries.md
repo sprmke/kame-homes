@@ -2,7 +2,7 @@
 title: 'Cache expensive queries'
 status: active
 tags: [workflow, planned, production-readiness, caching, database]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -294,4 +294,4 @@ When a hot cache entry expires, every concurrent request recomputes it simultane
 
 - **Docs:** `docs/architecture/edge-functions.md`, `docs/PROJECT.md` (data model for rollup/cache tables), `docs/archive/operations/migration-runbook.md`, `docs/archive/operations/scheduled-jobs-and-testing.md` for the refresh crons.
 - **Plans / Team RBAC:** N/A — unless analytics freshness becomes a plan-tier differentiator; if so, invoke `plans-and-permissions`.
-- **activity-log:** N/A for cache reads. New crons follow the `system.cron_run` decision already deferred in [`activity-log-followups.md`](../../../planned/activity-log-followups.md).
+- **activity-log:** N/A for cache reads. New crons follow the `system.cron_run` decision already deferred in [`activity-log-followups.md`](../../activity-log-followups.md).

@@ -41,7 +41,7 @@ Nested layouts with lazy children keep their own `Suspense` around `<Outlet />` 
 | `AnnouncementsSkeleton.tsx`     | Host announcements list / detail body                                                                                                         |
 | `BookingsExtrasSkeleton.tsx`    | Stage KPI strip, kanban                                                                                                                       |
 | `FinancePageSkeleton.tsx`       | Property/parking Finance and Maintenance data regions (KPIs, cash-flow / breakdown, toolbar, responsive ledger view)                          |
-| `NotificationsSkeleton.tsx`     | Property/parking Notifications hub — section nav, in-app cards, activity feed, Telegram module cards                                          |
+| `NotificationsSkeleton.tsx`     | Property/parking Notifications hub — four KPI cards, Activity/Telegram tab bar, activity rows                                                 |
 | `MarketingSkeletons.tsx`        | Marketing Studio — library, template browser, AI Studio home + conversation, themes, publish history, and design/video/calendar editor chrome |
 | `PricingSkeleton.tsx`           | Property/parking pricing body — real-month week rows with day + price cells, property fee rows, parking payout lines + direct-link card       |
 | `ParkingSkeleton.tsx`           | Parking dashboard, booking detail                                                                                                             |
@@ -87,7 +87,7 @@ first data load. Both use the same page chrome, so nothing jumps when the chunk 
 | property `dashboard`                      | `PropertyDashboardRouteSkeleton`           | `DashboardSkeleton`                                                                                         |
 | property `bookings`                       | `PropertyBookingsRouteSkeleton`            | `BookingsListBodySkeleton` (table / cards / calendar)                                                       |
 | property `bookings/:bookingId`            | `PropertyBookingDetailRouteSkeleton`       | `BookingDetailPageSkeleton`                                                                                 |
-| property `notifications`                  | `PropertyNotificationsRouteSkeleton`       | `NotificationsPageBodySkeleton` (6 modules)                                                                 |
+| property `notifications`                  | `PropertyNotificationsRouteSkeleton`       | `NotificationsPageBodySkeleton`                                                                             |
 | property `templates`                      | `PropertyTemplatesRouteSkeleton`           | `TemplateWorkbenchSkeleton`                                                                                 |
 | property `settings`                       | `PropertySettingsRouteSkeleton`            | `AppSettingsNavLayoutSkeleton`                                                                              |
 | property `finance`                        | `PropertyFinanceRouteSkeleton`             | `FinancePageBodySkeleton` (view-aware)                                                                      |
@@ -104,7 +104,7 @@ first data load. Both use the same page chrome, so nothing jumps when the chunk 
 | parking `bookings/:bookingId`             | `ParkingBookingDetailRouteSkeleton`        | `ParkingBookingDetailPageSkeleton`                                                                          |
 | parking `finance`                         | `ParkingFinanceRouteSkeleton`              | `FinancePageBodySkeleton` (view-aware)                                                                      |
 | parking `pricing`                         | `ParkingPricingRouteSkeleton`              | `PricingPageBodySkeleton` (3 stats, payout lines, direct-link card)                                         |
-| parking `notifications`                   | `ParkingNotificationsRouteSkeleton`        | `NotificationsPageBodySkeleton` (3 modules)                                                                 |
+| parking `notifications`                   | `ParkingNotificationsRouteSkeleton`        | `NotificationsPageBodySkeleton`                                                                             |
 | parking `settings`                        | `ParkingSettingsRouteSkeleton`             | `AppSettingsNavLayoutSkeleton`                                                                              |
 | parking `inbox` · `team`                  | `ParkingInbox/TeamRouteSkeleton`           | `InboxPageSkeleton` · `TeamPageSkeleton`                                                                    |
 | announcements (org / property / parking)  | `HostAnnouncementsRouteSkeleton`           | `HostAnnouncementsBodySkeleton`                                                                             |

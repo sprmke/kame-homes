@@ -2,7 +2,7 @@
 title: 'Supabase capacity and operational readiness'
 status: in_progress
 tags: [supabase, capacity, performance, security, production-readiness, observability]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 readiness: partial
@@ -556,7 +556,7 @@ Prior evidence showed the public edge functions saturated around 10 req/s on the
 - `scripts/deploy/migration-status.sh`
 - `.github/workflows/cd-dev.yml`
 - `docs/architecture/deployment.md`
-- `docs/workflow/in-progress/ci-cd-environments/README.md`
+- `docs/workflow/done/ci-cd-environments/README.md`
 - `docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`
 
 **Steps:**

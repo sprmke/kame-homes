@@ -1,33 +1,29 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
-import { Bell, Car, DollarSign, MessageCircle } from 'lucide-react';
+import { Car, DollarSign, MessageCircle } from 'lucide-react';
 
-import {
-  AdminSection,
-  AdminSectionGroupHeading,
-  AdminSectionNavLayout,
-  type AdminSectionNavGroup,
-  type AdminSectionNavItem,
-} from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
+import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { TelegramGlobalBotTokenCard } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramGlobalBotTokenCard';
 import { TelegramHelpDialog } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramHelpDialog';
 import { TelegramNotificationsGlobalBotProvider } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsGlobalBotContext';
 import { TelegramNotificationsTelegramSection } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsTelegramSection';
 import { TelegramChatSettingsCard } from '@/features/dashboard/bookings/components/TelegramChatSettingsCard';
 import { TelegramFinanceSettingsCard } from '@/features/dashboard/bookings/components/TelegramFinanceSettingsCard';
-import { InAppNotificationsSection } from '@/features/dashboard/notifications/components/InAppNotificationsSection';
-import { NOTIFICATIONS_HOW_IT_WORKS } from '@/features/dashboard/notifications/lib/notificationsHelpCopy';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
+import { NotificationsHubShell } from '@/features/dashboard/notifications/components/NotificationsHubShell';
 import {
-  IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL,
-  IN_APP_NOTIFICATIONS_SECTION_ID,
-  notificationsHubActivityHash,
-} from '@/features/dashboard/notifications/lib/notificationsPaths';
+  NotificationsManageButton,
+  NotificationsManageDialog,
+  type ManageTab,
+} from '@/features/dashboard/notifications/components/NotificationsManage';
+import { NotificationsTelegramHistory } from '@/features/dashboard/notifications/components/NotificationsTelegramHistory';
+import { useNotificationsHubView } from '@/features/dashboard/notifications/hooks/useNotificationsHubView';
+import { useParkingTelegramHubStats } from '@/features/dashboard/notifications/hooks/useTelegramHubStats';
 import { useOptionalParkingContext } from '@/features/dashboard/org/components/RequireParkingContext';
 import { TelegramParkingSettingsCard } from '@/features/dashboard/parking/components/TelegramParkingSettingsCard';
 
-import { HowItWorksButton } from '@/components/help/HowItWorksButton';
 import { AdminMobilePage } from '@/components/mobile/MobileBrandHero';
 import { parkingDashboardPageTitle, usePageTitle } from '@/lib/pageTitle';
 
@@ -39,22 +35,12 @@ function isParkingNotificationModule(value: string | null): value is ParkingNoti
   return PARKING_NOTIFICATION_MODULES.includes(value as ParkingNotificationModule);
 }
 
-const MODULE_SECTIONS: AdminSectionNavItem[] = [
-  { id: 'chat', label: 'Chat', icon: MessageCircle },
-  { id: 'parking', label: 'Parking', icon: Car },
-  { id: 'finance', label: 'Finance', icon: DollarSign },
-];
-
-const IN_APP_SECTION: AdminSectionNavItem = {
-  id: IN_APP_NOTIFICATIONS_SECTION_ID,
-  label: 'Activity',
-  icon: Bell,
-};
-
-const NOTIFICATION_SECTION_GROUPS: AdminSectionNavGroup[] = [
-  { label: IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL, sections: [IN_APP_SECTION] },
-  { label: 'Telegram notifications', sections: MODULE_SECTIONS },
-];
+/** Legacy parking page called this module "marketing"; it has always been Parking. */
+function resolveParkingModule(value: string | null): ParkingNotificationModule | null {
+  if (isParkingNotificationModule(value)) return value;
+  if (value === 'marketing') return 'parking';
+  return null;
+}
 
 const MODULE_DESCRIPTIONS: Record<ParkingNotificationModule, string> = {
   chat: 'Instant alert for every inbound guest message from web chat.',
@@ -65,20 +51,21 @@ const MODULE_DESCRIPTIONS: Record<ParkingNotificationModule, string> = {
 
 export function ParkingNotificationsPage() {
   const parkingTenant = useOptionalParkingContext();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const moduleParam = searchParams.get('module');
-  const sectionParam = searchParams.get('section');
-  const deepLinkModule = isParkingNotificationModule(moduleParam)
-    ? moduleParam
-    : moduleParam === 'marketing'
-      ? 'parking'
-      : null;
-  const deepLinkSection =
-    sectionParam === IN_APP_NOTIFICATIONS_SECTION_ID ||
-    location.hash === notificationsHubActivityHash()
-      ? IN_APP_NOTIFICATIONS_SECTION_ID
-      : null;
+  const deepLinkModule = resolveParkingModule(searchParams.get('module'));
+  const hub = useNotificationsHubView({ module: deepLinkModule });
+  const telegramStats = useParkingTelegramHubStats();
+
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageTab, setManageTab] = useState<ManageTab>('activity');
+
+  useAdminLayoutFillMain(true);
+
+  useEffect(() => {
+    if (!deepLinkModule) return;
+    setManageTab('telegram');
+    setManageOpen(true);
+  }, [deepLinkModule]);
 
   usePageTitle(
     parkingTenant
@@ -90,45 +77,34 @@ export function ParkingNotificationsPage() {
       : undefined
   );
 
-  React.useEffect(() => {
-    const targetId = deepLinkSection
-      ? `section-${deepLinkSection}`
-      : deepLinkModule
-        ? `section-${deepLinkModule}`
-        : null;
-    if (!targetId) return;
-    const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [deepLinkModule, deepLinkSection, location.hash]);
+  const openManage = () => {
+    setManageTab('activity');
+    setManageOpen(true);
+  };
 
   return (
-    <TelegramNotificationsGlobalBotProvider>
-      <AdminMobilePage
-        title="Notifications"
-        subtitle="Manage in-app notifications and Telegram alerts for this parking slot."
-        titleId="parking-notifications-heading"
-        className="flex min-h-0 flex-1 flex-col"
-        heroTrailing={
-          <HowItWorksButton hero feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
-        }
-        desktopActions={
-          <HowItWorksButton feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
-        }
-      >
-        <AdminSectionNavLayout
-          className="min-h-0 flex-1"
-          sectionGroups={NOTIFICATION_SECTION_GROUPS}
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <AdminSectionGroupHeading title={IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL} />
+    <AdminMobilePage
+      title="Notifications"
+      subtitle="Manage in-app notifications and Telegram alerts for this parking slot."
+      titleId="parking-notifications-heading"
+      className="flex min-h-0 flex-1 flex-col"
+      heroTrailing={<NotificationsManageButton variant="hero" onClick={openManage} />}
+      desktopActions={<NotificationsManageButton onClick={openManage} />}
+    >
+      <NotificationsHubShell hub={hub} telegramStats={telegramStats}>
+        <NotificationsTelegramHistory />
+      </NotificationsHubShell>
 
-            <InAppNotificationsSection />
-
+      <NotificationsManageDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        tab={manageTab}
+        onTabChange={setManageTab}
+        focusModuleId={deepLinkModule}
+        telegramContent={
+          <TelegramNotificationsGlobalBotProvider>
             <TelegramNotificationsTelegramSection
-              moduleCount={MODULE_SECTIONS.length}
-              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
+              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Setup Guide" />}
             >
               <TelegramGlobalBotTokenCard />
 
@@ -159,9 +135,9 @@ export function ParkingNotificationsPage() {
                 <TelegramFinanceSettingsCard embedded />
               </AdminSection>
             </TelegramNotificationsTelegramSection>
-          </div>
-        </AdminSectionNavLayout>
-      </AdminMobilePage>
-    </TelegramNotificationsGlobalBotProvider>
+          </TelegramNotificationsGlobalBotProvider>
+        }
+      />
+    </AdminMobilePage>
   );
 }

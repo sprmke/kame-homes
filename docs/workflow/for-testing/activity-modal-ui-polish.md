@@ -11,7 +11,7 @@ kind: plan
 
 Polish the Settings → Activity → **Manage** modal (org, property, parking) so filters, search, export, and the feed are aligned, scannable, and fast with thousands of rows.
 
-Parent feature: [`../for-testing/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md). Does **not** include [`activity-log-followups.md`](../planned/activity-log-followups.md) (RBAC leaves, cron summary rows, partitioning).
+Parent feature: [`../for-testing/org-activity-audit-log.md`](../for-testing/org-activity-audit-log.md). Does **not** include [`activity-log-followups.md`](../in-progress/activity-log-followups.md) (RBAC leaves, cron summary rows, partitioning).
 
 ## Goals
 

@@ -37,7 +37,6 @@ export type CancellationMoneyInput = {
 export type CancellationOutcomeInput = {
   policy: CancellationPolicy | null;
   booking: CancellationMoneyInput;
-  bookedAt: string;
   cancelledAt: string;
   /** Property check-in time `HH:MM`, default `14:00`. */
   checkInTime: string;
@@ -53,23 +52,15 @@ export type CancellationDeadline = {
 };
 
 export type CancellationAppliedRule = {
-  kind: 'grace' | 'tier' | 'fallback' | 'host' | 'override' | 'after_checkin' | 'unset' | 'external';
+  kind: 'tier' | 'fallback' | 'host' | 'override' | 'after_checkin' | 'unset' | 'external';
   label: string;
   deadlineIso?: string;
 };
 
 export type CancellationMoneyLine = {
-  kind:
-    | 'stay'
-    | 'pet_fee'
-    | 'additional_fee'
-    | 'security_deposit'
-    | 'paid'
-    | 'retained'
-    | 'refund';
+  kind: 'paid_for_stay' | 'security_deposit' | 'paid' | 'retained' | 'refund';
   label: string;
   amountPhp: number;
-  note?: string;
 };
 
 export type CancellationOutcome = {
@@ -78,13 +69,12 @@ export type CancellationOutcome = {
   refundPercent: number | null;
   appliedRule: CancellationAppliedRule | null;
   checkInInstantIso: string;
-  graceUntilIso: string | null;
   cancellableUntilIso: string;
   deadlines: CancellationDeadline[];
   nextDeadline: CancellationDeadline | null;
   /** Everything the guest has paid (down payment + settled balance). */
   amountPaidPhp: number;
-  /** The paid amount the percentage applies to (stay + fees actually paid). */
+  /** The paid amount the percentage applies to (total paid minus the security deposit). */
   refundablePaidPhp: number;
   retainedPhp: number;
   refundDuePhp: number;
@@ -179,89 +169,50 @@ export function buildCancellationDeadlines(
     .sort((a, b) => b.daysBefore - a.daysBefore);
 }
 
-type PaidAllocation = {
-  cashPaidCents: number;
-  securityDepositCents: number;
-  stayPaidCents: number;
-  petPaidCents: number;
-  additionalPaidCents: number;
-  feesPaidCents: number;
-  refundablePaidCents: number;
-};
-
 /**
- * Split what the guest actually paid into stay, fees, and security deposit.
- * The security deposit is only "paid" once the balance is settled (the DP is
- * credited against the stay). Fees are assumed paid before the stay when the
- * paid amount is smaller than the fee total.
+ * Split what the guest actually paid into the security deposit and everything
+ * else. The SD is only "paid" once the balance is settled (the DP is credited
+ * against the stay).
  */
-function allocatePaidAmounts(input: {
+function paidAmounts(input: {
   downPayment: number | null;
   guestBalancePaid: number | null;
   securityDeposit: number | null;
-  petFee: number | null;
-  hasPets: boolean;
-  additionalFee: number | null;
-}): PaidAllocation {
+}): {
+  cashPaidCents: number;
+  securityDepositCents: number;
+  paidForStayCents: number;
+} {
   const cashPaidCents = Math.max(0, toCents(input.downPayment) + toCents(input.guestBalancePaid));
   const balancePaidCents = Math.max(0, toCents(input.guestBalancePaid));
   const securityDepositCents =
-    balancePaidCents > 0 ? Math.min(Math.max(0, toCents(input.securityDeposit)), cashPaidCents) : 0;
-  const nonSdPaidCents = Math.max(0, cashPaidCents - securityDepositCents);
-  const petTotalCents = input.hasPets ? Math.max(0, toCents(input.petFee)) : 0;
-  const additionalTotalCents = Math.max(0, toCents(input.additionalFee));
-  const feesTotalCents = petTotalCents + additionalTotalCents;
-  // The down payment is credited against the stay; fees are collected with the
-  // balance. So fees are only "paid" once the balance has been settled.
-  const feesPaidCents =
-    balancePaidCents > 0 ? Math.min(feesTotalCents, nonSdPaidCents) : 0;
-  const petPaidCents =
-    feesTotalCents > 0 ? Math.round((feesPaidCents * petTotalCents) / feesTotalCents) : 0;
-  const additionalPaidCents = Math.max(0, feesPaidCents - petPaidCents);
-  const stayPaidCents = Math.max(0, nonSdPaidCents - feesPaidCents);
+    balancePaidCents > 0
+      ? Math.min(Math.max(0, toCents(input.securityDeposit)), cashPaidCents)
+      : 0;
   return {
     cashPaidCents,
     securityDepositCents,
-    stayPaidCents,
-    petPaidCents,
-    additionalPaidCents,
-    feesPaidCents,
-    refundablePaidCents: stayPaidCents + feesPaidCents,
+    paidForStayCents: Math.max(0, cashPaidCents - securityDepositCents),
   };
 }
 
 function moneyLines(input: {
-  paid: PaidAllocation;
-  petRule: string;
-  additionalRule: string;
+  paid: { cashPaidCents: number; securityDepositCents: number; paidForStayCents: number };
   retainedCents: number;
   refundCents: number;
 }): CancellationMoneyLine[] {
   const lines: CancellationMoneyLine[] = [
-    { kind: 'stay', label: 'Stay paid', amountPhp: fromCents(input.paid.stayPaidCents) },
+    {
+      kind: 'paid_for_stay',
+      label: 'Paid for stay',
+      amountPhp: fromCents(input.paid.paidForStayCents),
+    },
   ];
-  if (input.paid.petPaidCents > 0) {
-    lines.push({
-      kind: 'pet_fee',
-      label: 'Pet fee paid',
-      amountPhp: fromCents(input.paid.petPaidCents),
-      note: input.petRule,
-    });
-  }
-  if (input.paid.additionalPaidCents > 0) {
-    lines.push({
-      kind: 'additional_fee',
-      label: 'Additional fee paid',
-      amountPhp: fromCents(input.paid.additionalPaidCents),
-      note: input.additionalRule,
-    });
-  }
   if (input.paid.securityDepositCents > 0) {
     lines.push({
       kind: 'security_deposit',
       label: 'Security deposit',
       amountPhp: fromCents(input.paid.securityDepositCents),
-      note: 'always_refund',
     });
   }
   lines.push({
@@ -280,44 +231,26 @@ function moneyLines(input: {
   return lines;
 }
 
-function feeRefundCents(
-  paidCents: number,
-  rule: string,
-  percent: number
-): number {
-  if (rule === 'always_refund') return paidCents;
-  if (rule === 'never_refund') return 0;
-  return Math.round((paidCents * percent) / 100);
-}
-
 /**
  * The single source of truth for "how much comes back".
  *
- * The percentage applies to the amount actually paid for the stay (and fees
- * that follow the policy), never to the full booking value. The security
- * deposit is always refunded when it was paid. A host cancellation refunds
- * everything paid, regardless of the policy.
+ * The percentage applies to the amount actually paid for the stay, never to the
+ * full booking value. The security deposit is always refunded when it was paid.
+ * A host cancellation refunds everything paid, regardless of the policy.
  */
 export function computeCancellationOutcome(input: CancellationOutcomeInput): CancellationOutcome {
   const warnings: string[] = [];
   const cancelledAt = new Date(input.cancelledAt);
   const cancelledMs = Number.isNaN(cancelledAt.getTime()) ? Date.now() : cancelledAt.getTime();
-  const bookedAt = new Date(input.bookedAt);
-  const bookedMs = Number.isNaN(bookedAt.getTime())
-    ? new Date(input.cancelledAt).getTime()
-    : bookedAt.getTime();
 
   const checkInInstant = manilaCheckInInstant(input.booking.checkInDate, input.checkInTime);
   const checkInMs = checkInInstant?.getTime() ?? Number.NaN;
   const checkInInstantIso = checkInInstant?.toISOString() ?? '';
 
-  const paid = allocatePaidAmounts({
+  const paid = paidAmounts({
     downPayment: input.booking.downPayment,
     guestBalancePaid: input.booking.guestBalancePaid,
     securityDeposit: input.booking.securityDeposit,
-    petFee: input.booking.petFee,
-    hasPets: input.booking.hasPets,
-    additionalFee: input.booking.additionalFee,
   });
 
   const baseOutcome = {
@@ -335,8 +268,6 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
     warnings,
     lines: moneyLines({
       paid,
-      petRule: 'follow_policy',
-      additionalRule: 'follow_policy',
       retainedCents: 0,
       refundCents: 0,
     }),
@@ -352,7 +283,6 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
       mode: 'external',
       refundPercent: null,
       appliedRule: { kind: 'external', label: 'Cancellation is handled on the channel' },
-      graceUntilIso: null,
       retainedPhp: 0,
       refundDuePhp: 0,
     };
@@ -360,33 +290,18 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
 
   const policy = input.policy;
 
-  if (
-    !policy ||
-    policy.needsReview ||
-    (policy.presetId === 'custom' && policy.tiers.length === 0 && !policy.grace?.enabled)
-  ) {
+  if (!policy || policy.needsReview || (policy.presetId === 'custom' && policy.tiers.length === 0)) {
     return {
       ...baseOutcome,
       mode: 'host_decides',
       refundPercent: null,
       appliedRule: { kind: 'unset', label: 'Your host will confirm the refund' },
-      graceUntilIso: null,
       retainedPhp: 0,
       refundDuePhp: 0,
     };
   }
 
   const deadlines = checkInInstant ? buildCancellationDeadlines(policy, checkInInstant) : [];
-  const graceEligible =
-    Boolean(policy.grace?.enabled) &&
-    checkInInstant !== null &&
-    bookedMs <= checkInMs - (policy.grace?.minLeadDays ?? 0) * DAY_MS;
-  const graceUntilMs = graceEligible ? bookedMs + (policy.grace?.hours ?? 0) * HOUR_MS : Number.NaN;
-  const graceUntilCappedMs = Math.min(graceUntilMs, checkInMs);
-  const graceUntilIso = Number.isFinite(graceUntilCappedMs)
-    ? new Date(graceUntilCappedMs).toISOString()
-    : null;
-
   const afterCheckIn = Number.isFinite(checkInMs) && cancelledMs >= checkInMs;
 
   let refundPercent = 0;
@@ -398,9 +313,6 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
   if (afterCheckIn) {
     refundPercent = 0;
     appliedRule = { kind: 'after_checkin', label: 'The stay has already started' };
-  } else if (Number.isFinite(graceUntilCappedMs) && cancelledMs <= graceUntilCappedMs) {
-    refundPercent = 100;
-    appliedRule = { kind: 'grace', label: 'Free cancellation window' };
   } else {
     const matched = deadlines.find(
       (deadline) => cancelledMs <= new Date(deadline.deadlineIso).getTime()
@@ -431,14 +343,7 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
     policyRefundCents = paid.cashPaidCents;
   } else {
     policyRefundCents =
-      Math.round((paid.stayPaidCents * refundPercent) / 100) +
-      feeRefundCents(paid.petPaidCents, policy.feeRules.petFee, refundPercent) +
-      feeRefundCents(
-        paid.additionalPaidCents,
-        policy.feeRules.additionalFees,
-        refundPercent
-      ) +
-      paid.securityDepositCents;
+      Math.round((paid.paidForStayCents * refundPercent) / 100) + paid.securityDepositCents;
   }
 
   let refundCents = clampCents(policyRefundCents, 0, paid.cashPaidCents);
@@ -472,12 +377,11 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
     refundPercent,
     appliedRule,
     checkInInstantIso,
-    graceUntilIso,
     cancellableUntilIso: checkInInstantIso,
     deadlines,
     nextDeadline,
     amountPaidPhp: fromCents(paid.cashPaidCents),
-    refundablePaidPhp: fromCents(paid.refundablePaidCents),
+    refundablePaidPhp: fromCents(paid.paidForStayCents),
     retainedPhp: fromCents(retainedCentsRounded),
     refundDuePhp,
     securityDepositHeldPhp: fromCents(paid.securityDepositCents),
@@ -485,8 +389,6 @@ export function computeCancellationOutcome(input: CancellationOutcomeInput): Can
     warnings,
     lines: moneyLines({
       paid,
-      petRule: policy.feeRules.petFee,
-      additionalRule: policy.feeRules.additionalFees,
       retainedCents: retainedCentsRounded,
       refundCents: refundCentsRounded,
     }),

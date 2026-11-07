@@ -83,7 +83,7 @@ servePublic('guest-cancel-booking', async (req) => {
     );
   }
 
-  if (policy === null || policy.needsReview || policy.guestCancellation === 'request') {
+  if (policy === null || policy.needsReview) {
     return jsonError(
       req,
       'This host reviews cancellation requests. Send a request instead.',

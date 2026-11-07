@@ -1703,7 +1703,7 @@ bun run migrations:status:prod   # read-only drift check
 - Modify: `docs/architecture/deployment.md`
 - Modify: `.cursor/rules/no-prod-deploy.mdc`
 - Modify: `CLAUDE.md`
-- Modify: `docs/workflow/in-progress/ci-cd-environments/dev-staging-environment.md`
+- Modify: `docs/workflow/done/ci-cd-environments/dev-staging-environment.md`
 
 ### `migration-runbook.md`
 
@@ -1760,7 +1760,7 @@ bun run rollback:supabase:dev / :prod   # restore most recent backup (prod: kame
 bun run env:status                      # which Supabase project is linked (dev/prod/unknown)
 ```
 
-### `docs/workflow/in-progress/ci-cd-environments/dev-staging-environment.md`
+### `docs/workflow/done/ci-cd-environments/dev-staging-environment.md`
 
 **Edit — "Shipped in repo" table, add rows after the "Dev deploy script" row (current line 25):**
 
@@ -1782,10 +1782,10 @@ as a new row in the §0 Preconditions table.
 **Steps:**
 
 1. Apply all edits across the five files.
-2. `bunx prettier --check docs/archive/operations/migration-runbook.md docs/architecture/deployment.md CLAUDE.md docs/workflow/in-progress/ci-cd-environments/dev-staging-environment.md` and separately `bunx prettier --check .cursor/rules/no-prod-deploy.mdc` (repo's `format:check` script globs `.mdc` too) — fix with `--write` + re-check as needed.
+2. `bunx prettier --check docs/archive/operations/migration-runbook.md docs/architecture/deployment.md CLAUDE.md docs/workflow/done/ci-cd-environments/dev-staging-environment.md` and separately `bunx prettier --check .cursor/rules/no-prod-deploy.mdc` (repo's `format:check` script globs `.mdc` too) — fix with `--write` + re-check as needed.
 3. Manual inspect: `grep -n "rollback:supabase:prod\|rollback:functions:prod" .cursor/rules/no-prod-deploy.mdc` confirms the new Blocked row; `grep -n "backup:supabase\|env:status\|migrations:status" .cursor/rules/no-prod-deploy.mdc` confirms the new Allowed rows.
 4. Re-run Task 1's manual verification block one more time now that every script name it references actually exists as a real file (catches any naming drift introduced across Tasks 2–14).
-5. Commit: `git add docs/archive/operations/migration-runbook.md docs/architecture/deployment.md .cursor/rules/no-prod-deploy.mdc CLAUDE.md docs/workflow/in-progress/ci-cd-environments/dev-staging-environment.md && git commit -m "docs: sync migration runbook, architecture summary, rule doc, and CLAUDE.md with new deploy tooling"`.
+5. Commit: `git add docs/archive/operations/migration-runbook.md docs/architecture/deployment.md .cursor/rules/no-prod-deploy.mdc CLAUDE.md docs/workflow/done/ci-cd-environments/dev-staging-environment.md && git commit -m "docs: sync migration runbook, architecture summary, rule doc, and CLAUDE.md with new deploy tooling"`.
 
 ---
 

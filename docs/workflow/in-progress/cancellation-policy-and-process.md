@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Cancellation policy and process: enforceable policies, booking-time snapshot, guest and host cancel flows, refunds'
 status: in-progress
 tags: [planning, bookings, cancellation, refunds, guest, host, property-settings, booking-workflow]
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Cancellation policy and process
@@ -18,12 +18,13 @@ Intake source: `docs/workflow/intake/_to-dos.md` ("Refine cancellation policy se
 
 **Shipped in this slice**
 
-- **Paid-based refunds (D8):** the policy percentage applies to what the guest actually paid (down payment + settled balance), not the full stay value. A 50% policy on a down-payment-only booking returns 50% of the DP, never ₱0. The security deposit is always refunded. Balance-paid bookings always go through host approval (D11).
+- **Paid-based refunds (D8):** the policy percentage applies to what the guest actually paid (down payment + settled balance), not the full stay value. A 50% policy on a down-payment-only booking returns 50% of the DP, never ₱0. The security deposit is collected at check-in, so it is not part of a pre-check-in cancellation; a post-check-in host cancellation still returns it. Balance-paid bookings always go through host approval (D11).
+- **Simplified settings:** removed the free-cancellation window switch, per-fee rules, instant/request setting, host note, and the upcoming-bookings save prompt. All paid amounts follow the selected policy. The example shows a sample payment breakdown (down payment, pet fee, parking fee, additional fee) and peso refunds, and Non-refundable shows a warning that what the guest paid is not returned.
 - Policy engine v2 (`_shared/cancellationPolicy.ts` + client mirror), presets, legacy mapping, validation, rendering, stable hash.
 - Refund calculator (`_shared/cancellationRefund.ts` + client mirror), Manila deadline math, cash-paid cap, overrides, line items.
 - Migrations: `property_cancellation_policy_versions`, snapshot + cancellation columns, immutability trigger + super-admin RPC, `booking_cancellation_requests`, `booking_refunds`, RLS reads.
 - Snapshot capture in `submit-form` / `submit-form-completion` / `import-commit` / calendar-sync promotion; `409 policy_changed`; agreement checkbox.
-- Endpoints: `guest-cancel-booking`, `guest-cancellation-request`, `respond-cancellation-request`, extended `cancel-booking`, `submit-guest-refund-details`, `record-booking-refund`, `cancellation-policy-impact`, `cancellation-refund-cron`.
+- Endpoints: `guest-cancel-booking`, `guest-cancellation-request`, `respond-cancellation-request`, extended `cancel-booking`, `submit-guest-refund-details`, `record-booking-refund`, `cancellation-refund-cron`.
 - Orchestrator writes `cancelled_at` / `cancelled_by` / reason and sends cancellation emails; activity log + PostHog props.
 - Host UI: v2 policy Manage sheet, cancel sheet, booking cancellation/refund card, list badge.
 - Guest UI: booking-form agreement card, trip-page cancellation card + sheet + refund details, listing timeline.
@@ -33,7 +34,7 @@ Intake source: `docs/workflow/intake/_to-dos.md` ("Refine cancellation policy se
 **Deliberately deferred (do not treat as done)**
 
 - One-shot snapshot backfill script: replaced by read-path self-heal (`ensureBookingSnapshot`) and the migration `booked_at` backfill.
-- Copy-to-properties "new bookings only" confirm: the settings save has it; the copy wizard does not yet show the count. Content-hash comparison on submit still catches a copied policy.
+- Copy-to-properties policy changes are not versioned on the target yet. Content-hash comparison on submit still catches a copied policy.
 - Bookings-list **filter** for cancellation requests: the row badge + notification + detail card ship; the filter chip does not.
 - Finance refund outflows and the guest/host analytics split: superhost is fixed; finance/analytics aggregation is a follow-up.
 - Listing "example for selected dates": the full timeline ships; the date-specific example does not.
@@ -113,19 +114,17 @@ Sources: [Airbnb help: cancellation policies](https://www.airbnb.com/help/articl
 
 ## 3. Decisions (Phase 0, resolved)
 
-| #   | Decision                        | Resolution                                                                                                                                                                                                                                                                                                                                    |
-| --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Preset numbers / default        | Use the six presets in §4.1. **Moderate** is the recommended choice in the setup wizard and the pre-selected card, but it is **not silently applied** to a property that never saved a policy.                                                                                                                                                |
-| D2  | Grace clock anchor              | **Guest submit time** (`booked_at`), not host confirmation. Host confirmation can take days; the guest's commitment moment is the fair anchor.                                                                                                                                                                                                |
-| D3  | Default guest cancellation mode | **`instant`** for presets. **`request`** for custom, migrated free-text, and unset policies. Host can change per property.                                                                                                                                                                                                                    |
-| D4  | Refund payout detail storage    | New `booking_refunds` columns (method, bank, account name/number, phone). **Do not** reuse `sd_refund_*` — that would clobber the check-out SD flow. Account numbers are masked in UI and never logged.                                                                                                                                       |
-| D5  | No-show in v1                   | **Yes, as a reason code**, not a separate module. Host cancels with `reasonCode: 'no_show'`, `initiator: 'guest'`, excluded from the host cancellation rate.                                                                                                                                                                                  |
-| D6  | Post-check-in host cancel       | **Allowed at any non-terminal status** (including `READY_FOR_CHECKOUT` / `PENDING_SD_REFUND`) so hosts keep today's emergency escape hatch. Refund preview defaults to ₱0 after check-in and requires an explicit override + note. Guest cancel stays pre-check-in only.                                                                      |
-| D7  | Snapshot contents               | Snapshot stores the normalized policy **plus rendered title/description/short label and a stable hash**. Emails and AI never re-render from a policy that may have changed.                                                                                                                                                                   |
-| D8  | Refund math                     | Percentage of the **amount actually paid** (down payment + settled balance), **not** the full booking value. This app collects a down payment at booking and the balance at check-in, so a "50% of the total stay" rule would wipe out a guest who paid only the DP. Security deposit is always refunded separately. Worked examples in §5.4. |
-| D9  | Request expiry                  | An open request **expires at check-in time**. After that the guest can no longer self-cancel; the host decides.                                                                                                                                                                                                                               |
-| D10 | Unset policy on new properties  | No silent default. Listing shows "Ask the host about cancellation"; the booking form shows the same and snapshots `unset`; setup checklist flags it. Booking is still allowed.                                                                                                                                                                |
-| D11 | Balance paid → request mode     | Once `guest_balance_paid_amount > 0`, a guest cancellation **always** goes through host approval, even on an "instant" policy. Instant self-cancel is for down-payment-only bookings, where the money at risk is small.                                                                                                                       |
+| #   | Decision                       | Resolution                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Preset numbers / default       | Use the preset cards in §4.1. **Moderate** is the recommended choice in the setup wizard and the pre-selected card, but it is **not silently applied** to a property that never saved a policy.                                                                                                                                                                                                                      |
+| D4  | Refund payout detail storage   | New `booking_refunds` columns (method, bank, account name/number, phone). **Do not** reuse `sd_refund_*` — that would clobber the check-out SD flow. Account numbers are masked in UI and never logged.                                                                                                                                                                                                              |
+| D5  | No-show in v1                  | **Yes, as a reason code**, not a separate module. Host cancels with `reasonCode: 'no_show'`, `initiator: 'guest'`, excluded from the host cancellation rate.                                                                                                                                                                                                                                                         |
+| D6  | Post-check-in host cancel      | **Allowed at any non-terminal status** (including `READY_FOR_CHECKOUT` / `PENDING_SD_REFUND`) so hosts keep today's emergency escape hatch. Refund preview defaults to ₱0 after check-in and requires an explicit override + note. Guest cancel stays pre-check-in only.                                                                                                                                             |
+| D7  | Snapshot contents              | Snapshot stores the normalized policy **plus rendered title/description/short label and a stable hash**. Emails and AI never re-render from a policy that may have changed.                                                                                                                                                                                                                                          |
+| D8  | Refund math                    | Percentage of the **amount actually paid** (down payment + settled balance), **not** the full booking value. This app collects a down payment at booking and the balance at check-in, so a "50% of the total stay" rule would wipe out a guest who paid only the DP. Security deposit is collected at check-in; if it was paid and the host cancels after check-in, it is refunded in full. Worked examples in §5.4. |
+| D9  | Request expiry                 | An open request **expires at check-in time**. After that the guest can no longer self-cancel; the host decides.                                                                                                                                                                                                                                                                                                      |
+| D10 | Unset policy on new properties | No silent default. Listing shows "Ask the host about cancellation"; the booking form shows the same and snapshots `unset`; setup checklist flags it. Booking is still allowed.                                                                                                                                                                                                                                       |
+| D11 | Balance paid → request mode    | Once `guest_balance_paid_amount > 0`, a guest cancellation **always** goes through host approval. Instant self-cancel is only for down-payment-only bookings, where the money at risk is small.                                                                                                                                                                                                                      |
 
 ---
 
@@ -136,48 +135,42 @@ Sources: [Airbnb help: cancellation policies](https://www.airbnb.com/help/articl
 ```ts
 type CancellationPolicy = {
   version: 2;
-  presetId: 'flexible' | 'moderate' | 'limited' | 'firm' | 'strict' | 'non_refundable' | 'custom';
-  /** Sorted most-generous first. "Cancel at least `daysBefore` days before check-in → `refundPercent`% of the stay amount." */
+  presetId: 'flexible' | 'moderate' | 'standard' | 'limited' | 'firm' | 'non_refundable' | 'custom';
+  /** Sorted most-generous first. "Cancel at least `daysBefore` days before check-in → `refundPercent`% of what you paid." */
   tiers: { daysBefore: number; refundPercent: number }[]; // max 5, days 0..365, percent 0..100
-  /** Percent refunded when no tier matches (after the last cutoff). Usually 0. */
+  /** Percent refunded when no tier matches. Always 0 for presets and the builder. */
   fallbackRefundPercent: number;
-  /** Free cancellation right after booking. */
-  grace: { enabled: boolean; hours: number; minLeadDays: number } | null; // default 24h, only when booked >= 7 days ahead
-  feeRules: {
-    /** Security deposit is always refunded. Not configurable. */
-    petFee: 'follow_policy' | 'always_refund' | 'never_refund';
-    additionalFees: 'follow_policy' | 'always_refund' | 'never_refund';
-  };
-  guestCancellation: 'instant' | 'request';
-  /** Optional host note shown under the schedule (<=300 chars). Not a replacement for tiers. */
-  note?: string;
-  /** Legacy free-text title preserved for display. */
+  /** Legacy free-text title, preserved for display. */
   legacyTitle?: string;
+  /** Legacy free-text description, preserved for display. */
+  legacyDescription?: string;
   /** Migrated free text: host must finish setup before this drives money. */
   needsReview?: boolean;
 };
 ```
 
-**Presets** (all include the 24-hour grace when booked ≥7 days ahead except Non-refundable):
+No grace window, no per-fee rules, no instant/request setting, no host note. The percentage always applies to what the guest paid; the balance-paid rule decides instant vs request.
 
-| Preset         | Tiers                            | Fallback | Grace  |
-| -------------- | -------------------------------- | -------- | ------ |
-| Flexible       | 100% at ≥1 day before            | 0%       | 24h/7d |
-| Moderate       | 100% at ≥5 days before           | 0%       | 24h/7d |
-| Limited        | 100% at ≥14 days before          | 0%       | 24h/7d |
-| Firm           | 100% at ≥30 days, 50% at ≥7 days | 0%       | 24h/7d |
-| Strict         | 50% at ≥7 days                   | 0%       | 24h/7d |
-| Non-refundable | none                             | 0%       | off    |
-| Custom         | host builder, up to 5 rows       | host     | host   |
+**Presets:**
+
+| Preset         | Tiers                            | After the last deadline |
+| -------------- | -------------------------------- | ----------------------- |
+| Flexible       | 100% at ≥1 day before            | 0%                      |
+| Moderate       | 100% at ≥3 days before           | 0%                      |
+| Standard       | 100% at ≥5 days before           | 0%                      |
+| Limited        | 100% at ≥7 days before           | 0%                      |
+| Firm           | 100% at ≥14 days, 50% at ≥7 days | 0%                      |
+| Non-refundable | none                             | 0%                      |
+| Custom         | host builder, up to 5 rows       | 0%                      |
 
 **Legacy mapping** (read path, no data loss, no destructive migration):
 
-- `grace_period(h)` → Custom, tiers `[]`, grace `{ enabled: true, hours: h, minLeadDays: 0 }` (legacy grace had no lead-day rule).
-- `full_before_checkin(d)` → Custom `[{ d, 100 }]`, no grace.
-- `moderate(h, d)` → Custom `[{ d, 100 }]`, grace `{ enabled: true, hours: h, minLeadDays: 0 }`.
-- `partial_before_checkin(d, p)` → Custom `[{ d, p }]`, no grace.
+- `grace_period(h)` → **Flexible** (the closest simple preset; the old "free window after booking" is not representable as a deadline).
+- `full_before_checkin(d)` → Custom `[{ d, 100 }]`.
+- `moderate(h, d)` → Custom `[{ d, 100 }]` (the grace part is dropped).
+- `partial_before_checkin(d, p)` → Custom `[{ d, p }]`.
 - `non_refundable` → Non-refundable.
-- `custom` free text → Custom, tiers `[]`, `guestCancellation: 'request'`, `needsReview: true`, `note` = old description, `legacyTitle` = old title.
+- `custom` free text → Custom, tiers `[]`, `needsReview: true`, `legacyTitle` / `legacyDescription` = old copy.
 - Missing / invalid → `null` (**unset**), never a silent default.
 
 **No silent default.** A property without a saved policy resolves to `null`. Listing and booking form say "Ask the host about cancellation". The setup guide step stays incomplete. The booking is still allowed and the snapshot stores `{ unset: true }`.
@@ -190,7 +183,7 @@ New columns on `guest_submissions`:
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cancellation_policy_snapshot`     | `JSONB`         | `{ policy, capturedAt, capturedFrom, propertyPolicyVersionId, rendered, hash, externalSource, unset }`                                                           |
 | `cancellation_policy_accepted_at`  | `TIMESTAMPTZ`   | Set when the guest ticked the agreement on the booking form                                                                                                      |
-| `booked_at`                        | `TIMESTAMPTZ`   | Grace clock anchor. Backfilled from `created_at`; explicit so imports and form completion can set it correctly                                                   |
+| `booked_at`                        | `TIMESTAMPTZ`   | Booking timestamp kept for history. Backfilled from `created_at`; the calculator no longer uses it (no grace window).                                            |
 | `cancellation_requested_at`        | `TIMESTAMPTZ`   | Denormalized for the bookings-list filter; set/cleared by the request service                                                                                    |
 | `cancelled_at`                     | `TIMESTAMPTZ`   | When the cancellation committed                                                                                                                                  |
 | `cancelled_by`                     | `TEXT`          | `guest` \| `host` \| `ota` \| `system`                                                                                                                           |
@@ -213,37 +206,34 @@ Rules:
 
 - New table `property_cancellation_policy_versions (id, property_id, policy JSONB, created_by, created_at)`; append-only; current version id stored at `properties.settings.cancellationPolicyVersionId`.
 - Saving a changed policy inserts a version and logs `property.cancellation_policy_updated` (from/to summary) to `activity_log`.
-- Save confirm in settings, Page Editor and copy-to-properties: "Applies to new bookings only. 6 upcoming bookings keep the policy they booked with." (count via a small RPC).
+- No save confirmation. Snapshots protect existing bookings silently; the host is not interrupted with an upcoming-bookings prompt.
 - A property that had no policy and saves one for the first time also creates version 1.
 
 ### 4.4 Refund calculator (pure, shared)
 
-`computeCancellationOutcome({ snapshot, booking, cancelledAt, bookedAt, initiator, checkInTime, overrideRefundPhp })` in `_shared/cancellationRefund.ts` + client mirror, parity-tested.
+`computeCancellationOutcome({ snapshot, booking, cancelledAt, initiator, checkInTime, overrideRefundPhp })` in `_shared/cancellationRefund.ts` + client mirror, parity-tested.
 
 **Time.** Check-in instant = `check_in_date` + property `checkInTime` (default `14:00`) in **Asia/Manila** (UTC+8, no DST). Deadline for a tier = check-in instant − `daysBefore` days. Server clock only.
 
 **Rule selection.**
 
 1. If `cancelledAt >= checkInInstant` → `mode: 'after_checkin'`, percent `0` unless host override.
-2. Else if grace is enabled, `bookedAt <= checkInInstant − minLeadDays days`, and `cancelledAt <= bookedAt + hours` → **100%**.
-3. Else pick the first tier (most generous first) whose deadline has not passed → that percent.
-4. Else `fallbackRefundPercent`.
-5. `initiator = 'host'` → **100% of cash paid**, regardless of policy.
-6. `policy = null`, `needsReview`, or custom with no tiers → `mode: 'host_decides'`; guest flow forced to request mode.
+2. Else pick the first tier (most generous first) whose deadline has not passed → that percent.
+3. Else `fallbackRefundPercent`.
+4. `initiator = 'host'` → **100% of cash paid**, regardless of policy.
+5. `policy = null`, `needsReview`, or custom with no tiers → `mode: 'host_decides'`; guest flow forced to request mode.
 
 **Money (D8).**
 
 - `cashPaid = down_payment + guest_balance_paid_amount` — everything the guest has actually handed over.
 - `securityDepositPaid = guest_balance_paid_amount > 0 ? min(security_deposit, cashPaid) : 0` — the DP is credited against the stay, so the SD is only “paid” once the balance is settled.
-- `nonSdPaid = cashPaid − securityDepositPaid`.
-- Allocate `nonSdPaid` to fees first, then stay: `feesPaid = min(petFee + additionalFee, nonSdPaid)`, `stayPaid = nonSdPaid − feesPaid`. Fees are split between pet/additional proportionally.
-- The percentage applies to **`stayPaid`** and to each paid fee per `feeRules` (`follow_policy` → percent, `always_refund` → 100%, `never_refund` → 0%).
-- `refundDue = stayPaid × percent + fee refunds + securityDepositPaid`, clamped to `[0, cashPaid]`.
+- `paidForStay = cashPaid − securityDepositPaid`. Every paid amount (stay, pet fee, additional fee) follows the same policy.
+- `refundDue = paidForStay × percent + securityDepositPaid`, clamped to `[0, cashPaid]`.
 - Host cancellation bypasses the percentage and refunds `cashPaid` in full.
 - A host override replaces the computed refund, clamped to `[0, cashPaid]`.
-- Round the final refund to whole peso, half up. The breakdown shows stay paid, fee paid, security deposit, total paid, non-refundable and refund, and always sums.
+- Round the final refund to whole peso, half up. The breakdown shows paid for stay, total paid, non-refundable and refund, and always sums. The security deposit appears only when it was already paid at check-in.
 
-**Why paid-based.** The guest pays a down payment at booking; the balance is collected at check-in. A 50% policy on a ₱2,000 down payment for a ₱10,000 stay must return ₱1,000, not ₱0. A fully paid booking still behaves like the market standard: 50% of the stay plus the security deposit.
+**Why paid-based.** The guest pays a down payment at booking; the balance is collected at check-in. A 50% policy on a ₱2,000 down payment for a ₱10,000 stay must return ₱1,000, not ₱0. A fully paid booking still behaves like the market standard: 50% of the stay; the security deposit is returned separately if it was already paid at check-in.
 
 **Worked examples** (₱10,000 stay, ₱500 pet fee, ₱1,500 SD):
 
@@ -256,7 +246,9 @@ Rules:
 | DP only, Non-refundable | ₱2,000 DP          | 0%          | ₱0     |
 | DP only, host cancels   | ₱2,000 DP          | host → 100% | ₱2,000 |
 
-**Output** also carries `appliedRule`, `graceUntil`, `cancellableUntil`, `nextDeadline`, `refundablePaidPhp`, and the full `deadlines` timeline for UI copy ("50% of what you paid until 2:00 PM, Nov 12").
+The fully paid row is a host cancellation after check-in, when the security deposit has been settled. A guest cancellation before check-in only has the down payment (and any paid fees) to refund.
+
+**Output** also carries `appliedRule`, `cancellableUntil`, `nextDeadline`, `refundablePaidPhp`, and the full `deadlines` timeline for UI copy ("50% of what you paid until 2:00 PM, Nov 12").
 
 ### 4.5 Guest cancellation flow
 
@@ -272,7 +264,7 @@ Rules:
 **Modes.**
 
 - **Instant**: booking → `CANCELLED` immediately; refund record created with the computed amount; guest is asked for payout details (method, bank/GCash, account name/number) in the same sheet after confirming. Only while the guest has paid the down payment and nothing else.
-- **Request**: creates a cancellation request; booking keeps its status with a "Cancellation requested" badge; host approves or declines; reminder at 24h; **no auto-approve** (the host owns the money). The guest can withdraw. The request expires at check-in. **Forced when the balance has been settled** (`guest_balance_paid_amount > 0`), even on an instant policy.
+- **Request**: creates a cancellation request; booking keeps its status with a "Cancellation requested" badge; host approves or declines; reminder at 24h; **no auto-approve** (the host owns the money). The guest can withdraw. The request expires at check-in. **Used when the balance has been settled** (`guest_balance_paid_amount > 0`) or the policy is unset/legacy free text. There is no host setting for this.
 - **PENDING_REVIEW with no rates confirmed and nothing paid**: "Withdraw request", no refund section.
 
 **Endpoint** `guest-cancel-booking` (`servePublic`): same auth as `get-guest-trip` (booking access token or signed-in owner), rate-limited, idempotent (conditional update on expected status), recomputes the refund server-side, ignores any client amount. A separate `guest-cancellation-request` handles create/withdraw. Remove the dev-only cancel button from `GuestForm.tsx`.
@@ -295,7 +287,7 @@ Upgrade the cancel confirm in `WorkflowPanel` into a **Cancel booking sheet**:
 
 | Initiator | Cancellable statuses                                                                                                                                        | Refund default                                             |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Guest     | `PENDING_REVIEW`, `PENDING_DOCUMENTS`, `PENDING_GAF`, `PENDING_PARKING_REQUEST`, `PENDING_PET_REQUEST`, `READY_FOR_CHECKIN` and **before check-in instant** | Policy (grace/tier/fallback)                               |
+| Guest     | `PENDING_REVIEW`, `PENDING_DOCUMENTS`, `PENDING_GAF`, `PENDING_PARKING_REQUEST`, `PENDING_PET_REQUEST`, `READY_FOR_CHECKIN` and **before check-in instant** | Policy (tier/fallback)                                     |
 | Host      | Every status except `CANCELLED`, `COMPLETED`, `IMPORTED`                                                                                                    | 100% of cash paid before check-in; 0% after, override only |
 | OTA       | Calendar-sync feed drop (existing)                                                                                                                          | No money movement                                          |
 | System    | Import revert only                                                                                                                                          | No money movement                                          |
@@ -346,8 +338,10 @@ New notification types: `booking_cancellation_requested`, `booking_cancelled_by_
 
 ### 4.11 Host settings UX
 
-- Manage modal becomes a stepped sheet: preset cards (name, one-line schedule, "Most popular" on Moderate) → timeline preview with a sample check-in → advanced: grace period, fee rules, guest cancellation mode, host note.
-- **Custom builder**: add/remove tier rows (days 0..365, percent 0..100 in steps of 5), auto-sorted, validation (strictly decreasing days, non-increasing percent, no duplicates, max 5 rows), live timeline preview.
+- Manage sheet: preset cards (name, one-line schedule, "Popular" on Moderate) → example with a sample check-in, a payment breakdown (down payment, pet fee, parking fee, additional fee) and the refund at each deadline ("Cancel by Nov 6 → ₱2,000 back") → Save.
+- **Custom builder**: add/remove tier rows (days 0..365, percent 0..100 in steps of 5), auto-sorted, validation (strictly decreasing days, non-increasing percent, no duplicates, max 5 rows). After the last row, no refund.
+- Non-refundable relies on the example card alone; no extra warning banner (it duplicated the refund amount).
+- No grace window, no per-fee rules, no instant/request setting, no host note.
 - `useGuardedClose` on the modal (unsaved-changes guard), bottom sheet on phone, 44px targets.
 - Same component in Page Editor. Setup guide step requires an explicit choice.
 
@@ -374,7 +368,7 @@ New notification types: `booking_cancellation_requested`, `booking_cancelled_by_
 | E1  | Host changes policy after a booking                      | Booking keeps its snapshot; only new bookings use the new version                           |
 | E2  | Host changes policy while a guest is on the booking form | `409 policy_changed`, form keeps all values, reloads the policy, asks to re-accept          |
 | E3  | Host deletes/unset the policy mid-form                   | Same `409`; form shows "Ask the host" and clears the agreement requirement                  |
-| E4  | Copy-to-properties overwrites a policy                   | Same "new bookings only" confirm with counts per target property                            |
+| E4  | Copy-to-properties overwrites a policy                   | Existing bookings keep their snapshot; no confirm is shown                                  |
 | E5  | Booking made before this feature                         | Backfilled snapshot labeled "Policy on file"                                                |
 | E6  | Legacy free-text policy                                  | `needsReview`, host-decides, guest request mode, setup checklist flags it                   |
 | E7  | Snapshot tampering                                       | Trigger blocks updates; super-admin RPC only, audit-logged                                  |
@@ -385,29 +379,29 @@ New notification types: `booking_cancellation_requested`, `booking_cancelled_by_
 
 ### 5.2 Money and time
 
-| #   | Scenario                                         | Expected behavior                                                                                |
-| --- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| E12 | Cancel exactly at a deadline                     | Deadline inclusive for the guest (cancel at or before 14:00 gets the tier)                       |
-| E13 | Time zone                                        | All deadlines in Asia/Manila at the property check-in time; server clock only                    |
-| E14 | Last-minute booking (inside grace min lead days) | No grace window; tiers apply immediately                                                         |
-| E15 | Grace window would extend past check-in          | Capped at check-in                                                                               |
-| E16 | Nothing paid yet                                 | Refund ₱0, nothing owed, copy avoids "you lose ₱X"                                               |
-| E17 | Only down payment paid, policy 50%               | `refund = max(0, DP − 50% of stay)`; worked examples in tests                                    |
-| E18 | Guest paid less than the retained amount         | Refund ₱0, no debt created                                                                       |
-| E19 | Security deposit paid                            | Always 100% back (never in `policyBase`)                                                         |
-| E20 | Pet / additional fees                            | Follow `feeRules`                                                                                |
-| E21 | Voucher applied                                  | Voucher released (existing); discount never paid out as cash; refund base uses `rate − discount` |
-| E22 | Airbnb booking                                   | Stay/DP/SD excluded; only pet + additional fees count; no in-app guest cancel                    |
-| E23 | Same-day stay (day use)                          | Check-in instant is the same day; tiers and grace still work                                     |
-| E24 | Rounding                                         | Whole peso, half up; breakdown sums to total                                                     |
-| E25 | Host override above cash paid                    | Clamped to cash paid; UI explains                                                                |
-| E26 | Host override below policy                       | Allowed with note + warning, logged `refund_below_policy`                                        |
-| E27 | Host cancels after check-in                      | Allowed (D6), default 0%, override + note required for any refund                                |
-| E28 | Early departure                                  | Goodwill refund record, status unchanged                                                         |
-| E29 | No-show                                          | Host cancel with `no_show`, initiator `guest`, excluded from host rate                           |
-| E30 | Refund details change after "sent"               | Locked; host can add a note, not rewrite the sent amount                                         |
-| E31 | Refund proof upload fails                        | Refund stays `pending`; retry offered; error surfaced                                            |
-| E32 | Currency                                         | PHP only; all amounts rounded at the boundary                                                    |
+| #   | Scenario                                       | Expected behavior                                                             |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| E12 | Cancel exactly at a deadline                   | Deadline inclusive for the guest (cancel at or before 14:00 gets the tier)    |
+| E13 | Time zone                                      | All deadlines in Asia/Manila at the property check-in time; server clock only |
+| E14 | Last-minute booking (inside the last deadline) | Tiers apply; there is no grace window                                         |
+
+| E16 | Nothing paid yet | Refund ₱0, nothing owed, copy avoids "you lose ₱X" |
+| E17 | Only down payment paid, policy 50% | `refund = max(0, DP − 50% of stay)`; worked examples in tests |
+| E18 | Guest paid less than the retained amount | Refund ₱0, no debt created |
+| E19 | Security deposit paid | Collected at check-in; not part of a pre-check-in cancel. If paid and the host cancels after check-in, 100% back. |
+| E20 | Pet / additional fees | Every paid amount follows the same policy |
+| E21 | Voucher applied | Voucher released (existing); discount never paid out as cash; refund base uses `rate − discount` |
+| E22 | Airbnb booking | DP/SD are 0; any paid fees follow the policy; no in-app guest cancel |
+| E23 | Same-day stay (day use) | Check-in instant is the same day; tiers still work |
+| E24 | Rounding | Whole peso, half up; breakdown sums to total |
+| E25 | Host override above cash paid | Clamped to cash paid; UI explains |
+| E26 | Host override below policy | Allowed with note + warning, logged `refund_below_policy` |
+| E27 | Host cancels after check-in | Allowed (D6), default 0%, override + note required for any refund |
+| E28 | Early departure | Goodwill refund record, status unchanged |
+| E29 | No-show | Host cancel with `no_show`, initiator `guest`, excluded from host rate |
+| E30 | Refund details change after "sent" | Locked; host can add a note, not rewrite the sent amount |
+| E31 | Refund proof upload fails | Refund stays `pending`; retry offered; error surfaced |
+| E32 | Currency | PHP only; all amounts rounded at the boundary |
 
 ### 5.3 Lifecycle and concurrency
 
@@ -449,7 +443,7 @@ New notification types: `booking_cancellation_requested`, `booking_cancelled_by_
 - [x] 2.3 Migration: immutability trigger + super-admin correction RPC.
 - [x] 2.4 Existing bookings self-heal their snapshot on first read (`capturedFrom: 'backfill'`); migration backfills `booked_at`. No one-shot script needed.
 - [x] 2.5 Settings save creates a version, logs `property.cancellation_policy_updated`, returns the new version id.
-- [x] 2.6 Count upcoming bookings per property for the "new bookings only" confirm.
+- [x] 2.6 No upcoming-bookings prompt: snapshots protect existing bookings silently.
 - [x] 2.7 Capture snapshot in `submit-form`, `submit-form-completion`, `import-commit`, calendar-sync promotion (external marker). Version-mismatch `409`.
 
 ### Phase 3: refund calculator
@@ -471,8 +465,8 @@ New notification types: `booking_cancellation_requested`, `booking_cancelled_by_
 
 ### Phase 5: host UI
 
-- [x] 5.1 New policy Manage sheet (presets, timeline preview, custom tier builder, advanced options) with `useGuardedClose`; reuse in Page Editor.
-- [x] 5.2 "New bookings only" confirm on settings save. Copy-to-properties count is deferred (content-hash check still protects the booking form).
+- [x] 5.1 New policy Manage sheet (presets, example with sample paid amount, custom tier builder) with `useGuardedClose`; reuse in Page Editor.
+- [x] 5.2 No "new bookings only" confirm. Snapshots protect existing bookings silently. Copy-to-properties still relies on the content-hash check on submit.
 - [x] 5.3 Booking detail: policy row from snapshot, free-cancellation chip, "policy changed since booking" hint.
 - [x] 5.4 Cancel booking sheet (who/why/preview/override/notify) replacing the plain confirm.
 - [x] 5.5 Cancellation request card + list badge + notification entries. Filter chip deferred.

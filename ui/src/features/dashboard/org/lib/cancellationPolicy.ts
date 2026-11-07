@@ -10,33 +10,21 @@
 
 export const CANCELLATION_POLICY_VERSION = 2 as const;
 export const CANCELLATION_POLICY_MAX_TIERS = 5;
-export const CANCELLATION_POLICY_NOTE_MAX = 300;
-export const CANCELLATION_GRACE_HOUR_OPTIONS = [24, 48, 72, 168] as const;
-export const CANCELLATION_MIN_LEAD_DAY_OPTIONS = [0, 3, 7, 14, 30] as const;
 
 export type CancellationPresetId =
   | 'flexible'
   | 'moderate'
+  | 'standard'
   | 'limited'
   | 'firm'
-  | 'strict'
   | 'non_refundable'
   | 'custom';
 
 export type CancellationTier = {
   /** "Cancel at least `daysBefore` days before check-in …" */
   daysBefore: number;
-  /** … "→ `refundPercent`% of the stay amount." */
+  /** … "→ `refundPercent`% of what you paid." */
   refundPercent: number;
-};
-
-export type CancellationFeeRule = 'follow_policy' | 'always_refund' | 'never_refund';
-
-export type CancellationGrace = {
-  enabled: boolean;
-  hours: number;
-  /** Grace only applies when the booking was made at least this many days before check-in. */
-  minLeadDays: number;
 };
 
 export type CancellationPolicy = {
@@ -44,17 +32,12 @@ export type CancellationPolicy = {
   presetId: CancellationPresetId;
   /** Sorted most generous first (highest `daysBefore` first). */
   tiers: CancellationTier[];
+  /** Percent refunded when no tier matches. 0 for every preset and the builder. */
   fallbackRefundPercent: number;
-  grace: CancellationGrace | null;
-  feeRules: {
-    petFee: CancellationFeeRule;
-    additionalFees: CancellationFeeRule;
-  };
-  guestCancellation: 'instant' | 'request';
-  /** Optional host note shown under the schedule (<=300 chars). */
-  note?: string;
   /** Legacy free-text title, preserved for display. */
   legacyTitle?: string;
+  /** Legacy free-text description, preserved for display. */
+  legacyDescription?: string;
   /** Migrated free text: the host must finish setup before this drives money. */
   needsReview?: boolean;
 };
@@ -102,33 +85,33 @@ export const CANCELLATION_PRESETS: {
   {
     id: 'flexible',
     label: 'Flexible',
-    summary: 'Full refund of what you paid up to 1 day before check-in.',
+    summary: 'Full refund of what the guest paid up to 1 day before check-in.',
   },
   {
     id: 'moderate',
     label: 'Moderate',
-    summary: 'Full refund of what you paid up to 5 days before check-in.',
+    summary: 'Full refund of what the guest paid up to 3 days before check-in.',
     recommended: true,
+  },
+  {
+    id: 'standard',
+    label: 'Standard',
+    summary: 'Full refund of what the guest paid up to 5 days before check-in.',
   },
   {
     id: 'limited',
     label: 'Limited',
-    summary: 'Full refund of what you paid up to 14 days before check-in.',
+    summary: 'Full refund of what the guest paid up to 7 days before check-in.',
   },
   {
     id: 'firm',
     label: 'Firm',
-    summary: 'Full refund of what you paid up to 30 days before, 50% up to 7 days before.',
-  },
-  {
-    id: 'strict',
-    label: 'Strict',
-    summary: '50% of what you paid, up to 7 days before check-in.',
+    summary: 'Full refund of what the guest paid up to 14 days before, 50% up to 7 days before.',
   },
   {
     id: 'non_refundable',
     label: 'Non-refundable',
-    summary: 'No refund of your down payment after booking.',
+    summary: 'No refund of what the guest paid after booking.',
   },
   {
     id: 'custom',
@@ -141,25 +124,22 @@ const PRESET_IDS = new Set<CancellationPresetId>(
   CANCELLATION_PRESETS.map((preset) => preset.id)
 );
 
-const DEFAULT_GRACE: CancellationGrace = { enabled: true, hours: 24, minLeadDays: 7 };
-
 const PRESET_DEFINITIONS: Record<
   Exclude<CancellationPresetId, 'custom'>,
-  { tiers: CancellationTier[]; fallbackRefundPercent: number; grace: CancellationGrace | null }
+  { tiers: CancellationTier[]; fallbackRefundPercent: number }
 > = {
-  flexible: { tiers: [{ daysBefore: 1, refundPercent: 100 }], fallbackRefundPercent: 0, grace: DEFAULT_GRACE },
-  moderate: { tiers: [{ daysBefore: 5, refundPercent: 100 }], fallbackRefundPercent: 0, grace: DEFAULT_GRACE },
-  limited: { tiers: [{ daysBefore: 14, refundPercent: 100 }], fallbackRefundPercent: 0, grace: DEFAULT_GRACE },
+  flexible: { tiers: [{ daysBefore: 1, refundPercent: 100 }], fallbackRefundPercent: 0 },
+  moderate: { tiers: [{ daysBefore: 3, refundPercent: 100 }], fallbackRefundPercent: 0 },
+  standard: { tiers: [{ daysBefore: 5, refundPercent: 100 }], fallbackRefundPercent: 0 },
+  limited: { tiers: [{ daysBefore: 7, refundPercent: 100 }], fallbackRefundPercent: 0 },
   firm: {
     tiers: [
-      { daysBefore: 30, refundPercent: 100 },
+      { daysBefore: 14, refundPercent: 100 },
       { daysBefore: 7, refundPercent: 50 },
     ],
     fallbackRefundPercent: 0,
-    grace: DEFAULT_GRACE,
   },
-  strict: { tiers: [{ daysBefore: 7, refundPercent: 50 }], fallbackRefundPercent: 0, grace: DEFAULT_GRACE },
-  non_refundable: { tiers: [], fallbackRefundPercent: 0, grace: null },
+  non_refundable: { tiers: [], fallbackRefundPercent: 0 },
 };
 
 function readString(value: unknown): string {
@@ -177,21 +157,6 @@ function readNumber(value: unknown): number | undefined {
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
-}
-
-function normalizeFeeRule(value: unknown, fallback: CancellationFeeRule): CancellationFeeRule {
-  return value === 'follow_policy' || value === 'always_refund' || value === 'never_refund'
-    ? value
-    : fallback;
-}
-
-function normalizeGrace(raw: unknown): CancellationGrace | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const input = raw as Record<string, unknown>;
-  if (input.enabled === false) return null;
-  const hours = clampInt(readNumber(input.hours) ?? DEFAULT_GRACE.hours, 1, 168);
-  const minLeadDays = clampInt(readNumber(input.minLeadDays) ?? DEFAULT_GRACE.minLeadDays, 0, 30);
-  return { enabled: true, hours, minLeadDays };
 }
 
 /** Sort most generous first, drop duplicates, and clamp. */
@@ -214,36 +179,14 @@ export function normalizeCancellationTiers(raw: unknown): CancellationTier[] {
 }
 
 function buildPresetPolicy(
-  presetId: Exclude<CancellationPresetId, 'custom'>,
-  input?: Record<string, unknown>
+  presetId: Exclude<CancellationPresetId, 'custom'>
 ): CancellationPolicy {
   const def = PRESET_DEFINITIONS[presetId];
-  const grace =
-    input?.grace === undefined
-      ? def.grace
-        ? { ...def.grace }
-        : null
-      : normalizeGrace(input.grace);
   return {
     version: CANCELLATION_POLICY_VERSION,
     presetId,
     tiers: def.tiers.map((tier) => ({ ...tier })),
     fallbackRefundPercent: def.fallbackRefundPercent,
-    grace,
-    feeRules: {
-      petFee: normalizeFeeRule(
-        (input?.feeRules as Record<string, unknown> | undefined)?.petFee,
-        'follow_policy'
-      ),
-      additionalFees: normalizeFeeRule(
-        (input?.feeRules as Record<string, unknown> | undefined)?.additionalFees,
-        'follow_policy'
-      ),
-    },
-    guestCancellation: input?.guestCancellation === 'request' ? 'request' : 'instant',
-    ...(readString(input?.note).trim()
-      ? { note: readString(input?.note).trim().slice(0, CANCELLATION_POLICY_NOTE_MAX) }
-      : {}),
   };
 }
 
@@ -252,47 +195,23 @@ export function buildCancellationPreset(
   presetId: CancellationPresetId,
   input?: Record<string, unknown>
 ): CancellationPolicy {
-  if (presetId !== 'custom') return buildPresetPolicy(presetId, input);
-  const tiers = normalizeCancellationTiers(input?.tiers);
+  if (presetId !== 'custom') return buildPresetPolicy(presetId);
   return {
     version: CANCELLATION_POLICY_VERSION,
     presetId: 'custom',
-    tiers,
-    fallbackRefundPercent: clampInt(readNumber(input?.fallbackRefundPercent) ?? 0, 0, 100),
-    grace: normalizeGrace(input?.grace),
-    feeRules: {
-      petFee: normalizeFeeRule(
-        (input?.feeRules as Record<string, unknown> | undefined)?.petFee,
-        'follow_policy'
-      ),
-      additionalFees: normalizeFeeRule(
-        (input?.feeRules as Record<string, unknown> | undefined)?.additionalFees,
-        'follow_policy'
-      ),
-    },
-    guestCancellation: input?.guestCancellation === 'instant' ? 'instant' : 'request',
-    ...(readString(input?.note).trim()
-      ? { note: readString(input?.note).trim().slice(0, CANCELLATION_POLICY_NOTE_MAX) }
-      : {}),
+    tiers: normalizeCancellationTiers(input?.tiers),
+    fallbackRefundPercent: 0,
   };
 }
 
 /** Legacy v1 settings shape (still in production rows). */
 type LegacyCancellationPolicy = {
   type?: unknown;
-  gracePeriodHours?: unknown;
   daysBeforeCheckIn?: unknown;
   partialRefundPercent?: unknown;
   customTitle?: unknown;
   customDescription?: unknown;
 };
-
-function normalizeLegacyHours(value: number | undefined): number {
-  if (value && CANCELLATION_GRACE_HOUR_OPTIONS.includes(value as (typeof CANCELLATION_GRACE_HOUR_OPTIONS)[number])) {
-    return value;
-  }
-  return 48;
-}
 
 function normalizeLegacyDays(value: number | undefined): number {
   if (value && value > 0) return clampInt(value, 0, 365);
@@ -310,74 +229,40 @@ function mapLegacyPolicy(raw: LegacyCancellationPolicy): CancellationPolicy | nu
 
   switch (type) {
     case 'grace_period':
-      return {
-        version: CANCELLATION_POLICY_VERSION,
-        presetId: 'custom',
-        tiers: [],
-        fallbackRefundPercent: 0,
-        grace: {
-          enabled: true,
-          hours: normalizeLegacyHours(readNumber(raw.gracePeriodHours)),
-          minLeadDays: 0,
-        },
-        feeRules: { petFee: 'follow_policy', additionalFees: 'follow_policy' },
-        guestCancellation: 'instant',
-      };
+      // The old "free cancellation within N hours of booking" cannot be
+      // represented by a simple deadline. Flexible is the closest simple
+      // preset; hosts can pick a stricter one.
+      return buildCancellationPreset('flexible');
     case 'full_before_checkin':
-      return {
-        version: CANCELLATION_POLICY_VERSION,
-        presetId: 'custom',
+      return buildCancellationPreset('custom', {
         tiers: [{ daysBefore: normalizeLegacyDays(readNumber(raw.daysBeforeCheckIn)), refundPercent: 100 }],
-        fallbackRefundPercent: 0,
-        grace: null,
-        feeRules: { petFee: 'follow_policy', additionalFees: 'follow_policy' },
-        guestCancellation: 'instant',
-      };
+      });
     case 'moderate':
-      return {
-        version: CANCELLATION_POLICY_VERSION,
-        presetId: 'custom',
+      return buildCancellationPreset('custom', {
         tiers: [{ daysBefore: normalizeLegacyDays(readNumber(raw.daysBeforeCheckIn)), refundPercent: 100 }],
-        fallbackRefundPercent: 0,
-        grace: {
-          enabled: true,
-          hours: normalizeLegacyHours(readNumber(raw.gracePeriodHours)),
-          minLeadDays: 0,
-        },
-        feeRules: { petFee: 'follow_policy', additionalFees: 'follow_policy' },
-        guestCancellation: 'instant',
-      };
+      });
     case 'partial_before_checkin':
-      return {
-        version: CANCELLATION_POLICY_VERSION,
-        presetId: 'custom',
+      return buildCancellationPreset('custom', {
         tiers: [
           {
             daysBefore: normalizeLegacyDays(readNumber(raw.daysBeforeCheckIn)),
             refundPercent: normalizeLegacyPercent(readNumber(raw.partialRefundPercent)),
           },
         ],
-        fallbackRefundPercent: 0,
-        grace: null,
-        feeRules: { petFee: 'follow_policy', additionalFees: 'follow_policy' },
-        guestCancellation: 'instant',
-      };
+      });
     case 'non_refundable':
       return buildCancellationPreset('non_refundable');
     case 'custom': {
-      const note = readString(raw.customDescription).trim();
-      const legacyTitle = readString(raw.customTitle).trim();
+      const description = readString(raw.customDescription).trim();
+      const title = readString(raw.customTitle).trim();
       return {
         version: CANCELLATION_POLICY_VERSION,
         presetId: 'custom',
         tiers: [],
         fallbackRefundPercent: 0,
-        grace: null,
-        feeRules: { petFee: 'follow_policy', additionalFees: 'follow_policy' },
-        guestCancellation: 'request',
         needsReview: true,
-        ...(note ? { note: note.slice(0, CANCELLATION_POLICY_NOTE_MAX) } : {}),
-        ...(legacyTitle ? { legacyTitle } : {}),
+        ...(description ? { legacyDescription: description } : {}),
+        ...(title ? { legacyTitle: title } : {}),
       };
     }
     default:
@@ -404,36 +289,18 @@ export function normalizeCancellationPolicy(raw: unknown): CancellationPolicy | 
     ? (presetRaw as CancellationPresetId)
     : 'custom';
 
-  if (presetId !== 'custom') return buildPresetPolicy(presetId, input);
+  if (presetId !== 'custom') return buildPresetPolicy(presetId);
 
-  const tiers = normalizeCancellationTiers(input.tiers);
-  const fallbackRefundPercent = clampInt(
-    readNumber(input.fallbackRefundPercent) ?? 0,
-    0,
-    100
-  );
-  const note = readString(input.note).trim();
   const legacyTitle = readString(input.legacyTitle).trim();
+  const legacyDescription = readString(input.legacyDescription).trim();
 
   return {
     version: CANCELLATION_POLICY_VERSION,
     presetId: 'custom',
-    tiers,
-    fallbackRefundPercent,
-    grace: normalizeGrace(input.grace),
-    feeRules: {
-      petFee: normalizeFeeRule(
-        (input.feeRules as Record<string, unknown> | undefined)?.petFee,
-        'follow_policy'
-      ),
-      additionalFees: normalizeFeeRule(
-        (input.feeRules as Record<string, unknown> | undefined)?.additionalFees,
-        'follow_policy'
-      ),
-    },
-    guestCancellation: input.guestCancellation === 'instant' ? 'instant' : 'request',
-    ...(note ? { note: note.slice(0, CANCELLATION_POLICY_NOTE_MAX) } : {}),
+    tiers: normalizeCancellationTiers(input.tiers),
+    fallbackRefundPercent: clampInt(readNumber(input.fallbackRefundPercent) ?? 0, 0, 100),
     ...(legacyTitle ? { legacyTitle } : {}),
+    ...(legacyDescription ? { legacyDescription } : {}),
     ...(input.needsReview === true ? { needsReview: true } : {}),
   };
 }
@@ -516,15 +383,15 @@ export function resolveCancellationPolicyDisplay(
   }
 
   const timeline = buildTimeline(policy);
-  const note = policy.note?.trim();
   const legacyTitle = policy.legacyTitle?.trim();
+  const legacyDescription = policy.legacyDescription?.trim();
 
   if (policy.needsReview) {
     return {
       presetId: 'custom',
       title: legacyTitle || 'Finish setting up your cancellation policy',
       description:
-        note ||
+        legacyDescription ||
         'This policy was written as free text. Add refund deadlines so guests see exact terms.',
       tone: 'warning',
       showListingHighlight: false,
@@ -554,6 +421,19 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Moderate',
+        description: 'Full refund of what you paid up to 3 days before check-in.',
+        tone: 'positive',
+        showListingHighlight: true,
+        shortLabel: 'Free cancellation',
+        timeline,
+        fallbackRefundPercent: policy.fallbackRefundPercent,
+        needsReview: false,
+        unset: false,
+      };
+    case 'standard':
+      return {
+        presetId: policy.presetId,
+        title: 'Standard',
         description: 'Full refund of what you paid up to 5 days before check-in.',
         tone: 'positive',
         showListingHighlight: true,
@@ -567,7 +447,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Limited',
-        description: 'Full refund of what you paid up to 14 days before check-in.',
+        description: 'Full refund of what you paid up to 7 days before check-in.',
         tone: 'positive',
         showListingHighlight: true,
         shortLabel: 'Free cancellation',
@@ -580,20 +460,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Firm',
-        description: 'Full refund of what you paid up to 30 days before check-in, 50% up to 7 days before.',
-        tone: 'neutral',
-        showListingHighlight: true,
-        shortLabel: 'Partial refund',
-        timeline,
-        fallbackRefundPercent: policy.fallbackRefundPercent,
-        needsReview: false,
-        unset: false,
-      };
-    case 'strict':
-      return {
-        presetId: policy.presetId,
-        title: 'Strict',
-        description: '50% of what you paid, up to 7 days before check-in.',
+        description: 'Full refund of what you paid up to 14 days before check-in, 50% up to 7 days before.',
         tone: 'neutral',
         showListingHighlight: true,
         shortLabel: 'Partial refund',
@@ -606,7 +473,7 @@ export function resolveCancellationPolicyDisplay(
       return {
         presetId: policy.presetId,
         title: 'Non-refundable',
-        description: 'No refund of your down payment after the booking is confirmed.',
+        description: 'No refund of what you paid after the booking is confirmed.',
         tone: 'warning',
         showListingHighlight: false,
         shortLabel: 'Non-refundable',
@@ -616,25 +483,11 @@ export function resolveCancellationPolicyDisplay(
         unset: false,
       };
     default: {
-      if (timeline.length === 0 && policy.grace?.enabled) {
-        return {
-          presetId: 'custom',
-          title: legacyTitle || `Free cancellation for ${policy.grace.hours} hours`,
-          description: note || `Full refund of what you paid if the guest cancels within ${policy.grace.hours} hours of booking.`,
-          tone: 'positive',
-          showListingHighlight: true,
-          shortLabel: 'Free cancellation',
-          timeline,
-          fallbackRefundPercent: policy.fallbackRefundPercent,
-          needsReview: false,
-          unset: false,
-        };
-      }
       if (timeline.length === 0) {
         return {
           presetId: 'custom',
           title: legacyTitle || 'Cancellation terms',
-          description: note || 'Contact the host for cancellation terms.',
+          description: legacyDescription || 'Contact the host for cancellation terms.',
           tone: 'neutral',
           showListingHighlight: false,
           shortLabel: legacyTitle || 'Custom policy',
@@ -653,9 +506,12 @@ export function resolveCancellationPolicyDisplay(
             ? `${first.refundPercent}% of what you paid, ${daysLabel(first.daysBefore)} before check-in`
             : 'Tiered refunds'),
         description:
-          note ||
+          legacyDescription ||
           timeline
-            .map((row) => `${row.refundPercent}% of what you paid at least ${daysLabel(row.daysBefore)} before check-in`)
+            .map(
+              (row) =>
+                `${row.refundPercent}% of what you paid at least ${daysLabel(row.daysBefore)} before check-in`
+            )
             .join(', ') +
             (policy.fallbackRefundPercent > 0
               ? `, ${policy.fallbackRefundPercent}% after that.`
@@ -672,21 +528,30 @@ export function resolveCancellationPolicyDisplay(
   }
 }
 
+
+/** True when the guest gets nothing back at any deadline. */
+export function isCancellationPolicyNonRefundable(
+  display: ResolvedCancellationPolicyDisplay
+): boolean {
+  if (display.unset || display.needsReview) return false;
+  if (display.shortLabel === 'Non-refundable') return true;
+  if (display.timeline.length === 0) return false;
+  return (
+    display.fallbackRefundPercent === 0 &&
+    display.timeline.every((row) => row.refundPercent === 0)
+  );
+}
+
 /** Returns an error message, or null when the policy is valid. */
 export function validateCancellationPolicy(policyInput: unknown): string | null {
   const policy = normalizeCancellationPolicy(policyInput);
   if (!policy) return 'Choose a cancellation policy';
 
-  if (policy.note && policy.note.length > CANCELLATION_POLICY_NOTE_MAX) {
-    return `Note must be ${CANCELLATION_POLICY_NOTE_MAX} characters or fewer`;
-  }
-
   if (policy.presetId !== 'custom') return null;
-
   if (policy.needsReview) return null;
 
-  if (policy.tiers.length === 0 && !policy.grace?.enabled) {
-    return 'Add a refund deadline or a free cancellation window';
+  if (policy.tiers.length === 0) {
+    return 'Add at least one refund deadline';
   }
 
   let previousDays = Number.POSITIVE_INFINITY;
@@ -702,11 +567,9 @@ export function validateCancellationPolicy(policyInput: unknown): string | null 
     previousPercent = tier.refundPercent;
   }
 
-  if (policy.tiers.length > 0) {
-    const last = policy.tiers[policy.tiers.length - 1]!;
-    if (policy.fallbackRefundPercent > last.refundPercent) {
-      return 'The fallback refund cannot be higher than the closest deadline';
-    }
+  const last = policy.tiers[policy.tiers.length - 1]!;
+  if (policy.fallbackRefundPercent > last.refundPercent) {
+    return 'The fallback refund cannot be higher than the closest deadline';
   }
 
   return null;

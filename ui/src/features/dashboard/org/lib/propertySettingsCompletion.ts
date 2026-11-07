@@ -280,6 +280,8 @@ export function computePropertySettingsCompletion(
   // ── Cancellation ──
   if (profile.cancellationPolicy === null) {
     addSectionIssue('cancellation', 'Choose a cancellation policy.');
+  } else if (profile.cancellationPolicy.needsReview) {
+    addSectionIssue('cancellation', 'Finish setting up your cancellation policy.');
   } else if (profile.cancellationPolicy.presetId === 'custom') {
     const cancellationErr = validateCancellationPolicy(profile.cancellationPolicy);
     if (cancellationErr) {

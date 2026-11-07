@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
+  formatQuietHoursTime,
   NOTIFICATION_PREFERENCE_GROUP_LABELS,
   NOTIFICATION_PREFERENCE_GROUPS,
   normalizeNotificationPreferences,
@@ -64,5 +65,13 @@ describe('notification preferences parity', () => {
       quietHoursEnd: '07:00',
       quietHoursTimezone: 'Asia/Manila',
     });
+  });
+
+  it('formatQuietHoursTime renders 12-hour time and leaves bad input alone', () => {
+    expect(formatQuietHoursTime('22:00')).toBe('10:00 PM');
+    expect(formatQuietHoursTime('07:30')).toBe('7:30 AM');
+    expect(formatQuietHoursTime('00:15')).toBe('12:15 AM');
+    expect(formatQuietHoursTime('12:00')).toBe('12:00 PM');
+    expect(formatQuietHoursTime('soon')).toBe('soon');
   });
 });

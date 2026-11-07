@@ -1,6 +1,6 @@
 # Supabase capacity baseline and before/after (2026-11-04)
 
-Plan: [`docs/workflow/planned/supabase-capacity-and-operational-readiness.md`](../../../planned/supabase-capacity-and-operational-readiness.md)
+Plan: [`docs/workflow/planned/supabase-capacity-and-operational-readiness.md`](../../supabase-capacity-and-operational-readiness.md)
 Model: [`docs/architecture/supabase-capacity.md`](../../../../architecture/supabase-capacity.md)
 
 All measurements are read-only against hosted project `fworvijbrwpyngycotbz`

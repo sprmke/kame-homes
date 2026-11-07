@@ -11,7 +11,7 @@
  * - `audio` tracks: music, voiceover and SFX clips.
  *
  * Tracks are ordered bottom to top; render order is array order (the web renderer ignores z-index).
- * Plan: docs/workflow/for-testing/marketing-video-editor-multitrack.md §5.1.
+ * Plan: docs/workflow/in-progress/marketing-video-editor-multitrack.md §5.1.
  */
 
 import type { CampaignPalette } from '@/features/dashboard/marketing/lib/designBrandColors';
