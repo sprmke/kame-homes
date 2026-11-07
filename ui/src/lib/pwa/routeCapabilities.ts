@@ -219,6 +219,16 @@ export const ROUTE_CAPABILITIES: readonly RouteCapability[] = [
     offline: 'none',
   },
   {
+    // Standalone phone handoff. Never offered an install card, never precached: it is a
+    // one-shot capture session with a 10-minute token.
+    id: 'identity-handoff',
+    test: /^\/verify(?:\/|$)/,
+    audience: 'guest',
+    installOffer: 'blocked',
+    precacheTier: 'on-demand',
+    offline: 'none',
+  },
+  {
     id: 'guest-stay-guide',
     test: /^\/(?:properties\/[^/]+\/stay-guide|showcase)(?:\/|$)/,
     audience: 'guest',
@@ -343,4 +353,5 @@ export const KNOWN_ROUTE_SEGMENTS: ReadonlySet<string> = new Set([
   'terms',
   'v2',
   'verification-rejected',
+  'verify',
 ]);

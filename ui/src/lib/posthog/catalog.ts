@@ -29,6 +29,11 @@ export const APP_ANALYTICS_EVENTS = [
   'team_invite_sent',
   'host_verification_submitted',
   'host_verification_resolved',
+  'identity_session_started',
+  'identity_handoff_scanned',
+  'identity_session_completed',
+  'identity_session_abandoned',
+  'identity_verification_deleted',
   // Booking workflow
   'booking_workflow_transitioned',
   'booking_document_step_completed',

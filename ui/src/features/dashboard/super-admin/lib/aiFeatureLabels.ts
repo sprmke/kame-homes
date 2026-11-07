@@ -20,6 +20,7 @@ const AI_FEATURE_LABELS: Record<string, string> = {
   smart_pricing: 'Smart pricing',
   host_analytics: 'Host analytics',
   review_draft: 'Review draft',
+  identity_extraction: 'Identity document read',
 };
 
 export const AI_FEATURE_LABEL_KEYS = Object.keys(AI_FEATURE_LABELS);
