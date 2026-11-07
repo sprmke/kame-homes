@@ -17,6 +17,7 @@ function session(overrides: Partial<IdentitySessionRow> = {}): IdentitySessionRo
     token_hash: 'hash',
     subject_kind: 'guest',
     guest_user_id: null,
+    owner_user_id: null,
     organization_id: null,
     booking_id: null,
     guest_slot: 1,
@@ -121,11 +122,30 @@ Deno.test('org sessions scope captures under the organization', () => {
   const org = session({
     subject_kind: 'org_owner',
     guest_user_id: null,
+    owner_user_id: 'owner-1',
     organization_id: 'org-9',
     guest_slot: null,
   });
   if (identityCapturePrefix(org) !== 'org_owner/org-9/session-1') {
     throw new Error(identityCapturePrefix(org));
+  }
+});
+
+Deno.test('registration sessions key captures to the host account before the org exists', () => {
+  const preOrg = session({
+    subject_kind: 'org_owner',
+    guest_user_id: null,
+    owner_user_id: 'owner-1',
+    organization_id: null,
+    guest_slot: null,
+  });
+  if (identityCapturePrefix(preOrg) !== 'org_owner/owner-1/session-1') {
+    throw new Error(identityCapturePrefix(preOrg));
+  }
+  const key = identityCaptureStorageKey({ session: preOrg, kind: 'document_front', extension: 'jpg' });
+  if (!isCapturePathOwnedBySession(preOrg, key)) throw new Error('own path must be accepted');
+  if (isCapturePathOwnedBySession(preOrg, 'org_owner/owner-2/session-1/document_front.jpg')) {
+    throw new Error('another host path must be rejected');
   }
 });
 

@@ -43,7 +43,7 @@ Track A is implemented end to end on `feat/live-identity-verification`.
 
 Corrections made during the build, beyond the Revised scope above:
 
-- **Onboarding keeps the upload.** Onboarding creates the organization at submit, so there is no `organization_id` for an `org_owner` verdict yet. Live capture starts from Get Verified immediately after.
+- **Host verification runs at registration.** `org_owner` verdicts are keyed to `owner_user_id` (migration `20261320130000`) so a host can verify before an organization exists. `create-organization` attaches the verdict at the end of the handler; the earlier rollback path would otherwise cascade-delete it. The captured photo still feeds the existing `upload-org-verification-asset` call, so `submit-org-verification` and the review queue are unchanged.
 - **Liveness frames are not uploaded.** Only pass/fail, challenge names and timing are sent. The plan assumed frames were stored; storing them added biometric bytes for no additional signal.
 - **No "review and correct fields" step.** A guest must not be able to type their own name onto a verification. If extraction is wrong, a human reviews; the guest sees a masked name only.
 - **The submit response is the only place the verdict is read on the phone.** No client-side verdict computation, so the server stays authoritative.

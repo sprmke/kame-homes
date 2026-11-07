@@ -48,7 +48,7 @@ export const IDENTITY_CAPTURE_BUCKET = 'identity-captures';
 
 /** Explicit column list — the `select('*')` guard exists for a reason. */
 const SESSION_COLUMNS =
-  'id, token_hash, subject_kind, guest_user_id, organization_id, booking_id, guest_slot, subject_email_hash, property_id, status, step, origin_device, failure_reason, attempt_count, claimed_at, result_id, expires_at, created_at, updated_at';
+  'id, token_hash, subject_kind, guest_user_id, owner_user_id, organization_id, booking_id, guest_slot, subject_email_hash, property_id, status, step, origin_device, failure_reason, attempt_count, claimed_at, result_id, expires_at, created_at, updated_at';
 
 export const IDENTITY_CAPTURE_KINDS = [
   'document_front',
@@ -72,6 +72,7 @@ export type IdentitySessionRow = {
   token_hash: string;
   subject_kind: IdentitySubjectKind;
   guest_user_id: string | null;
+  owner_user_id: string | null;
   organization_id: string | null;
   booking_id: string | null;
   guest_slot: number | null;
@@ -103,6 +104,8 @@ export function isTerminal(status: IdentitySessionStatus): boolean {
 export type CreateIdentitySessionInput = {
   subjectKind: IdentitySubjectKind;
   guestUserId?: string | null;
+  /** The host account. Required for `org_owner`; ignored for `guest`. */
+  ownerUserId?: string | null;
   organizationId?: string | null;
   bookingId?: string | null;
   guestSlot?: number | null;
@@ -137,8 +140,9 @@ export async function createIdentitySession(
     if (!emailHash) {
       throw new Error('An email address is required to verify a guest identity');
     }
-  } else if (!input.organizationId?.trim()) {
-    throw new Error('organizationId is required to verify an organization owner');
+  } else if (!input.ownerUserId?.trim()) {
+    // The organization may not exist yet (registration), so the host account is the key.
+    throw new Error('A signed-in host is required to verify an organization owner');
   }
 
   // Only the primary guest links to the account. Additional guests are different people,
@@ -158,6 +162,8 @@ export async function createIdentitySession(
       token_hash: `pending-${crypto.randomUUID()}`,
       subject_kind: input.subjectKind,
       guest_user_id: accountGuestUserId,
+      owner_user_id:
+        input.subjectKind === 'org_owner' ? optionalUuid(input.ownerUserId) : null,
       organization_id: optionalUuid(input.organizationId),
       booking_id: optionalUuid(input.bookingId),
       guest_slot: guestSlot,
@@ -264,23 +270,26 @@ export function identityCaptureStorageKey(input: {
   index?: number;
   extension: 'jpg' | 'png' | 'webp';
 }): string {
-  const subjectRef = input.session.organization_id ?? input.session.guest_user_id ?? input.session.id;
   const suffix = input.index === undefined ? '' : `_${input.index}`;
-  return `${input.session.subject_kind}/${subjectRef}/${input.session.id}/${input.kind}${suffix}.${input.extension}`;
+  return `${input.session.subject_kind}/${sessionSubjectRef(input.session)}/${input.session.id}/${input.kind}${suffix}.${input.extension}`;
+}
+
+function sessionSubjectRef(
+  session: Pick<IdentitySessionRow, 'id' | 'organization_id' | 'owner_user_id' | 'guest_user_id'>
+): string {
+  return session.organization_id ?? session.owner_user_id ?? session.guest_user_id ?? session.id;
 }
 
 export function isCapturePathOwnedBySession(session: IdentitySessionRow, path: string): boolean {
-  const subjectRef = session.organization_id ?? session.guest_user_id ?? session.id;
-  return path.startsWith(`${session.subject_kind}/${subjectRef}/${session.id}/`);
+  return path.startsWith(`${session.subject_kind}/${sessionSubjectRef(session)}/${session.id}/`);
 }
 
 /** Folder that holds every capture for one session. */
 export function identityCapturePrefix(session: Pick<
   IdentitySessionRow,
-  'id' | 'subject_kind' | 'guest_user_id' | 'organization_id'
+  'id' | 'subject_kind' | 'guest_user_id' | 'owner_user_id' | 'organization_id'
 >): string {
-  const subjectRef = session.organization_id ?? session.guest_user_id ?? session.id;
-  return `${session.subject_kind}/${subjectRef}/${session.id}`;
+  return `${session.subject_kind}/${sessionSubjectRef(session)}/${session.id}`;
 }
 
 export async function markCaptured(supabase: SupabaseClient, sessionId: string): Promise<void> {
@@ -493,8 +502,9 @@ export async function runIdentityVerification(
     } catch {
       aiAllowed = false;
     }
-  } else if (session.organization_id) {
-    // Org verification has no property; AI extraction is metered to the org's default plan.
+  } else if (session.subject_kind === 'org_owner') {
+    // Host verification has no property, and at registration no organization yet either.
+    // The call is metered to the org's plan once `organization_id` is attached.
     aiAllowed = true;
   }
 
@@ -588,6 +598,13 @@ export async function runIdentityVerification(
   const expiresAt = computeIdentityExpiry(now, merged.documentExpiry);
 
   // 5. Supersede any earlier live verdict for the same account or booking slot.
+  if (session.owner_user_id) {
+    await supabase
+      .from('identity_verifications')
+      .update({ verdict: 'expired' })
+      .eq('owner_user_id', session.owner_user_id)
+      .in('verdict', ['verified', 'partially_verified']);
+  }
   if (session.guest_user_id) {
     await supabase
       .from('identity_verifications')
@@ -610,6 +627,7 @@ export async function runIdentityVerification(
     .insert({
       subject_kind: session.subject_kind,
       guest_user_id: session.guest_user_id,
+      owner_user_id: session.owner_user_id,
       organization_id: session.organization_id,
       booking_id: session.booking_id,
       guest_slot: session.guest_slot,

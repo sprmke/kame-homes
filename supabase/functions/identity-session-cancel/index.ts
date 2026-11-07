@@ -19,16 +19,21 @@ serveAuthenticated('identity-session-cancel', async (req, user) => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('identity_verification_sessions')
-    .select('id, guest_user_id, organization_id')
+    .select('id, guest_user_id, owner_user_id, organization_id')
     .eq('id', sessionId)
     .maybeSingle();
   const session = data as
-    | { id: string; guest_user_id: string | null; organization_id: string | null }
+    | {
+        id: string;
+        guest_user_id: string | null;
+        owner_user_id: string | null;
+        organization_id: string | null;
+      }
     | null;
   if (!session) return jsonError(req, 'Session not found', 404);
 
   // A guest owns the session when it is theirs; an org owner owns it when it targets their org.
-  const ownsGuest = session.guest_user_id === user.id;
+  const ownsGuest = session.guest_user_id === user.id || session.owner_user_id === user.id;
   if (!ownsGuest) {
     if (!session.organization_id) return jsonError(req, 'Not found', 404);
     const { data: org } = await supabase

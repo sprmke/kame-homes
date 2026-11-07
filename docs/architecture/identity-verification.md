@@ -31,6 +31,7 @@ belongs to them, without uploading a gallery photo:
 | Consumer           | Surface                                                         | Subject                    |
 | ------------------ | --------------------------------------------------------------- | -------------------------- |
 | Guest booking form | `features/guest/form/components/GuestIdentityCapture.tsx`       | `guest` (per booking slot) |
+| Host registration  | `HostIdentityVerifyButton` inside onboarding step 3             | `org_owner`, pre-org       |
 | Host Get Verified  | `features/verification/components/HostIdentityVerifyButton.tsx` | `org_owner`                |
 | Super-admin review | `features/verification/components/IdentityPreScreenBlock.tsx`   | reads `org_owner`          |
 | Account profile    | `features/verification/components/GuestIdentityCard.tsx`        | `guest` (account)          |
@@ -104,10 +105,29 @@ The guest booking form is anonymous, so an identity cannot be keyed on `auth.use
 | Subject     | Linkage                                                                            | Reuse                                                                      |
 | ----------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `guest`     | `subject_email_hash` (always), plus `guest_user_id` and/or `booking_id` when known | Only when `guest_user_id` matches. Anonymous verifications are per booking |
-| `org_owner` | `organization_id`                                                                  | One live verdict per organization                                          |
+| `org_owner` | `owner_user_id` (always), plus `organization_id` once the org exists               | One live verdict per host account                                          |
 
 Reuse-by-email was rejected deliberately: typing someone else's address must not grant their
 verification.
+
+### Host verification at registration
+
+A host signs in with Google **before** any organization exists, so an `org_owner` verdict is
+keyed to `owner_user_id`, not to an org. `create-organization` attaches it:
+
+1. Host taps **Verify with camera** on the onboarding Valid ID field.
+2. The session runs with `subjectKind: 'org_owner'` and no `organizationId`.
+3. The verdict is written with `organization_id = null` and `owner_user_id = <auth user>`.
+4. `create-organization` finds the newest unlinked active verdict for that owner, sets
+   `organization_id`, and logs `identity.verification_linked`.
+
+The attach runs **last** in `create-organization` on purpose: the early rollback path deletes
+the organization, which cascades into `identity_verifications` and would throw the host's
+check away.
+
+The captured photo still becomes the Valid ID file through the existing
+`upload-org-verification-asset` call, so `submit-org-verification`, the review queue and the
+badge logic are unchanged.
 
 ### Booking integration
 

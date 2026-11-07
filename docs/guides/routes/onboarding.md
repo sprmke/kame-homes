@@ -229,12 +229,14 @@ After onboarding finishes, hosts land on the listing dashboard. The **Setup Guid
 
 ## Identity verification (2026-11-07)
 
-Onboarding creates the organization at submit, so there is no `organization_id` to attach a
-live verdict to yet. Onboarding therefore keeps the existing Valid ID upload.
+Step 3 offers **Verify with camera** above the Valid ID field. The host captures their ID on
+their phone (or inline), which produces the Valid ID file the existing upload path already
+expects **and** records an `org_owner` identity verdict.
 
-Live capture is available immediately after onboarding from **Get Verified** on the dashboard
-(`HostIdentityVerifyButton`), which produces the same Valid ID file the existing upload path
-expects **and** records an `org_owner` verdict for the reviewer.
+Registration happens before the organization exists, so the verdict is keyed to the host
+account (`owner_user_id`). `create-organization` attaches it to the new organization on submit
+and logs `identity.verification_linked`. The plain upload stays available as an equal
+fallback, and **Get Verified** exposes the same camera path afterwards.
 
 See [`verify.md`](./verify.md) and
 [`../../architecture/identity-verification.md`](../../architecture/identity-verification.md).

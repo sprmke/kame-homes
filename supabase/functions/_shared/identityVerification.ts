@@ -197,6 +197,8 @@ export type IdentityVerificationRow = {
   id: string;
   subject_kind: IdentitySubjectKind;
   guest_user_id: string | null;
+  /** The host account. Present for `org_owner`, including before the org exists. */
+  owner_user_id: string | null;
   organization_id: string | null;
   booking_id: string | null;
   guest_slot: number | null;

@@ -27,30 +27,33 @@ serveAuthenticated('identity-verification-delete', async (req, user) => {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from('identity_verifications')
-    .select('id, guest_user_id, organization_id, booking_id')
+    .select('id, guest_user_id, owner_user_id, organization_id, booking_id')
     .eq('id', verificationId)
     .maybeSingle();
   const row = data as
     | {
         id: string;
         guest_user_id: string | null;
+        owner_user_id: string | null;
         organization_id: string | null;
         booking_id: string | null;
       }
     | null;
-  if (!row || row.guest_user_id !== user.id) return jsonError(req, 'Not found', 404);
+  const ownsRow = row && (row.guest_user_id === user.id || row.owner_user_id === user.id);
+  if (!row || !ownsRow) return jsonError(req, 'Not found', 404);
 
   // Capture cleanup first: a failed file delete must not leave the row pointing at an
   // orphan. Best-effort — the purge cron is the backstop.
   const { data: sessions } = await supabase
     .from('identity_verification_sessions')
-    .select('id, subject_kind, guest_user_id, organization_id')
+    .select('id, subject_kind, guest_user_id, owner_user_id, organization_id')
     .eq('result_id', verificationId)
     .limit(10);
   for (const session of (sessions ?? []) as Array<{
     id: string;
     subject_kind: 'guest' | 'org_owner';
     guest_user_id: string | null;
+    owner_user_id: string | null;
     organization_id: string | null;
   }>) {
     const prefix = identityCapturePrefix(session);

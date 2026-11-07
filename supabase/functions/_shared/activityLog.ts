@@ -872,6 +872,13 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} overrode an identity verdict (${str(c.metadata, 'verdict') ?? 'changed'})`,
   },
+  'identity.verification_linked': {
+    category: 'verification',
+    severity: 'notice',
+    targetType: 'identity_verification',
+    summary: (c) =>
+      `${c.actorName} linked a host identity check to ${label(c, 'the organization')}`,
+  },
   'identity.verification_reviewed': {
     category: 'verification',
     severity: 'notice',

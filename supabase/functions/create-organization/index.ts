@@ -476,9 +476,55 @@ serveAuthenticated('create-organization', async (req, user) => {
     });
   }
 
+  /**
+   * Attach a verification the host completed during registration, before this organization
+   * existed. Runs last on purpose: the early `rollbackOrg` path cascades a delete into
+   * `identity_verifications`, which would throw away the host's check.
+   *
+   * activity-log: emitted here rather than at capture time, because until now there was no
+   * organization to scope the event to.
+   */
+  let linkedVerification: string | null = null;
+  const { data: pendingIdentity } = await supabase
+    .from('identity_verifications')
+    .select('id')
+    .eq('owner_user_id', user.id)
+    .is('organization_id', null)
+    .in('verdict', ['verified', 'partially_verified', 'unverified'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const pendingIdentityId = (pendingIdentity as { id: string } | null)?.id ?? null;
+  if (pendingIdentityId) {
+    const { error: linkError } = await supabase
+      .from('identity_verifications')
+      .update({ organization_id: org.id })
+      .eq('id', pendingIdentityId)
+      .is('organization_id', null);
+    if (!linkError) {
+      linkedVerification = pendingIdentityId;
+      await logActivity({
+        action: 'identity.verification_linked',
+        organizationId: org.id,
+        scope: 'org',
+        actor: buildActorContext(
+          'dashboard',
+          { authUser: user, actorType: 'org_owner', role: 'owner' },
+          req
+        ),
+        targetType: 'identity_verification',
+        targetId: pendingIdentityId,
+        targetLabel: name,
+        metadata: { via: 'org_registration' },
+      });
+    }
+  }
+
   return jsonSuccess(req, {
     organization: serializeOrganization((refreshedOrg ?? org) as typeof org),
     property,
     parking,
+    linkedIdentityVerificationId: linkedVerification,
   });
 });

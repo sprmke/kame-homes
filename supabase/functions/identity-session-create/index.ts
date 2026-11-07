@@ -88,9 +88,9 @@ servePublic('identity-session-create', async (req) => {
     }
   } else {
     if (!user) return jsonError(req, 'Unauthorized', 401);
-    if (!organizationId) return jsonError(req, 'organizationId is required', 400);
-    // Throws a handled 403 when the caller is not the owner.
-    await verifyOrgOwner(req, organizationId);
+    // Registration runs before the organization exists, so an organizationId is optional.
+    // When it is supplied the caller must actually own it.
+    if (organizationId) await verifyOrgOwner(req, organizationId);
   }
 
   // `resolvePublicPropertyId` throws when the URL has no property scope, and this endpoint
@@ -108,7 +108,8 @@ servePublic('identity-session-create', async (req) => {
   const created = await createIdentitySession(supabase, {
     subjectKind,
     guestUserId: user?.id ?? null,
-    organizationId: subjectKind === 'org_owner' ? organizationId : null,
+    ownerUserId: subjectKind === 'org_owner' ? user?.id ?? null : null,
+    organizationId: subjectKind === 'org_owner' ? organizationId || null : null,
     bookingId: bookingId || null,
     guestSlot,
     email: subjectKind === 'guest' ? email : null,

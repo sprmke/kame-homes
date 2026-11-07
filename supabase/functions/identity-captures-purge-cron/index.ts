@@ -56,7 +56,7 @@ serveCronPost('identity-captures-purge-cron', verifyIdentityPurgeCronSecret, asy
 
   const { data: staleSessions } = await supabase
     .from('identity_verification_sessions')
-    .select('id, subject_kind, guest_user_id, organization_id')
+    .select('id, subject_kind, guest_user_id, owner_user_id, organization_id')
     .lt('created_at', cutoff)
     .in('status', ['completed', 'failed', 'expired'])
     .order('created_at', { ascending: true })
@@ -66,7 +66,10 @@ serveCronPost('identity-captures-purge-cron', verifyIdentityPurgeCronSecret, asy
   let foldersScanned = 0;
 
   for (const row of (staleSessions ?? []) as Array<
-    Pick<IdentitySessionRow, 'id' | 'subject_kind' | 'guest_user_id' | 'organization_id'>
+    Pick<
+      IdentitySessionRow,
+      'id' | 'subject_kind' | 'guest_user_id' | 'owner_user_id' | 'organization_id'
+    >
   >) {
     foldersScanned += 1;
     const prefix = identityCapturePrefix(row);
