@@ -403,7 +403,9 @@ export class DatabaseService {
 
         const { data, error } = await this.supabase
           .from('identity_verifications')
-          .select('id, subject_kind, subject_email_hash, guest_slot, expires_at, document_front_path')
+          .select(
+            'id, subject_kind, subject_email_hash, guest_user_id, guest_slot, expires_at, document_front_path'
+          )
           .eq('id', id)
           .maybeSingle();
         if (error || !data) return null;
@@ -412,12 +414,17 @@ export class DatabaseService {
           id: string;
           subject_kind: string;
           subject_email_hash: string | null;
+          guest_user_id: string | null;
           guest_slot: number | null;
           expires_at: string | null;
           document_front_path: string | null;
         };
         if (row.subject_kind !== 'guest') return null;
-        if (row.subject_email_hash !== identityEmailHash) return null;
+        // Either the booking email matches, or the verdict belongs to the signed-in guest.
+        // The second case covers a guest booking with a different contact address.
+        const emailMatches = row.subject_email_hash === identityEmailHash;
+        const accountMatches = Boolean(guestUserId) && row.guest_user_id === guestUserId;
+        if (!emailMatches && !accountMatches) return null;
         if (row.guest_slot !== null && row.guest_slot !== slot) return null;
         if (row.expires_at && Date.parse(row.expires_at) < Date.now()) return null;
         if (!row.document_front_path) return null;

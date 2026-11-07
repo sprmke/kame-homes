@@ -20,7 +20,7 @@ import {
 } from '../_shared/httpResponse.ts';
 import { createIdentitySession } from '../_shared/identitySessionService.ts';
 import { servePublic } from '../_shared/serveEdge.ts';
-import { resolveOrganizationIdForProperty, resolvePublicPropertyId } from '../_shared/propertyScope.ts';
+import { resolveOrganizationIdForProperty } from '../_shared/propertyScope.ts';
 
 const GUEST_SLOT_MAX = 5;
 
@@ -69,7 +69,9 @@ servePublic('identity-session-create', async (req) => {
 
   let email = '';
   if (subjectKind === 'guest') {
-    email = (user?.email ?? (typeof body.email === 'string' ? body.email : '')).trim();
+    // The booking form's email is the ownership key at submit time, so it wins over the
+    // account email when both exist. The account id is still attached below.
+    email = ((typeof body.email === 'string' ? body.email : '') || user?.email || '').trim();
     if (!email) return jsonError(req, 'An email address is required', 400);
     if (bookingId) {
       const { data: booking } = await supabase
@@ -91,18 +93,16 @@ servePublic('identity-session-create', async (req) => {
     await verifyOrgOwner(req, organizationId);
   }
 
+  // `resolvePublicPropertyId` throws when the URL has no property scope, and this endpoint
+  // is called from the booking form with the slug in the body. Resolve it here instead.
   let propertyId: string | null = null;
   if (propertySlug) {
-    propertyId = await resolvePublicPropertyId(new URL(req.url));
-    if (!propertyId) {
-      // The slug comes from the body, not the query string, on this endpoint.
-      const { data } = await supabase
-        .from('properties')
-        .select('id')
-        .eq('slug', propertySlug)
-        .maybeSingle();
-      propertyId = (data as { id: string } | null)?.id ?? null;
-    }
+    const { data } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('slug', propertySlug)
+      .maybeSingle();
+    propertyId = (data as { id: string } | null)?.id ?? null;
   }
 
   const created = await createIdentitySession(supabase, {

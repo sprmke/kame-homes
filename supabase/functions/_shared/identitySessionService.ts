@@ -141,6 +141,14 @@ export async function createIdentitySession(
     throw new Error('organizationId is required to verify an organization owner');
   }
 
+  // Only the primary guest links to the account. Additional guests are different people,
+  // so an account link would (a) let slot 2 wipe slot 1's active verdict and (b) claim a
+  // companion's identity as the booker's own.
+  const accountGuestUserId =
+    input.subjectKind === 'guest' && (guestSlot === null || guestSlot === 1)
+      ? optionalUuid(input.guestUserId)
+      : null;
+
   // 10 minutes from creation; a fresh session is minted on retry rather than extended.
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
@@ -149,7 +157,7 @@ export async function createIdentitySession(
     .insert({
       token_hash: `pending-${crypto.randomUUID()}`,
       subject_kind: input.subjectKind,
-      guest_user_id: optionalUuid(input.guestUserId),
+      guest_user_id: accountGuestUserId,
       organization_id: optionalUuid(input.organizationId),
       booking_id: optionalUuid(input.bookingId),
       guest_slot: guestSlot,
