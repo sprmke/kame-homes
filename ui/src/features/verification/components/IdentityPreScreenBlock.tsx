@@ -3,7 +3,12 @@ import { Fingerprint } from 'lucide-react';
 import type { OrgIdentityVerificationSummary } from '@/features/dashboard/super-admin/types/approval';
 
 import { VerificationResultBadge } from './VerificationResultBadge';
-import { IDENTITY_FLAG_LABELS, type IdentityFlagCode, type IdentityVerdict } from '../lib/identityVerdict';
+import {
+  IDENTITY_FLAG_LABELS,
+  type IdentityFlag,
+  type IdentityFlagCode,
+  type IdentityVerdict,
+} from '../lib/identityVerdict';
 
 type IdentityPreScreenBlockProps = {
   summary: OrgIdentityVerificationSummary;
@@ -45,7 +50,7 @@ export function IdentityPreScreenBlock({ summary }: IdentityPreScreenBlockProps)
         </div>
         <VerificationResultBadge
           verdict={summary.verdict as IdentityVerdict}
-          flags={flags as never}
+          flags={flags as unknown as IdentityFlag[]}
         />
       </div>
 

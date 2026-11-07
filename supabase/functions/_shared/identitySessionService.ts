@@ -505,7 +505,7 @@ export async function runIdentityVerification(
       selfieBytes: selfieImage?.bytes ?? null,
       selfieMimeType: selfieImage?.mimeType ?? null,
       usageContext: {
-        organizationId: null,
+        organizationId: session.organization_id,
         propertyId: session.property_id,
         actorUserId: session.guest_user_id,
         actorType: session.guest_user_id ? 'guest' : 'staff',
