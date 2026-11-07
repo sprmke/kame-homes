@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { Copy, Loader2, RefreshCw, Smartphone } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, RefreshCw, Smartphone } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
 
@@ -72,6 +72,16 @@ export function CrossDeviceHandoffPanel({
       toast.error('Could not copy the link');
     }
   }, [verifyUrl]);
+
+  if (status === 'completed') {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <CheckCircle2 className="h-7 w-7 text-emerald-500" aria-hidden />
+        <p className="text-sm font-semibold">Done</p>
+        <p className="text-muted-foreground text-xs">Your phone finished the check.</p>
+      </div>
+    );
+  }
 
   if (expired || status === 'expired' || status === 'failed') {
     return (

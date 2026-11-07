@@ -48,6 +48,7 @@ Corrections made during the build, beyond the Revised scope above:
 - **No "review and correct fields" step.** A guest must not be able to type their own name onto a verification. If extraction is wrong, a human reviews; the guest sees a masked name only.
 - **The submit response is the only place the verdict is read on the phone.** No client-side verdict computation, so the server stays authoritative.
 - **`identity_capture_mode` is set at submit**, not at capture, so a draft that never submits leaves no stale flag.
+- **`identity-verification-review` is API-only for now.** The super-admin dialog reads the pre-screen block; the override control (which needs a step-up OTP token) is a follow-up so a half-built confirm dialog is not shipped.
 
 Verification: `bun run ci:quality` green; 56 Deno tests (verdict model, token, PhilSys QR, MRZ, session service) and 12 Vitest tests (verdict mirror parity, capture quality) added.
 

@@ -9,10 +9,10 @@ import { useGuestSession } from '@/features/guest/auth/hooks/useGuestSession';
 import { Button } from '@/components/ui/button';
 import { ResponsiveModal, ResponsiveModalContent, ResponsiveModalTitle } from '@/components/ui/responsive-modal';
 
-import { deleteIdentityVerification } from '../lib/identityApi';
-import { myIdentityQueryKey, useMyIdentity } from '../hooks/useIdentitySession';
 import { IdentityVerificationFlow } from './IdentityVerificationFlow';
 import { VerificationResultBadge } from './VerificationResultBadge';
+import { myIdentityQueryKey, useMyIdentity } from '../hooks/useIdentitySession';
+import { deleteIdentityVerification } from '../lib/identityApi';
 
 function formatDate(value: string | null): string {
   if (!value) return '';
