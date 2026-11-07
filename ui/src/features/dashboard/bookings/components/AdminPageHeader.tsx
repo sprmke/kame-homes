@@ -7,6 +7,8 @@ type AdminPageHeaderProps = {
   subtitle?: string;
   /** Optional plan/status pill next to the title (e.g. `<TierBadge>`). */
   badge?: ReactNode;
+  /** Optional helper control rendered immediately after the title. */
+  titleHint?: ReactNode;
   actions?: ReactNode;
   /** Optional classes on the actions wrapper. */
   actionsClassName?: string;
@@ -27,6 +29,7 @@ export function AdminPageHeader({
   title,
   subtitle,
   badge,
+  titleHint,
   actions,
   actionsClassName,
   className,
@@ -55,6 +58,7 @@ export function AdminPageHeader({
           <h1 id={id} className="text-admin-page-title">
             {title}
           </h1>
+          {titleHint}
           {badge}
         </div>
         {subtitle ? (

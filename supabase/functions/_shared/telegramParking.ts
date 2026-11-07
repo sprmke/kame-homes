@@ -120,9 +120,24 @@ export async function sendParkingDraftPreview(
     }),
   });
   const json = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
+  const { logTelegramMessage } = await import('./telegramMessageLog.ts');
   if (!json.ok) {
-    return { sent: false, error: String(json.description ?? res.statusText) };
+    const error = String(json.description ?? res.statusText);
+    await logTelegramMessage({
+      scope: { parkingId },
+      module: 'parking',
+      text: rendered.slice(0, 4096),
+      ok: false,
+      error,
+    });
+    return { sent: false, error };
   }
+  await logTelegramMessage({
+    scope: { parkingId },
+    module: 'parking',
+    text: rendered.slice(0, 4096),
+    ok: true,
+  });
   return { sent: true, messageCharCount: rendered.length };
 }
 

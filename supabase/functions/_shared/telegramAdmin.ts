@@ -557,11 +557,22 @@ async function sendAdminTelegramMessage(
   if (await telegramDeliveryUnavailable()) {
     return { ok: false, error: 'feature_unavailable' };
   }
+  const { isTelegramDeliveryEnabled } = await import('./telegramDeliveryControl.ts');
+  if (!(await isTelegramDeliveryEnabled(scope))) {
+    return { ok: false, error: 'master_disabled' };
+  }
+
   const creds = await resolveAdminTelegramCredentials(scope);
   if (!creds.ok) {
     console.warn('[telegram-admin] credentials issue:', creds.error);
     return { ok: false, error: creds.error };
   }
+
+  const logPayload = text.slice(0, 4096);
+  const logSend = async (ok: boolean, error?: string) => {
+    const { logTelegramMessage } = await import('./telegramMessageLog.ts');
+    await logTelegramMessage({ scope, module: 'operations', text: logPayload, ok, error });
+  };
 
   const url = `https://api.telegram.org/bot${creds.token}/sendMessage`;
   const sendPayload = async (chatId: string) =>
@@ -597,13 +608,18 @@ async function sendAdminTelegramMessage(
       );
       res = await sendPayload(migrateTo);
       json = await parseResponse(res);
-      if (res.ok && json?.ok) return { ok: true };
+      if (res.ok && json?.ok) {
+        await logSend(true);
+        return { ok: true };
+      }
     }
 
     const desc = String(json?.description ?? res.statusText ?? description);
     console.error('[telegram-admin] sendMessage failed:', desc);
+    await logSend(false, desc);
     return { ok: false, error: desc };
   }
+  await logSend(true);
   return { ok: true };
 }
 

@@ -159,7 +159,10 @@ export function InAppNotificationsPanel({
       className={cn('min-w-0', variant === 'sheet' && 'flex min-h-0 flex-1 flex-col', className)}
     >
       <div ref={scrollRef} className={listScrollClassName}>
-        <ul className={variant === 'feed' ? 'divide-border/60 divide-y' : undefined}>
+        <ul
+          aria-label="Notifications"
+          className={variant === 'feed' ? 'divide-border/60 divide-y' : undefined}
+        >
           {notifications.map((notification) => {
             const Icon = notificationIconFor(notification.type);
             const stayLabel = formatNotificationStayLabel(notification.metadata);

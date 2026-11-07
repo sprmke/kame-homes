@@ -27,15 +27,17 @@ export const NOTIFICATIONS_HOW_IT_WORKS: HowItWorksCopy = {
       body: 'Mute a group for phone push only. Activity keeps every event.',
     },
   ],
-  tip: 'Quiet hours use Philippine time. Calendar sync failures still come through.',
 };
 
-/** Notifications hub summary cards. */
+/** Notifications hub hints — summary cards, the feed, and the push cards. */
 export const NOTIFICATIONS_HELP_COPY = {
   telegramOn: {
     hint: 'How many notification modules have Telegram turned on.',
   },
   connected: {
     hint: 'How many modules have a Telegram chat connected. Setup is needed when this is lower than Telegram on.',
+  },
+  pushPreferences: {
+    hint: 'These belong to your account and apply on every device. Muting only stops the phone buzz.',
   },
 } satisfies HelpCopyModule;

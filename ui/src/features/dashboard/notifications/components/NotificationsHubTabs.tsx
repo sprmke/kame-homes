@@ -32,9 +32,6 @@ type Props = {
   unreadCount: number;
   /** Amber dot on Telegram when the module is off. */
   telegramUnavailable?: boolean;
-  /** Contextual action for the current view (Mark all as read, Get Help). */
-  action?: ReactNode;
-  /** Match the active view's content width so the action lines up with it. */
   className?: string;
 };
 
@@ -46,7 +43,6 @@ type Props = {
 export function NotificationsHubTabs({
   unreadCount,
   telegramUnavailable = false,
-  action,
   className,
 }: Props) {
   return (
@@ -79,7 +75,6 @@ export function NotificationsHubTabs({
           );
         })}
       </SlidingTabsList>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
     </div>
   );
 }

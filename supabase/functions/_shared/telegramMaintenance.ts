@@ -348,10 +348,11 @@ export async function renderMaintenanceDraftPreview(
 
 async function sendMaintenanceTelegramMessage(
   text: string,
-  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null,
+  options?: { bypassMasterSwitch?: boolean }
 ): Promise<{ ok: boolean; error?: string }> {
   const { sendPropertyTelegramMessage } = await import('./propertyTelegramCredentials.ts');
-  return sendPropertyTelegramMessage('maintenance', text, scope);
+  return sendPropertyTelegramMessage('maintenance', text, scope, options);
 }
 
 export function verifyMaintenanceCronSecret(req: Request): boolean {
@@ -381,7 +382,9 @@ export async function sendMaintenanceDraftPreview(
       messageCharCount: 0,
     };
   }
-  const r = await sendMaintenanceTelegramMessage(rendered.renderedText, scope);
+  const r = await sendMaintenanceTelegramMessage(rendered.renderedText, scope, {
+    bypassMasterSwitch: true,
+  });
   return {
     sent: r.ok,
     error: r.error,

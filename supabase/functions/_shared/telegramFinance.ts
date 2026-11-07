@@ -410,10 +410,11 @@ export async function renderFinanceDraftPreview(
 
 async function sendFinanceTelegramMessage(
   text: string,
-  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null,
+  options?: { bypassMasterSwitch?: boolean }
 ): Promise<{ ok: boolean; error?: string }> {
   const { sendPropertyTelegramMessage } = await import('./propertyTelegramCredentials.ts');
-  return sendPropertyTelegramMessage('finance', text, scope);
+  return sendPropertyTelegramMessage('finance', text, scope, options);
 }
 
 export function verifyFinanceCronSecret(req: Request): boolean {
@@ -443,7 +444,9 @@ export async function sendFinanceDraftPreview(
       messageCharCount: 0,
     };
   }
-  const r = await sendFinanceTelegramMessage(rendered.renderedText, scope);
+  const r = await sendFinanceTelegramMessage(rendered.renderedText, scope, {
+    bypassMasterSwitch: true,
+  });
   return {
     sent: r.ok,
     error: r.error,

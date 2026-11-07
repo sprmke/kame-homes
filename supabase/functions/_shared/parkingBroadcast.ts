@@ -416,6 +416,9 @@ async function sendParkingReservationRequestTelegram(
   const notifyOnRequest = settingsRow.notify_on_reservation_request !== false;
   if (!enabled || !notifyOnRequest) return;
 
+  const { isTelegramDeliveryEnabled } = await import('./telegramDeliveryControl.ts');
+  if (!(await isTelegramDeliveryEnabled({ parkingId: candidate.id }))) return;
+
   const creds = await resolvePropertyTelegramCredentials('parking', { parkingId: candidate.id });
   if (!creds.ok) return;
 
@@ -454,7 +457,23 @@ async function sendParkingReservationRequestTelegram(
     }),
   });
   const json = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
+  const { logTelegramMessage } = await import('./telegramMessageLog.ts');
   if (!json.ok) {
-    console.error(`[sendParkingReservationRequestTelegram] ${candidate.id}:`, json.description);
+    const error = String(json.description ?? res.statusText);
+    console.error(`[sendParkingReservationRequestTelegram] ${candidate.id}:`, error);
+    await logTelegramMessage({
+      scope: { parkingId: candidate.id },
+      module: 'broadcast',
+      text: fullText.slice(0, 4096),
+      ok: false,
+      error,
+    });
+    return;
   }
+  await logTelegramMessage({
+    scope: { parkingId: candidate.id },
+    module: 'broadcast',
+    text: fullText.slice(0, 4096),
+    ok: true,
+  });
 }

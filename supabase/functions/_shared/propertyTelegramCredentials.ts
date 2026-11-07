@@ -294,15 +294,35 @@ export async function encryptTelegramCredentialFields(input: {
   return patch;
 }
 
+export type SendTelegramOptions = {
+  /**
+   * Test sends and template previews still go out while the master switch is
+   * off, so a host can confirm a group without re-enabling delivery.
+   */
+  bypassMasterSwitch?: boolean;
+};
+
+/** `admin` is the Operations module in the product language. */
+function logModuleForChannel(channel: TelegramChannel) {
+  return channel === 'admin' ? 'operations' : channel;
+}
+
 export async function sendPropertyTelegramMessage(
   channel: TelegramChannel,
   text: string,
-  scope?: TelegramAssetScopeRef | string | null
+  scope?: TelegramAssetScopeRef | string | null,
+  options?: SendTelegramOptions
 ): Promise<{ ok: boolean; error?: string }> {
   const { telegramDeliveryUnavailable } = await import('./featureAvailability.ts');
   if (await telegramDeliveryUnavailable()) {
     return { ok: false, error: 'feature_unavailable' };
   }
+
+  const { isTelegramDeliveryEnabled } = await import('./telegramDeliveryControl.ts');
+  if (!options?.bypassMasterSwitch && !(await isTelegramDeliveryEnabled(scope))) {
+    return { ok: false, error: 'master_disabled' };
+  }
+
   const creds = await resolvePropertyTelegramCredentials(channel, scope);
   if (!creds.ok) {
     if (creds.code === 'missing_token' || creds.code === 'missing_chat_id') {
@@ -310,20 +330,37 @@ export async function sendPropertyTelegramMessage(
     }
     return { ok: false, error: creds.error };
   }
+
+  const { logTelegramMessage } = await import('./telegramMessageLog.ts');
+  const payload = text.slice(0, 4096);
   const url = `https://api.telegram.org/bot${creds.token}/sendMessage`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: creds.chatId,
-      text: text.slice(0, 4096),
+      text: payload,
       disable_web_page_preview: true,
     }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || !json?.ok) {
-    const desc = json?.description ?? res.statusText;
-    return { ok: false, error: String(desc) };
+    const desc = String(json?.description ?? res.statusText);
+    await logTelegramMessage({
+      scope,
+      module: logModuleForChannel(channel),
+      text: payload,
+      ok: false,
+      error: desc,
+    });
+    return { ok: false, error: desc };
   }
+
+  await logTelegramMessage({
+    scope,
+    module: logModuleForChannel(channel),
+    text: payload,
+    ok: true,
+  });
   return { ok: true };
 }

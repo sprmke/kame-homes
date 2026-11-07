@@ -419,10 +419,9 @@ export function PropertyNotificationsRouteSkeleton() {
       title="Notifications"
       subtitle="Manage in-app notifications and Telegram alerts for this property."
       titleId="notifications-heading"
+      className="flex min-h-0 flex-1 flex-col"
     >
-      <NotificationsPageBodySkeleton
-        moduleLabels={['Chat', 'Marketing', 'Staff', 'Operations', 'Finance', 'Maintenance']}
-      />
+      <NotificationsPageBodySkeleton />
     </AdminMobilePage>
   );
 }
@@ -853,7 +852,7 @@ export function ParkingNotificationsRouteSkeleton() {
       titleId="parking-notifications-heading"
       className="flex min-h-0 flex-1 flex-col"
     >
-      <NotificationsPageBodySkeleton moduleLabels={['Chat', 'Parking', 'Finance']} />
+      <NotificationsPageBodySkeleton />
     </AdminMobilePage>
   );
 }

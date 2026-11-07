@@ -290,6 +290,11 @@ async function sendTelegramMessage(
   if (await telegramDeliveryUnavailable()) {
     return { ok: false, error: 'feature_unavailable' };
   }
+  const { isTelegramDeliveryEnabled } = await import('./telegramDeliveryControl.ts');
+  if (!(await isTelegramDeliveryEnabled(scope))) {
+    return { ok: false, error: 'master_disabled' };
+  }
+
   const creds = await resolveTelegramCredentials(scope);
   if (!creds.ok) {
     if (creds.code === 'missing_token' || creds.code === 'missing_chat_id') {
@@ -298,6 +303,13 @@ async function sendTelegramMessage(
     console.error('[telegram] invalid TELEGRAM_CHAT_ID:', creds.error);
     return { ok: false, error: creds.error };
   }
+
+  const logPayload = text.slice(0, 4096);
+  const logSend = async (ok: boolean, error?: string) => {
+    const { logTelegramMessage } = await import('./telegramMessageLog.ts');
+    await logTelegramMessage({ scope, module: 'marketing', text: logPayload, ok, error });
+  };
+
   const url = `https://api.telegram.org/bot${creds.token}/sendMessage`;
   const res = await fetch(url, {
     method: 'POST',
@@ -310,10 +322,12 @@ async function sendTelegramMessage(
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || !json?.ok) {
-    const desc = json?.description ?? res.statusText;
+    const desc = String(json?.description ?? res.statusText);
     console.error('[telegram] sendMessage failed:', desc);
-    return { ok: false, error: String(desc) };
+    await logSend(false, desc);
+    return { ok: false, error: desc };
   }
+  await logSend(true);
   return { ok: true };
 }
 

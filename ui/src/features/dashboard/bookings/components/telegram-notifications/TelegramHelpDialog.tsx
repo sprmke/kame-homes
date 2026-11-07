@@ -1,4 +1,4 @@
-import { AlertTriangle, HelpCircle, X } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from 'lucide-react';
 
 import {
   TELEGRAM_BOT_TOKEN_HELP,
@@ -11,6 +11,7 @@ import {
   ResponsiveModal,
   ResponsiveModalClose,
   ResponsiveModalContent,
+  ResponsiveModalFooter,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
@@ -80,7 +81,8 @@ export function TelegramHelpDialog({
   variant = 'text',
   className,
 }: Props) {
-  const helpLabel = defaultTab === 'chat-id' ? 'How to get chat ID' : 'How to get bot token';
+  const helpLabel =
+    defaultTab === 'chat-id' ? 'Setup guide: chat ID' : 'Setup guide: bot token';
 
   return (
     <ResponsiveModal>
@@ -113,28 +115,14 @@ export function TelegramHelpDialog({
       </ResponsiveModalTrigger>
       <ResponsiveModalContent
         sheetLayout="split"
-        showCloseButton={false}
-        className={cn(
-          'flex max-h-[min(90dvh,52rem)] w-full max-w-[min(calc(100vw-1.5rem),42rem)] flex-col gap-0 overflow-hidden !p-0 sm:!py-3',
-          'sm:max-w-[min(92vw,42rem)]'
-        )}
+        className="flex max-h-[min(92dvh,52rem)] min-h-0 flex-col overflow-hidden sm:max-w-[min(92vw,42rem)]"
       >
-        <div className="border-border/60 flex shrink-0 items-center gap-3 border-b px-4 sm:px-0">
-          <ResponsiveModalHeader className="min-h-[56px] flex-1 justify-center space-y-0 py-3.5 pr-0">
-            <ResponsiveModalTitle className="text-left text-base leading-snug sm:text-lg">
-              Telegram setup help
-            </ResponsiveModalTitle>
-          </ResponsiveModalHeader>
-          <ResponsiveModalClose
-            className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            aria-label="Close"
-          >
-            <X className="size-5 shrink-0" aria-hidden />
-          </ResponsiveModalClose>
-        </div>
+        <ResponsiveModalHeader className="shrink-0 max-lg:px-4">
+          <ResponsiveModalTitle>Telegram setup guide</ResponsiveModalTitle>
+        </ResponsiveModalHeader>
 
         <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col">
-          <div className="border-border/60 shrink-0 border-b px-4 py-3 sm:px-6">
+          <div className="shrink-0 pb-3 max-lg:px-4">
             <TabsList className="bg-muted/45 grid h-auto w-full grid-cols-2 gap-1 rounded-xl p-1">
               <TabsTrigger
                 value="bot-token"
@@ -151,7 +139,7 @@ export function TelegramHelpDialog({
             </TabsList>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 max-lg:px-4">
             <TabsContent value="bot-token" className="mt-0 focus-visible:outline-none">
               <TelegramHelpSections sections={TELEGRAM_BOT_TOKEN_HELP} />
             </TabsContent>
@@ -160,6 +148,14 @@ export function TelegramHelpDialog({
             </TabsContent>
           </div>
         </Tabs>
+
+        <ResponsiveModalFooter className="shrink-0 max-lg:px-4 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <ResponsiveModalClose asChild>
+            <Button type="button" variant="secondary" size="sm">
+              Close
+            </Button>
+          </ResponsiveModalClose>
+        </ResponsiveModalFooter>
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

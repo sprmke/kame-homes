@@ -44,7 +44,7 @@ export function HowItWorksDialog({
   return (
     <ResponsiveModal open={open} onOpenChange={onOpenChange}>
       <ResponsiveModalContent
-        className={cn('md:max-w-[min(92vw,44rem)]', className)}
+        className={cn('md:max-w-[min(94vw,56rem)]', className)}
         sheetLayout="scroll"
       >
         <ResponsiveModalHeader>
@@ -54,27 +54,29 @@ export function HowItWorksDialog({
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="relative py-1">
-          <div
-            aria-hidden
-            className="bg-border absolute bottom-5 left-[1.125rem] top-5 w-px md:hidden"
-          />
-          <div
-            aria-hidden
-            className="bg-border absolute left-[12%] right-[12%] top-[1.125rem] hidden h-px md:block"
-          />
-          <ol className="relative grid gap-4 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
+        <div className="py-2">
+          <ol className="grid gap-5 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
             {steps.map((step, index) => (
-              <li key={step.title} className="flex min-w-0 gap-3 md:flex-col md:gap-2">
-                <div className="bg-primary/10 text-primary ring-card relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full ring-4">
-                  <step.icon className="size-4" aria-hidden />
+              <li key={step.title} className="flex min-w-0 gap-3 md:flex-col md:gap-3">
+                {/* Icon sits above the step, with the connector running beside it, never through it. */}
+                <div className="relative flex shrink-0 items-center md:w-full">
+                  <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+                    <step.icon className="size-4" aria-hidden />
+                  </div>
+                  {index < steps.length - 1 ? (
+                    <span
+                      aria-hidden
+                      className="bg-border absolute left-12 right-[-1.5rem] top-1/2 hidden h-px md:block"
+                    />
+                  ) : null}
                 </div>
-                <div className="min-w-0 space-y-0.5">
+
+                <div className="min-w-0 space-y-1">
                   <p className="text-primary text-[11px] font-semibold uppercase tracking-wide">
                     Step {index + 1}
                   </p>
                   <p className="text-sm font-semibold leading-snug">{step.title}</p>
-                  <p className="text-muted-foreground text-xs leading-relaxed">{step.body}</p>
+                  <p className="text-muted-foreground text-[13px] leading-relaxed">{step.body}</p>
                 </div>
               </li>
             ))}

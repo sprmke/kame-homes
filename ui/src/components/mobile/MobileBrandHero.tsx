@@ -17,6 +17,8 @@ type MobileBrandHeroProps = {
   titleId?: string;
   /** Optional plan/status pill next to the title (e.g. `<TierBadge>`). */
   badge?: ReactNode;
+  /** Optional helper control rendered immediately after the title. */
+  titleHint?: ReactNode;
   /** Optional icon actions — top-right, aligned with the tenant switcher row. */
   trailing?: ReactNode;
   /** When true, render super-admin scope readout instead of tenant switcher. */
@@ -49,6 +51,7 @@ export const MobileBrandHero = forwardRef<HTMLElement, MobileBrandHeroProps>(
       subtitle,
       titleId,
       badge,
+      titleHint,
       trailing,
       superAdmin = false,
       pinSentinelRef,
@@ -111,6 +114,11 @@ export const MobileBrandHero = forwardRef<HTMLElement, MobileBrandHeroProps>(
             >
               {title}
             </h1>
+            {titleHint ? (
+              <span className="text-primary-foreground [&_button]:text-current">
+                {titleHint}
+              </span>
+            ) : null}
             {badge ? (
               <span className="[&_[data-tier-badge]]:bg-primary-foreground [&_[data-tier-badge]]:text-primary">
                 {badge}
@@ -183,6 +191,8 @@ type AdminMobilePageProps = {
   titleId?: string;
   /** Optional plan/status pill next to the title (e.g. `<TierBadge>`). */
   badge?: ReactNode;
+  /** Optional helper control rendered immediately after the title. */
+  titleHint?: ReactNode;
   heroTrailing?: ReactNode;
   overlap?: ReactNode;
   /** Compact sticky row — defaults to overlap when omitted. */
@@ -214,6 +224,7 @@ export function AdminMobilePage({
   subtitle,
   titleId,
   badge,
+  titleHint,
   heroTrailing,
   overlap,
   stickyPrimary,
@@ -253,6 +264,7 @@ export function AdminMobilePage({
         subtitle={subtitle}
         titleId={titleId}
         badge={badge}
+        titleHint={titleHint}
         trailing={heroTrailing}
         superAdmin={superAdmin}
         pinSentinelRef={overlap ? undefined : heroSentinelRef}
@@ -309,6 +321,7 @@ export function AdminMobilePage({
               title={title}
               subtitle={subtitle}
               badge={badge}
+              titleHint={titleHint}
               actions={desktopActions}
               actionsClassName={desktopActionsClassName}
             />

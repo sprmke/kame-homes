@@ -178,7 +178,6 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   // ── Host writes done in chat ──────────────────────────────────────────────────────────────
   'calendar-sync-settings': tool('get_channel_sync_status', 'propose_run_channel_sync'),
   'cancel-booking': tool('propose_cancel_booking'),
-  'cancellation-policy-impact': read,
   'record-booking-refund': excluded('property.booking', 'Refund sent / proof recording'),
   'respond-cancellation-request': handoff(
     'property.booking',
@@ -335,10 +334,12 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'submit-listing-recommended': handoff('property.settings', 'Listing recommendation'),
   'telegram-admin-settings': handoff('property.notifications', 'Telegram credentials'),
   'telegram-chat-settings': handoff('property.notifications', 'Telegram credentials'),
+  'telegram-delivery-settings': handoff('property.notifications', 'Telegram delivery'),
   'telegram-finance-settings': handoff('property.notifications', 'Telegram credentials'),
   'telegram-global-settings': handoff('property.notifications', 'Telegram credentials'),
   'telegram-maintenance-settings': handoff('property.notifications', 'Telegram credentials'),
   'telegram-marketing-settings': handoff('property.notifications', 'Telegram credentials'),
+  'telegram-message-log': read,
   'telegram-parking-settings': handoff('parking.notifications', 'Telegram credentials'),
   'telegram-staff-settings': handoff('property.notifications', 'Telegram credentials'),
   'update-parking': handoff('parking.settings', 'Parking profile form'),
