@@ -32,7 +32,7 @@ kind: backlog
 - ✅ iCal sync to Airbnb
   → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
 - 📋 Live identity verification to simplify real identity checks
-  → **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
+  → **In progress:** [`../in-progress/live-identity-verification.md`](../in-progress/live-identity-verification.md)
 - 🚧 Booking detail: email sent history, quick resend, and view sent email content.
 - 🔵 Cleanup tasks
   - Cleanup unused settings and email templates related to Parking.

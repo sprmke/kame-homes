@@ -34,6 +34,7 @@ export const AI_FEATURES = [
   'review_draft',
   'marketing_image_generate',
   'marketing_video_generate',
+  'identity_extraction',
 ] as const;
 
 export type AiFeature = (typeof AI_FEATURES)[number];
@@ -82,6 +83,18 @@ export const GEMINI_TTS_PREVIEW_MODELS = [
 
 /** Authoritative feature → model map. */
 const FEATURE_MODELS: Record<AiFeature, AiModelConfig> = {
+  identity_extraction: {
+    // Vision read of an ID plus an advisory face comparison. Same tier as the receipt /
+    // ID checks, but a larger output budget because it returns structured fields.
+    model: 'gemini-2.5-flash',
+    tier: 'flash',
+    inputUsdPer1M: 0.3,
+    outputUsdPer1M: 2.5,
+    defaultMaxOutputTokens: 768,
+    thinkingBudget: 0,
+    timeoutMs: 60000,
+    groqFallback: true,
+  },
   receipt_validation: {
     model: 'gemini-2.5-flash',
     tier: 'flash',

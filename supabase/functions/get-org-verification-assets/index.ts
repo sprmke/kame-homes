@@ -15,6 +15,7 @@ import {
   readOrgVerificationFromSettings,
 } from '../_shared/orgVerification.ts';
 import { jsonError, jsonSuccess, requireHttpMethod } from '../_shared/httpResponse.ts';
+import { redactName } from '../_shared/identitySessionService.ts';
 import { serveAuthenticated } from '../_shared/serveEdge.ts';
 import { verifySuperAdminJwt } from '../_shared/superAdminAuth.ts';
 import { formatPublicUrl } from '../_shared/utils.ts';
@@ -111,9 +112,43 @@ serveAuthenticated('get-org-verification-assets', async (req) => {
       ? await Promise.all(verification.assets.pmoEmailPaths.map((path) => signPath(supabase, path)))
       : [];
 
+  // Live identity capture, when the host used the camera path. Masked name only: the
+  // reviewer needs a verdict and flags, not a second copy of the PII.
+  const { data: identityRow } = await supabase
+    .from('identity_verifications')
+    .select(
+      'id, verdict, method, document_type, full_name, signature_valid, liveness_grade, face_match_verdict, flags, verified_at, expires_at, created_at'
+    )
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const identity = identityRow as
+    | {
+        id: string;
+        verdict: string;
+        method: string;
+        document_type: string | null;
+        full_name: string | null;
+        signature_valid: boolean;
+        liveness_grade: string | null;
+        face_match_verdict: string | null;
+        flags: unknown;
+        verified_at: string | null;
+        expires_at: string | null;
+        created_at: string;
+      }
+    | null;
+
   return jsonSuccess(req, {
     organization: serializeOrganization(org),
     verification,
+    identityVerification: identity
+      ? {
+          ...identity,
+          full_name: identity.full_name ? redactName(identity.full_name) : null,
+        }
+      : null,
     assetUrls: {
       validIdUrl,
       socialProofUrl,

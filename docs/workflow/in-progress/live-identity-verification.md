@@ -1,9 +1,9 @@
 ---
-stage: planned
+stage: in-progress
 title: 'Live Identity Verification — guided capture, phone handoff, PhilSys QR, liveness'
-status: planned
-tags: [planning, planned-modules, identity, verification, guest, host, super-admin, trust-safety]
-updated: 2026-11-02
+status: in-progress
+tags: [planning, in-progress, identity, verification, guest, host, super-admin, trust-safety]
+updated: 2026-11-07
 ---
 
 # Live Identity Verification
@@ -26,7 +26,78 @@ This plan delivers a free, in-house **Track A** that ships end to end, plus a pr
 
 ---
 
-## Current state (verified against code, 2026-11-02)
+## Status (2026-11-07)
+
+Track A is implemented end to end on `feat/live-identity-verification`.
+
+| Phase                                   | State                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 0 — decisions, licensing, privacy basis | Done — `docs/architecture/identity-verification.md`, `docs/architecture/data-privacy-identity.md` |
+| 1 — session core + handoff              | Done — 2 tables, bucket, HMAC token, 9 edge functions, `/verify/:token`, polling                  |
+| 2 — live capture + PhilSys QR + MRZ     | Done — frame guide, auto-capture, quality gate, v1 JSON / v3 base45+CBOR, server MRZ parser       |
+| 3 — liveness + face match + AI          | Done, degrading — MediaPipe loaded lazily from a pinned CDN; every failure path continues         |
+| 4 — guest booking form                  | Done — per-slot identity, capture copied into `valid-ids`, GAF untouched                          |
+| 5 — host verification                   | Done — Get Verified camera path + super-admin pre-screen block                                    |
+| 6 — retention, account, polish          | Done — purge cron, `/account/profile` card, delete right, duplicate-document flag                 |
+| 7 — paid provider                       | Interface only (see §Deferred)                                                                    |
+
+Corrections made during the build, beyond the Revised scope above:
+
+- **Host verification runs at registration.** `org_owner` verdicts are keyed to `owner_user_id` (migration `20261320130000`) so a host can verify before an organization exists. `create-organization` attaches the verdict at the end of the handler; the earlier rollback path would otherwise cascade-delete it. The captured photo still feeds the existing `upload-org-verification-asset` call, so `submit-org-verification` and the review queue are unchanged.
+- **Liveness frames are not uploaded.** Only pass/fail, challenge names and timing are sent. The plan assumed frames were stored; storing them added biometric bytes for no additional signal.
+- **No "review and correct fields" step.** A guest must not be able to type their own name onto a verification. If extraction is wrong, a human reviews; the guest sees a masked name only.
+- **The submit response is the only place the verdict is read on the phone.** No client-side verdict computation, so the server stays authoritative.
+- **`identity_capture_mode` is set at submit**, not at capture, so a draft that never submits leaves no stale flag.
+- **`identity-verification-review` is API-only for now.** The super-admin dialog reads the pre-screen block; the override control (which needs a step-up OTP token) is a follow-up so a half-built confirm dialog is not shipped.
+
+Verification: `bun run ci:quality` green; 56 Deno tests (verdict model, token, PhilSys QR, MRZ, session service) and 12 Vitest tests (verdict mirror parity, capture quality) added.
+
+---
+
+## Revised execution scope (2026-11-07)
+
+Re-read against the code before starting. Five findings change the shape of the build. They are corrected in place below, and this section is the contract for what ships in this branch.
+
+**1. The guest booking form is anonymous, so "account-level identity" cannot be `auth.users`-only.** `submit-form` is a public endpoint; `guest_user_id` is filled in only when a guest happens to be signed in (`tryGetAuthenticatedUser`). The majority of guests have no `auth.users` row. Any model that requires `guest_user_id` would fail for the primary flow.
+
+**Correction:** an identity subject is a **guest subject keyed by the booking being verified**, with `guest_user_id` and `subject_email_hash` as optional linkage. Reuse across bookings happens **only** when `guest_user_id` matches (signed in). Anonymous verifications are per-booking. This is also the safer rule: an email address alone is not proof of ownership, and letting one guest reuse another person's verification by typing their email would be an identity-theft vector.
+
+**2. Today's GAF pipeline depends on `guest_submissions.valid_id_url` (a public storage URL), not a path column.** There is no `valid_id_path` anywhere in the schema.
+
+**Correction:** the least risky integration is additive, not replacement. When a live verification is attached to a booking slot, `submit-form` **also writes the captured front-of-document image into the existing `valid-ids` bucket** at the same deterministic key the current flow uses, and sets `valid_id_url`. GAF attachments, admin previews, `GuestAvatar`, and `upload-booking-asset` keep working with **zero changes**, and the live capture upgrades the _capture quality_ rather than forking the storage contract.
+
+**3. `guest_submissions` ID columns are `valid_id_url`, `guest2_valid_id_url` … `guest5_valid_id_url`.**
+
+**4. The handoff token must survive a phone reload.** The original "single-use, consumed on the first `identity-session-get`" rule bricks the session whenever iOS Safari reloads the tab or the guest backgrounds the browser. **Correction:** the token stays valid until the session reaches `completed` / `failed` or the 10-minute expiry passes. The _session_ is single-submit; the token is not. Replay after completion is rejected by status, not by token consumption.
+
+**5. Realtime on a service-role-only table cannot be read by an anonymous desktop client.** Supabase Realtime `postgres_changes` honours RLS, and these tables deliberately have no anon read policy.
+
+**Correction:** the desktop uses **polling** (`identity-session-get` with its own authenticated/booking-scoped handle) as the contract. Realtime broadcast is a later optimisation, not a v1 dependency. This removes a whole class of "works in dev, silent in production" failure.
+
+### What ships in this branch
+
+| Phase                                     | Ships now          | Notes                                                                                                                                     |
+| ----------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 — Decisions, licensing, privacy basis   | **Docs only**      | `docs/architecture/identity-verification.md` + `data-privacy-identity.md` written. PSA eVerify paperwork is an org action, not code       |
+| 1 — Session core + cross-device handoff   | **Yes**            | Tables, bucket, token, verdict model, 6 edge functions, `/verify/:token` page, handoff panel, polling                                     |
+| 2 — Live capture + PhilSys QR + MRZ       | **Yes**            | Camera capture with frame guide + auto-capture, quality gate, QR decode (v1 JSON / v3 base45+zlib+CBOR), MRZ checksum read                |
+| 3 — Liveness + face match + AI extraction | **Yes, degrading** | MediaPipe loaded lazily; every failure path continues the flow. AI extraction reuses the existing gateway and is gated by `aiValidations` |
+| 4 — Guest booking form                    | **Yes**            | Per-slot identity, reuse for signed-in guests, capture image written to `valid-ids` so GAF is untouched                                   |
+| 5 — Host / org verification               | **Yes**            | Live capture produces the Valid ID file for the existing upload path **and** records an `org_owner` verdict for review                    |
+| 6 — Retention, account surface, polish    | **Yes**            | Purge cron, expiry, `/account/profile` identity card, duplicate-document flag, PostHog funnel                                             |
+| 7 — Paid provider gate                    | **Interface only** | No adapter, no vendor dependency. The seam is a file plus a config key                                                                    |
+
+**Not shipped, deliberately:** NFC/ePassport reading, email-me-the-link handoff, generated verification-summary PDF, PSA eVerify adapter. Each is recorded in §Deferred with the reason, so nobody assumes it is half-built.
+
+**Honesty rules that are not negotiable in the UI.**
+
+- `liveness_grade = 'clientside'` is shown as "device check", never "biometric verification".
+- A PhilSys read with no configured public key is `partially_verified` at best and says "QR read", not "cryptographically verified".
+- No green "Verified" badge is rendered from a client-supplied signal alone.
+
+---
+
+## Current state (verified against code, 2026-11-07)
 
 Mapped by **Guest verification surfaces** and **Host verification surfaces** below.
 
@@ -198,87 +269,128 @@ ui/src/features/verification/            ← NEW shared feature (not under guest
 Two new tables. Identity lives on the **account**, sessions are **ephemeral**.
 
 ```sql
--- Durable, account-level identity. One row per verified subject.
+-- Durable identity verdict. One row per verification event; the "active" row per subject
+-- is resolved by the partial unique indexes below.
 create table identity_verifications (
   id uuid primary key default gen_random_uuid(),
-  -- exactly one subject
-  guest_user_id   uuid references auth.users(id) on delete cascade,
-  organization_id uuid references organizations(id) on delete cascade,
+
+  -- subject: guest (booking-scoped, optionally account-linked) or org owner
   subject_kind    text not null check (subject_kind in ('guest','org_owner')),
+  guest_user_id   uuid references auth.users(id) on delete set null,
+  organization_id uuid references organizations(id) on delete cascade,
+  booking_id      uuid references guest_submissions(id) on delete set null,
+  guest_slot      smallint check (guest_slot is null or guest_slot between 1 and 5),
+  -- sha256(lower(trim(email)) || pepper). Never the raw address. Used for reuse + duplicate signals.
+  subject_email_hash text,
 
   verdict         text not null check (verdict in
                     ('verified','partially_verified','unverified','rejected','expired')),
   method          text not null check (method in
                     ('philsys_qr','mrz','document_ai','provider')),
-  provider        text,                      -- null for in-house; 'didit' | 'everify' | …
-  provider_ref    text,                      -- external session id, for support lookups
+  provider        text,
+  provider_ref    text,
 
-  -- extracted + normalized fields (NOT the image)
-  document_type   text,                      -- 'philid' | 'ephilid' | 'passport' | 'drivers_license' | …
-  document_number_hash text,                 -- sha256(normalized || pepper); never the raw PCN
+  document_type   text,
+  document_number_hash text,
   document_expiry date,
   full_name       text,
   date_of_birth   date,
   sex             text,
   nationality     text,
 
-  -- signals
-  signature_valid        boolean,            -- true only for philsys_qr / NFC-grade proof
+  signature_valid        boolean not null default false,
   liveness_passed        boolean,
   liveness_grade         text check (liveness_grade in ('clientside','certified')),
   face_match_verdict     text check (face_match_verdict in ('match','likely_match','unclear','mismatch','skipped')),
-  face_match_source      text,               -- 'gemini' | 'provider'
+  face_match_source      text,
   quality_score          numeric(3,2),
   flags                  jsonb not null default '[]'::jsonb,
 
-  -- review
-  reviewed_by     uuid references auth.users(id),
+  -- capture references (bucket identity-captures). Null when the QR-only path was used.
+  document_front_path text,
+  selfie_path         text,
+
+  reviewed_by     uuid references auth.users(id) on delete set null,
   reviewed_at     timestamptz,
   review_note     text,
 
   verified_at     timestamptz,
-  expires_at      timestamptz,               -- min(document_expiry, verified_at + policy window)
+  expires_at      timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
 
-  constraint identity_subject_exactly_one check (
-    (guest_user_id is not null)::int + (organization_id is not null)::int = 1
+  constraint identity_subject_shape check (
+    case subject_kind
+      when 'guest' then organization_id is null
+                        and (guest_user_id is not null or booking_id is not null)
+                        and subject_email_hash is not null
+      when 'org_owner' then organization_id is not null
+                            and guest_user_id is null
+                            and booking_id is null
+      else false
+    end
   )
 );
+
+-- A guest account may hold at most one live verdict.
 create unique index identity_verifications_guest_active
   on identity_verifications (guest_user_id)
   where guest_user_id is not null and verdict in ('verified','partially_verified');
+
+-- An org may hold at most one live verdict.
 create unique index identity_verifications_org_active
   on identity_verifications (organization_id)
   where organization_id is not null and verdict in ('verified','partially_verified');
 
+-- One live verdict per booking slot. Re-running a session supersedes the previous row by
+-- flipping it to 'expired' first, so this index never blocks a legitimate retry.
+create unique index identity_verifications_booking_slot_active
+  on identity_verifications (booking_id, coalesce(guest_slot, 1))
+  where booking_id is not null and verdict in ('verified','partially_verified');
+
+create index identity_verifications_guest_lookup
+  on identity_verifications (subject_email_hash, created_at desc);
+create index identity_verifications_document_hash
+  on identity_verifications (document_number_hash)
+  where document_number_hash is not null;
+create index identity_verifications_expiry
+  on identity_verifications (expires_at)
+  where verdict in ('verified','partially_verified');
+
 -- Short-lived capture session. Purged aggressively.
 create table identity_verification_sessions (
   id uuid primary key default gen_random_uuid(),
-  token_hash      text not null unique,      -- sha256 of the handoff token; never the token
-  subject_kind    text not null,
-  guest_user_id   uuid references auth.users(id) on delete cascade,
+  token_hash      text not null unique,
+  subject_kind    text not null check (subject_kind in ('guest','org_owner')),
+  guest_user_id   uuid references auth.users(id) on delete set null,
   organization_id uuid references organizations(id) on delete cascade,
   booking_id      uuid references guest_submissions(id) on delete set null,
-  guest_slot      smallint,                  -- 1..5 for additional-guest capture
+  guest_slot      smallint check (guest_slot is null or guest_slot between 1 and 5),
+  subject_email_hash text,
+  /** Set when the session was started inside the guest booking form. */
+  property_id     uuid references properties(id) on delete set null,
   status          text not null default 'pending' check (status in
                     ('pending','in_progress','captured','submitted','completed','failed','expired')),
-  step            text,                      -- last reported step, for desktop progress
+  step            text,
   origin_device   text check (origin_device in ('desktop','mobile')),
   failure_reason  text,
   attempt_count   smallint not null default 0,
+  claimed_at      timestamptz,
   result_id       uuid references identity_verifications(id) on delete set null,
-  expires_at      timestamptz not null,      -- created_at + 10 min, extended on activity
+  expires_at      timestamptz not null,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
+
+create index identity_verification_sessions_expiry
+  on identity_verification_sessions (expires_at);
 ```
 
 **Columns added to existing tables** (new migration, never edit a shipped one):
 
 | Table                                 | Column                                                           | Why                                                                  |
 | ------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `guest_submissions`                   | `primary_identity_verification_id uuid`                          | Booking → account identity reference                                 |
+| `guest_submissions`                   | `primary_identity_verification_id uuid`                          | Booking slot → verdict reference                                     |
 | `guest_submissions`                   | `guest2_identity_verification_id` … `guest5_`                    | Per-slot reference                                                   |
 | `guest_submissions`                   | `identity_capture_mode text`                                     | `'live' \| 'upload' \| 'legacy'` — tells the host how the ID arrived |
 | `guest_profiles`                      | `identity_verified_at timestamptz`                               | Denormalized badge read, avoids a join on every profile load         |
@@ -351,8 +463,8 @@ Rules, straight from the competitive brief:
 
 - The handoff panel renders **only** on a fine-pointer device (`matchMedia('(pointer: fine)')`). On a phone the flow goes inline; a QR you scan with the device showing it is circular.
 - The desktop **never** calls `navigate()` off a broadcast — it invalidates the session query and lets the step machine advance, same discipline as the Checktiv SDK note.
-- Token: 10-minute TTL, single-use (`token_hash` consumed on first `identity-session-get`), purpose-bound to one session id. Expiry shows "This link expired. Start again on your computer."
-- Realtime is an **optimization, not the contract**. A 3-second polling fallback on `identity-session-get` covers blocked WebSockets, matching how `useParkingBookingStatus.ts` already degrades.
+- Token: 10-minute TTL, purpose-bound to one session id, and **not** consumed on read (see Revised scope §4). The session is single-submit; `identity-session-submit` rejects anything not in `in_progress`/`captured`, and `completed`/`failed`/`expired` reject the token outright.
+- Desktop polling is the contract (`identity-session-get` with the session handle), every 2s while waiting, backing off to 5s after 30s. Realtime is a later optimisation.
 - `antiSpamGate` on every `servePublic` endpoint here (scope `identity-session`), plus `publicGetRateLimitGate` on the GET per `check-serve-public-rate-limit.sh`.
 
 ---
@@ -444,7 +556,7 @@ The accuracy and speed payload.
 4. **Reuse across bookings** (the Airbnb lesson): a signed-in guest with a current `identity_verifications` row skips capture entirely. Track `identity_capture_mode` so a host can tell a live verification from a legacy upload.
 5. `useOfflineFormDraft` stores the `identityVerificationId` (a uuid, safe to persist) where it cannot store a `File`. A restored draft keeps its verification instead of asking for the ID again — a real improvement over today.
 6. Additional guests: each slot gets its own session and its own handoff QR. A primary guest can send a slot's link to that guest by email, so a travelling companion verifies themselves rather than handing over their ID.
-7. **GAF compatibility is non-negotiable.** `buildGuestValidIdAttachments` must keep producing attachments for properties whose document requirements include a `gaf` template. Where a PhilSys QR session produced no front-of-card photo, attach a generated **verification summary PDF** (fields + verdict + verified timestamp) so the building still gets a reviewable artifact. `gafRequestSendBlockReason` learns to accept a verified identity in place of a raw image file.
+7. **GAF compatibility is non-negotiable.** `buildGuestValidIdAttachments` must keep producing attachments for properties whose document requirements include a `gaf` template. This is achieved **without touching the email pipeline**: at `submit-form` time the captured front-of-document image is copied into the existing `valid-ids` bucket under the same deterministic key and written to `valid_id_url` / `guestN_valid_id_url`. A QR-only session therefore still stores the document photo it captured; if a session produced no front image at all (pure QR scan), the flow falls back to the upload step so a photo always exists. `gafRequestSendBlockReason` and `buildGuestValidIdAttachments` are unchanged.
 8. Host-facing read: `GuestsPanel.tsx`, `DocumentsPanel.tsx`, `GuestIdentityTab.tsx`, and `GuestAvatar.tsx` render `VerificationResultBadge` with flags. `GuestAvatar` currently uses the ID photo as the avatar — with PhilSys sessions it should prefer the QR-embedded portrait, and must degrade to initials when no image exists at all.
 9. **Decide and document the blocking question:** should an `invalid`/`rejected` identity block `PENDING_REVIEW → PENDING_DOCUMENTS` the way an invalid receipt already blocks via `assertAiVerdictAllowsProceed`? Recommendation: **yes, with override** — extend the existing `ai_verdict_blocked` 409 and _Proceed anyway_ affordance rather than inventing a second mechanism. Record the decision in `booking-workflow.mdc`, which is canonical for this.
 10. Route guide updates: `docs/guides/routes/form.md` (+ its Host-facing knowledge Q&A), `org/property/bookings-detail.md`.
@@ -607,6 +719,20 @@ Per `testing.mdc`; same-change requirement applies to each phase.
 | Guest abandons a longer flow and bookings drop                                            | **Medium**                                                    | Two challenges not six; PhilSys QR path is faster than today's upload; Phase 1 PostHog funnel measures it from day one; the upload fallback stays                                          |
 | Didit's free allowance shrank on 2026-11-01 ($10/mo credit replaced 500-free-per-feature) | **Low** — Track A does not depend on it                       | Phase 7 is a measured gate, and the provider interface keeps Stripe Identity, Persona, and PSA eVerify as alternates                                                                       |
 | Storing more biometric data increases DPA exposure                                        | **Medium**                                                    | Phase 0 PIA, 7-day capture retention, hashed document numbers, on-device-only landmarks, wired deletion right. Net exposure should **fall** versus today's indefinitely-retained ID images |
+
+---
+
+## Deferred (recorded so nobody assumes it is half-built)
+
+| Item                                                 | Why deferred                                                                                                                                               | What exists                                                                             |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Paid KYC provider adapter (Didit / PSA eVerify)      | No vendor account, no sandbox credentials, and an untested adapter would be dead code. The interface seam is the whole deliverable until Phase 7 is funded | `_shared/identityProvider.ts` interface + `IDENTITY_PROVIDER` config, default `inhouse` |
+| "Email me the link" handoff                          | Needs a new Resend template and an abuse throttle; QR + copy link covers the same job for a guest sitting at the same desk                                 | Copy-link + QR                                                                          |
+| Generated verification-summary PDF                   | Superseded: the front-of-document capture is retained and written to `valid-ids`, so GAF keeps receiving a real image                                      | —                                                                                       |
+| NFC / ePassport chip read                            | Requires native code; Web NFC cannot reach the secure element                                                                                              | —                                                                                       |
+| Realtime broadcast                                   | Polling is the contract; a service-role-only table cannot be read by an anonymous desktop client without weakening RLS                                     | Polling                                                                                 |
+| Backfilling or deleting existing `valid-ids` objects | Separate data-migration plan with its own legal review                                                                                                     | —                                                                                       |
+| Trust & safety reporting / enforcement               | [`./guest-trust-safety-reporting.md`](./guest-trust-safety-reporting.md)                                                                                   | —                                                                                       |
 
 ---
 

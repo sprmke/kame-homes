@@ -138,6 +138,24 @@ export const DASHBOARD_ASSISTANT_PARITY: Record<string, ParityEntry> = {
   'get-marketing-generation-job': read,
   'get-org-superhost-progress': tool('get_superhost_status'),
   'get-org-verification-assets': read,
+  // ── Live identity verification ───────────────────────────────────────────────────────────
+  // A capture is inherently interactive (camera, QR, liveness), so chat hands off to the
+  // screen instead of trying to drive it. The token-scoped session endpoints are internal.
+  'identity-session-create': handoff(
+    'property.booking',
+    'Identity capture needs a camera and a QR handoff; open the booking guests tab.'
+  ),
+  'identity-session-get': internal,
+  'identity-session-upload': internal,
+  'identity-session-submit': internal,
+  'identity-session-cancel': internal,
+  'identity-verification-mine': read,
+  'identity-verification-delete': excluded(
+    'property.booking',
+    'Deleting a verification is a self-service privacy action; the profile card owns it.'
+  ),
+  'identity-verification-review': superAdmin,
+  'identity-captures-purge-cron': system,
   'get-parking-broadcast-status': read,
   'get-support-ticket': read,
   'import-list-batches': read,

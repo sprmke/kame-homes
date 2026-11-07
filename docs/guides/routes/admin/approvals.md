@@ -151,3 +151,17 @@ Data lives in **`organizations.settings.verification`** JSONB (org tiers) and **
 - [x] Tier 2 (`enhanced`) review UI on this page (approve/reject badge submissions).
 - [x] External review moderation (approve/reject) on this page with Type = Reviews filter.
 - [ ] Optional email/Telegram notify on approve/reject.
+
+---
+
+## Identity pre-screen (2026-11-07)
+
+When a host used **Verify with camera**, the review dialog shows `IdentityPreScreenBlock`
+above the document cards: verdict, method, document type, masked name, signature status,
+liveness grade, face match, expiry and flags.
+
+- Source: `get-org-verification-assets` now also returns `identityVerification` (masked name
+  only; never the document number or a capture path).
+- Approving/rejecting a verdict itself is `identity-verification-review` (super admin +
+  step-up OTP, `identity_review`). The host-verification approve buttons are unchanged.
+- The reviewer can confirm instead of discovering.

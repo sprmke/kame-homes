@@ -224,3 +224,19 @@ After onboarding finishes, hosts land on the listing dashboard. The **Setup Guid
 | Unit   | setup guide / org creation validators when pure                                                                     | —                        |
 | E2E    | `ui/e2e/features/onboarding/onboardingSmoke.spec.ts` (`@ci`) — org step + property listing selection → verify intro | —                        |
 | Manual | Full verification upload + review                                                                                   | Manual host verification |
+
+---
+
+## Identity verification (2026-11-07)
+
+Step 3 offers **Verify with camera** above the Valid ID field. The host captures their ID on
+their phone (or inline), which produces the Valid ID file the existing upload path already
+expects **and** records an `org_owner` identity verdict.
+
+Registration happens before the organization exists, so the verdict is keyed to the host
+account (`owner_user_id`). `create-organization` attaches it to the new organization on submit
+and logs `identity.verification_linked`. The plain upload stays available as an equal
+fallback, and **Get Verified** exposes the same camera path afterwards.
+
+See [`verify.md`](./verify.md) and
+[`../../architecture/identity-verification.md`](../../architecture/identity-verification.md).

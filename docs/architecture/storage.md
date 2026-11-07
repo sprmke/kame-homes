@@ -13,6 +13,8 @@ Part of the [`docs/PROJECT.md`](../PROJECT.md) architecture split.
 
 ## 7. Storage
 
+`identity-captures` (migration `20261320120000_identity_verification.sql`) is a **private** bucket for live identity verification, service-role only, 12 MB, JPEG/PNG/WebP/HEIC/HEIF. Paths are `{subject_kind}/{subjectRef}/{sessionId}/{kind}.{ext}` and are **never** rewritten into `valid_id_url`; at booking submit the captured front image is copied into `valid-ids` under the existing deterministic key so GAF attachments and admin previews are unchanged. Retention defaults to 7 days (`IDENTITY_CAPTURE_RETENTION_DAYS`) and is enforced by `identity-captures-purge-cron`. See **[[identity-verification]]**.
+
 Buckets and MIME types are declared in `supabase/config.toml` (e.g. `payment-receipts`, `pet-vaccinations`); additional buckets appear in SQL migrations (`pet-images`, etc.). `UploadService` uploads via service role and stores canonical public-format paths in Postgres. **Guest PII buckets** (`payment-receipts`, `valid-ids`, `pet-vaccinations`, `pet-images`, `parking-endorsements`) are **private** after `20261310120100_guest_doc_storage_private_reads.sql`; reads use short-lived signed URLs from `_shared/storageSignedUrl.ts` (`get-form` for guests, `get-booking-asset-url` for admin).
 
 ### 7.1 Media optimization (images + upload ceilings)

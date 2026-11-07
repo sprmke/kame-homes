@@ -10,6 +10,7 @@ import {
 } from './statusMachine.ts';
 import { UploadService } from './uploadService.ts';
 import { assertWithinUploadLimit } from './uploadLimits.ts';
+import { hashIdentityEmail } from './identityVerification.ts';
 import { assertPropertyGuestPartyRules, guestPartySlotsFromFormData } from './guestCounts.ts';
 import { resolveGuestFormSettings } from './guestFormSettings.ts';
 import { getDefaultPropertyId } from './propertyScope.ts';
@@ -376,10 +377,87 @@ export class DatabaseService {
         maxChildren: guestFormSettings.maxChildren,
       });
 
+      /**
+       * Live identity verification → the legacy `valid-ids` contract.
+       *
+       * The live capture is the better UX, but GAF attachments, admin previews and
+       * `GuestAvatar` all read `valid_id_url`. Copying the captured front image into
+       * `valid-ids` under the same deterministic key means none of those change.
+       *
+       * Ownership rules: the verdict must belong to this booking's guest email, be
+       * unexpired, and be for this slot. Anything else falls through to the normal file
+       * requirement so a stolen id cannot be attached to someone else's booking.
+       */
+      const identityEmailHash = guestEmail?.trim()
+        ? await hashIdentityEmail(guestEmail)
+        : null;
+      const identityColumns: Record<string, string> = {};
+      let usedLiveIdentity = false;
+
+      const loadIdentityCapture = async (
+        identityId: string | undefined,
+        slot: number
+      ): Promise<{ id: string; file: File } | null> => {
+        const id = identityId?.trim();
+        if (!id || !identityEmailHash) return null;
+
+        const { data, error } = await this.supabase
+          .from('identity_verifications')
+          .select(
+            'id, subject_kind, subject_email_hash, guest_user_id, guest_slot, expires_at, document_front_path'
+          )
+          .eq('id', id)
+          .maybeSingle();
+        if (error || !data) return null;
+
+        const row = data as {
+          id: string;
+          subject_kind: string;
+          subject_email_hash: string | null;
+          guest_user_id: string | null;
+          guest_slot: number | null;
+          expires_at: string | null;
+          document_front_path: string | null;
+        };
+        if (row.subject_kind !== 'guest') return null;
+        // Either the booking email matches, or the verdict belongs to the signed-in guest.
+        // The second case covers a guest booking with a different contact address.
+        const emailMatches = row.subject_email_hash === identityEmailHash;
+        const accountMatches = Boolean(guestUserId) && row.guest_user_id === guestUserId;
+        if (!emailMatches && !accountMatches) return null;
+        if (row.guest_slot !== null && row.guest_slot !== slot) return null;
+        if (row.expires_at && Date.parse(row.expires_at) < Date.now()) return null;
+        if (!row.document_front_path) return null;
+
+        const { data: blob, error: downloadError } = await this.supabase.storage
+          .from('identity-captures')
+          .download(row.document_front_path);
+        if (downloadError || !blob) return null;
+
+        // Link the verdict to the booking slot the first time it is used. An account-level
+        // verdict reused on a later booking keeps its original link.
+        await this.supabase
+          .from('identity_verifications')
+          .update({ booking_id: bookingId, guest_slot: slot })
+          .eq('id', row.id)
+          .is('booking_id', null);
+
+        const mime = blob.type || 'image/jpeg';
+        const extension =
+          mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        return {
+          id: row.id,
+          file: new File([bytes], `identity-${row.id}.${extension}`, { type: mime }),
+        };
+      };
+
       const uploadValidIdIfPresent = async (
         field: string,
         fileNameField: string,
-        required: boolean
+        required: boolean,
+        identityId: string | undefined,
+        slot: number
       ): Promise<string | undefined> => {
         const file = formData.get(field) as File;
         if (file && file.size > 0) {
@@ -391,6 +469,23 @@ export class DatabaseService {
           console.log(`⚠️ Skipping ${field} upload (saveImagesToStorage=false)`);
           return 'dev-mode-skipped';
         }
+
+        const liveIdentity = await loadIdentityCapture(identityId, slot);
+        if (liveIdentity) {
+          usedLiveIdentity = true;
+          identityColumns[
+            slot === 1 ? 'primary_identity_verification_id' : `guest${slot}_identity_verification_id`
+          ] = liveIdentity.id;
+          if (!saveImagesToStorage) return 'dev-mode-skipped';
+          const prefixedFileName =
+            (formData.get(fileNameField) as string) || liveIdentity.file.name;
+          return await UploadService.uploadValidId(
+            liveIdentity.file,
+            prefixedFileName,
+            propertyId
+          );
+        }
+
         if (existingBooking) {
           const dbField =
             field === 'validId'
@@ -407,22 +502,59 @@ export class DatabaseService {
         return undefined;
       };
 
-      const validIdUrl = (await uploadValidIdIfPresent('validId', 'validIdFileName', true)) || '';
+      const readIdentityId = (key: string): string | undefined => {
+        const value = formData.get(key);
+        const trimmed = typeof value === 'string' ? value.trim() : '';
+        return trimmed || undefined;
+      };
+
+      const validIdUrl =
+        (await uploadValidIdIfPresent(
+          'validId',
+          'validIdFileName',
+          true,
+          readIdentityId('primaryIdentityVerificationId'),
+          1
+        )) || '';
       const guest2ValidIdUrl =
         guest2Age >= 18
-          ? await uploadValidIdIfPresent('guest2ValidId', 'guest2ValidIdFileName', true)
+          ? await uploadValidIdIfPresent(
+              'guest2ValidId',
+              'guest2ValidIdFileName',
+              true,
+              readIdentityId('guest2IdentityVerificationId'),
+              2
+            )
           : undefined;
       const guest3ValidIdUrl =
         guest3Age >= 18
-          ? await uploadValidIdIfPresent('guest3ValidId', 'guest3ValidIdFileName', true)
+          ? await uploadValidIdIfPresent(
+              'guest3ValidId',
+              'guest3ValidIdFileName',
+              true,
+              readIdentityId('guest3IdentityVerificationId'),
+              3
+            )
           : undefined;
       const guest4ValidIdUrl =
         guest4Age >= 18
-          ? await uploadValidIdIfPresent('guest4ValidId', 'guest4ValidIdFileName', true)
+          ? await uploadValidIdIfPresent(
+              'guest4ValidId',
+              'guest4ValidIdFileName',
+              true,
+              readIdentityId('guest4IdentityVerificationId'),
+              4
+            )
           : undefined;
       const guest5ValidIdUrl =
         guest5Age >= 18
-          ? await uploadValidIdIfPresent('guest5ValidId', 'guest5ValidIdFileName', true)
+          ? await uploadValidIdIfPresent(
+              'guest5ValidId',
+              'guest5ValidIdFileName',
+              true,
+              readIdentityId('guest5IdentityVerificationId'),
+              5
+            )
           : undefined;
 
       // Convert form data to an object
@@ -477,6 +609,13 @@ export class DatabaseService {
 
       if (propertyId) {
         (dbData as unknown as Record<string, unknown>).property_id = propertyId;
+      }
+
+      if (Object.keys(identityColumns).length > 0) {
+        Object.assign(dbData as unknown as Record<string, unknown>, identityColumns);
+        (dbData as unknown as Record<string, unknown>).identity_capture_mode = usedLiveIdentity
+          ? 'live'
+          : 'upload';
       }
 
       if (guestUserId) {

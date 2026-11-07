@@ -33,6 +33,8 @@ This document is the entry point for the **guest-form-management** architecture 
 | Skeleton loaders — route registry, chrome invariant, module map                           | [`docs/architecture/skeleton-loaders.md`](architecture/skeleton-loaders.md)             |
 | Unsaved-changes guard — Save & leave / Discard / Keep editing on any dirty form or modal  | [`docs/architecture/unsaved-changes.md`](architecture/unsaved-changes.md)               |
 | Contextual help — InfoHint, How it works panels, intro cards, copy registry               | [`docs/architecture/contextual-help.md`](architecture/contextual-help.md)               |
+| Identity verification — live capture, phone handoff, verdict model, PhilSys QR            | [`docs/architecture/identity-verification.md`](architecture/identity-verification.md)   |
+| Identity privacy — consent, retention schedule, data-subject rights                       | [`docs/architecture/data-privacy-identity.md`](architecture/data-privacy-identity.md)   |
 
 For booking status/transition/side-effect specifics, start at `.cursor/rules/booking-workflow.mdc` instead — it supersedes this doc for anything already implemented per that spec. See [`docs/README.md`](README.md) for the full documentation index.
 

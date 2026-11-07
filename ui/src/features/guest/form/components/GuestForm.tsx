@@ -1034,31 +1034,48 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
           prefix: 'validId',
           file: values.validId,
           guestName: values.primaryGuestName,
-          required: values.primaryGuestAge != null && values.primaryGuestAge >= 18,
+          // A live verification already satisfies the requirement; the server copies the
+          // captured photo into `valid-ids` at submit.
+          required:
+            values.primaryGuestAge != null &&
+            values.primaryGuestAge >= 18 &&
+            !values.primaryIdentityVerificationId,
         },
         {
           prefix: 'guest2ValidId',
           file: values.guest2ValidId,
           guestName: values.guest2Name || values.primaryGuestName,
-          required: values.guest2Age != null && values.guest2Age >= 18,
+          required:
+            values.guest2Age != null &&
+            values.guest2Age >= 18 &&
+            !values.guest2IdentityVerificationId,
         },
         {
           prefix: 'guest3ValidId',
           file: values.guest3ValidId,
           guestName: values.guest3Name || values.primaryGuestName,
-          required: values.guest3Age != null && values.guest3Age >= 18,
+          required:
+            values.guest3Age != null &&
+            values.guest3Age >= 18 &&
+            !values.guest3IdentityVerificationId,
         },
         {
           prefix: 'guest4ValidId',
           file: values.guest4ValidId,
           guestName: values.guest4Name || values.primaryGuestName,
-          required: values.guest4Age != null && values.guest4Age >= 18,
+          required:
+            values.guest4Age != null &&
+            values.guest4Age >= 18 &&
+            !values.guest4IdentityVerificationId,
         },
         {
           prefix: 'guest5ValidId',
           file: values.guest5ValidId,
           guestName: values.guest5Name || values.primaryGuestName,
-          required: values.guest5Age != null && values.guest5Age >= 18,
+          required:
+            values.guest5Age != null &&
+            values.guest5Age >= 18 &&
+            !values.guest5IdentityVerificationId,
         },
         {
           prefix: 'petVaccination',
@@ -1870,6 +1887,7 @@ export function GuestForm({ embed }: GuestFormProps = {}) {
                       validIdImageErrors={validIdImageErrors}
                       seedKey={guestSectionSeedKey}
                       guestCapacity={guestCapacity}
+                      propertySlug={propertySlug}
                       onValidIdPreviewChange={(field, preview) =>
                         setValidIdPreviews((prev) => ({ ...prev, [field]: preview }))
                       }

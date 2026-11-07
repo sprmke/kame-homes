@@ -61,6 +61,23 @@ targets=(
   _shared/opsReportRunner.ts
   _shared/systemHealth/collect.ts
   super-admin-system-health/index.ts
+  # Live identity verification — token, verdict pipeline and retention sweep. A missing
+  # activity key in the shared catalog only fails at bundle time, same as marketing-media.
+  identity-session-create/index.ts
+  identity-session-get/index.ts
+  identity-session-upload/index.ts
+  identity-session-submit/index.ts
+  identity-session-cancel/index.ts
+  identity-verification-mine/index.ts
+  identity-verification-delete/index.ts
+  identity-verification-review/index.ts
+  identity-captures-purge-cron/index.ts
+  _shared/identityVerification.ts
+  _shared/identitySessionService.ts
+  _shared/identitySessionToken.ts
+  _shared/philsysQr.ts
+  _shared/mrz.ts
+  _shared/identityAiService.ts
 )
 
 echo "→ deno check (${#targets[@]} launch and cron edge modules)"

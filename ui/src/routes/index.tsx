@@ -1,9 +1,12 @@
 import { Routes } from 'react-router-dom';
 
 import { guestRoutes } from '@/features/guest/routes';
-import { launchRoutes } from '@/features/launch/routes';
 
 import { dashboardRoutes } from '@/features/dashboard/routes';
+
+import { launchRoutes } from '@/features/launch/routes';
+import { verificationRoutes } from '@/features/verification/routes';
+
 
 export function AppRoutes() {
   return (
@@ -12,6 +15,8 @@ export function AppRoutes() {
       {launchRoutes}
       {guestRoutes}
       {dashboardRoutes}
+      {/* Standalone phone handoff — outside every layout on purpose. */}
+      {verificationRoutes}
     </Routes>
   );
 }

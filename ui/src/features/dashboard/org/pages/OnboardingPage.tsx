@@ -11,6 +11,7 @@ import { RequireAdmin } from '@/features/dashboard/bookings/components/RequireAd
 import { useAdminSession } from '@/features/dashboard/bookings/hooks/useAdminSession';
 import { OnboardingFeatureShowcase } from '@/features/dashboard/org/components/onboarding/OnboardingFeatureShowcase';
 import { OnboardingHostVerificationSection } from '@/features/dashboard/org/components/onboarding/OnboardingHostVerificationSection';
+import { HostIdentityVerifyButton } from '@/features/verification/components/HostIdentityVerifyButton';
 import {
   OnboardingProfileHeader,
   readGoogleAvatarUrl,
@@ -1060,6 +1061,16 @@ export function OnboardingPage() {
                               setSocialProofPreview(preview);
                             }}
                             onUploadError={setError}
+                            verifyAction={
+                              !validIdFile ? (
+                                <HostIdentityVerifyButton
+                                  onDocumentCaptured={(file) => {
+                                    setValidIdFile(file);
+                                    setValidIdPreview(URL.createObjectURL(file));
+                                  }}
+                                />
+                              ) : null
+                            }
                           />
                         </>
                       )}

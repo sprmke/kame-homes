@@ -289,3 +289,21 @@ When the task is…
 - `.cursor/skills/booking-workflow/SKILL.md` — operational walkthrough.
 - `.cursor/skills/gmail-listener/SKILL.md` — Resend inbound approval intake + idempotency.
 - `.cursor/skills/admin-dashboard/SKILL.md` — list + detail page patterns.
+
+## Identity verification (2026-11-07)
+
+A guest slot may carry a live identity verdict instead of an uploaded ID
+(`guest_submissions.primary_identity_verification_id` … `guest5_identity_verification_id`).
+
+- `submit-form` copies the captured front image into `valid-ids` and writes `valid_id_url`, so
+  `gafRequestSendBlockReason` and `buildGuestValidIdAttachments` are **unchanged**. Do not add a
+  second attachment path.
+- A verdict is **advisory**, exactly like `valid_id_ai_verdict`: it never blocks a transition by
+  itself. Blocking would need a new decision plus the same override affordance the AI verdict
+  uses.
+- Overriding a blocking identity flag uses `aiVerdictOverride`, with the same actor allow-list
+  (org owner, team member, super admin; never cron, webhook, or the AI assistant).
+- `identity_capture_mode` (`live` | `upload` | `legacy`) tells the host how the ID arrived. It is
+  metadata, not a gate.
+- Changing a slot's identity in an edit follows the same revert rules as changing its ID file
+  (`shouldRevertGuestFieldEditsToPendingReview`).

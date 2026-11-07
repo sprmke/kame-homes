@@ -161,8 +161,25 @@ export type OrgApprovalVerification = {
   enhancedRejectionKind: OrgVerificationRejectionKind | null;
 };
 
+export type OrgIdentityVerificationSummary = {
+  id: string;
+  verdict: string;
+  method: string;
+  document_type: string | null;
+  full_name: string | null;
+  signature_valid: boolean;
+  liveness_grade: string | null;
+  face_match_verdict: string | null;
+  flags: Array<{ code: string; severity: string; detail?: string }>;
+  verified_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
 export type OrgApprovalDetail = {
   organization: { id: string; name: string; slug: string; hostModes?: string[] };
   verification: OrgApprovalVerification;
+  /** Pre-screen from the live identity capture, when the host used the camera path. */
+  identityVerification?: OrgIdentityVerificationSummary | null;
   assetUrls: OrgVerificationAssetUrls;
 };
