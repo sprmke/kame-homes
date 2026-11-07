@@ -24,6 +24,7 @@ import {
   DEFAULT_WEEKEND_NIGHTLY_RATE,
 } from '@/features/dashboard/pricing/lib/pricingDefaults';
 
+import { NoticeCallout } from '@/components/help/NoticeCallout';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -176,7 +177,7 @@ export function PropertyVoucherSettingsBlock({
         <ResponsiveModalContent
           sheetLayout="split"
           className={cn(
-            'flex max-h-[min(92dvh,44rem)] w-[min(calc(100vw-1.5rem),36rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(95vw,36rem)] sm:p-0'
+            'flex max-h-[min(92dvh,48rem)] w-[min(calc(100vw-1.5rem),36rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(95vw,36rem)] sm:p-0'
           )}
         >
           <ResponsiveModalHeader className="border-border/60 shrink-0 space-y-0 border-b px-4 py-3 sm:px-5 sm:py-4">
@@ -187,6 +188,20 @@ export function PropertyVoucherSettingsBlock({
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
             <div className="space-y-4 px-4 py-4 sm:px-5">
+              <NoticeCallout tone="info" className="text-xs leading-relaxed">
+                <p className="text-foreground font-medium">How next-stay vouchers work</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  <li>After checkout, guests can claim one discount for a future stay.</li>
+                  <li>
+                    You choose the prizes, odds, and reveal style. Apply the claimed code manually
+                    on the next booking.
+                  </li>
+                  <li>
+                    Turning this off skips the voucher step for new stays. Codes already claimed
+                    still work.
+                  </li>
+                </ul>
+              </NoticeCallout>
               <div className="border-border/60 bg-muted/30 flex min-h-[44px] items-center justify-between gap-3 rounded-xl border px-3 py-2.5">
                 <Label
                   htmlFor="property-vouchers-enabled"
@@ -457,7 +472,11 @@ export function PropertyVoucherSettingsBlock({
                     </ul>
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <p className="text-muted-foreground text-xs leading-snug">
+                  Vouchers are off. Turn on to choose prizes and reveal style.
+                </p>
+              )}
             </div>
           </div>
 

@@ -3,7 +3,7 @@ stage: in-progress
 title: 'Settings cleanup — retire legacy settings, fix redundant ones, clarify Email automations'
 status: in-progress
 tags: [workflow, planned, settings, parking, email, cleanup, ux-copy]
-updated: 2026-11-06
+updated: 2026-11-07
 kind: plan
 ---
 
@@ -74,7 +74,7 @@ The UI is lean already: Basic info, Socials & branding, Superhost progress, AI, 
 | Preferred parking                                                                                                                      | Guest Form        | **Keep + Clarify** | Live. No help text; hosts don't know it powers **Use your parking** and the guest parking CTA deep link. Already hidden when the org has no active parking.                                                                                                                                                                                                                                                     |
 | Cleaning Time                                                                                                                          | Guest Form        | **Fix (move)**     | It is a calendar availability rule, not a guest form option. Move it to Property Details next to check-in/check-out time. Same column, layout change only. Also remove it from the Guest Form summary line.                                                                                                                                                                                                     |
 | Property **Parking rate** fee (`app_settings.default_parking_rate_guest`, Pricing page fee row)                                        | Pricing           | **Keep (D2)**      | Read by `ReviewPricingForm`, `ParkingRequestForm`, `get-pay-parking`, and the public property DTO. Legacy manual-parking pricing.                                                                                                                                                                                                                                                                               |
-| Socials, brand color, Payment, Building Forms, Cancellation, Reviews & vouchers, Integrations, Location, Media, Amenities, House rules | various           | **Keep**           | All wired. Building Forms (GAF) residence coupling is owned by [`multi-residence-config-decoupling.md`](./multi-residence-config-decoupling.md).                                                                                                                                                                                                                                                                |
+| Socials, brand color, Payment, Building Forms, Cancellation, Reviews & vouchers, Integrations, Location, Media, Amenities, House rules | various           | **Keep**           | All wired. Building Forms (GAF) residence coupling is owned by [`multi-residence-config-decoupling.md`](../planned/multi-residence-config-decoupling.md).                                                                                                                                                                                                                                                       |
 
 ### 1.3 Parking settings (`/org/:orgSlug/parking/:parkingSlug/settings`)
 
@@ -141,9 +141,18 @@ Files: `PropertyEmailAutomationsSection.tsx`, `PropertyEmailAutomationTogglePane
 - **Skip if check-out was over** · days · suffix "days ago". Help: "Skips the check-out email for old stays, for example after an import. 0 means never skip. Does not affect review emails."
 - **D4:** change the default to 120 in `appSettings.ts` and `sd-refund-cron/index.ts`, keep `orgSettings.ts` in sync until Phase 6, and update UI placeholder + docs. Existing rows with a stored value do not change.
 
-### 3.4 Automated sends → inline
+### 3.4 Automated sends → summary + Manage modal
 
-- Remove the "8 of 8 enabled + Manage" modal and render the list inline. No popup, no Save button, no `useGuardedClose` needed.
+> **Revised 2026-11-06:** the inline list made the Email automations card the tallest card on
+> Property Settings. § 3.4 as originally written ("render the list inline, no modal") is
+> superseded: the card now shows one compact `N of 8 on` row with **Manage**, and the grouped
+> toggles live in a `ResponsiveModal` (bottom sheet below `lg`). Toggles still edit the page draft
+> live, so the modal footer is **Done** and the save stays on the page **Save Changes** — there is
+> still no in-modal Save and no `useGuardedClose`.
+>
+> The same pattern now applies to every long settings list: parking **Amenities** and parkings
+> **Automations** each render a count summary + **Manage** modal, with `embedded` for Setup Guide.
+
 - Group by recipient: **Your team** · **Building admin** · **Guest** · **Guest reviews**.
 - Each row: label + one-line "When:". Rewrite triggers in plain language:
   - New booking alert: "When a guest submits the booking form."
@@ -173,8 +182,8 @@ Files: `PropertyEmailAutomationsSection.tsx`, `PropertyEmailAutomationTogglePane
 
 ### 4.2 UI
 
-- Group **Allow Parking**, **Preferred parking**, **Complimentary own parking** under a Parking sub-heading in Guest Form.
-- Show Preferred and Complimentary only when Allow Parking is on **and** the org has at least one active parking (`useParkings`). Otherwise show one short line linking to `/org/:orgSlug/parkings`.
+- Group **Allow Parking**, **Free parking on your own slots**, and **Preferred parking** inside a nested Parking card in Guest Form. **Allow Pets** and **Allow Surprise Decor** stay as standalone rows above it.
+- Keep **Free parking on your own slots** visible but disabled until Allow Parking is on **and** the org has at least one active parking (`useParkings`), with helper text under the switch that says which one is missing and links to `/org/:orgSlug/parkings`. Preferred stays hidden until both conditions are met.
 - Copy:
   - Allow Parking → help "Parking requests on the booking form."
   - Complimentary → **Free parking on your own slots**. Help: "Guests from this property who book one of your parking slots don't pay for it. Other hosts' slots are still paid."
@@ -255,9 +264,9 @@ Deno (`_shared/*_test.ts`):
 
 Playwright mocked E2E (`ui/e2e/features/`):
 
-- Property settings: Email automations renders without Parking owners; Building admin row shows; toggles are inline and save through the page Save; unsaved-changes guard fires on toggle edits.
+- Property settings: Email automations renders without Parking owners; Building admin row shows; Automated sends is a summary row that opens the toggles in a Manage modal and saves through the page Save.
 - Guest Form: complimentary hidden with no parkings, visible with one; Cleaning Time now under Property Details.
-- Parking settings: single Automations section; `#email` hash still scrolls there; no Payment section or nav item.
+- Parking settings: single Automations section behind a Manage modal; `#email` hash still scrolls there; no Payment section or nav item.
 - Update `contextualHelp.spec.ts` if help copy is asserted.
 
 Manual on local stack:
@@ -304,7 +313,7 @@ New migration (never edit shipped ones). **Not written in this change.**
 - **Plans/RBAC:** no new feature. Existing `settings.emailAutomations:edit` and `settings.guestForm:edit` stay. Remove only the `parkingOwnerEmails` mapping. Per-row tier badges reuse `automatedBookingFlow`.
 - **activity-log:** settings saves already emit existing events; removed fields drop out of diffs. Parking payment removal is removal only. `activity-log: N/A` for new emissions.
 - **Unsaved changes:** page-level guard already covers both cards. Re-verify after moving Cleaning Time between sections.
-- **Mobile:** inline toggles keep 44px rows. Parking section merge keeps normal section scrolling; no new modal.
+- **Mobile:** summary rows and every toggle inside the Manage modal keep 44px targets; the modal is a bottom sheet below `lg`. No second page-level scroll.
 - **PWA:** old cached bundles may still send `parkingOwnerEmails` and payment fields for one release. The server ignores/accepts them.
 
 ## 11. Rollout order (this change)

@@ -44,9 +44,8 @@ import {
   orgParkingsPath,
   parkingNotificationsPath,
 } from '@/features/dashboard/org/lib/tenantPaths';
-import { ParkingBookingAutomationSection } from '@/features/dashboard/parking/components/ParkingBookingAutomationSection';
+import { ParkingAutomationsSection } from '@/features/dashboard/parking/components/ParkingAutomationsSection';
 import { ParkingDetailsSection } from '@/features/dashboard/parking/components/ParkingDetailsSection';
-import { ParkingEmailAutomationSection } from '@/features/dashboard/parking/components/ParkingEmailAutomationSection';
 import { ParkingFeaturesSection } from '@/features/dashboard/parking/components/ParkingFeaturesSection';
 import { ParkingMediaUpload } from '@/features/dashboard/parking/components/ParkingMediaUpload';
 import {
@@ -263,8 +262,7 @@ export function useParkingSettingsController() {
   locationDirtyRef.current = locationDirty;
   const detailsDirty = parkingDetailsDraftIsDirty(detailsDraft, detailsBaseline);
   detailsDirtyRef.current = detailsDirty;
-  const isDirty =
-    profileDirty || automationDirty || featuresDirty || locationDirty || detailsDirty;
+  const isDirty = profileDirty || automationDirty || featuresDirty || locationDirty || detailsDirty;
 
   const isArchived = parking.status === 'INACTIVE';
 
@@ -879,23 +877,11 @@ export function ParkingSettingsCard() {
               />
             </AdminSection>
 
-            <AdminSection
-              id="automations"
-              title="Automations"
-              icon={Zap}
-              description="Emails sent automatically and host actions taken for you."
-            >
-              <ParkingEmailAutomationSection
-                value={automationDraft}
-                disabled={busy}
-                onChange={setAutomationToggle}
-              />
-              <ParkingBookingAutomationSection
-                value={automationDraft}
-                disabled={busy}
-                onChange={setAutomationToggle}
-              />
-            </AdminSection>
+            <ParkingAutomationsSection
+              value={automationDraft}
+              disabled={busy}
+              onChange={setAutomationToggle}
+            />
 
             <AdminSection
               id="integrations"

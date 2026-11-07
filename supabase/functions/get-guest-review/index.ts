@@ -71,7 +71,7 @@ servePublic('get-guest-review', async (req) => {
   const settingsRow = await loadAppSettingsRow(
     (row.property_id as string | null | undefined) ?? undefined
   );
-  const vouchersEnabled = settingsRow?.vouchers_enabled !== false;
+  const vouchersEnabled = settingsRow?.vouchers_enabled === true;
   const voucherPrizes = resolveVoucherPrizes(settingsRow?.voucher_prizes);
   const voucherRevealStyle = normalizeVoucherRevealStyle(settingsRow?.voucher_reveal_style);
   const reviewDraft = await getGuestReviewDraft(bookingId);

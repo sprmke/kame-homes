@@ -15,9 +15,8 @@ import { useOrgSettingsController } from '@/features/dashboard/org/hooks/useOrgS
 import { useParkingSettingsController } from '@/features/dashboard/org/hooks/useParkingSettingsController';
 import { usePropertySettingsController } from '@/features/dashboard/org/hooks/usePropertySettingsController';
 import type { PropertySettingsSectionId } from '@/features/dashboard/org/lib/propertySettingsCompletion';
-import { ParkingBookingAutomationSection } from '@/features/dashboard/parking/components/ParkingBookingAutomationSection';
+import { ParkingAutomationsSection } from '@/features/dashboard/parking/components/ParkingAutomationsSection';
 import { ParkingDetailsSection } from '@/features/dashboard/parking/components/ParkingDetailsSection';
-import { ParkingEmailAutomationSection } from '@/features/dashboard/parking/components/ParkingEmailAutomationSection';
 import { ParkingFeaturesSection } from '@/features/dashboard/parking/components/ParkingFeaturesSection';
 import { ParkingMediaUpload } from '@/features/dashboard/parking/components/ParkingMediaUpload';
 import { PARKING_DESCRIPTION_MAX } from '@/features/dashboard/parking/lib/parkingSettingsForm';
@@ -389,6 +388,7 @@ function ParkingSectionsInner({
             disabled={busy}
             newCustomInput={newCustomFeatureInput}
             onNewCustomInputChange={setNewCustomFeatureInput}
+            embedded
           />
         </>
       ) : null}
@@ -405,20 +405,13 @@ function ParkingSectionsInner({
       ) : null}
 
       {mode === 'email' && automationDraft ? (
-        <>
-          <ParkingEmailAutomationSection
-            value={automationDraft}
-            disabled={busy}
-            onChange={setAutomationToggle}
-          />
-          <ParkingBookingAutomationSection
-            value={automationDraft}
-            disabled={busy}
-            onChange={setAutomationToggle}
-          />
-        </>
+        <ParkingAutomationsSection
+          value={automationDraft}
+          disabled={busy}
+          onChange={setAutomationToggle}
+          embedded
+        />
       ) : null}
-
     </div>
   );
 }
