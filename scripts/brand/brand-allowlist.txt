@@ -1,6 +1,6 @@
 # Class K (keep) allow-list for scripts/brand/check-brand.ts
 # Format: <path or dir/* or dir/**>[:line-regex]  # class K reason
-# See docs/workflow/planned/kamespace-03-rebrand-kame-homes-to-kame-space.md §5
+# See docs/workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md §5
 
 # K-1 review identity pepper fallback
 supabase/functions/_shared/guestIdentityKey.ts  # class K review identity pepper fallback
@@ -36,7 +36,7 @@ scripts/migrate/legacy-to-mt-prod/**  # class K describes legacy system
 # Plan docs that must quote the old name (rename series)
 docs/workflow/planned/kamespace-*.md  # class K rename series plan docs
 docs/workflow/in-progress/kamespace-*.md  # class K rename series plan docs
-docs/workflow/in-progress/ci-cd-environments/**  # class K infra tracking docs
+docs/workflow/done/ci-cd-environments/**  # class K infra tracking docs
 
 # tool cache
 .impeccable/**  # class K tool cache
@@ -94,7 +94,7 @@ docs/workflow/intake/**  # intake notes quoting project names
 docs/workflow/planned/marketing-studio-mobile-and-dashboard-responsive.md  # seed slug
 docs/workflow/done/observability-sentry-posthog-split/**  # project name references
 docs/workflow/planned/README.md  # plan filenames
-docs/workflow/planned/rebrand-kame-homes-to-kame-space.md  # stub links the live plan
+docs/archive/workflow-superseded/rebrand-kame-homes-to-kame-space.md  # stub links the live plan
 scripts/dev/batch-commit-run-*.sh  # historical batch scripts
 scripts/performance/load-test/public-api.js  # legacy host refusal regex
 

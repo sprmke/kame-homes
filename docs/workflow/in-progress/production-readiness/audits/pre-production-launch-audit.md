@@ -2,7 +2,7 @@
 title: 'Pre-production launch audit'
 status: active
 tags: [workflow, for-testing, audit, production-readiness, performance, security]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 origin_stage: for-testing
@@ -20,7 +20,7 @@ Full-surface review of the application and codebase before the multi-tenant prod
 
 **Plans / Team RBAC:** N/A for this hardening pass. No new host capability. Existing booking-detail permission leaves are now enforced on the server via `update-booking-details`.
 
-**activity-log:** `booking.details_edited` from `update-booking-details` after a successful write. Cron schedule registration is schema-only (`system.cron_run` still deferred to [`activity-log-followups.md`](../../../planned/activity-log-followups.md)).
+**activity-log:** `booking.details_edited` from `update-booking-details` after a successful write. Cron schedule registration is schema-only (`system.cron_run` still deferred to [`activity-log-followups.md`](../../activity-log-followups.md)).
 
 ## Resolution ledger
 
@@ -301,7 +301,7 @@ line 66:    echo "Until then, use local deploy with kamewave + docs/archive/oper
 
 The cutover gate above it (typed `CUTover` acknowledgement, `CUTOVER_ENABLED` repository variable, a warning when the production ref equals legacy) is real and well built. The step it gates does nothing.
 
-**Impact:** the only way to deploy to production is a developer running `deploy:supabase` from a laptop. No audit trail of who deployed what, no guarantee the deployed tree matches a reviewed commit, no automatic pre-deploy backup, and no rollback trigger. This is consistent with the dual-track plan in [`ci-cd-environments/`](../../ci-cd-environments/README.md), which defers mt-prod to release, so the finding is really about sequencing: the workflow must be completed before cutover, not after.
+**Impact:** the only way to deploy to production is a developer running `deploy:supabase` from a laptop. No audit trail of who deployed what, no guarantee the deployed tree matches a reviewed commit, no automatic pre-deploy backup, and no rollback trigger. This is consistent with the dual-track plan in [`ci-cd-environments/`](../../../done/ci-cd-environments/README.md), which defers mt-prod to release, so the finding is really about sequencing: the workflow must be completed before cutover, not after.
 
 **Fix:** implement the deploy job against the mt-prod project as part of the cutover checklist in `multi-tenant-dev-prod-environments.md` Phase B. Require a pre-deploy backup, a `db diff` review artifact, and a post-deploy smoke test (see P1-7) as job steps rather than as prose in a runbook.
 

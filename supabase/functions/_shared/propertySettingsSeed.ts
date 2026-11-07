@@ -164,6 +164,7 @@ export async function seedPropertySettings(
 
   const appSettingsSeed: Record<string, unknown> = {
     pricing_holiday_rules: DEFAULT_PRICING_HOLIDAY_RULES,
+    vouchers_enabled: false,
   };
 
   await upsertIfMissing('app_settings', pid, appSettingsSeed);

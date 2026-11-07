@@ -28,9 +28,9 @@ commit "chore(*): add legacy-to-mt-prod sql and storage phases" \
   scripts/migrate/legacy-to-mt-prod/storage/copyBuckets.ts
 
 commit "docs: add kamespace cutover and rebrand workflow plans" \
-  docs/workflow/planned/kamespace-02-legacy-prod-to-mt-prod-cutover.md \
-  docs/workflow/planned/kamespace-03-rebrand-kame-homes-to-kame-space.md \
-  docs/workflow/planned/kamespace-01-legacy-prod-config-secrets-backup.md \
+  docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md \
+  docs/workflow/done/kamespace-03-rebrand-kame-homes-to-kame-space.md \
+  docs/workflow/done/kamespace-01-legacy-prod-config-secrets-backup.md \
   docs/workflow/wont-do/module-status-management.md \
   docs/workflow/planned/README.md \
   docs/workflow/in-progress/chat-templates.md

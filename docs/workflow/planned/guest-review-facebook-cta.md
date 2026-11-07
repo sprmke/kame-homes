@@ -35,8 +35,8 @@ change required for the core feature (Phase 5 soft signal is optional).
   - `step` 1 → `SdFormReviewSection` → `onReviewSubmitted` branches to step 2 (`step2Phase`
     `'wait_balance' | 'voucher'`) or step 3.
 - `/guest-review` flow — `ui/src/features/guest/sd-form/pages/GuestReviewPage.tsx`
-  - `Phase = 'review' | 'voucher' | 'done'`; `onReviewSubmitted` → `voucher` (or `done` when
-    `vouchers_enabled === false`).
+  - `Phase = 'review' | 'voucher' | 'done'`; `onReviewSubmitted` → `voucher` (or `done` unless
+    `vouchers_enabled === true`).
 - Shared review UI — `ui/src/features/guest/sd-form/components/SdFormReviewSection.tsx`
   (posts to `submit-guest-review`; fires `posthog.capture('guest_review_submitted', …)`).
 - Bootstrap types — `ui/src/features/guest/sd-form/lib/api.ts`
@@ -100,12 +100,12 @@ New file: `ui/src/features/guest/sd-form/components/GuestReviewFacebookCta.tsx`
 
 - Extend `type Phase = 'review' | 'facebook' | 'voucher' | 'done'`.
 - Add a helper `nextAfterReview(data)` → `'facebook'` when
-  `isHttpUrl(data.facebook_reviews_url)`, else `data.vouchers_enabled === false ? 'done' : 'voucher'`.
+  `isHttpUrl(data.facebook_reviews_url)`, else `data.vouchers_enabled === true ? 'voucher' : 'done'`.
 - `onReviewSubmitted` uses `nextAfterReview`.
 - The returning-guest `useEffect` (existing voucher / `guest_review_submitted`) stays as-is —
   it jumps straight to `voucher`/`done`, so the CTA never shows for returning guests.
 - Render `<GuestReviewFacebookCta context="guest_review" facebookUrl={data.facebook_reviews_url!}
-onContinue={() => setPhase(data.vouchers_enabled === false ? 'done' : 'voucher')} />`
+onContinue={() => setPhase(data.vouchers_enabled === true ? 'voucher' : 'done')} />`
   when `phase === 'facebook'`.
 
 ## Phase 4 — Wire into `/sd-form` step flow
@@ -121,7 +121,7 @@ onContinue={() => setPhase(data.vouchers_enabled === false ? 'done' : 'voucher')
   - else existing `voucher` / step 3 branch.
 - New `step === 2 && step2Phase === 'facebook'` block renders
   `<GuestReviewFacebookCta context="sd_form" … onContinue={goToVoucherOrStep3} />` where
-  `goToVoucherOrStep3` = `data.vouchers_enabled !== false ? setStep2Phase('voucher') : setStep(3)`.
+  `goToVoucherOrStep3` = `data.vouchers_enabled === true ? setStep2Phase('voucher') : setStep(3)`.
 - Balance-wait path: after `wait_balance` resolves, run the same `facebook` check before
   `voucher` so those guests also see it once.
 - Returning guests (`guest_review_submitted`, or `existingVoucher`) already skip to voucher —

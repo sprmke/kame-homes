@@ -28,6 +28,7 @@ export type OrgPropertyDto = {
   name: string;
   slug: string;
   status: string;
+  inactiveReason?: string | null;
 };
 
 export type OrgSubscriptionDto = {

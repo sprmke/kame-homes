@@ -45,17 +45,14 @@ import {
   operationalSettingsDraftIsDirty,
   PropertyOperationalSettingsSections,
 } from '@/features/dashboard/org/components/property-settings/PropertyOperationalSettingsSections';
-import {
-  PropertyDangerZoneSection,
-  PropertyProfileMainSections,
-} from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
+import { PropertyProfileMainSections } from '@/features/dashboard/org/components/property-settings/PropertyProfileSettingsSections';
+import { PropertyListingStatusSection } from '@/features/dashboard/org/components/property-settings/PropertyListingStatusSection';
 import { PropertySettingsBrandColorPreview } from '@/features/dashboard/org/components/property-settings/PropertySettingsBrandColorPreview';
 import { PropertySocialsSection } from '@/features/dashboard/org/components/property-settings/PropertySocialsBrandingSection';
 import { SensitiveSettingsOtpDialog } from '@/features/dashboard/org/components/property-settings/SensitiveSettingsOtpDialog';
 import { useOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { useCheckPropertyName } from '@/features/dashboard/org/hooks/useCheckPropertyName';
 import { useProperties } from '@/features/dashboard/org/hooks/useOrganizations';
-import { useDeleteProperty } from '@/features/dashboard/org/hooks/useDeleteProperty';
 import { useOrgBrandColor } from '@/features/dashboard/org/hooks/useOrgBrandColor';
 import {
   orgSettingsToFormValues,
@@ -64,10 +61,6 @@ import {
 import { usePropertySettingsCompletionForDraft } from '@/features/dashboard/org/hooks/usePropertySettingsCompletion';
 import { useTowerUnitConflict } from '@/features/dashboard/org/hooks/useTowerUnitConflict';
 import { useUpdateProperty } from '@/features/dashboard/org/hooks/useUpdateProperty';
-import {
-  isListingAuthorized,
-  readListingAuthorizationSummary,
-} from '@/features/dashboard/org/lib/listingAuthorization';
 import { paymentMethodsDraftIsDirty } from '@/features/dashboard/org/lib/paymentMethods';
 import type { PropertyAutomationToggleKey } from '@/features/dashboard/org/lib/propertyEmailAutomation';
 import {
@@ -119,6 +112,7 @@ import { friendlyToastError } from '@/lib/feedback/toastMessages';
 import { propertyBrandColorStoredValue } from '@/lib/theme/brandColor';
 
 const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
+  { id: 'danger', label: 'Listing status', icon: AlertTriangle },
   { id: 'basic', label: 'Basic Information', icon: Info },
   { id: 'details', label: 'Property Details', icon: Home },
   { id: 'media', label: 'Photos & Videos', icon: ImageIcon },
@@ -134,7 +128,6 @@ const SETTINGS_SECTIONS: AdminSectionNavItem[] = [
   { id: 'email-automations', label: 'Email Automations', icon: Mail },
   { id: 'integrations', label: 'Integrations', icon: Globe },
   { id: 'activity', label: 'Activity', icon: ScrollText },
-  { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
 
 function mergeProfileDraftAfterSave(
@@ -175,7 +168,7 @@ export function usePropertySettingsController() {
     }
     return locked;
   }, [canEditSettingsSection]);
-  const canEditDangerZone = canEditSettingsSection('danger');
+  const canEditListingStatus = canEditSettingsSection('danger');
   const canDeleteProperty =
     propertyAccess?.accessKind === 'owner' || propertyAccess?.accessKind === 'platform_admin';
   const {
@@ -186,7 +179,6 @@ export function usePropertySettingsController() {
   } = useAppSettings();
   const { data: propertyTeam } = usePropertyTeam();
   const updateProperty = useUpdateProperty(orgSlug);
-  const deleteProperty = useDeleteProperty(orgSlug);
   const updateAppSettings = useUpdateAppSettings();
   const orgBrandColor = useOrgBrandColor();
   const inheritedBrandColor = appSettings?.inheritedBrandColor ?? orgBrandColor;
@@ -203,19 +195,6 @@ export function usePropertySettingsController() {
           },
     [orgSettings]
   );
-
-  // Restore puts the listing live, so it needs the listing to be verified and the
-  // contract to be current. The server enforces the same rule in `update-property`.
-  const restoreBlockedReason = useMemo(() => {
-    const listingAuthorization = readListingAuthorizationSummary(property.settings);
-    if (listingAuthorization.lifecycle.accessLockedAt) {
-      return 'This listing contract has ended. Renew the contract to restore this property.';
-    }
-    if (!isListingAuthorized(listingAuthorization)) {
-      return 'Restore is available once this listing is verified.';
-    }
-    return null;
-  }, [property.settings]);
 
   const [profileBaseline, setProfileBaseline] = useState(() =>
     propertyProfileDraftFromProperty(property)
@@ -464,7 +443,6 @@ export function usePropertySettingsController() {
   const busy =
     appSettingsLoading ||
     updateAppSettings.isPending ||
-    deleteProperty.isPending ||
     (updateProperty.isPending && !mediaGalleryBusy);
 
   const saveDisabled =
@@ -804,41 +782,22 @@ export function usePropertySettingsController() {
     });
   };
 
-  const handleArchiveProperty = async () => {
-    try {
-      const result = await updateProperty.mutateAsync({
-        propertyId: property.id,
-        status: 'INACTIVE',
-      });
-      const savedProfile = propertyProfileDraftFromProperty(result.property);
-      setProfileDraft(savedProfile);
-      setProfileBaseline(savedProfile);
-      toast.success('Property archived');
-    } catch (error) {
-      toast.error(friendlyToastError(error, 'Could not archive property'));
-      throw error;
-    }
+  /**
+   * Lifecycle actions only touch the status fields. Overwriting the whole draft here used to
+   * discard unsaved profile edits when a host paused or archived the listing.
+   */
+  const handleLifecyclePropertyChanged = (patch: {
+    status: string;
+    inactiveReason: string | null;
+    archivedAt: string | null;
+    pausedAt: string | null;
+  }) => {
+    const nextStatus = patch.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    setProfileDraft((current) => ({ ...current, status: nextStatus }));
+    setProfileBaseline((current) => ({ ...current, status: nextStatus }));
   };
 
-  const handleRestoreProperty = async () => {
-    try {
-      const result = await updateProperty.mutateAsync({
-        propertyId: property.id,
-        status: 'ACTIVE',
-      });
-      const savedProfile = propertyProfileDraftFromProperty(result.property);
-      setProfileDraft(savedProfile);
-      setProfileBaseline(savedProfile);
-      toast.success('Property restored');
-    } catch (error) {
-      toast.error(friendlyToastError(error, 'Could not restore property'));
-      throw error;
-    }
-  };
-
-  const handleDeleteProperty = async () => {
-    await deleteProperty.mutateAsync(property.id);
-    toast.success('Property deleted');
+  const handlePropertyDeleted = () => {
     runUnguarded(() => navigate(orgPropertiesPath(orgSlug)));
   };
 
@@ -851,7 +810,6 @@ export function usePropertySettingsController() {
     propertyAccess,
     canEditSettingsSection,
     sectionEditLocked,
-    canEditDangerZone,
     canDeleteProperty,
     appSettings,
     appSettingsLoading,
@@ -859,7 +817,6 @@ export function usePropertySettingsController() {
     appSettingsLoadError,
     propertyTeam,
     updateProperty,
-    deleteProperty,
     updateAppSettings,
     orgBrandColor,
     inheritedBrandColor,
@@ -938,10 +895,9 @@ export function usePropertySettingsController() {
     revertPaymentDraft,
     handlePaymentOtpOpenChange,
     handlePaymentOtpVerified,
-    handleArchiveProperty,
-    handleRestoreProperty,
-    handleDeleteProperty,
-    restoreBlockedReason,
+    handleLifecyclePropertyChanged,
+    handlePropertyDeleted,
+    canEditListingStatus,
   };
 }
 
@@ -952,14 +908,11 @@ export function PropertySettingsCard() {
     orgSlug,
     canCopyFromOtherProperty,
     sectionEditLocked,
-    canEditDangerZone,
     canDeleteProperty,
     appSettings,
     appSettingsLoading,
     appSettingsError,
     appSettingsLoadError,
-    updateProperty,
-    deleteProperty,
     inheritedBrandColor,
     orgSocialLinks,
     profileDraft,
@@ -999,10 +952,9 @@ export function PropertySettingsCard() {
     handleSave,
     handlePaymentOtpOpenChange,
     handlePaymentOtpVerified,
-    handleArchiveProperty,
-    handleRestoreProperty,
-    handleDeleteProperty,
-    restoreBlockedReason,
+    handleLifecyclePropertyChanged,
+    handlePropertyDeleted,
+    canEditListingStatus,
   } = usePropertySettingsController();
 
   const copyFromHref =
@@ -1106,6 +1058,19 @@ export function PropertySettingsCard() {
         />
       ) : appSettings && operationalDraft ? (
         <AdminSectionNavLayout className="min-h-0 flex-1" sections={navSections}>
+          <AdminSection id="danger" title="Listing status" icon={AlertTriangle}>
+            <PropertyListingStatusSection
+              orgSlug={orgSlug}
+              propertyId={property.id}
+              propertyName={profileDraft.name.trim() || property.name}
+              canManage={canEditListingStatus}
+              canDelete={canDeleteProperty}
+              disabled={busy}
+              onPropertyChanged={handleLifecyclePropertyChanged}
+              onDeleted={handlePropertyDeleted}
+            />
+          </AdminSection>
+
           <PropertyProfileMainSections
             draft={profileDraft}
             onChange={setProfileField}
@@ -1185,20 +1150,6 @@ export function PropertySettingsCard() {
               <ActivitySettingsSection scope="property" />
             </AdminSection>
           ) : null}
-
-          <PropertyDangerZoneSection
-            propertyName={profileDraft.name.trim() || property.name}
-            isArchived={profileDraft.status === 'INACTIVE'}
-            disabled={busy || !canEditDangerZone}
-            showDelete={canDeleteProperty}
-            restoreBlockedReason={restoreBlockedReason}
-            archivePending={updateProperty.isPending}
-            restorePending={updateProperty.isPending}
-            deletePending={deleteProperty.isPending}
-            onArchive={handleArchiveProperty}
-            onRestore={handleRestoreProperty}
-            onDelete={canDeleteProperty ? handleDeleteProperty : async () => undefined}
-          />
         </AdminSectionNavLayout>
       ) : null}
     </AdminMobilePage>

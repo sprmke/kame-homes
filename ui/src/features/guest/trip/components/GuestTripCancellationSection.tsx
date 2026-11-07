@@ -15,6 +15,7 @@ import {
 } from '@/features/guest/trip/lib/guestTripApi';
 
 import { Button } from '@/components/ui/button';
+import { NoticeCallout } from '@/components/help/NoticeCallout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -314,6 +315,12 @@ export function GuestTripCancellationSection({
           <p className="text-muted-foreground mt-1 text-sm">{policy.description}</p>
         </div>
       </div>
+
+      {cancellation.nonRefundable ? (
+        <NoticeCallout tone="warning" className="mt-3">
+          This booking is non-refundable. You will not get back what you paid.
+        </NoticeCallout>
+      ) : null}
 
       {nextDeadline ? (
         <div className="bg-muted/40 mt-3 flex items-start gap-2 rounded-xl p-3 text-sm">

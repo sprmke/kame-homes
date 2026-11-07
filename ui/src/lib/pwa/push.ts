@@ -1,21 +1,57 @@
 import { callEdgeFunction } from '@/features/dashboard/org/lib/edgeClient';
 
+import { captureAppEvent } from '@/lib/posthog/capture';
 import { getPwaCapabilities } from '@/lib/pwa/capabilities';
 import { pwaTelemetry } from '@/lib/pwa/pwaTelemetry';
 import { whenSwReady } from '@/lib/pwa/swRegistration';
-import { captureAppEvent } from '@/lib/posthog/capture';
 
 import { SW_MESSAGE } from '@/pwa/shared';
 
 const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '').trim();
 
+/**
+ * Reading state must stay fast: the Notifications page renders a switch from it,
+ * and a missing/slow service worker must not freeze the row for the 10s default.
+ * When the worker does register, `usePushNotifications` re-reads.
+ */
+const PUSH_STATE_SW_TIMEOUT_MS = 2000;
+/** Subscribing needs the worker, so give it longer before reporting failure. */
+const PUSH_ENABLE_SW_TIMEOUT_MS = 2500;
+
+/**
+ * Why push cannot be turned on here. `supported` is about this app instance
+ * right now, not just the browser: a missing service worker means the toggle
+ * must stay off instead of failing after a click.
+ */
+export type PushUnsupportedReason = 'unsupported' | 'not-configured' | 'not-ready';
+
 export type PushState = {
   supported: boolean;
+  /** Set when `supported` is false, so the UI can explain the real cause. */
+  reason?: PushUnsupportedReason | null;
   /** Push only works on iOS/iPadOS when the app is installed to the home screen. */
   needsInstallFirst: boolean;
   permission: NotificationPermission | 'unsupported';
   subscribed: boolean;
 };
+
+/**
+ * Pure decision so the "can this device subscribe right now?" rule is testable
+ * without a browser. A registered but inactive worker cannot subscribe yet.
+ */
+export function resolvePushSupport(input: {
+  browserPush: boolean;
+  browserServiceWorker: boolean;
+  hasVapidKey: boolean;
+  workerActive: boolean;
+}): { supported: boolean; reason: PushUnsupportedReason | null } {
+  if (!input.browserPush || !input.browserServiceWorker) {
+    return { supported: false, reason: 'unsupported' };
+  }
+  if (!input.hasVapidKey) return { supported: false, reason: 'not-configured' };
+  if (!input.workerActive) return { supported: false, reason: 'not-ready' };
+  return { supported: true, reason: null };
+}
 
 function urlBase64ToArrayBuffer(base64: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -35,21 +71,38 @@ function platformTag(): string {
 
 export async function getPushState(): Promise<PushState> {
   const caps = getPwaCapabilities();
-  if (!caps.push || !caps.serviceWorker || !VAPID_PUBLIC_KEY) {
-    return {
-      supported: false,
-      needsInstallFirst: caps.isIos && !caps.standalone,
-      permission: caps.notifications ? Notification.permission : 'unsupported',
-      subscribed: false,
-    };
-  }
-  const reg = await whenSwReady();
-  const existing = await reg?.pushManager.getSubscription();
-  return {
-    supported: true,
+  const base = {
     needsInstallFirst: caps.isIos && !caps.standalone,
-    permission: Notification.permission,
-    subscribed: !!existing,
+    permission: (caps.notifications ? Notification.permission : 'unsupported') as
+      NotificationPermission | 'unsupported',
+  };
+
+  if (!caps.push || !caps.serviceWorker) {
+    return { ...base, supported: false, reason: 'unsupported', subscribed: false };
+  }
+  if (!VAPID_PUBLIC_KEY) {
+    return { ...base, supported: false, reason: 'not-configured', subscribed: false };
+  }
+
+  const reg = await whenSwReady(PUSH_STATE_SW_TIMEOUT_MS);
+  /*
+   * `reg.active` is what `pushManager.subscribe()` needs. A registration that is
+   * still installing (or absent) must not present an enabled switch: that was the
+   * path that let a click reach `enablePush` and fail with a toast.
+   */
+  const { supported, reason } = resolvePushSupport({
+    browserPush: caps.push,
+    browserServiceWorker: caps.serviceWorker,
+    hasVapidKey: Boolean(VAPID_PUBLIC_KEY),
+    workerActive: Boolean(reg?.active),
+  });
+  const existing = await reg?.pushManager.getSubscription().catch(() => null);
+
+  return {
+    ...base,
+    supported,
+    reason,
+    subscribed: Boolean(existing),
   };
 }
 
@@ -69,8 +122,15 @@ export async function enablePush(): Promise<PushState> {
   }
   if (permission !== 'granted') return getPushState();
 
-  const reg = await whenSwReady();
-  if (!reg) return getPushState();
+  const reg = await whenSwReady(PUSH_ENABLE_SW_TIMEOUT_MS);
+  /*
+   * The browser says it supports push but no worker is controlling the page, so
+   * subscribing is impossible. Surface it instead of silently flipping back.
+   */
+  if (!reg?.active) {
+    /* Defensive: the switch is disabled when `supported` is false, so this is a race. */
+    throw new Error('Notifications are not ready on this device yet. Reload the page.');
+  }
 
   const preExisting = await reg.pushManager.getSubscription();
   const sub =
@@ -108,7 +168,7 @@ export async function enablePush(): Promise<PushState> {
 
 /** Unsubscribe locally + server-side. Safe to call when not subscribed. */
 export async function disablePush(): Promise<PushState> {
-  const reg = await whenSwReady();
+  const reg = await whenSwReady(PUSH_STATE_SW_TIMEOUT_MS);
   const sub = await reg?.pushManager.getSubscription();
   if (sub) {
     const endpoint = sub.endpoint;

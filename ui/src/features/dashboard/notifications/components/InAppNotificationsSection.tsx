@@ -6,6 +6,7 @@ import { AdminSection } from '@/features/dashboard/bookings/components/AdminSect
 import { InAppNotificationsPanel } from '@/features/dashboard/notifications/components/InAppNotificationsPanel';
 import { NotificationPreferencesCard } from '@/features/dashboard/notifications/components/NotificationPreferencesCard';
 import { PushNotificationsCard } from '@/features/dashboard/notifications/components/PushNotificationsCard';
+import { QuietHoursCard } from '@/features/dashboard/notifications/components/QuietHoursCard';
 import {
   useMarkAllNotificationsRead,
   useNotificationsList,
@@ -48,6 +49,7 @@ export function InAppNotificationsSection() {
       <SyncCenterCard />
       <PushNotificationsCard />
       <NotificationPreferencesCard />
+      <QuietHoursCard />
       <StaleDataLabel updatedAt={dataUpdatedAt} className="px-1" />
       <AdminSection
         id={IN_APP_NOTIFICATIONS_SECTION_ID}

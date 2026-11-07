@@ -2,7 +2,7 @@
 title: 'Hosting and deployment'
 status: active
 tags: [workflow, planned, production-readiness, deployment, vercel, supabase]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 origin_stage: planned
@@ -63,18 +63,18 @@ Everything else in this doc is genuinely hosted-blocked this session — no `SUP
 
 ## Prior art — do not redo
 
-| Shipped                                 | Where                                                                                                               |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Dual-track deployment model             | [`ci-cd-environments/`](../../ci-cd-environments/README.md) — live `main` + legacy vs multi-tenant `kame-homes`     |
-| Dev CD                                  | `.github/workflows/cd-dev.yml`                                                                                      |
-| Pre-prod + prod CD + rollback workflows | `cd-preprod.yml`, `cd-prod.yml`, `cd-rollback.yml`                                                                  |
-| Prod CD gated                           | `CUTOVER_ENABLED` + typed confirm; deploys only after gate + quality + schema-diff artifact + backup + smoke (P1-6) |
-| Real smoke tests post-deploy            | `ci-smoke.sh` issues real GETs with the anon key (P1-7)                                                             |
-| Backup before deploy                    | `backup:supabase:dev/:prod`, automatic                                                                              |
-| Hardened rollback                       | Requires `--fresh-target`, empty public tables, typed project-ref confirm, atomic restore (P0-6)                    |
-| Prod-deploy protection for agents       | `kamewave` unlock + shell hooks (`.cursor/rules/no-prod-deploy.mdc`)                                                |
-| Env status check                        | `bun run env:status`                                                                                                |
-| Asset cache headers                     | `ui/vercel.json`                                                                                                    |
+| Shipped                                 | Where                                                                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Dual-track deployment model             | [`ci-cd-environments/`](../../../done/ci-cd-environments/README.md) — live `main` + legacy vs multi-tenant `kame-homes` |
+| Dev CD                                  | `.github/workflows/cd-dev.yml`                                                                                          |
+| Pre-prod + prod CD + rollback workflows | `cd-preprod.yml`, `cd-prod.yml`, `cd-rollback.yml`                                                                      |
+| Prod CD gated                           | `CUTOVER_ENABLED` + typed confirm; deploys only after gate + quality + schema-diff artifact + backup + smoke (P1-6)     |
+| Real smoke tests post-deploy            | `ci-smoke.sh` issues real GETs with the anon key (P1-7)                                                                 |
+| Backup before deploy                    | `backup:supabase:dev/:prod`, automatic                                                                                  |
+| Hardened rollback                       | Requires `--fresh-target`, empty public tables, typed project-ref confirm, atomic restore (P0-6)                        |
+| Prod-deploy protection for agents       | `kamewave` unlock + shell hooks (`.cursor/rules/no-prod-deploy.mdc`)                                                    |
+| Env status check                        | `bun run env:status`                                                                                                    |
+| Asset cache headers                     | `ui/vercel.json`                                                                                                        |
 
 This is the **most mature area** of the checklist. The remaining work is the cutover itself and a handful of verification gaps, both already tracked in the CI/CD plan.
 

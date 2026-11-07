@@ -85,7 +85,7 @@ export function updatePropertyPatchPermissions(body: Record<string, unknown>): T
   if (typeof body.residenceName === 'string') pushUnique(needed, 'settings.basicInfo:edit');
   if (typeof body.maxGuests === 'number') pushUnique(needed, 'settings.basicInfo:edit');
   if (typeof body.address === 'string') pushUnique(needed, 'settings.location:edit');
-  if (typeof body.status === 'string') pushUnique(needed, 'settings.dangerZone:edit');
+  // `status` is rejected by update-property: lifecycle changes go through property-lifecycle.
 
   if (body.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)) {
     const settings = body.settings as Record<string, unknown>;

@@ -37,6 +37,7 @@ import {
 } from '@/features/dashboard/bookings/lib/workflow';
 import { nestedAdvanceDisplay } from '@/features/dashboard/bookings/lib/workflowAdvanceMode';
 
+import { InfoHint } from '@/components/help/InfoHint';
 import { ResponsiveOverflowMenu } from '@/components/mobile/ResponsiveOverflowMenu';
 import { cn } from '@/lib/utils';
 
@@ -125,10 +126,13 @@ function approvalStatusTone(row: PendingDocStatusRow): string {
 
 function ApprovalStatusIcon({ status }: { status: PendingDocRowStatus }) {
   if (status === 'received' || status === 'on-file')
-    return <CheckCircle2 className="size-3 shrink-0" aria-hidden />;
-  if (status === 'rejected') return <XCircle className="size-3 shrink-0" aria-hidden />;
-  return <FileClock className="size-3 shrink-0" aria-hidden />;
+    return <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />;
+  if (status === 'rejected') return <XCircle className="size-3.5 shrink-0" aria-hidden />;
+  return <FileClock className="size-3.5 shrink-0" aria-hidden />;
 }
+
+const AWAITING_APPROVAL_HINT =
+  'We update this automatically when the approval reply arrives. You can still upload the signed copy yourself if you have it.';
 
 export function PendingDocSubStatusCard({
   booking,
@@ -139,6 +143,7 @@ export function PendingDocSubStatusCard({
   canUpload = false,
   onUpload,
   onReject,
+  onRecheck,
   onPreview,
 }: {
   booking: BookingRow;
@@ -151,6 +156,8 @@ export function PendingDocSubStatusCard({
   onUpload?: (sub: PendingDocNestedKey) => void;
   /** Opens the reject sheet for a received approval file. */
   onReject?: (sub: PendingDocNestedKey) => void;
+  /** Refetches the booking to look for a newly arrived approval. */
+  onRecheck?: (sub: PendingDocNestedKey) => void;
   onPreview: BookingAssetPreviewHandler;
 }) {
   const groupIdPrefix = useId();
@@ -179,6 +186,9 @@ export function PendingDocSubStatusCard({
     booking.status === 'PENDING_DOCUMENTS' &&
     Boolean(onReject) &&
     pendingDocStepUsesApprovalModal(sub, requirements);
+
+  const canRecheckApproval =
+    !beforeRequestSent && Boolean(onRecheck) && pendingDocStepUsesApprovalModal(sub, requirements);
 
   const subStepCompleted = state === 'approved' || state === 'complete-without-file';
   const groups = applies
@@ -268,6 +278,11 @@ export function PendingDocSubStatusCard({
                             ? () => onReject?.(sub)
                             : undefined
                         }
+                        onRecheck={
+                          canRecheckApproval && row.approvalRow
+                            ? () => onRecheck?.(sub)
+                            : undefined
+                        }
                       />
                     ))}
                   </ul>
@@ -292,6 +307,7 @@ function DocLinkRow({
   onPreview,
   onUpload,
   onReject,
+  onRecheck,
 }: {
   row: PendingDocStatusRow;
   statusUpdatedAt?: string | null;
@@ -300,6 +316,8 @@ function DocLinkRow({
   onUpload?: () => void;
   /** Opens the reject sheet — received approval files only. */
   onReject?: () => void;
+  /** Refetches the booking to look for a newly arrived approval. */
+  onRecheck?: () => void;
 }) {
   const stored = row.url?.trim() ?? '';
   const Icon = stored ? FileText : FileClock;
@@ -308,12 +326,22 @@ function DocLinkRow({
   const rejectionTitle = row.rejectionNote?.trim() || undefined;
 
   const menuActions = [
+    ...(onRecheck
+      ? [
+          {
+            key: 'recheck',
+            label: 'Recheck',
+            icon: <RefreshCw className="size-4" aria-hidden />,
+            onSelect: onRecheck,
+          },
+        ]
+      : []),
     ...(onUpload
       ? [
           {
-            key: 'replace',
+            key: 'upload',
             label: stored ? 'Replace file' : 'Upload file',
-            icon: <RefreshCw className="size-4" aria-hidden />,
+            icon: <Upload className="size-4" aria-hidden />,
             onSelect: onUpload,
           },
         ]
@@ -332,7 +360,7 @@ function DocLinkRow({
   ];
 
   return (
-    <li className="flex min-h-11 items-start justify-between gap-3 px-3 py-2">
+    <li className="flex min-h-11 items-center justify-between gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
         <span
           className={cn(
@@ -347,17 +375,19 @@ function DocLinkRow({
           <span className="truncate">{row.label}</span>
         </span>
         {approvalStatus ? (
-          <p
+          <span
             className={cn(
-              'mt-0.5 flex min-w-0 items-center gap-1 pl-[1.375rem] text-[11px] font-medium leading-snug',
+              'mt-0.5 flex min-w-0 items-center gap-2 text-[11px] font-medium leading-snug',
               approvalStatusTone(row)
             )}
             title={rejectionTitle}
-            aria-label={rejectionTitle ? `${approvalStatus}. ${rejectionTitle}` : undefined}
           >
             <ApprovalStatusIcon status={row.status} />
             <span className="truncate">{approvalStatus}</span>
-          </p>
+            {row.status === 'awaiting' ? (
+              <InfoHint label="Awaiting approval" text={AWAITING_APPROVAL_HINT} />
+            ) : null}
+          </span>
         ) : null}
       </div>
 
@@ -374,20 +404,7 @@ function DocLinkRow({
           >
             View
           </button>
-        ) : onUpload ? (
-          <button
-            type="button"
-            onClick={onUpload}
-            aria-label={`Upload ${row.label}`}
-            className={cn(
-              'focus-ring inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-1',
-              DOC_ROW_ACTION
-            )}
-          >
-            <Upload className="size-3.5 shrink-0" aria-hidden />
-            Upload
-          </button>
-        ) : (
+        ) : row.approvalRow ? null : (
           <span
             className={cn(
               row.status === 'ready' && DOC_ROW_READY,
@@ -404,6 +421,7 @@ function DocLinkRow({
           <ResponsiveOverflowMenu
             label={`Actions for ${row.label}`}
             sheetTitle={row.label}
+            sheetDescription={approvalStatus ?? undefined}
             actionGroups={[menuActions]}
             triggerClassName="size-8"
           />

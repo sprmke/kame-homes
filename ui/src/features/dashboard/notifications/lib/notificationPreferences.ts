@@ -55,6 +55,17 @@ export const NOTIFICATION_PREFERENCE_GROUP_LABELS: Record<
 
 export const NOTIFICATION_PREFERENCES_QUERY_KEY = ['notification-preferences'] as const;
 
+/** `22:00` → `10:00 PM`. Returns the input unchanged when it is not `HH:MM`. */
+export function formatQuietHoursTime(value: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return value;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
 type EdgeJson = {
   success?: boolean;
   error?: string;

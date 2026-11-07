@@ -12,7 +12,7 @@ updated: 2026-10-25
 **Source:** **LEGACY** `zfttdwtceyqszyeyhilc` (live bookings, Auth users, Storage)  
 **Target:** **MULTI_TENANT_PROD** _(project ref TBD at create time)_
 
-**Plan context:** [`multi-tenant-dev-prod-environments.md`](../../workflow/in-progress/ci-cd-environments/multi-tenant-dev-prod-environments.md) Phase B.
+**Plan context:** [`multi-tenant-dev-prod-environments.md`](../../workflow/done/ci-cd-environments/multi-tenant-dev-prod-environments.md) Phase B.
 
 > **Not the same as schema migrations.** Repo SQL under `supabase/migrations/` creates empty mt schema. This runbook covers **copying/transforming legacy production data** into the new project.
 

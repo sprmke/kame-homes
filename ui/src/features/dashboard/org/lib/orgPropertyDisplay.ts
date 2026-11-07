@@ -4,14 +4,24 @@ import {
   DEFAULT_RESIDENCE_NAME,
   propertySidebarLabel,
 } from '@/features/dashboard/org/lib/propertyDisplay';
+import {
+  lifecyclePresentation,
+  resolvePropertyLifecycleState,
+  type PropertyLifecycleState,
+} from '@/features/dashboard/org/lib/propertyLifecycle';
 import type { Property } from '@/features/dashboard/org/types';
 
-import { LISTING_STATUS_STYLES } from '@/lib/statusToneColors';
+import {
+  LISTING_STATUS_STYLES,
+  semanticBadgeClasses,
+  semanticBadgeDotClasses,
+} from '@/lib/statusToneColors';
 
 import type { LucideIcon } from 'lucide-react';
 
 export type OrgPropertyStatus = 'ACTIVE' | 'INACTIVE';
 
+/** Legacy two-state filter for parkings and super-admin tables. */
 export const ORG_PROPERTY_STATUSES: {
   value: OrgPropertyStatus;
   label: string;
@@ -31,6 +41,32 @@ export const ORG_PROPERTY_STATUSES: {
     dotClassName: LISTING_STATUS_STYLES.INACTIVE.dot,
   },
 ];
+
+/** Lifecycle filter for the org property list — one row per host-facing state. */
+export const ORG_PROPERTY_LIFECYCLE_OPTIONS: {
+  value: PropertyLifecycleState;
+  label: string;
+  badgeClassName: string;
+  dotClassName: string;
+}[] = (
+  ['live', 'paused', 'pending_verification', 'suspended', 'archived'] as PropertyLifecycleState[]
+).map((state) => {
+  const presentation = lifecyclePresentation(state);
+  return {
+    value: state,
+    label: presentation.label,
+    badgeClassName: semanticBadgeClasses(presentation.variant),
+    dotClassName: semanticBadgeDotClasses(presentation.variant),
+  };
+});
+
+/** Lifecycle state for a property row (client mirror of the server mapper). */
+export function orgPropertyLifecycleState(property: Property): PropertyLifecycleState {
+  return resolvePropertyLifecycleState({
+    status: property.status,
+    inactiveReason: property.inactiveReason,
+  });
+}
 
 export const ORG_PROPERTY_TYPES: { value: string; label: string }[] = [
   { value: 'CONDO', label: 'Condo' },
@@ -98,6 +134,7 @@ export function orgPropertySearchHaystack(property: Property): string {
     property.address,
     property.type,
     property.status,
+    property.inactiveReason,
   ]
     .filter(Boolean)
     .join(' ')

@@ -9,7 +9,9 @@ import { cn } from '@/lib/utils';
 
 export type HowItWorksButtonProps = {
   /** Feature name used in the accessible label, e.g. "pricing" → "How pricing works". */
-  feature: string;
+  feature?: string;
+  /** Overrides the generated label, e.g. the plural "How notifications work". */
+  label?: string;
   title: string;
   steps: HowItWorksStep[];
   tip?: string;
@@ -26,6 +28,7 @@ export type HowItWorksButtonProps = {
  */
 export function HowItWorksButton({
   feature,
+  label: labelOverride,
   title,
   steps,
   tip,
@@ -34,7 +37,7 @@ export function HowItWorksButton({
   hero = false,
 }: HowItWorksButtonProps) {
   const [open, setOpen] = useState(false);
-  const label = `How ${feature} works`;
+  const label = labelOverride ?? (feature ? `How ${feature} works` : 'How it works');
 
   const trigger = hero ? (
     <MobileHeroActionButton

@@ -2,7 +2,7 @@
 title: 'Tasks To Do'
 status: active
 tags: [planning, intake, backlog]
-updated: 2026-11-04
+updated: 2026-11-07
 stage: intake
 kind: backlog
 ---
@@ -22,7 +22,7 @@ kind: backlog
   → **Done:** [`../done/kamespace-04-domain-move-kamespace-com.md`](../done/kamespace-04-domain-move-kamespace-com.md)
 - ✅ **Get Google services approval**
   Brand verification approved and published 2026-11-03. Remaining hardening is post-launch.
-  → **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) · hardening: [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md)
+  → **Done:** [`../done/kamespace-05-google-services-verification.md`](../done/kamespace-05-google-services-verification.md) · hardening: [`../planned/google-services-production-hardening.md`](../in-progress/google-services-production-hardening.md)
 - 🔵 **Get PayMongo approval**
   Business account approval and split payouts are still with PayMongo.
 
@@ -32,23 +32,24 @@ kind: backlog
 - ✅ iCal sync to Airbnb
   → **Done:** [`../done/airbnb-calendar-sync.md`](../done/airbnb-calendar-sync.md)
 - 📋 Live identity verification to simplify real identity checks
-  → **In progress:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
+  → **Planned:** [`../planned/live-identity-verification.md`](../planned/live-identity-verification.md)
 - 🚧 Booking detail: email sent history, quick resend, and view sent email content.
-- 🔵 Cleanup tasks
-  - Cleanup unused settings and email templates related to Parking.
+- 🚧 Cleanup tasks
+  - ✅ Cleanup unused settings and email templates related to Parking.
   - Clean up unused env variables.
   - Store env variables and keep a current backup per environment.
   - Update and clean CI/CD after the legacy to multi-tenant migration.
   - List every third-party service. Add monitoring and alerts for errors, plus cost and limit tracking.
   - Able to sync data from hosting to local. → **Done:** `bun run sync:prod-data` (prod → local only).
 - 📋 AI-supported marketing scheduling and strategy
-  → **In progress:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md)
-- 🔵 Refine the archive and delete property flow.
+  → **Planned:** [`../planned/marketing-meta-publishing-gaps.md`](../planned/marketing-meta-publishing-gaps.md)
+- 🚧 Refine the archive and delete property flow.
+  → **In progress:** [`../in-progress/property-archive-and-delete-lifecycle.md`](../in-progress/property-archive-and-delete-lifecycle.md) — P0 shipped; P1–P7 remain.
 - 🚧 Refine cancellation policy settings and the overall cancellation process.
   → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 - ✅ On/off dashboard pages, sections, features or buttons from super admin, with a visible reason
   → **Done:** [`../done/feature-availability-controls.md`](../done/feature-availability-controls.md) · QA: [`../for-testing/feature-availability-controls.md`](../for-testing/feature-availability-controls.md)
-- 🚧 Improve and refine default amenities and house rules
+- ✅ Improve and refine default amenities and house rules
 - 🚧 Refine and improve cancellation policy options
   → **In progress:** [`../in-progress/cancellation-policy-and-process.md`](../in-progress/cancellation-policy-and-process.md)
 - ✅ Fix issue where google map is not rendering properly on both dashboard and public page
@@ -64,7 +65,13 @@ kind: backlog
 - Refine and further improve the marketing default generated marketing materials/examples/templates. They all look very ugly!
 - Refine landing page
 - ✅ Optional Resend hygiene: send From a dedicated subdomain (e.g. `notify.kamespace.com`) instead of apex `mail@kamespace.com`. Requires new Resend domain + DNS, then `RESEND_FROM_EMAIL` flip (`kamewave`). Image-hosting insight is already fixed in code via CID inlining (`sendResendEmail`).
+- Refine mascot
+- Airbnb conflict
+- Improve quick access on bottom part of the screen to include (Notifications, chat, dark/light switch, AI assistant)
+- Needs manual reload for webapp?
+- Improve performance, slow queries, lighthouse, before & after
 - Refine Channel sync modal
+- Inbox refinement
 - Reposition light/dark switch
 - Improve paid/pro subscription badge/flow
 - Control for auto transition to ready for check-in status?
@@ -82,8 +89,26 @@ kind: backlog
 - 🔵 Add short helpful info for sections and features that need it (start with External Reviews).
 - 🧪 Add templates (not email) to chat boxes across the app (AI assistant, Inbox)
   → **For testing:** [`../for-testing/chat-templates.md`](../for-testing/chat-templates.md)
+- 🧪 Support content refresh + docs → FAQ sync
+  → **For testing:** [`../for-testing/support-content-and-faq-sync.md`](../for-testing/support-content-and-faq-sync.md)
+- 🧪 Booking detail activity log coverage
+  → **For testing:** [`../for-testing/booking-detail-activity-log.md`](../for-testing/booking-detail-activity-log.md)
+- 🧪 Public pages native element sizing
+  → **For testing:** [`../for-testing/public-native-density.md`](../for-testing/public-native-density.md)
 - 🚧 AI Studio example photos and clips
   → **In progress:** [`../in-progress/ai-studio-sample-assets.md`](../in-progress/ai-studio-sample-assets.md)
+- 🚧 Dashboard contextual help
+  → **In progress:** [`../in-progress/dashboard-contextual-help.md`](../in-progress/dashboard-contextual-help.md)
+- 🚧 Mobile app chrome: header and tab bar
+  → **In progress:** [`../in-progress/mobile-app-chrome-header-and-tab-bar.md`](../in-progress/mobile-app-chrome-header-and-tab-bar.md)
+- 🚧 Notifications page restructure
+  → **In progress:** [`../in-progress/notifications-page-restructure.md`](../in-progress/notifications-page-restructure.md)
+- 🚧 Telegram delivery control + sent-message history
+  → **In progress:** [`../in-progress/telegram-delivery-and-history.md`](../in-progress/telegram-delivery-and-history.md)
+- 🚧 Settings cleanup and clarity
+  → **In progress:** [`../in-progress/settings-cleanup-and-clarity.md`](../in-progress/settings-cleanup-and-clarity.md)
+- 🚧 Weekly operations report
+  → **In progress:** [`../in-progress/weekly-ops-report.md`](../in-progress/weekly-ops-report.md)
 - 🔵 Make table action columns consistent across pages (for example Maintenance).
 - 🔵 Add a timeline view similar to Kame-Lends (Bookings, Finance, Maintenance).
 - 🔵 Add a calendar or custom view to spot overlapping bookings and check the minimum cleaning window.

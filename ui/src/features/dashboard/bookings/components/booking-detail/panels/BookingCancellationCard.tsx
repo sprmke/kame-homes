@@ -92,10 +92,6 @@ export function BookingCancellationCard({
   const outcome = computeCancellationOutcome({
     policy,
     booking: cancellationMoneyInputFromBooking(booking),
-    bookedAt:
-      (typeof booking.booked_at === 'string' && booking.booked_at) ||
-      (typeof booking.created_at === 'string' && booking.created_at) ||
-      new Date().toISOString(),
     cancelledAt: new Date().toISOString(),
     checkInTime,
     initiator: 'guest',

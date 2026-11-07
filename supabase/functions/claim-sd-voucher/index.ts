@@ -8,7 +8,7 @@
  *
  * D3: decoupled from the review — claimable once the stay reaches check-out,
  * whether or not a review was ever submitted. Status guard: `canClaimStayVoucher`.
- * Disabled when `app_settings.vouchers_enabled` is false (unless already awarded).
+ * Disabled unless `app_settings.vouchers_enabled` is true (unless already awarded).
  */
 
 import { DatabaseService } from '../_shared/databaseService.ts';
@@ -88,7 +88,7 @@ servePublic('claim-sd-voucher', async (req) => {
     const settingsRow = await loadAppSettingsRow(
       (row.property_id as string | null | undefined) ?? undefined
     );
-    if (settingsRow?.vouchers_enabled === false) {
+    if (settingsRow?.vouchers_enabled !== true) {
       return jsonResponse(
         req,
         {

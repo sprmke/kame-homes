@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+import { ClipboardList } from 'lucide-react';
 
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import {
@@ -38,6 +39,7 @@ function GuestFormToggleRow({
   checked,
   disabled,
   onCheckedChange,
+  variant = 'card',
 }: {
   id: string;
   label: string;
@@ -45,9 +47,16 @@ function GuestFormToggleRow({
   checked: boolean;
   disabled?: boolean;
   onCheckedChange: (checked: boolean) => void;
+  /** `flat` removes the row border so it can sit inside a grouped card. */
+  variant?: 'card' | 'flat';
 }) {
   return (
-    <div className="border-border/40 bg-muted/15 flex min-h-[44px] items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+    <div
+      className={cn(
+        'flex min-h-[44px] items-center justify-between gap-3 px-3 py-2.5',
+        variant === 'card' && 'border-border/40 bg-muted/15 rounded-lg border'
+      )}
+    >
       <FieldLabel htmlFor={id} label={label} help={help} className="min-w-0 flex-1" />
       <div className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center">
         <button
@@ -78,7 +87,10 @@ function GuestFormToggleRow({
   );
 }
 
-function guestFormSummaryParts(draft: PropertyProfileDraft): {
+function guestFormSummaryParts(
+  draft: PropertyProfileDraft,
+  hasActiveParking: boolean
+): {
   primary: string;
   secondary: string;
 } {
@@ -86,7 +98,7 @@ function guestFormSummaryParts(draft: PropertyProfileDraft): {
   if (draft.allowPets) enabled.push('Pets');
   if (draft.allowParking) enabled.push('Parking');
   if (draft.allowSurpriseDecor) enabled.push('Decor');
-  if (draft.complimentaryOwnerParking && draft.allowParking) {
+  if (draft.complimentaryOwnerParking && draft.allowParking && hasActiveParking) {
     enabled.push('Free own parking');
   }
 
@@ -99,17 +111,19 @@ function guestFormSummaryParts(draft: PropertyProfileDraft): {
 export function PropertyGuestFormSettingsSummary({
   draft,
   preferredParkingName,
+  hasActiveParking,
   disabled,
   onManage,
   needsAttention = false,
 }: {
   draft: PropertyProfileDraft;
   preferredParkingName: string | null;
+  hasActiveParking: boolean;
   disabled?: boolean;
   onManage: () => void;
   needsAttention?: boolean;
 }) {
-  const { primary, secondary } = guestFormSummaryParts(draft);
+  const { primary, secondary } = guestFormSummaryParts(draft, hasActiveParking);
   const detailParts = [
     secondary,
     preferredParkingName ? `Preferred: ${preferredParkingName}` : null,
@@ -156,7 +170,8 @@ function PropertyGuestFormSettingsFields({
   parkingsPath: string;
 }) {
   const fieldError = resolveFieldError;
-  const canConfigureParking = draft.allowParking && activeParkings.length > 0;
+  const hasActiveParking = activeParkings.length > 0;
+  const canConfigureParking = draft.allowParking && hasActiveParking;
 
   return (
     <>
@@ -170,69 +185,6 @@ function PropertyGuestFormSettingsFields({
           onCheckedChange={(value) => onChange('allowPets', value)}
         />
 
-        <p className="text-muted-foreground/90 pt-2 text-[11px] font-semibold uppercase tracking-wider">
-          Parking
-        </p>
-        <GuestFormToggleRow
-          id="guest-form-allow-parking"
-          label="Allow Parking"
-          help="Parking requests on the booking form."
-          checked={draft.allowParking}
-          disabled={disabled}
-          onCheckedChange={(value) => onChange('allowParking', value)}
-        />
-        {draft.allowParking && activeParkings.length === 0 ? (
-          <p className="text-muted-foreground text-xs leading-snug">
-            Add a parking slot in{' '}
-            <Link to={parkingsPath} className="text-primary font-medium hover:underline">
-              Parking
-            </Link>{' '}
-            to offer your own slots.
-          </p>
-        ) : null}
-        {canConfigureParking ? (
-          <>
-            <GuestFormToggleRow
-              id="guest-form-complimentary-owner-parking"
-              label="Free parking on your own slots"
-              help="Guests from this property who book one of your parking slots don't pay for it. Other hosts' slots are still paid."
-              checked={draft.complimentaryOwnerParking}
-              disabled={disabled}
-              onCheckedChange={(value) => onChange('complimentaryOwnerParking', value)}
-            />
-            <SettingsField
-              id="guest-form-preferred-owner-parking"
-              label="Preferred parking"
-              help="The slot we suggest first when you use Use your parking or share a parking link."
-              error={fieldError('guest-form-preferred-owner-parking')}
-            >
-              <Select
-                value={draft.preferredOwnerParkingId || '__none__'}
-                onValueChange={(value) =>
-                  setField(
-                    'preferredOwnerParkingId',
-                    value === '__none__' ? '' : value,
-                    'guest-form-preferred-owner-parking'
-                  )
-                }
-                disabled={disabled}
-              >
-                <SelectTrigger id="guest-form-preferred-owner-parking">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {activeParkings.map((parking) => (
-                    <SelectItem key={parking.id} value={parking.id}>
-                      {parking.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingsField>
-          </>
-        ) : null}
-
         <GuestFormToggleRow
           id="guest-form-allow-surprise-decor"
           label="Allow Surprise Decor"
@@ -241,6 +193,91 @@ function PropertyGuestFormSettingsFields({
           disabled={disabled}
           onCheckedChange={(value) => onChange('allowSurpriseDecor', value)}
         />
+
+        <div className="space-y-2 pt-2">
+          <p
+            id="guest-form-parking-group-label"
+            className="text-muted-foreground/90 text-[11px] font-semibold uppercase tracking-wider"
+          >
+            Parking
+          </p>
+          <div
+            role="group"
+            aria-labelledby="guest-form-parking-group-label"
+            className="border-border/40 bg-muted/20 divide-border/40 divide-y overflow-hidden rounded-lg border"
+          >
+            <GuestFormToggleRow
+              variant="flat"
+              id="guest-form-allow-parking"
+              label="Allow Parking"
+              help="Parking requests on the booking form."
+              checked={draft.allowParking}
+              disabled={disabled}
+              onCheckedChange={(value) => onChange('allowParking', value)}
+            />
+            <div>
+              <GuestFormToggleRow
+                variant="flat"
+                id="guest-form-complimentary-owner-parking"
+                label="Free parking on your own slots"
+                help="Guests from this property who book one of your parking slots don't pay for it. Other hosts' slots are still paid."
+                checked={draft.complimentaryOwnerParking}
+                disabled={disabled || !canConfigureParking}
+                onCheckedChange={(value) => onChange('complimentaryOwnerParking', value)}
+              />
+              {!draft.allowParking ? (
+                <p className="text-muted-foreground px-3 pb-2.5 text-xs leading-snug">
+                  Turn on Allow Parking to enable free parking on your own slots.
+                </p>
+              ) : !hasActiveParking ? (
+                <p className="text-muted-foreground px-3 pb-2.5 text-xs leading-snug">
+                  Add a parking slot in{' '}
+                  <Link to={parkingsPath} className="text-primary font-medium hover:underline">
+                    Parking
+                  </Link>{' '}
+                  to offer your own slots.
+                </p>
+              ) : null}
+            </div>
+            {canConfigureParking ? (
+              <div className="px-3 py-3">
+                <SettingsField
+                  id="guest-form-preferred-owner-parking"
+                  label="Preferred parking"
+                  help="The slot we suggest first when you use Use your parking or share a parking link."
+                  error={fieldError('guest-form-preferred-owner-parking')}
+                >
+                  <Select
+                    value={draft.preferredOwnerParkingId || '__none__'}
+                    onValueChange={(value) =>
+                      setField(
+                        'preferredOwnerParkingId',
+                        value === '__none__' ? '' : value,
+                        'guest-form-preferred-owner-parking'
+                      )
+                    }
+                    disabled={disabled}
+                  >
+                    <SelectTrigger
+                      id="guest-form-preferred-owner-parking"
+                      className="bg-background"
+                    >
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {activeParkings.map((parking) => (
+                        <SelectItem key={parking.id} value={parking.id}>
+                          {parking.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingsField>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </>
   );
@@ -337,6 +374,7 @@ export function PropertyGuestFormSettingsSection({
       <PropertyGuestFormSettingsSummary
         draft={draft}
         preferredParkingName={preferredParkingName}
+        hasActiveParking={activeParkings.length > 0}
         disabled={disabled}
         onManage={() => setManageOpen(true)}
         needsAttention={manageNeedsAttention}

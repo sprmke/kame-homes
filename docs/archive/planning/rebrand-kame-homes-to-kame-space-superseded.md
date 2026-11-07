@@ -275,7 +275,7 @@ Each needs the owner's login. Agent prepares exact field values; user applies. O
 
 - [ ] **X-01** Living docs: `CLAUDE.md`, `AGENTS.md`/`README.md`, `DESIGN.md`, `docs/README.md`, `docs/PROJECT.md`, `docs/architecture/**` (8 files), `docs/guides/**` (8 files, route guides via `route-guides` skill), `.cursor/rules/**` (5), `.cursor/commands/**`, `.claude/commands/**`, `.claude/README.md`, `.agent/skills/**`, `.opencode/**`, `opencode.json`. Product-name prose → Kame Space. Repo/project identifiers follow Phase 8 timing.
 - [ ] **X-02** `docs/workflow/**` (84 files): update living plans (planned, in-progress, intake). For done/wont-do/archive (25 archive files), change prose that names the **product**, but keep quoted historical identifiers accurate (old URLs, old slugs, old project names). Add a one-line note at the top of `docs/README.md`: "Kame Space was called Kame Homes before 2026-11." so readers of old docs aren't confused.
-- [ ] **X-03** `KAME_HOMES_URL` placeholder in `docs/workflow/in-progress/ci-cd-environments/ci-cd-dev-prod.md` → `APP_URL`.
+- [ ] **X-03** `KAME_HOMES_URL` placeholder in `docs/workflow/done/ci-cd-environments/ci-cd-dev-prod.md` → `APP_URL`.
 - [ ] **X-04** Skills that name the brand: `social-creative` ("Produce Kame Homes marketing creative"), `design-md`, `.agent/skills/*`. Re-run `bun run setup:ai-tooling` so Cursor/Claude/OpenCode copies stay in sync (SessionStart hook checks this).
 - [ ] **X-05** Agent commands `kh-*` → `ks-*` with aliases (R9); update `/kh-help` table.
 - [ ] **X-06** Brand glossary: add "Kame Space" (product), "Kame" (short name, mascot/AI receptionist), "Kame Homes" (former name) to the glossary (`domain-modeling` skill), plus the R4 casing table.
@@ -384,7 +384,7 @@ Each phase is shippable alone and reversible until Phase 8. Local first, then ho
 - `docs/guides/routes/*.md` (via `route-guides`): any route copy that names the product.
 - `scripts/README.md`: `check:brand`, `check:brand:db`, brand data script.
 - `.cursor/rules/*`, `CLAUDE.md`, `.claude/README.md`, `.opencode/README.md`: names, `ks-*` commands, Phase 8 repo name. Keep Cursor and Claude copies in sync.
-- `docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md`: R1/R2 outcome recorded in its Q1 / 3.1 / 1.4 / 6.1 / 6.2.
+- `docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md`: R1/R2 outcome recorded in its Q1 / 3.1 / 1.4 / 6.1 / 6.2.
 - Activity log: `org.brand_renamed` event in D-03; everything else `activity-log: N/A — copy/config only`.
 - Plans and permissions: N/A, no gated feature.
 

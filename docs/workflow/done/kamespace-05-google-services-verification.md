@@ -24,7 +24,7 @@ depends_on: [kamespace-03-rebrand-kame-homes-to-kame-space, kamespace-04-domain-
 
 **Output.** Besides the console work, this plan rewrites the operator guide [`google-services-approval.md`](../../archive/operations/google-services-approval.md) and [`google-cloud-console-cleanup.md`](../../archive/operations/google-cloud-console-cleanup.md) for the new name, domain, accounts and console layout, so the next person can repeat or audit it.
 
-**Status: closed 2026-11-03.** Google sign-in brand verification approved and published for project `967953419734` (`kame-homes`). Data access reduced to the three non-sensitive scopes, the Gmail "Connect Google" client deleted, Gmail/Calendar/Sheets/Drive removed, prod client `https://kamespace.com` plus the `fwor…supabase.co` callback only, Audience In production, branding verified and live, and `kamespace.com` verified in Search Console. Remaining Google hardening moved to [`google-services-production-hardening.md`](../planned/google-services-production-hardening.md).
+**Status: closed 2026-11-03.** Google sign-in brand verification approved and published for project `967953419734` (`kame-homes`). Data access reduced to the three non-sensitive scopes, the Gmail "Connect Google" client deleted, Gmail/Calendar/Sheets/Drive removed, prod client `https://kamespace.com` plus the `fwor…supabase.co` callback only, Audience In production, branding verified and live, and `kamespace.com` verified in Search Console. Remaining Google hardening moved to [`google-services-production-hardening.md`](../in-progress/google-services-production-hardening.md).
 
 ---
 
@@ -269,7 +269,7 @@ Every console change: record old value, new value, date and who in the runbook t
 
 ## 11. Disposition of remaining Google items
 
-Unchecked items in Phases 4-8 (Maps quotas and budget, billing upgrade, Gemini paid tier, Fonts, Workspace help, System Health, legacy retirement, docs rewrite) were **split out on 2026-11-03** to [`../planned/google-services-production-hardening.md`](../planned/google-services-production-hardening.md) (H-01 to H-12). They are post-launch follow-ups, not pre-production blockers.
+Unchecked items in Phases 4-8 (Maps quotas and budget, billing upgrade, Gemini paid tier, Fonts, Workspace help, System Health, legacy retirement, docs rewrite) were **split out on 2026-11-03** to [`../planned/google-services-production-hardening.md`](../in-progress/google-services-production-hardening.md) (H-01 to H-12). They are post-launch follow-ups, not pre-production blockers.
 
 Sign-in approval is complete and remains valid.
 

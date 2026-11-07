@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
 import { addDays, format } from 'date-fns';
-import { Check, Plus, Shield, Trash2 } from 'lucide-react';
+import { CalendarDays, Check, Plus, Shield, Trash2 } from 'lucide-react';
 
 import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import {
@@ -10,35 +9,21 @@ import {
   SettingsManageButton,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
 import {
-  CANCELLATION_GRACE_HOUR_OPTIONS,
-  CANCELLATION_MIN_LEAD_DAY_OPTIONS,
   CANCELLATION_POLICY_MAX_TIERS,
-  CANCELLATION_POLICY_NOTE_MAX,
   CANCELLATION_PRESETS,
   buildCancellationPreset,
   cancellationPolicyEqual,
   resolveCancellationPolicyDisplay,
   validateCancellationPolicy,
-  type CancellationFeeRule,
   type CancellationPolicy,
   type CancellationPresetId,
   type CancellationTier,
 } from '@/features/dashboard/org/lib/cancellationPolicy';
 
+import { NoticeCallout } from '@/components/help/NoticeCallout';
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   ResponsiveModal,
@@ -47,18 +32,8 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from '@/components/ui/responsive-modal';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { useGuardedClose } from '@/hooks/useGuardedClose';
-import { scopedFunctionsUrl, usePropertyIdParam } from '@/features/dashboard/org/lib/adminApiScope';
-import { supabase } from '@/lib/supabase/client';
+import { formatMoney } from '@/utils/format/currency';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -70,113 +45,160 @@ type Props = {
   /** When true, render controls only (no AdminSection card) for Page Editor. */
   embedded?: boolean;
   manageNeedsAttention?: boolean;
-  /** Upcoming bookings that keep their existing policy. */
-  upcomingBookingsCount?: number;
 };
 
-function graceLabel(hours: number): string {
-  return hours === 168 ? '7 days' : `${hours} hours`;
+/** Sample payment used only to illustrate the policy. */
+const SAMPLE_PAYMENT = {
+  downPayment: 1500,
+  petFee: 300,
+  parkingFee: 200,
+  additionalFee: 0,
+} as const;
+
+const SAMPLE_TOTAL_PAID =
+  SAMPLE_PAYMENT.downPayment +
+  SAMPLE_PAYMENT.petFee +
+  SAMPLE_PAYMENT.parkingFee +
+  SAMPLE_PAYMENT.additionalFee;
+
+function sampleRefund(percent: number): number {
+  return Math.round((SAMPLE_TOTAL_PAID * percent) / 100);
 }
 
-function daysLabel(days: number): string {
-  if (days === 0) return 'check-in day';
-  return days === 1 ? '1 day' : `${days} days`;
-}
-
-function TimelinePreview({ policy }: { policy: CancellationPolicy }) {
-  const sampleCheckIn = useMemo(() => addDays(new Date(), 30), []);
-  const rows = policy.tiers.map((tier) => ({
-    ...tier,
-    deadline: addDays(sampleCheckIn, -tier.daysBefore),
-  }));
-
+function PaymentRow({ label, amount }: { label: string; amount: number }) {
   return (
-    <div className="bg-muted/40 space-y-3 rounded-2xl p-4">
-      <p className="text-muted-foreground text-xs">
-        Example check-in {format(sampleCheckIn, 'MMM d, yyyy')}
-      </p>
-      {policy.grace?.enabled ? (
-        <div className="flex items-start gap-2 text-sm">
-          <span className="mt-0.5 size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-          <span>
-            <span className="font-medium">100% of paid</span> within {graceLabel(policy.grace.hours)} of
-            booking
-            {policy.grace.minLeadDays > 0
-              ? `, when booked at least ${daysLabel(policy.grace.minLeadDays)} ahead`
-              : ''}
-          </span>
-        </div>
-      ) : null}
-      {rows.length === 0 && !policy.grace?.enabled ? (
-        <p className="text-sm font-medium">No refund after booking.</p>
-      ) : null}
-      {rows.map((row) => (
-        <div key={row.daysBefore} className="flex items-start gap-2 text-sm">
-          <span
-            className={cn(
-              'mt-0.5 size-2 shrink-0 rounded-full',
-              row.refundPercent >= 100
-                ? 'bg-emerald-500'
-                : row.refundPercent > 0
-                  ? 'bg-amber-500'
-                  : 'bg-muted-foreground/50'
-            )}
-            aria-hidden
-          />
-          <span>
-            <span className="font-medium">{row.refundPercent}% of paid</span> until{' '}
-            {format(row.deadline, 'MMM d, yyyy')} ({daysLabel(row.daysBefore)} before)
-          </span>
-        </div>
-      ))}
-      {rows.length > 0 && policy.fallbackRefundPercent > 0 ? (
-        <div className="flex items-start gap-2 text-sm">
-          <span className="bg-muted-foreground/50 mt-0.5 size-2 shrink-0 rounded-full" aria-hidden />
-          <span>
-            <span className="font-medium">{policy.fallbackRefundPercent}% of paid</span> after that
-          </span>
-        </div>
-      ) : null}
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="tabular-nums">{formatMoney(amount)}</dd>
     </div>
   );
 }
 
-function FeeRuleSelect({
-  id,
+function RefundRow({
   label,
-  value,
-  disabled,
-  onChange,
+  amount,
+  percent,
+  tone,
 }: {
-  id: string;
   label: string;
-  value: CancellationFeeRule;
-  disabled?: boolean;
-  onChange: (value: CancellationFeeRule) => void;
+  amount: number;
+  percent: number;
+  tone: 'green' | 'amber' | 'muted';
 }) {
   return (
-    <SettingsField id={id} label={label}>
-      <Select value={value} onValueChange={(next) => onChange(next as CancellationFeeRule)} disabled={disabled}>
-        <SelectTrigger id={id} className="h-10">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="follow_policy">Follow the policy</SelectItem>
-          <SelectItem value="always_refund">Always refund</SelectItem>
-          <SelectItem value="never_refund">Never refund</SelectItem>
-        </SelectContent>
-      </Select>
-    </SettingsField>
+    <div className="flex items-start gap-2">
+      <span
+        className={cn(
+          'mt-1.5 size-2 shrink-0 rounded-full',
+          tone === 'green'
+            ? 'bg-emerald-500'
+            : tone === 'amber'
+              ? 'bg-amber-500'
+              : 'bg-muted-foreground/40'
+        )}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-sm">{label}</span>
+          <span className="text-sm font-semibold tabular-nums">{formatMoney(amount)}</span>
+        </div>
+        <p className="text-muted-foreground text-xs">{percent}% of paid</p>
+      </div>
+    </div>
+  );
+}
+
+function ExampleCard({ policy }: { policy: CancellationPolicy }) {
+  const sampleCheckIn = useMemo(() => addDays(new Date(), 60), []);
+  const rows = policy.tiers.map((tier) => ({
+    ...tier,
+    deadline: addDays(sampleCheckIn, -tier.daysBefore),
+  }));
+  const lastDeadline = rows[rows.length - 1]?.deadline;
+
+  return (
+    <div className="border-border/70 bg-muted/30 space-y-4 rounded-2xl border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Example</p>
+        <div className="bg-background inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs">
+          <CalendarDays className="text-muted-foreground size-3.5" aria-hidden />
+          <span className="text-muted-foreground">Check-in</span>
+          <span className="font-medium">{format(sampleCheckIn, 'MMM d, yyyy')}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="bg-background/70 rounded-xl border p-3">
+          <p className="text-xs font-medium">What they paid</p>
+          <dl className="mt-2 space-y-1 text-sm">
+            <PaymentRow label="Down payment" amount={SAMPLE_PAYMENT.downPayment} />
+            <PaymentRow label="Pet fee" amount={SAMPLE_PAYMENT.petFee} />
+            <PaymentRow label="Parking fee (if bundled)" amount={SAMPLE_PAYMENT.parkingFee} />
+            <PaymentRow label="Additional fee" amount={SAMPLE_PAYMENT.additionalFee} />
+            <div className="border-border/70 mt-1 flex items-baseline justify-between gap-3 border-t pt-2 font-medium">
+              <dt>Total paid for stay</dt>
+              <dd className="tabular-nums">{formatMoney(SAMPLE_TOTAL_PAID)}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="bg-background/70 rounded-xl border p-3">
+          <p className="text-xs font-medium">What they get back</p>
+          <div className="mt-2 space-y-3">
+            {rows.length === 0 ? (
+              <RefundRow
+                label="After booking"
+                amount={0}
+                percent={0}
+                tone="muted"
+              />
+            ) : (
+              rows.map((row) => (
+                <RefundRow
+                  key={row.daysBefore}
+                  label={`Cancel by ${format(row.deadline, 'MMM d')}`}
+                  amount={sampleRefund(row.refundPercent)}
+                  percent={row.refundPercent}
+                  tone={
+                    row.refundPercent >= 100
+                      ? 'green'
+                      : row.refundPercent > 0
+                        ? 'amber'
+                        : 'muted'
+                  }
+                />
+              ))
+            )}
+            {lastDeadline ? (
+              <RefundRow
+                label={`After ${format(lastDeadline, 'MMM d')}`}
+                amount={sampleRefund(policy.fallbackRefundPercent)}
+                percent={policy.fallbackRefundPercent}
+                tone={policy.fallbackRefundPercent > 0 ? 'amber' : 'muted'}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <p className="text-muted-foreground text-xs">
+        Down payment, pet fee, parking fee and additional fees follow this policy when they
+        are part of the stay payment.
+      </p>
+    </div>
   );
 }
 
 function TierBuilder({
   policy,
   disabled,
+  error,
   onChange,
 }: {
   policy: CancellationPolicy;
   disabled?: boolean;
+  error?: string | null;
   onChange: (tiers: CancellationTier[]) => void;
 }) {
   const updateTier = (index: number, patch: Partial<CancellationTier>) => {
@@ -192,9 +214,12 @@ function TierBuilder({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <Label className="text-sm font-medium">Refund schedule</Label>
+    <div className="border-border/70 bg-background/60 space-y-3 rounded-xl border p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Refund deadlines</p>
+          <p className="text-muted-foreground text-xs">After the last deadline, no refund.</p>
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -207,12 +232,12 @@ function TierBuilder({
           Add row
         </Button>
       </div>
-      {policy.tiers.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No deadline yet. Add a row or use a free cancellation window.</p>
-      ) : null}
       {policy.tiers.map((tier, index) => (
-        <div key={`${tier.daysBefore}-${index}`} className="flex items-end gap-2">
-          <SettingsField id={`cancellation-tier-days-${index}`} label="Days before" className="w-24">
+        <div
+          key={`${tier.daysBefore}-${index}`}
+          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+        >
+          <SettingsField id={`cancellation-tier-days-${index}`} label="Days before check-in">
             <Input
               id={`cancellation-tier-days-${index}`}
               type="number"
@@ -223,7 +248,7 @@ function TierBuilder({
               onChange={(event) => updateTier(index, { daysBefore: Number(event.target.value) })}
             />
           </SettingsField>
-          <SettingsField id={`cancellation-tier-percent-${index}`} label="Refund %" className="w-24">
+          <SettingsField id={`cancellation-tier-percent-${index}`} label="Refund %">
             <Input
               id={`cancellation-tier-percent-${index}`}
               type="number"
@@ -239,7 +264,7 @@ function TierBuilder({
             type="button"
             variant="ghost"
             size="icon"
-            className="mb-0.5 size-9 shrink-0"
+            className="justify-self-end sm:mb-0.5 sm:justify-self-auto"
             aria-label={`Remove row ${index + 1}`}
             onClick={() => onChange(policy.tiers.filter((_, i) => i !== index))}
             disabled={disabled}
@@ -248,6 +273,7 @@ function TierBuilder({
           </Button>
         </div>
       ))}
+      {error ? <p className="text-destructive text-xs">{error}</p> : null}
     </div>
   );
 }
@@ -255,22 +281,16 @@ function TierBuilder({
 function PolicyFields({
   policy,
   disabled,
-  resolveFieldError,
-  markFieldInteracted,
+  error,
   onChange,
 }: {
   policy: CancellationPolicy;
   disabled?: boolean;
-  resolveFieldError: (fieldId: string) => string | null;
-  markFieldInteracted: (fieldId: string) => void;
+  error?: string | null;
   onChange: (policy: CancellationPolicy) => void;
 }) {
   const setPreset = (presetId: CancellationPresetId) => {
     onChange(buildCancellationPreset(presetId, policy));
-  };
-
-  const patch = (partial: Partial<CancellationPolicy>) => {
-    onChange({ ...policy, ...partial });
   };
 
   return (
@@ -302,176 +322,42 @@ function PolicyFields({
                     </span>
                   ) : null}
                 </span>
-                <span className="text-muted-foreground block text-xs leading-snug">{preset.summary}</span>
+                <span className="text-muted-foreground block text-xs leading-snug">
+                  {preset.summary}
+                </span>
               </span>
             </label>
           );
         })}
       </RadioGroup>
 
-      {policy.presetId === 'custom' ? (
-        <div className="space-y-4">
-          <TierBuilder
-            policy={policy}
-            disabled={disabled}
-            onChange={(tiers) => patch({ tiers })}
-          />
-          <SettingsField id="cancellation-fallback" label="Refund after the last deadline">
-            <Select
-              value={String(policy.fallbackRefundPercent)}
-              onValueChange={(value) => patch({ fallbackRefundPercent: Number(value) })}
-              disabled={disabled}
-            >
-              <SelectTrigger id="cancellation-fallback" className="h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[0, 25, 50, 75, 100].map((percent) => (
-                  <SelectItem key={percent} value={String(percent)}>
-                    {percent}% of paid
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingsField>
-        </div>
+      {policy.presetId === 'custom' && !policy.needsReview ? (
+        <TierBuilder
+          policy={policy}
+          disabled={disabled}
+          error={error}
+          onChange={(tiers) => onChange({ ...policy, tiers })}
+        />
       ) : null}
 
-      <TimelinePreview policy={policy} />
-
-      <div className="border-border/70 space-y-4 border-t pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <Label htmlFor="cancellation-grace-toggle" className="text-sm font-medium">
-              Free cancellation window
-            </Label>
-            <p className="text-muted-foreground text-xs">
-              Full refund right after booking, when booked far enough ahead.
-            </p>
-          </div>
-          <Switch
-            id="cancellation-grace-toggle"
-            checked={Boolean(policy.grace?.enabled)}
-            disabled={disabled}
-            onCheckedChange={(checked) =>
-              patch({
-                grace: checked
-                  ? { enabled: true, hours: policy.grace?.hours ?? 24, minLeadDays: policy.grace?.minLeadDays ?? 7 }
-                  : null,
-              })
-            }
-          />
-        </div>
-        {policy.grace?.enabled ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <SettingsField id="cancellation-grace-hours" label="Window">
-              <Select
-                value={String(policy.grace.hours)}
-                onValueChange={(value) =>
-                  patch({ grace: { ...policy.grace!, hours: Number(value) } })
-                }
-                disabled={disabled}
-              >
-                <SelectTrigger id="cancellation-grace-hours" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CANCELLATION_GRACE_HOUR_OPTIONS.map((hours) => (
-                    <SelectItem key={hours} value={String(hours)}>
-                      {graceLabel(hours)} after booking
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingsField>
-            <SettingsField id="cancellation-grace-lead" label="Only when booked ahead">
-              <Select
-                value={String(policy.grace.minLeadDays)}
-                onValueChange={(value) =>
-                  patch({ grace: { ...policy.grace!, minLeadDays: Number(value) } })
-                }
-                disabled={disabled}
-              >
-                <SelectTrigger id="cancellation-grace-lead" className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CANCELLATION_MIN_LEAD_DAY_OPTIONS.map((days) => (
-                    <SelectItem key={days} value={String(days)}>
-                      {days === 0 ? 'No minimum' : `${daysLabel(days)} ahead`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingsField>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="border-border/70 grid gap-3 border-t pt-4 sm:grid-cols-2">
-        <FeeRuleSelect
-          id="cancellation-fee-pet"
-          label="Pet fee"
-          value={policy.feeRules.petFee}
-          disabled={disabled}
-          onChange={(petFee) => patch({ feeRules: { ...policy.feeRules, petFee } })}
-        />
-        <FeeRuleSelect
-          id="cancellation-fee-additional"
-          label="Additional guest fee"
-          value={policy.feeRules.additionalFees}
-          disabled={disabled}
-          onChange={(additionalFees) => patch({ feeRules: { ...policy.feeRules, additionalFees } })}
-        />
-      </div>
-
-      <div className="border-border/70 space-y-3 border-t pt-4">
-        <Label className="text-sm font-medium">When a guest cancels</Label>
-        <RadioGroup
-          value={policy.guestCancellation}
-          onValueChange={(value) => patch({ guestCancellation: value as 'instant' | 'request' })}
-          disabled={disabled}
-          className="gap-2"
-        >
-          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border p-3">
-            <RadioGroupItem value="instant" className="mt-1" disabled={disabled} />
-            <span>
-              <span className="block text-sm font-medium">Cancel right away</span>
-              <span className="text-muted-foreground block text-xs">
-                The booking is cancelled and the refund is recorded.
-              </span>
-            </span>
-          </label>
-          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-xl border p-3">
-            <RadioGroupItem value="request" className="mt-1" disabled={disabled} />
-            <span>
-              <span className="block text-sm font-medium">Ask me first</span>
-              <span className="text-muted-foreground block text-xs">
-                The guest sends a request and you approve or decline it.
-              </span>
-            </span>
-          </label>
-        </RadioGroup>
-      </div>
-
-      <SettingsField id="cancellation-note" label="Note for guests" error={resolveFieldError('cancellation-note')}>
-        <Textarea
-          id="cancellation-note"
-          value={policy.note ?? ''}
-          maxLength={CANCELLATION_POLICY_NOTE_MAX}
-          rows={2}
-          disabled={disabled}
-          onChange={(event) => {
-            markFieldInteracted('cancellation-note');
-            patch({ note: event.target.value });
-          }}
-        />
-      </SettingsField>
+      {policy.needsReview ? (
+        <NoticeCallout tone="warning">
+          This policy was written as free text. Choose a preset to make it enforceable.
+        </NoticeCallout>
+      ) : (
+        <ExampleCard policy={policy} />
+      )}
     </>
   );
 }
 
-function PreviewCard({ policy, action }: { policy: CancellationPolicy | null; action?: React.ReactNode }) {
+function PreviewCard({
+  policy,
+  action,
+}: {
+  policy: CancellationPolicy | null;
+  action?: React.ReactNode;
+}) {
   const display = resolveCancellationPolicyDisplay(policy);
   const toneClasses =
     display.tone === 'positive'
@@ -511,39 +397,17 @@ function PreviewCard({ policy, action }: { policy: CancellationPolicy | null; ac
 export function PropertyCancellationPolicySection({
   policy,
   disabled,
-  resolveFieldError,
-  markFieldInteracted,
+  resolveFieldError: _resolveFieldError,
+  markFieldInteracted: _markFieldInteracted,
   onChange,
   embedded = false,
   manageNeedsAttention = false,
-  upcomingBookingsCount,
 }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
   const [draft, setDraft] = useState<CancellationPolicy | null>(
     policy ?? buildCancellationPreset('moderate')
   );
   const [baselineDraft, setBaselineDraft] = useState<CancellationPolicy | null>(policy);
-  const [confirmUpcoming, setConfirmUpcoming] = useState(false);
-  const [pendingSave, setPendingSave] = useState<CancellationPolicy | null>(null);
-  const propertyId = usePropertyIdParam();
-
-  const impactQuery = useQuery({
-    queryKey: ['cancellation-policy-impact', propertyId],
-    enabled: Boolean(propertyId) && manageOpen,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      const jwt = data.session?.access_token;
-      if (!jwt) return { upcomingCount: 0 };
-      const res = await fetch(
-        scopedFunctionsUrl(`/cancellation-policy-impact?property_id=${propertyId}`, propertyId),
-        { headers: { Authorization: `Bearer ${jwt}` } }
-      );
-      const json = await res.json().catch(() => ({}));
-      return { upcomingCount: Number(json?.data?.upcomingCount ?? 0) };
-    },
-  });
-  const upcomingCount = upcomingBookingsCount ?? impactQuery.data?.upcomingCount ?? 0;
 
   const dirty = !cancellationPolicyEqual(draft, baselineDraft);
   const draftError = draft ? validateCancellationPolicy(draft) : 'Choose a cancellation policy';
@@ -560,16 +424,6 @@ export function PropertyCancellationPolicySection({
     setManageOpen(false);
   };
 
-  const requestSave = () => {
-    if (!draft || draftError) return;
-    if (upcomingCount > 0 && !cancellationPolicyEqual(draft, policy)) {
-      setPendingSave(draft);
-      setConfirmUpcoming(true);
-      return;
-    }
-    commit(draft);
-  };
-
   const { onOpenChange, requestClose, dialogProps } = useGuardedClose({
     open: manageOpen,
     onOpenChange: setManageOpen,
@@ -581,29 +435,6 @@ export function PropertyCancellationPolicySection({
     },
     onDiscard: () => setDraft(baselineDraft),
   });
-
-  const controls = draft ? (
-    <PolicyFields
-      policy={draft}
-      disabled={disabled}
-      resolveFieldError={resolveFieldError}
-      markFieldInteracted={markFieldInteracted}
-      onChange={setDraft}
-    />
-  ) : (
-    <div className="space-y-4">
-      <p className="text-muted-foreground text-sm">
-        Guests see "Ask the host about cancellation" until you choose a policy.
-      </p>
-      <PolicyFields
-        policy={buildCancellationPreset('moderate')}
-        disabled={disabled}
-        resolveFieldError={resolveFieldError}
-        markFieldInteracted={markFieldInteracted}
-        onChange={setDraft}
-      />
-    </div>
-  );
 
   if (embedded) {
     const embeddedPolicy = policy ?? buildCancellationPreset('moderate');
@@ -628,14 +459,9 @@ export function PropertyCancellationPolicySection({
         <PolicyFields
           policy={embeddedPolicy}
           disabled={disabled}
-          resolveFieldError={resolveFieldError}
-          markFieldInteracted={markFieldInteracted}
+          error={validateCancellationPolicy(embeddedPolicy)}
           onChange={onChange}
         />
-        <TimelinePreview policy={embeddedPolicy} />
-        {validateCancellationPolicy(embeddedPolicy) ? (
-          <p className="text-destructive text-xs">{validateCancellationPolicy(embeddedPolicy)}</p>
-        ) : null}
       </div>
     );
   }
@@ -647,12 +473,15 @@ export function PropertyCancellationPolicySection({
       icon={Shield}
       description="Refund rules based on what the guest has paid."
     >
-      <PreviewCard
-        policy={policy}
-        action={
-          <SettingsManageButton needsAttention={manageNeedsAttention} onClick={openManage} />
-        }
-      />
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-xs font-medium">Guest preview</p>
+        <PreviewCard
+          policy={policy}
+          action={
+            <SettingsManageButton needsAttention={manageNeedsAttention} onClick={openManage} />
+          }
+        />
+      </div>
 
       <ResponsiveModal open={manageOpen} onOpenChange={onOpenChange}>
         <ResponsiveModalContent
@@ -666,25 +495,31 @@ export function PropertyCancellationPolicySection({
           </ResponsiveModalHeader>
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 [-webkit-overflow-scrolling:touch] sm:px-5">
-            {controls}
-            {draftError ? <p className="text-destructive text-xs">{draftError}</p> : null}
-            {upcomingCount > 0 ? (
-              <p className="text-muted-foreground text-xs">
-                Applies to new bookings only. {upcomingCount} upcoming{' '}
-                {upcomingCount === 1 ? 'booking keeps' : 'bookings keep'} the policy they
-                booked with.
-              </p>
+            {draft ? (
+              <PolicyFields
+                policy={draft}
+                disabled={disabled}
+                error={draftError}
+                onChange={setDraft}
+              />
             ) : null}
           </div>
 
           <ResponsiveModalFooter className="border-border/60 flex shrink-0 gap-2 border-t px-4 py-3 sm:px-5">
-            <Button type="button" variant="outline" className="min-h-[44px] flex-1 sm:flex-none" onClick={requestClose}>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[44px] flex-1 sm:flex-none"
+              onClick={requestClose}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               className="min-h-[44px] flex-1 sm:ml-auto sm:flex-none"
-              onClick={requestSave}
+              onClick={() => {
+                if (draft && !draftError) commit(draft);
+              }}
               disabled={Boolean(draftError) || disabled}
             >
               Save
@@ -694,31 +529,6 @@ export function PropertyCancellationPolicySection({
       </ResponsiveModal>
 
       <UnsavedChangesDialog {...dialogProps} />
-
-      <AlertDialog open={confirmUpcoming} onOpenChange={setConfirmUpcoming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apply to new bookings only?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {upcomingCount} upcoming{' '}
-              {upcomingCount === 1 ? 'booking keeps' : 'bookings keep'} the policy they booked
-              with. New bookings will use this policy.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep editing</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingSave) commit(pendingSave);
-                setConfirmUpcoming(false);
-                setPendingSave(null);
-              }}
-            >
-              Save policy
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminSection>
   );
 }

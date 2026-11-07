@@ -2,7 +2,7 @@
 title: 'Dashboard contextual help (info tooltips, how-it-works panels, stat card definitions)'
 status: in-progress
 tags: [workflow, in-progress, ux, copy, dashboard, help]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 ---
@@ -422,22 +422,25 @@ Files: `bookings/pages/NotificationsPage.tsx`, `notifications/components/*`
 Staff), `parking/pages/ParkingNotificationsPage.tsx`,
 `parking/components/TelegramParkingSettingsCard.tsx`, `ParkingNotificationTemplatesCard.tsx`.
 
-- [ ] **P3.1** `HowItWorksButton` "How notifications work". Steps:
+- [x] **P3.1** `HowItWorksButton` "How notifications work". Shipped 2026-11-06: copy in `NOTIFICATIONS_HOW_IT_WORKS`. The entry point started in the header **Manage** sheet, then moved to the **?** beside the page title (property and parking) during the notifications polish pass — it sits with the title instead of competing with the **Manage** action. The channel comparison is the four steps themselves (In-app / Phone push / Telegram / Pick per channel). Steps:
   1. Something happens (new booking, guest message, payment, reminder).
   2. You get it in the bell here in the app, and as a phone push if you turn that on.
   3. You can also get it in Telegram, in your own chat or a group with your team.
   4. Pick which events you want in each place.
      Include a small three-column "channel" comparison (In-app / Phone push / Telegram: where it
      shows, needs setup or not, good for).
-- [ ] **P3.2** First-visit `IntroCard` on the Notifications hub.
-- [ ] **P3.3** Tabs (Activity / Telegram): tab-level `InfoHint` is not allowed inside tab pills
+- [ ] **P3.2** First-visit `IntroCard` on the Notifications hub. **Shipped then removed 2026-11-06** by product decision: the banner was redundant with the tabs and pushed the KPIs down. The channel explainer now lives in the header **Manage** sheet, so do not re-add a banner here.
+- [x] **P3.3** Tabs (Activity / Telegram): tab-level `InfoHint` is not allowed inside tab pills
       (nested button inside `SlidingTabsList` trigger). Instead put a section-title hint at the top
       of each tab panel. Re-run `remeasureDeps` check so the pill does not misalign.
-- [ ] **P3.4** `NotificationPreferencesCard`: hint per preference group saying what triggers it and
+      **Shipped 2026-11-06:** hint on the Activity card title (org-wide scope, same list as the bell). The Telegram tab already had its group heading and per-module descriptions, so no extra title hint there.
+- [x] **P3.4** `NotificationPreferencesCard`: hint per preference group saying what triggers it and
       who receives it (just you vs everyone on the team, verify in `notification-preferences`).
-- [ ] **P3.5** `PushNotificationsCard`: hint explaining per-device opt-in, iOS needs the app added
+      **Shipped 2026-11-06, A12 verified:** `notification-preferences` is per user (`user_id` only, no org column), so the card title says these apply to your account on every device, and each row reuses the existing group hint ("New bookings, check-ins, checkouts, refunds").
+- [x] **P3.5** `PushNotificationsCard`: hint explaining per-device opt-in, iOS needs the app added
       to Home Screen first (PWA, see `docs/architecture/pwa.md`), and what "blocked" in the browser
-      means with how to fix it.
+      means with how to fix it. **Shipped 2026-11-06:** one hint on the card title, now inside the
+      header **Manage** sheet; the blocked and add-to-Home-Screen cases stay as the inline status line.
 - [ ] **P3.6** Telegram setup, the hardest part for non-technical hosts:
   - Turn `TelegramHelpDialog` into the Telegram `HowItWorksDialog` (or have it use the new
     component): 1. Create a bot with @BotFather and copy the token. 2. Paste the token here. 3. Start a chat with your bot (or add it to a group) and get the chat ID. 4. Send a test.
@@ -451,9 +454,12 @@ Staff), `parking/pages/ParkingNotificationsPage.tsx`,
   - `TelegramModalNumberField`: units (days before, hours, Philippine time).
   - `TelegramTemplateEditor` + `TelegramPlaceholdersReference`: hint "Words in {{ }} are replaced
     with real booking details when the message sends."
-- [ ] **P3.7** Empty states: Activity with no notifications gets icon + one line + "Notification
-      settings" link (no essay).
-- [ ] **P3.8** Parking notifications page mirrors the same treatment with parking nouns.
+- [x] **P3.7** Empty states: Activity with no notifications gets icon + one line + "Notification
+      settings" link (no essay). **Shipped 2026-11-06** as icon + one line ("No notifications yet.").
+      No settings link: the push settings now sit on the same tab directly above the list, so a link
+      would point at something already on screen.
+- [x] **P3.8** Parking notifications page mirrors the same treatment with parking nouns.
+      **Shipped 2026-11-06:** same shell, cards, intro, How it works and hints on the parking page.
 - [ ] **P3.9** Verify preference scope and recipients in `notification-preferences` before writing
       "just you" vs "everyone on the team" (addendum A12).
 

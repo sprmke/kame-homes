@@ -364,7 +364,7 @@ serveAuthenticated('app-settings', async (req, user) => {
       const willEnable =
         typeof body.vouchersEnabled === 'boolean'
           ? body.vouchersEnabled
-          : currentRow?.vouchers_enabled !== false;
+          : currentRow?.vouchers_enabled === true;
       if (willEnable && prizes.length === 0) {
         return jsonError(req, 'Add at least one voucher prize');
       }

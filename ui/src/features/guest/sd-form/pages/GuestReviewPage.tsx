@@ -88,7 +88,7 @@ export function GuestReviewPage() {
       return;
     }
     if (!query.data.guest_review_submitted || query.data.can_edit_review !== false) return;
-    setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher');
+    setPhase(query.data.vouchers_enabled === true ? 'voucher' : 'done');
   }, [existingVoucher, query.data, phase]);
 
   if (embedPreview && !bookingId) {
@@ -128,13 +128,13 @@ export function GuestReviewPage() {
       isClaiming={claimMut.isPending}
       onClaim={() => claimMut.mutateAsync()}
       claimWidget={claimAntiSpam.render}
-      onReviewSubmitted={() => setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher')}
+      onReviewSubmitted={() => setPhase(query.data.vouchers_enabled === true ? 'voucher' : 'done')}
       onSkip={() => {
         if (propertySlug) {
           navigate(guestTripPath(propertySlug, bookingId));
           return;
         }
-        setPhase(query.data.vouchers_enabled === false ? 'done' : 'voucher');
+        setPhase(query.data.vouchers_enabled === true ? 'voucher' : 'done');
       }}
       onVoucherDone={() => setPhase('done')}
     />

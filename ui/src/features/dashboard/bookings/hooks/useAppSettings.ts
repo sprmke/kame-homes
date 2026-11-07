@@ -206,7 +206,7 @@ export function appSettingsToFormValues(data: AppSettingsDto): AppSettingsFormVa
     instagramUrl: data.instagramUrl,
     tiktokUrl: data.tiktokUrl,
     externalReviews: normalizeExternalReviewsDraft(data.externalReviews),
-    vouchersEnabled: data.vouchersEnabled !== false,
+    vouchersEnabled: data.vouchersEnabled === true,
     voucherPrizes: voucherPrizesForEditor(data.voucherPrizes),
     voucherRevealStyle: normalizeVoucherRevealStyle(data.voucherRevealStyle),
     documentRequirementsOverride: data.documentRequirementsOverride,

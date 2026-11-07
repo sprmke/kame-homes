@@ -4,7 +4,7 @@
  * Bucket `marketing-media` (public). Content-addressed layout:
  *   {propertyId}/{assetId}/original.{ext}
  *   {propertyId}/{assetId}/poster.jpg
- * Plan: docs/workflow/for-testing/marketing-video-editor-multitrack.md §5.4.
+ * Plan: docs/workflow/in-progress/marketing-video-editor-multitrack.md §5.4.
  */
 
 import type { SupabaseClient } from './supabaseJs.ts';

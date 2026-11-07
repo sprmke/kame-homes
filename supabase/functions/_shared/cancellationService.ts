@@ -10,6 +10,7 @@ import {
   cancellationPolicyHash,
   readCancellationPolicyFromSettings,
   readCancellationPolicyVersionId,
+  isCancellationPolicyNonRefundable,
   resolveCancellationPolicyDisplay,
   type CancellationPolicy,
   type CancellationPolicySnapshot,
@@ -204,14 +205,9 @@ export function computeOutcomeForBooking(input: {
   cancelledAt?: string;
   overrideRefundPhp?: number | null;
 }): CancellationOutcome {
-  const bookedAt =
-    str(input.booking.booked_at) ||
-    str(input.booking.created_at) ||
-    new Date().toISOString();
   return computeCancellationOutcome({
     policy: input.policy,
     booking: cancellationMoneyInputFromBooking(input.booking),
-    bookedAt,
     cancelledAt: input.cancelledAt ?? new Date().toISOString(),
     checkInTime: input.checkInTime,
     initiator: input.initiator,
@@ -467,8 +463,6 @@ export async function cancelBooking(input: {
     initiator: input.initiator,
     overrideRefundPhp: input.overrideRefundPhp,
   });
-
-  const nowIso = new Date().toISOString();
 
   const result = await WorkflowOrchestrator.transition(
     bookingId,
@@ -739,10 +733,12 @@ export function buildGuestCancellationPayload(input: {
     now
   );
   const mustRequest = guestMustRequestCancellation(booking);
+  const policyBlocked = policy === null || policy.needsReview;
   const canCancel =
     guestCancellable &&
     !input.openRequest &&
     !mustRequest &&
+    !policyBlocked &&
     str(booking.status) !== 'CANCELLED' &&
     !str(booking.external_source);
 
@@ -758,16 +754,14 @@ export function buildGuestCancellationPayload(input: {
       capturedFrom: input.snapshot?.capturedFrom ?? null,
     },
     outcome: input.outcome,
+    nonRefundable: isCancellationPolicyNonRefundable(display),
     canCancel,
     canRequest:
       guestCancellable &&
       !input.openRequest &&
       str(booking.status) !== 'CANCELLED' &&
       !str(booking.external_source) &&
-      (mustRequest ||
-        policy === null ||
-        policy.needsReview ||
-        policy.guestCancellation === 'request'),
+      (mustRequest || policyBlocked),
     canWithdraw: Boolean(input.openRequest),
     request: input.openRequest
       ? {

@@ -236,6 +236,8 @@ Payment settings PATCH needs org-owner email OTP. Rule: `.cursor/rules/admin-aut
 
 ## 7. Data and files
 
+**Listing lifecycle:** `properties.status` is the public-live flag and `properties.inactive_reason` records why a listing is closed (`pending_verification`, `paused`, `contract_lapsed`, `consideration_denied`, `succession`, `archived`); the two always agree by DB constraint. Host actions (`pause` / `resume` / `archive` / `restore`) and the impact payload live in `_shared/propertyLifecycle.ts` + `property-lifecycle`; `update-property` rejects `status`. Archived listings keep every record, stop automations, and leave the bill from the next cycle; delete is owner-only, typed-name, and blocked by named records. Plan: [`workflow/in-progress/property-archive-and-delete-lifecycle`](../workflow/in-progress/property-archive-and-delete-lifecycle.md).
+
 **Tenancy:** one owner per org. Properties and parkings are **peer** assets (`organizations.host_modes`). Bookings live in `guest_submissions` with exactly one of `property_id` or `parking_id` (or a parking broadcast with `parking_request_organization_id` until claimed).
 
 | Cluster  | Examples                                                                                                                                                                                                           | Access                                    |
@@ -276,7 +278,7 @@ flowchart LR
 
 Canonical spec: `.cursor/rules/booking-workflow.mdc`. Host walkthrough: [`booking-flow-guide-for-admin.md`](../archive/reference/booking-flow-guide-for-admin.md).
 
-**Cancellation.** Every booking carries an immutable `cancellation_policy_snapshot` captured at booking time. Guests cancel (instant policies) or request to cancel (request-mode / custom / unset policies, and always once the balance is paid) from `/properties/:slug/trip`; hosts approve or decline, and can cancel with a reason and a refund preview. The refund is computed from the snapshot in Asia/Manila time **on the amount the guest has actually paid** (down payment + settled balance), not the full stay value, and tracked in `booking_refunds` until the host marks it sent. Guest and host cancellation emails are orchestrator side effects. Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
+**Cancellation.** Every booking carries an immutable `cancellation_policy_snapshot` captured at booking time. Guests cancel while only the down payment is paid, or request to cancel once the balance is paid (or when the policy is unset or migrated free text), from `/properties/:slug/trip`; hosts approve or decline, and can cancel with a reason and a refund preview. The refund is computed from the snapshot in Asia/Manila time **on the amount the guest has actually paid** (down payment + settled balance), not the full stay value, and tracked in `booking_refunds` until the host marks it sent. Guest and host cancellation emails are orchestrator side effects. Plan: [`cancellation-policy-and-process.md`](../workflow/in-progress/cancellation-policy-and-process.md).
 
 ---
 

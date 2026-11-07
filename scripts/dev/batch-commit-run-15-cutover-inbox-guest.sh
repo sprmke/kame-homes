@@ -81,7 +81,7 @@ commit "feat(ui): resolve guest booking property from bookingId" \
 commit "chore(scripts): add legacy-to-mt-prod migration tooling" \
   scripts/migrate/legacy-to-mt-prod/ \
   docs/archive/operations/legacy-to-mt-prod-migration.md \
-  docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md \
+  docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md \
   docs/workflow/planned/legacy-prod-config-secrets-backup.md
 
 commit "test(e2e): add admin system health smoke harness" \
@@ -107,7 +107,7 @@ commit "docs: update project index and guest booking route guide" \
 
 commit "docs: add cutover rebrand chat templates and QA workflow" \
   docs/workflow/planned/chat-templates.md \
-  docs/workflow/planned/rebrand-kame-homes-to-kame-space.md \
+  docs/archive/workflow-superseded/rebrand-kame-homes-to-kame-space.md \
   docs/workflow/done/unified-ai-settings-card.md \
   docs/workflow/for-testing/ai-companion-response-quality-and-generative-ui.md \
   docs/workflow/for-testing/marketing-ai-image-quality-hardening.md \

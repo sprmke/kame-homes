@@ -127,6 +127,10 @@ export type EdgeCallError = Error & {
   rateLimited?: boolean;
   /** Seconds until the caller may retry, from a 429 rate-limit response. */
   retryAfterSec?: number;
+  /** Machine-readable error code when the handler sends one (e.g. ARCHIVE_BLOCKED). */
+  code?: string;
+  /** Structured details for a handled rejection (blocker counts, booking list). */
+  details?: unknown;
 };
 
 export async function callEdgeFunction<T>(path: string, init?: RequestInit): Promise<T> {
@@ -186,6 +190,8 @@ async function callEdgeFunctionInner<T>(
     throw (() => {
       const error = new Error((json.error as string) ?? 'Request failed') as EdgeCallError;
       error.status = res.status;
+      if (typeof json.code === 'string') error.code = json.code;
+      if (json.details !== undefined) error.details = json.details;
       if (json.rateLimited === true) error.rateLimited = true;
       if (typeof json.retryAfterSec === 'number') error.retryAfterSec = json.retryAfterSec;
       return error;

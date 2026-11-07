@@ -27,6 +27,7 @@ import {
 } from '@/features/dashboard/org/lib/propertyExternalReviews';
 
 import { UnsavedChangesDialog } from '@/components/forms/UnsavedChangesDialog';
+import { NoticeCallout } from '@/components/help/NoticeCallout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -357,7 +358,12 @@ function ReviewEditorPanel({
 
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <SettingsField id={`review-source-${review.id}`} label="Source" required>
+          <SettingsField
+            id={`review-source-${review.id}`}
+            label="Source"
+            required
+            help="Where the review was posted."
+          >
             <Select
               value={review.source}
               disabled={disabled}
@@ -379,6 +385,7 @@ function ReviewEditorPanel({
             id={`review-reviewer-${review.id}`}
             label="Reviewer"
             required
+            help="Name shown on your public listing."
             error={showFieldErrors ? fieldErrors.reviewerName : null}
           >
             <Input
@@ -406,6 +413,7 @@ function ReviewEditorPanel({
           id={`review-text-${review.id}`}
           label="Review"
           required
+          help="Copy the guest's review text from Airbnb or Facebook."
           error={showFieldErrors ? fieldErrors.reviewText : null}
         >
           <div className="space-y-3">
@@ -427,6 +435,7 @@ function ReviewEditorPanel({
 
         <SettingsField
           label="Review Images (optional)"
+          help="Up to 3 stay photos shown with the review."
           error={showFieldErrors ? fieldErrors.stayPhotoUrls : null}
         >
           <PropertyExternalReviewStayPhotosField
@@ -442,6 +451,7 @@ function ReviewEditorPanel({
         <SettingsField
           label="Proof screenshot"
           required
+          help="Screenshot of the review on the other platform. Only admins see it, not guests."
           error={showFieldErrors ? fieldErrors.imageUrl : null}
         >
           <PropertyExternalReviewImageField
@@ -633,6 +643,20 @@ export function PropertyExternalReviewsBlock({
         nestedOverlayOpen={nestedOverlayOpen}
         bodyClassName="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto py-4 md:max-h-[min(calc(92dvh-7rem),680px)] md:overflow-hidden md:py-5"
       >
+        <NoticeCallout tone="info" className="mb-3 shrink-0">
+          <p className="text-foreground font-medium">
+            Build trust with reviews from other platforms
+          </p>
+          <p className="mt-1">
+            If you already have reviews on Airbnb or Facebook, add them here to show on your public
+            listing while your Kame Space reviews grow. You can add up to{' '}
+            {MAX_PROPERTY_EXTERNAL_REVIEWS}.
+          </p>
+          <p className="mt-1.5">
+            Each review needs a proof screenshot. Our team checks every submission before it
+            appears, so approval can take some time. Editing a review sends it back for review.
+          </p>
+        </NoticeCallout>
         {reviewCount === 0 ? (
           <div className="border-border/60 bg-muted/10 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-4 py-12">
             <div className="border-border bg-background mb-4 flex size-12 items-center justify-center rounded-xl border shadow-sm">

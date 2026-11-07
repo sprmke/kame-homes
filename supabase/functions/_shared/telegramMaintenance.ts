@@ -9,6 +9,7 @@ import { DatabaseService } from './databaseService.ts';
 import { listAllPropertyIds } from './propertyCron.ts';
 import { addDaysToIso, daysBetweenIso } from './financeRecurrence.ts';
 import { normalizeTelegramChatId } from './telegramMarketing.ts';
+import { filterLifecycleAllowedProperties } from './propertyLifecycle.ts';
 
 export type MaintenanceReminderInterval =
   'hourly' | 'every_2_hours' | 'every_4_hours' | 'every_12_hours' | 'daily_noon';
@@ -348,10 +349,11 @@ export async function renderMaintenanceDraftPreview(
 
 async function sendMaintenanceTelegramMessage(
   text: string,
-  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null
+  scope?: import('./propertyTelegramCredentials.ts').TelegramAssetScopeRef | string | null,
+  options?: { bypassMasterSwitch?: boolean }
 ): Promise<{ ok: boolean; error?: string }> {
   const { sendPropertyTelegramMessage } = await import('./propertyTelegramCredentials.ts');
-  return sendPropertyTelegramMessage('maintenance', text, scope);
+  return sendPropertyTelegramMessage('maintenance', text, scope, options);
 }
 
 export function verifyMaintenanceCronSecret(req: Request): boolean {
@@ -381,7 +383,9 @@ export async function sendMaintenanceDraftPreview(
       messageCharCount: 0,
     };
   }
-  const r = await sendMaintenanceTelegramMessage(rendered.renderedText, scope);
+  const r = await sendMaintenanceTelegramMessage(rendered.renderedText, scope, {
+    bypassMasterSwitch: true,
+  });
   return {
     sent: r.ok,
     error: r.error,
@@ -404,7 +408,10 @@ export async function runMaintenanceDueReminders(options?: {
   propertyId?: string;
 }): Promise<MaintenanceDueRemindersResult> {
   if (!options?.propertyId) {
-    const propertyIds = await listAllPropertyIds();
+    const propertyIds = await filterLifecycleAllowedProperties(
+      await listAllPropertyIds(),
+      'telegram_digest'
+    );
     const properties: Array<MaintenanceDueRemindersResult & { propertyId: string }> = [];
     for (const propertyId of propertyIds) {
       properties.push({

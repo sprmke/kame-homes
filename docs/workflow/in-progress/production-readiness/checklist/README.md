@@ -2,7 +2,7 @@
 title: 'Production readiness checklist'
 status: active
 tags: [workflow, planned, production-readiness, performance, security, reliability]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: reference
 origin_stage: planned
@@ -29,7 +29,7 @@ This repo has run four prior production-readiness passes. **Do not redo their wo
 | [`cost-abuse-security-production-readiness.md`](../audits/cost-abuse-security-production-readiness.md)           | for-testing | AI quotas, abuse limits, cost ceilings, pentest findings                                                                                                                     |
 | [`posthog-analytics-production-readiness.md`](../audits/posthog-analytics-production-readiness.md)               | for-testing | Event taxonomy, identify/groups, exceptions, source maps                                                                                                                     |
 | [`captcha-anti-spam-hardening.md`](../audits/captcha-anti-spam-hardening.md)                                     | for-testing | Turnstile, durable rate limiter, honeypot/timing                                                                                                                             |
-| [`ci-cd-environments/`](../../ci-cd-environments/README.md)                                                      | in-progress | Dev/prod dual-track, `cd-dev.yml`, `cd-prod.yml` scaffolds                                                                                                                   |
+| [`ci-cd-environments/`](../../../done/ci-cd-environments/README.md)                                              | in-progress | Dev/prod dual-track, `cd-dev.yml`, `cd-prod.yml` scaffolds                                                                                                                   |
 
 **What this folder adds:** the prior passes were _audits_ — they found and fixed specific defects. This folder is _coverage_: taking each checklist item and proving it is applied at **every** call site across the codebase, with a CI guard so it cannot regress. Each doc opens with a "Prior art" section naming exactly what is already closed and what remains.
 

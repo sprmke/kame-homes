@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 import {
-  AlertTriangle,
   Baby,
   Bath,
   Bed,
@@ -29,9 +28,8 @@ import { PropertyMediaUpload } from '@/features/dashboard/org/components/propert
 import {
   PropertySettingsSectionAlert,
   SettingsField,
-  SettingsManageButton,
 } from '@/features/dashboard/org/components/property-settings/PropertySettingsFields';
-import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import { PropertySettingsSummaryRow } from '@/features/dashboard/org/components/property-settings/PropertySettingsSummaryRow';
 import { BrandColorField } from '@/features/dashboard/org/components/settings/BrandColorField';
 import { TowerUnitConflictAlert } from '@/features/dashboard/org/components/TowerUnitConflictAlert';
 import { useResidenceUnitTypes } from '@/features/dashboard/org/hooks/useResidenceUnitTypes';
@@ -40,6 +38,7 @@ import { DEFAULT_RESIDENCE_NAME } from '@/features/dashboard/org/lib/propertyDis
 import {
   HOUSE_RULE_CUSTOM_MAX_LENGTH,
   MUTUALLY_EXCLUSIVE_HOUSE_RULES,
+  resolveHouseRulesForDisplay,
   type CustomHouseRule,
 } from '@/features/dashboard/org/lib/propertyHouseRulesConstants';
 import type { PropertyLocationFields } from '@/features/dashboard/org/lib/propertyLocation';
@@ -56,6 +55,7 @@ import { type PropertySettingsSectionId } from '@/features/dashboard/org/lib/pro
 import {
   CUSTOM_AMENITY_MAX_LENGTH,
   PROPERTY_TYPES,
+  resolveAmenityLabels,
   type CustomAmenity,
   type PropertyMediaItem,
 } from '@/features/dashboard/org/lib/propertySettingsConstants';
@@ -64,22 +64,15 @@ import {
   propertyGuestCapacityTotal,
   type PropertyProfileDraft,
 } from '@/features/dashboard/org/lib/propertySettingsForm';
+import { propertySettingsSectionHasIssue } from '@/features/dashboard/org/lib/propertySettingsCompletion';
+import { summarizeSettingsLabels } from '@/features/dashboard/org/lib/propertySettingsSummaryLabels';
 import { isValidUnitNumber } from '@/features/dashboard/org/lib/propertyTowerUnit';
 import type { PropertyTowerUnitConflict } from '@/features/dashboard/org/lib/propertyTowerUnitConflict';
 
 import { AvailabilityCheckInput } from '@/components/AvailabilityCheckInput';
 import { ReadonlySlugField } from '@/components/forms/ReadonlySlugField';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import {
-  ResponsiveModal,
-  ResponsiveModalContent,
-  ResponsiveModalDescription,
-  ResponsiveModalFooter,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from '@/components/ui/responsive-modal';
 import {
   Select,
   SelectContent,
@@ -194,6 +187,18 @@ export function PropertyProfileMainSections({
     PROPERTY_TYPES.find((type) => type.value === draft.type)?.label ?? draft.type;
   const readOnlyFieldClass = 'bg-muted/40';
   const { data: unitTypes = [] } = useResidenceUnitTypes(effectiveResidence);
+
+  const amenitySummary = summarizeSettingsLabels(
+    resolveAmenityLabels(draft.enabledAmenities, draft.customAmenities)
+  );
+  const houseRuleSummary = summarizeSettingsLabels(
+    resolveHouseRulesForDisplay({
+      enabledIds: draft.enabledHouseRules,
+      customRules: draft.customHouseRules,
+      checkInTime: draft.checkInTime,
+      checkOutTime: draft.checkOutTime,
+    }).map((rule) => rule.text)
+  );
 
   const handleUnitTypeChange = (unitTypeId: string) => {
     markFieldInteracted('property-unit-type');
@@ -796,18 +801,13 @@ export function PropertyProfileMainSections({
             />
           ) : (
             <>
-              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-                <p className="min-w-0 text-xs font-medium sm:text-sm">
-                  {draft.enabledAmenities.length} amenities selected
-                  {draft.customAmenities.length > 0
-                    ? ` · ${draft.customAmenities.length} custom`
-                    : ''}
-                </p>
-                <SettingsManageButton
-                  needsAttention={propertySettingsSectionHasIssue('amenities', issueSectionIds)}
-                  onClick={() => setAmenitiesManageOpen(true)}
-                />
-              </div>
+              <PropertySettingsSummaryRow
+                labels={amenitySummary}
+                emptyLabel="No amenities selected"
+                countNoun="amenity"
+                needsAttention={propertySettingsSectionHasIssue('amenities', issueSectionIds)}
+                onManage={() => setAmenitiesManageOpen(true)}
+              />
               <PropertyAmenitiesManageDialog
                 open={amenitiesManageOpen}
                 onOpenChange={setAmenitiesManageOpen}
@@ -848,15 +848,12 @@ export function PropertyProfileMainSections({
             />
           ) : (
             <>
-              <div className="bg-muted/40 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 sm:px-4 sm:py-3">
-                <p className="min-w-0 text-xs font-medium sm:text-sm">
-                  {draft.enabledHouseRules.length} rules selected
-                  {draft.customHouseRules.length > 0
-                    ? ` · ${draft.customHouseRules.length} custom`
-                    : ''}
-                </p>
-                <SettingsManageButton onClick={() => setHouseRulesManageOpen(true)} />
-              </div>
+              <PropertySettingsSummaryRow
+                labels={houseRuleSummary}
+                emptyLabel="No house rules selected"
+                countNoun="rule"
+                onManage={() => setHouseRulesManageOpen(true)}
+              />
               <PropertyHouseRulesManageDialog
                 open={houseRulesManageOpen}
                 onOpenChange={setHouseRulesManageOpen}
@@ -937,242 +934,5 @@ export function PropertyProfileMainSections({
         </AdminSection>
       ) : null}
     </>
-  );
-}
-
-export function PropertyDangerZoneSection({
-  propertyName,
-  isArchived,
-  disabled = false,
-  showDelete = true,
-  restoreBlockedReason = null,
-  onArchive,
-  onRestore,
-  onDelete,
-  archivePending = false,
-  restorePending = false,
-  deletePending = false,
-}: {
-  propertyName: string;
-  isArchived: boolean;
-  disabled?: boolean;
-  /** Permanent delete is owner-only (D10) — hide when false. */
-  showDelete?: boolean;
-  /** Why Restore is not allowed (unverified listing, ended contract). Null = allowed. */
-  restoreBlockedReason?: string | null;
-  onArchive: () => Promise<void>;
-  onRestore: () => Promise<void>;
-  onDelete: () => Promise<void>;
-  archivePending?: boolean;
-  restorePending?: boolean;
-  deletePending?: boolean;
-}) {
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [restoreOpen, setRestoreOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const handleArchive = async () => {
-    try {
-      await onArchive();
-      setArchiveOpen(false);
-    } catch {
-      // Parent shows toast
-    }
-  };
-
-  const handleRestore = async () => {
-    try {
-      await onRestore();
-      setRestoreOpen(false);
-    } catch {
-      // Parent shows toast
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await onDelete();
-      setDeleteOpen(false);
-    } catch {
-      // Parent shows toast
-    }
-  };
-
-  return (
-    <AdminSection
-      id="danger"
-      title="Danger Zone"
-      icon={AlertTriangle}
-      description="Archive or permanently delete this property."
-      className="border-destructive/50"
-    >
-      <div className="space-y-3">
-        <div className="flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-          <div className="space-y-0.5">
-            <p className="text-xs font-semibold sm:text-sm">
-              {isArchived ? 'Restore Property' : 'Archive Property'}
-            </p>
-            <p className="text-card-description">
-              {isArchived
-                ? (restoreBlockedReason ??
-                  'Sets status to Active. Shows the property in active listings again.')
-                : 'Sets status to Inactive. Hides the property from active listings. Booking history and settings are kept.'}
-            </p>
-          </div>
-          {isArchived ? (
-            restoreBlockedReason ? null : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={disabled || restorePending}
-                className="settings-action w-full sm:w-auto"
-                onClick={() => setRestoreOpen(true)}
-              >
-                {restorePending ? 'Restoring…' : 'Restore'}
-              </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled || archivePending}
-              className="settings-action w-full sm:w-auto"
-              onClick={() => setArchiveOpen(true)}
-            >
-              {archivePending ? 'Archiving…' : 'Archive'}
-            </Button>
-          )}
-        </div>
-
-        {showDelete ? (
-          <div className="border-destructive/50 flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-            <div className="space-y-0.5">
-              <p className="text-destructive text-xs font-semibold sm:text-sm">Delete Property</p>
-              <p className="text-card-description">
-                Permanently removes this property, its gallery, integrations, and settings. Only
-                allowed when there is no booking history. This cannot be undone.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={disabled || deletePending}
-              className="settings-action w-full sm:w-auto"
-              onClick={() => setDeleteOpen(true)}
-            >
-              {deletePending ? 'Deleting…' : 'Delete Property'}
-            </Button>
-          </div>
-        ) : null}
-      </div>
-
-      <ResponsiveModal open={archiveOpen} onOpenChange={setArchiveOpen}>
-        <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>Archive {propertyName}?</ResponsiveModalTitle>
-            <ResponsiveModalDescription>
-              The property will be marked Inactive. Existing bookings and records stay in place. You
-              can restore it anytime from this section.
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={archivePending}
-              onClick={() => setArchiveOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={archivePending}
-              onClick={() => void handleArchive()}
-            >
-              {archivePending ? 'Archiving…' : 'Archive property'}
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModalContent>
-      </ResponsiveModal>
-
-      <ResponsiveModal open={restoreOpen} onOpenChange={setRestoreOpen}>
-        <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>Restore {propertyName}?</ResponsiveModalTitle>
-            <ResponsiveModalDescription>
-              The property will be marked Active and appear in active listings again.
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={restorePending}
-              onClick={() => setRestoreOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={restorePending}
-              onClick={() => void handleRestore()}
-            >
-              {restorePending ? 'Restoring…' : 'Restore property'}
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModalContent>
-      </ResponsiveModal>
-
-      <ResponsiveModal open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <ResponsiveModalContent className="max-w-[min(calc(100vw-1.5rem),28rem)]">
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle className="text-destructive">
-              Delete {propertyName}?
-            </ResponsiveModalTitle>
-            <ResponsiveModalDescription asChild>
-              <div className="text-muted-foreground space-y-2 text-sm">
-                <p>
-                  This permanently deletes the property profile, gallery media, payment settings,
-                  and Telegram configs for this property.
-                </p>
-                <p>
-                  Deletion is blocked if any bookings exist. Use{' '}
-                  <span className="text-foreground font-medium">Archive Property</span> instead to
-                  hide the property.
-                </p>
-                <p className="text-destructive font-medium">This action cannot be undone.</p>
-              </div>
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalFooter className="flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={deletePending}
-              onClick={() => setDeleteOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              className="min-h-[44px] w-full sm:w-auto"
-              disabled={deletePending}
-              onClick={() => void handleDelete()}
-            >
-              {deletePending ? 'Deleting…' : 'Delete permanently'}
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModalContent>
-      </ResponsiveModal>
-    </AdminSection>
   );
 }

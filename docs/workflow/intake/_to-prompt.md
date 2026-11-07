@@ -2,7 +2,7 @@
 title: 'Tasks To Prompt'
 status: active
 tags: [planning, intake, backlog]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: intake
 kind: backlog
 ---
@@ -276,6 +276,20 @@ Guide: `docs/guides/routes/org/property/calendar.md`
 
 ===
 
+✅ Branch deployment guide + dev/staging environment
+
+Meaning, I want to deploy our app in vercel with ou current branch with our new changes.
+
+Same for supabase, but instead of having branch deployment with Suapabase which is not free. I want to create new supabase project with different account to intialize and setup everything.
+
+The goal in the end is for us to deploy and see fully working application with our new changes.
+
+Also, another important setup I'd like to have is to point or use supabase deployed dev in our local so that we don't need to run docker from our local to test and work locally. Meaning, when we have any supabase related changes locally, and test our app, I still want to see our changes and fully working on it with our local frontend. Meaning, when we are working locally, we can still work on it without running docker and without deploying our backend/supabase related changes to dev. Then, once good, we can deploy our changes to dev. I'm not sure how is this possible but this is how we do it on other projects and I'd like to implement in our app
+
+→ **Done (closed 2026-11-07):** [`../done/ci-cd-environments/README.md`](../done/ci-cd-environments/README.md) — Vercel preview per branch + one Supabase project. The separate dev/staging project was superseded by the one-project cutover (2026-11-02); local work uses `./dev.sh` or `bun run dev:remote-api`.
+
+===
+
 🧪 Activity Manage modal UI polish
 
 Settings → Activity → Manage: aligned filters/search/export, modal-scroll virtualization, friendly plan summaries (org/property/parking).
@@ -307,20 +321,6 @@ After guests submit their in-app Kame review (`/sd-form` step 1 or standalone `/
 Legacy SD flow redirected guests to Facebook before the voucher reveal; the current flow is in-app only. Research whether we can deep-link to the host's Facebook review page, show a clear CTA after Kame review submit, and whether completion can be verified (or should stay honor-system). Implement only if feasible — do not block voucher/refund on Facebook completion unless we have a reliable signal.
 
 → **Planned:** [`../planned/guest-review-facebook-cta.md`](../planned/guest-review-facebook-cta.md)
-
-===
-
-🚧 Branch deployment guide + dev/staging environment
-
-Meaning, I want to deploy our app in vercel with ou current branch with our new changes.
-
-Same for supabase, but instead of having branch deployment with Suapabase which is not free. I want to create new supabase project with different account to intialize and setup everything.
-
-The goal in the end is for us to deploy and see fully working application with our new changes.
-
-Also, another important setup I'd like to have is to point or use supabase deployed dev in our local so that we don't need to run docker from our local to test and work locally. Meaning, when we have any supabase related changes locally, and test our app, I still want to see our changes and fully working on it with our local frontend. Meaning, when we are working locally, we can still work on it without running docker and without deploying our backend/supabase related changes to dev. Then, once good, we can deploy our changes to dev. I'm not sure how is this possible but this is how we do it on other projects and I'd like to implement in our app
-
-→ **Runbook shipped; operator bootstrap pending:** [`../in-progress/ci-cd-environments/dev-staging-environment.md`](../in-progress/ci-cd-environments/dev-staging-environment.md) · index [`../in-progress/ci-cd-environments/README.md`](../in-progress/ci-cd-environments/README.md)
 
 ===
 

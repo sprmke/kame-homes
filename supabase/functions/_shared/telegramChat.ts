@@ -393,7 +393,9 @@ export async function sendChatDraftPreview(text: string, scope?: TelegramAssetSc
     };
   }
   const { sendPropertyTelegramMessage } = await import('./propertyTelegramCredentials.ts');
-  const r = await sendPropertyTelegramMessage('chat', rendered.renderedText, scope ?? null);
+  const r = await sendPropertyTelegramMessage('chat', rendered.renderedText, scope ?? null, {
+    bypassMasterSwitch: true,
+  });
   return {
     sent: r.ok,
     error: r.error,

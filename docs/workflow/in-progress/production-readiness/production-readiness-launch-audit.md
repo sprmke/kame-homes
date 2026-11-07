@@ -2,7 +2,7 @@
 title: 'Production readiness launch audit (consolidate, re-verify, close gaps)'
 status: planned
 tags: [workflow, planned, production-readiness, security, owasp, qa, testing, launch]
-updated: 2026-11-06
+updated: 2026-11-07
 stage: in-progress
 kind: plan
 ---
@@ -162,7 +162,7 @@ Pure moves plus link rewrites. No body edits except the frontmatter tags and a o
 | `in-progress/MODULE-DISPOSITION.md`                                | `qa/` (becomes input to module cards) | in-progress  |
 | `for-testing/QA-BATCH.md`                                          | `qa/`                                 | for-testing  |
 
-- [x] **1.3 Link, don't move** (these are feature plans with their own life; the module card links to them): every other `for-testing/*` feature plan, `in-progress/ci-cd-environments/`, `in-progress/super-admin-system-health.md`, `planned/super-admin-service-cost-monitoring.md`, `planned/ai-paid-provider-and-production-quotas.md`, `planned/activity-log-followups.md`, `qa/property-dashboard/*`, `guides/testing/*`, `archive/operations/*` runbooks (`production-deployment.md`, `migration-runbook.md`, `incident-response.md`, `secret-rotation.md`, `hosted-dev-rollback-rehearsal.md`, `legacy-to-mt-prod-migration.md`, `alerting-setup.md`, `github-environments-setup.md`).
+- [x] **1.3 Link, don't move** (these are feature plans with their own life; the module card links to them): every other `for-testing/*` feature plan, `../done/ci-cd-environments/`, `in-progress/super-admin-system-health.md`, `planned/super-admin-service-cost-monitoring.md`, `planned/ai-paid-provider-and-production-quotas.md`, `planned/activity-log-followups.md`, `qa/property-dashboard/*`, `guides/testing/*`, `archive/operations/*` runbooks (`production-deployment.md`, `migration-runbook.md`, `incident-response.md`, `secret-rotation.md`, `hosted-dev-rollback-rehearsal.md`, `legacy-to-mt-prod-migration.md`, `alerting-setup.md`, `github-environments-setup.md`).
 - [x] **1.4 Rewrite references** to moved paths. Known code/script references that must change in the same commit:
   - `scripts/performance/capture-baseline.mjs` (writes baselines to the old path)
   - `scripts/dev/check-select-star.sh`, `scripts/dev/check-unbounded-select.sh` (comments + any allowlist path)

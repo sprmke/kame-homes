@@ -20,6 +20,12 @@ type Props = {
   onFocusTelegram?: () => void;
 };
 
+/** Same red icon well the other dashboard KPI cards use. */
+const NOTIFICATION_ICON = {
+  iconClassName: 'text-rose-600 dark:text-rose-400',
+  iconBgClassName: 'bg-rose-100 dark:bg-rose-900/30',
+} as const;
+
 const NOTIFICATIONS_METRICS = [
   { title: 'Unread', icon: Bell, hasHint: false },
   { title: 'Messages', icon: MessageCircle, hasHint: false },
@@ -70,24 +76,22 @@ export function NotificationsHubSummaryCards({
         title="Unread"
         value={String(unreadCount)}
         icon={Bell}
-        iconClassName="text-primary"
-        iconBgClassName="bg-primary/10"
-        valueClassName={unreadCount > 0 ? 'text-primary' : undefined}
+        {...NOTIFICATION_ICON}
+        valueClassName={unreadCount > 0 ? 'text-rose-600 dark:text-rose-400' : undefined}
         onClick={onFocusActivity}
       />
       <StatCard
         title="Messages"
         value={String(inbox)}
         icon={MessageCircle}
-        valueClassName={inbox > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
+        {...NOTIFICATION_ICON}
         onClick={onFocusActivity}
       />
       <StatCard
         title="Telegram on"
         value={ratioValue(enabledCount, moduleCount)}
         icon={Send}
-        iconClassName="text-sky-600 dark:text-sky-400"
-        iconBgClassName="bg-sky-100 dark:bg-sky-500/15"
+        {...NOTIFICATION_ICON}
         onClick={onFocusTelegram}
         titleAdornment={
           <InfoHint
@@ -101,7 +105,8 @@ export function NotificationsHubSummaryCards({
         title="Connected"
         value={ratioValue(connectedCount, moduleCount)}
         icon={Link2}
-        valueClassName={telegramNeedsSetup ? 'text-amber-600 dark:text-amber-400' : undefined}
+        {...NOTIFICATION_ICON}
+        valueClassName={telegramNeedsSetup ? 'text-rose-600 dark:text-rose-400' : undefined}
         onClick={onFocusTelegram}
         titleAdornment={
           <InfoHint

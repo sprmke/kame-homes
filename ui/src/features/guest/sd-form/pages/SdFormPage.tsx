@@ -122,7 +122,7 @@ export function SdFormPage() {
   // Returning guests: skip review when already submitted or voucher exists.
   useEffect(() => {
     if (step !== 1 || !query.data) return;
-    const vouchersEnabled = query.data.vouchers_enabled !== false;
+    const vouchersEnabled = query.data.vouchers_enabled === true;
     if (existingVoucher) {
       setStep(2);
       setStep2Phase('voucher');
@@ -146,7 +146,7 @@ export function SdFormPage() {
   useEffect(() => {
     const d = query.data;
     if (!d?.awaiting_balance_settlement && step2Phase === 'wait_balance') {
-      if (d?.vouchers_enabled === false && !d.next_stay_voucher_code) {
+      if (d && d.vouchers_enabled !== true && !d.next_stay_voucher_code) {
         setStep(3);
       } else {
         setStep2Phase('voucher');
@@ -330,7 +330,7 @@ export function SdFormPage() {
     if (data.awaiting_balance_settlement) {
       setStep(2);
       setStep2Phase('wait_balance');
-    } else if (data.vouchers_enabled !== false) {
+    } else if (data.vouchers_enabled === true) {
       setStep(2);
       setStep2Phase('voucher');
     } else {

@@ -16,7 +16,7 @@ Route: `/org/:orgSlug/properties`
 | Section             | E2E save | Validation | Docs | Notes                                                                                              |
 | ------------------- | -------- | ---------- | ---- | -------------------------------------------------------------------------------------------------- |
 | Summary cards       | Done     | —          | Done | Total, total revenue, avg monthly revenue, avg occupancy                                           |
-| Search & filters    | Done     | —          | Done | Name, slug, tower, address, status, type; bookings-style toolbar                                   |
+| Search & filters    | Done     | —          | Done | Name, slug, tower, address, lifecycle state, type; bookings-style toolbar                          |
 | Table / grid / list | Done     | —          | Done | Table (desktop), grid cards, list rows; client pagination                                          |
 | Property cards      | Done     | —          | Done | Name title, tower/unit subtitle                                                                    |
 | Add property        | Done     | Done       | Done | Dialog → settings on create                                                                        |
@@ -53,7 +53,11 @@ This page is the catalog of every rental you operate under the organization. Sum
 - Q: How do I copy settings from one property to another?
   A: On **Properties**, tap **Copy settings** in the header, or open a property's ⋯ menu and choose **Copy settings**. Pick the source property, choose which groups to copy (listing, pricing, templates, notifications, and more), select one or more other properties, review the preview, then confirm. Name, address, and tower/unit stay on each target. Bookings, guests, payment methods, team members, and calendar date blocks are never copied. If a target's plan or your permissions don't allow a group, that group is skipped for that property and listed in the review.
 - Q: Does archiving or deleting a property remove its bookings?
-  A: Archive keeps every booking and all history, and only hides the property from active use. Delete permanently removes an empty property and is blocked when any booking exists, so use Archive for a unit with past stays.
+  A: No. Archive keeps every booking and all history, stops automations, and takes the property off your bill from the next cycle. Delete permanently removes a property that has no records, so use Archive for a unit with past stays.
+- Q: What do the status badges mean?
+  A: **Live** is taking bookings. **Paused** keeps its public page but takes no new bookings. **Pending verification** is waiting for approval. **Suspended** means the contract ended, an extension was declined, or the unit was handed to another listing. **Archived** is retired.
+- Q: Why can't I see my archived properties in the list?
+  A: **All status** hides archived listings. Pick **Archived** in the Status filter to see them; the property switcher groups them under an Archived heading too.
 
 ---
 
@@ -101,13 +105,13 @@ Cards omit type and bed/bath/guest chips (type remains available via the toolbar
 
 ## Filters
 
-| Control  | Behavior                                                                                                                      |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Search   | Name, slug, tower, unit, residence, address (debounced; clear control)                                                        |
-| Status   | `ACTIVE` / `INACTIVE` — desktop leading filter; in refine sheet on phone                                                      |
-| Type     | Case-insensitive match on `properties.type` — desktop Filters popover; in refine sheet on phone                               |
-| Per page | 31 / 50 / 100 (same sizes as Bookings); resets to page 1                                                                      |
-| View     | **Table** (desktop only), **Grid**, **List**. Default list when fewer than five properties; table (or grid on phone) at five+ |
+| Control  | Behavior                                                                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Search   | Name, slug, tower, unit, residence, address (debounced; clear control)                                                                             |
+| Status   | Live / Paused / Pending verification / Suspended / Archived. **All status** hides archived listings. Desktop leading filter; refine sheet on phone |
+| Type     | Case-insensitive match on `properties.type` — desktop Filters popover; in refine sheet on phone                                                    |
+| Per page | 31 / 50 / 100 (same sizes as Bookings); resets to page 1                                                                                           |
+| View     | **Table** (desktop only), **Grid**, **List**. Default list when fewer than five properties; table (or grid on phone) at five+                      |
 
 Toolbar layout matches Bookings / Finance: phone uses search + refine icon + segmented view toggle; desktop uses `AdminListDesktopToolbar` (Status · Filters · search · per-page · View).
 

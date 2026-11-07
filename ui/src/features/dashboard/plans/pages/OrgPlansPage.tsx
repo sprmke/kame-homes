@@ -99,7 +99,11 @@ export function OrgPlansPage() {
   const plans = data?.plans ?? [];
   const properties = data?.properties ?? [];
   const assignedPropertyIds = data?.assignedPropertyIds ?? [];
-  const propertyCount = properties.length;
+  // Archived listings are off the bill from the next cycle, so they do not count here.
+  const archivedPropertyCount = properties.filter(
+    (property) => property.inactiveReason === 'archived'
+  ).length;
+  const propertyCount = properties.length - archivedPropertyCount;
   const uncoveredPropertyCount = Math.max(0, propertyCount - assignedPropertyIds.length);
   const subscription = data?.subscription ?? null;
 
@@ -246,7 +250,10 @@ export function OrgPlansPage() {
   if (!org || error) {
     return (
       <AdminMobilePage title="Plans & Billing" subtitle={PLANS_PAGE_SUBTITLE}>
-        <FloatingPanel padding="lg" className="flex flex-col items-center gap-3 py-8 sm:py-12 text-center">
+        <FloatingPanel
+          padding="lg"
+          className="flex flex-col items-center gap-3 py-8 text-center sm:py-12"
+        >
           <p className="text-foreground text-sm font-semibold">Could not load plans</p>
           <p className="text-caption max-w-sm">
             {error instanceof Error ? error.message : 'Please try again.'}
@@ -268,7 +275,7 @@ export function OrgPlansPage() {
       className="min-w-0 max-w-full"
     >
       {!hasPlans ? (
-        <FloatingPanel padding="lg" className="py-8 sm:py-12 text-center">
+        <FloatingPanel padding="lg" className="py-8 text-center sm:py-12">
           <p className="text-foreground text-sm font-semibold">No plans available</p>
           <p className="text-caption mx-auto mt-1 max-w-sm">
             Pricing tiers have not been published yet.

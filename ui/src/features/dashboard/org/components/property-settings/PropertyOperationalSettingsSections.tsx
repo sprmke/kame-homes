@@ -506,6 +506,7 @@ export function PropertyOperationalSettingsSections({
           markFieldInteracted={markFieldInteracted}
           onChange={onChange}
           onAutomationToggleChange={onAutomationToggleChange}
+          embedded={embedded}
         />
       ) : null}
 

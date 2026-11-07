@@ -12,7 +12,7 @@ import {
   adminTableMoneyClass,
   adminTableRowClass,
 } from '@/features/dashboard/bookings/components/AdminDataTable';
-import { OrgPropertyStatusBadge } from '@/features/dashboard/org/components/org-properties/OrgPropertyStatusBadge';
+import { PropertyLifecycleBadge } from '@/features/dashboard/org/components/org-properties/PropertyLifecycleBadge';
 import { absoluteGuestCalendarUrl } from '@/features/dashboard/org/lib/guestPublicPaths';
 import { orgPropertyCardModel } from '@/features/dashboard/org/lib/orgPropertyCardModel';
 import {
@@ -87,7 +87,7 @@ export function OrgPropertiesTable({ properties, orgSlug, onCopySettings }: Prop
                 </span>
               </td>
               <td className={adminTableCell.body}>
-                <OrgPropertyStatusBadge status={property.status} />
+                <PropertyLifecycleBadge property={property} />
               </td>
               <td className={cn(adminTableCell.body, 'hidden sm:table-cell')}>
                 <span className={cn(adminTableMoneyClass('text-foreground'))}>

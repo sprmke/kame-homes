@@ -359,9 +359,6 @@ static_files = [
   "./functions/_shared/email-assets/kame-home-gcash-qr-payment.jpg",
 ]
 
-[functions.cancellation-policy-impact]
-verify_jwt = false
-
 [functions.cancellation-refund-cron]
 verify_jwt = false
 
@@ -723,6 +720,13 @@ static_files = [
 ]
 
 [functions.delete-property]
+verify_jwt = false
+static_files = [
+  "./functions/_shared/email-templates/*.html",
+  "./functions/_shared/email-templates/fragments/*.html",
+]
+
+[functions.property-lifecycle]
 verify_jwt = false
 
 [functions.create-parking]

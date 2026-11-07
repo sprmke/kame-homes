@@ -7,10 +7,10 @@ export function useDeleteProperty(orgSlug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (propertyId: string) =>
+    mutationFn: ({ propertyId, confirmName }: { propertyId: string; confirmName: string }) =>
       callEdgeFunction<{ deletedPropertyId: string }>('delete-property', {
         method: 'DELETE',
-        body: JSON.stringify({ propertyId }),
+        body: JSON.stringify({ propertyId, confirmName }),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['properties', orgSlug] });

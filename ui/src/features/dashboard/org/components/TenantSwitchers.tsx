@@ -57,7 +57,8 @@ import { cn } from '@/lib/utils';
 
 function TenantSwitcherListSkeleton({ variant }: { variant: 'menu' | 'sheet' }) {
   return (
-    <div role="status"
+    <div
+      role="status"
       className={cn(
         'min-w-0 space-y-1 overflow-hidden px-1 py-1',
         variant === 'sheet' ? 'max-h-[65vh]' : 'max-h-80'
@@ -230,20 +231,47 @@ function ContextSwitcherMenu({
               ) : null}
             </div>
 
-            {properties.map((property) => (
-              <SwitcherRow
-                key={property.id}
-                variant={variant}
-                onClick={() => onSelectProperty(org, property)}
-                className="pl-8"
-              >
-                <Home className="text-muted-foreground size-4 shrink-0" aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{property.name}</span>
-                {currentPropertyId === property.id ? (
-                  <Check className="text-primary size-4 shrink-0" aria-hidden />
-                ) : null}
-              </SwitcherRow>
-            ))}
+            {properties
+              .filter((property) => property.inactiveReason !== 'archived')
+              .map((property) => (
+                <SwitcherRow
+                  key={property.id}
+                  variant={variant}
+                  onClick={() => onSelectProperty(org, property)}
+                  className="pl-8"
+                >
+                  <Home className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{property.name}</span>
+                  {currentPropertyId === property.id ? (
+                    <Check className="text-primary size-4 shrink-0" aria-hidden />
+                  ) : null}
+                </SwitcherRow>
+              ))}
+
+            {properties.some((property) => property.inactiveReason === 'archived') ? (
+              <p className="text-muted-foreground pl-8 pt-1 text-[11px] font-semibold uppercase tracking-wide">
+                Archived
+              </p>
+            ) : null}
+
+            {properties
+              .filter((property) => property.inactiveReason === 'archived')
+              .map((property) => (
+                <SwitcherRow
+                  key={property.id}
+                  variant={variant}
+                  onClick={() => onSelectProperty(org, property)}
+                  className="pl-8"
+                >
+                  <Home className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                  <span className="text-muted-foreground min-w-0 flex-1 truncate">
+                    {property.name}
+                  </span>
+                  {currentPropertyId === property.id ? (
+                    <Check className="text-primary size-4 shrink-0" aria-hidden />
+                  ) : null}
+                </SwitcherRow>
+              ))}
 
             {parkings.map((parking) => (
               <SwitcherRow

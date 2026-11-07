@@ -1,7 +1,11 @@
 import { addDays, format, parseISO } from 'date-fns';
 
-import type { ResolvedCancellationPolicyDisplay } from '@/features/dashboard/org/lib/cancellationPolicy';
+import {
+  isCancellationPolicyNonRefundable,
+  type ResolvedCancellationPolicyDisplay,
+} from '@/features/dashboard/org/lib/cancellationPolicy';
 
+import { NoticeCallout } from '@/components/help/NoticeCallout';
 import { Checkbox } from '@/components/ui/checkbox';
 
 function daysLabel(days: number): string {
@@ -45,8 +49,16 @@ export function GuestFormCancellationPolicy({
       <p className="text-sm font-semibold">{policy.title}</p>
       <p className="text-muted-foreground mt-1 text-sm">{policy.description}</p>
       <p className="text-muted-foreground mt-1 text-xs">
-        Percentages apply to what you have paid.
+        {policy.needsReview
+          ? 'Your host will confirm cancellation terms.'
+          : 'Percentages apply to what you have paid.'}
       </p>
+
+      {isCancellationPolicyNonRefundable(policy) ? (
+        <NoticeCallout tone="warning" className="mt-3">
+          This booking is non-refundable. You will not get back what you paid.
+        </NoticeCallout>
+      ) : null}
 
       {policy.timeline.length > 0 ? (
         <ul className="mt-3 space-y-1.5">

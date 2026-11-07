@@ -18,10 +18,6 @@ import {
   type PropertyRow,
 } from './orgAuth.ts';
 import {
-  readListingAuthorizationFromSettings,
-  resolveListingActivationBlock,
-} from './listingAuthorization.ts';
-import {
   DUPLICATE_PROPERTY_NAME_MESSAGE,
   findPropertyNameConflict,
 } from './propertyNameConflict.ts';
@@ -36,6 +32,7 @@ export type PropertyProfilePatchInput = {
   name?: string;
   address?: string;
   maxGuests?: number;
+  /** Rejected — lifecycle changes go through `propertyLifecycle.ts`. */
   status?: string;
   tower?: string;
   unitNumber?: string;
@@ -102,20 +99,8 @@ export async function applyPropertyProfilePatch(
     patch.max_guests = Math.round(fields.maxGuests);
   }
 
-  if (typeof fields.status === 'string') {
-    const status = fields.status.trim().toUpperCase();
-    if (status !== 'ACTIVE' && status !== 'INACTIVE') {
-      throw new PropertyProfilePatchError('status must be ACTIVE or INACTIVE');
-    }
-    if (status === 'ACTIVE' && String(property.status ?? '').toUpperCase() !== 'ACTIVE') {
-      const activationBlock = resolveListingActivationBlock(
-        readListingAuthorizationFromSettings(property.settings)
-      );
-      if (activationBlock) {
-        throw new PropertyProfilePatchError(activationBlock.message, 409);
-      }
-    }
-    patch.status = status;
+  if (fields.status !== undefined) {
+    throw new PropertyProfilePatchError('Use property-lifecycle to change a listing status', 400);
   }
 
   if (Object.keys(patch).length === 0) {
@@ -124,9 +109,7 @@ export async function applyPropertyProfilePatch(
 
   const supabase = createServiceClient();
 
-  const resultingStatus = String(
-    (patch.status as string | undefined) ?? property.status ?? 'ACTIVE'
-  ).toUpperCase();
+  const resultingStatus = String(property.status ?? 'ACTIVE').toUpperCase();
   const resultingTower = (patch.tower as string | undefined) ?? property.tower;
   const resultingUnit = (patch.unit_number as string | undefined) ?? property.unit_number;
 

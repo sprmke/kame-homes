@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # lib.sh — shared config, guards and helpers for legacy → mt-prod migration.
-# Plan: docs/workflow/planned/legacy-prod-to-mt-prod-cutover.md §5 Phase 2
+# Plan: docs/workflow/done/kamespace-02-legacy-prod-to-mt-prod-cutover.md §5 Phase 2
 #
 # Safety invariants:
 #   - Write stages refuse a target whose project ref equals the legacy ref.

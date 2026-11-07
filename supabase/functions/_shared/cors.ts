@@ -6,7 +6,7 @@ const ALLOWED_ORIGINS = [
   'https://kame-homes.vercel.app', // Multi-tenant Vercel project origin
   'https://kamehomes.space', // Legacy production SPA
   'https://www.kamehomes.space',
-  'https://dev.kamehomes.space', // Multi-tenant dev SPA (docs/workflow/in-progress/ci-cd-environments)
+  'https://dev.kamehomes.space', // Multi-tenant dev SPA (docs/workflow/done/ci-cd-environments)
   'https://app.kamehomes.space', // Multi-tenant prod SPA (reserved ahead of cutover)
   'https://kamespace.com', // New production origin (owner decision 2026-10-27)
   'https://dev.kamespace.com', // New dev origin

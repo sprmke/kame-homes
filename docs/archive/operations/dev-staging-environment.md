@@ -19,7 +19,7 @@ Use this runbook to stand up a **separate dev Supabase project** (different acco
 | **Multi-tenant (dev now)**    | **`develop`**                | [`kame-homes`](https://vercel.com/kame-works/kame-homes) Preview                             | **MULTI_TENANT_DEV** `fwor…` — **`dev.kamehomes.space`**     |
 | **Multi-tenant (prod later)** | **`main`** _(after release)_ | [`kame-homes`](https://vercel.com/kame-works/kame-homes) Production                          | **MULTI_TENANT_PROD** _(create)_ — **`app.kamehomes.space`** |
 
-Do **not** point Production env vars at multi-tenant Supabase or push multi-tenant schema to LEGACY until cutover. Canonical ref table: [`deployment.md`](../../architecture/deployment.md). Design/plan: [`ci-cd-dev-prod-design.md`](../../workflow/in-progress/ci-cd-environments/ci-cd-dev-prod-design.md), [`ci-cd-dev-prod.md`](../../workflow/in-progress/ci-cd-environments/ci-cd-dev-prod.md).
+Do **not** point Production env vars at multi-tenant Supabase or push multi-tenant schema to LEGACY until cutover. Canonical ref table: [`deployment.md`](../../architecture/deployment.md). Design/plan: [`ci-cd-dev-prod-design.md`](../../workflow/done/ci-cd-environments/ci-cd-dev-prod-design.md), [`ci-cd-dev-prod.md`](../../workflow/done/ci-cd-environments/ci-cd-dev-prod.md).
 
 | Doc                                                      | Role                                        |
 | -------------------------------------------------------- | ------------------------------------------- |

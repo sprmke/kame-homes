@@ -34,19 +34,28 @@ test.describe('@ci property settings cleanup', () => {
     await expect(section.locator('#parking-owner-emails')).toHaveCount(0);
   });
 
-  test('Automated sends is inline with grouped rows and no Save button', async ({ page }) => {
+  test('Automated sends is a summary row that opens the toggles in a Manage modal', async ({
+    page,
+  }) => {
     await openPropertySettings(page);
 
     const section = page.locator('#section-email-automations');
     await expect(section.getByRole('heading', { name: 'Automated sends' })).toBeVisible({
       timeout: 20_000,
     });
+    await expect(section.getByText(/\d+ of \d+ on/)).toBeVisible();
+    await expect(section.getByRole('switch', { name: 'New booking alert' })).toHaveCount(0);
 
-    await expect(section.getByText('Your team', { exact: true })).toBeVisible();
-    await expect(section.getByText('Building admin', { exact: true })).toBeVisible();
-    await expect(section.getByText('Guest reviews', { exact: true })).toBeVisible();
-    await expect(section.getByRole('switch', { name: 'New booking alert' })).toBeVisible();
-    await expect(section.getByRole('button', { name: 'Manage' })).toHaveCount(0);
+    await section.getByRole('button', { name: 'Manage' }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Your team', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Building admin', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Guest reviews', { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('switch', { name: 'New booking alert' })).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(dialog).toHaveCount(0);
   });
 
   test('Cleaning Time lives under Property Details, not Guest Form', async ({ page }) => {

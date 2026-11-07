@@ -1,16 +1,10 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { Bell, DollarSign, HardHat, Megaphone, MessageCircle, Wrench } from 'lucide-react';
 
-import {
-  AdminSection,
-  AdminSectionGroupHeading,
-  AdminSectionNavLayout,
-  type AdminSectionNavGroup,
-  type AdminSectionNavItem,
-} from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
+import { AdminSection } from '@/features/dashboard/bookings/components/AdminSectionNavLayout';
 import { TelegramGlobalBotTokenCard } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramGlobalBotTokenCard';
 import { TelegramHelpDialog } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramHelpDialog';
 import { TelegramNotificationsGlobalBotProvider } from '@/features/dashboard/bookings/components/telegram-notifications/TelegramNotificationsGlobalBotContext';
@@ -21,13 +15,17 @@ import { TelegramFinanceSettingsCard } from '@/features/dashboard/bookings/compo
 import { TelegramMaintenanceSettingsCard } from '@/features/dashboard/bookings/components/TelegramMaintenanceSettingsCard';
 import { TelegramMarketingSettingsCard } from '@/features/dashboard/bookings/components/TelegramMarketingSettingsCard';
 import { TelegramStaffSettingsCard } from '@/features/dashboard/bookings/components/TelegramStaffSettingsCard';
-import { InAppNotificationsSection } from '@/features/dashboard/notifications/components/InAppNotificationsSection';
-import { NOTIFICATIONS_HOW_IT_WORKS } from '@/features/dashboard/notifications/lib/notificationsHelpCopy';
+import { useAdminLayoutFillMain } from '@/features/dashboard/bookings/lib/adminLayoutFillMain';
+import { NotificationsHubShell } from '@/features/dashboard/notifications/components/NotificationsHubShell';
 import {
-  IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL,
-  IN_APP_NOTIFICATIONS_SECTION_ID,
-  notificationsHubActivityHash,
-} from '@/features/dashboard/notifications/lib/notificationsPaths';
+  NotificationsManageButton,
+  NotificationsManageDialog,
+  type ManageTab,
+} from '@/features/dashboard/notifications/components/NotificationsManage';
+import { NotificationsTelegramHistory } from '@/features/dashboard/notifications/components/NotificationsTelegramHistory';
+import { useNotificationsHubView } from '@/features/dashboard/notifications/hooks/useNotificationsHubView';
+import { usePropertyTelegramHubStats } from '@/features/dashboard/notifications/hooks/useTelegramHubStats';
+import { NOTIFICATIONS_HOW_IT_WORKS } from '@/features/dashboard/notifications/lib/notificationsHelpCopy';
 import { useOptionalOrgContext } from '@/features/dashboard/org/components/RequireOrgContext';
 import { usePropertyPermissions } from '@/features/dashboard/team/hooks/usePropertyPermissions';
 import {
@@ -56,26 +54,6 @@ function isNotificationModule(value: string | null): value is PropertyNotificati
   return (NOTIFICATION_MODULES as readonly string[]).includes(value ?? '');
 }
 
-const MODULE_SECTIONS: AdminSectionNavItem[] = [
-  { id: 'chat', label: 'Chat', icon: MessageCircle },
-  { id: 'marketing', label: 'Marketing', icon: Megaphone },
-  { id: 'staff', label: 'Staff', icon: HardHat },
-  { id: 'operations', label: 'Operations', icon: Bell },
-  { id: 'finance', label: 'Finance', icon: DollarSign },
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench },
-];
-
-const IN_APP_SECTION: AdminSectionNavItem = {
-  id: IN_APP_NOTIFICATIONS_SECTION_ID,
-  label: 'Activity',
-  icon: Bell,
-};
-
-const NOTIFICATION_SECTION_GROUPS: AdminSectionNavGroup[] = [
-  { label: IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL, sections: [IN_APP_SECTION] },
-  { label: 'Telegram notifications', sections: MODULE_SECTIONS },
-];
-
 const MODULE_DESCRIPTIONS: Record<PropertyNotificationModule, string> = {
   chat: 'Instant alert for every inbound guest message from web chat, Facebook, or Instagram.',
   marketing:
@@ -93,59 +71,64 @@ export function NotificationsPage() {
   const canEditGlobalBot = hasAnyNotificationModuleEditPermission(access?.permissions);
   const canEditModule = (module: PropertyNotificationModule) =>
     hasPropertyPermission(access?.permissions, NOTIFICATION_MODULE_EDIT_PERMISSION[module]);
-  const location = useLocation();
+
   const [searchParams] = useSearchParams();
   const moduleParam = searchParams.get('module');
-  const sectionParam = searchParams.get('section');
   const deepLinkModule = isNotificationModule(moduleParam) ? moduleParam : null;
-  const deepLinkSection =
-    sectionParam === IN_APP_NOTIFICATIONS_SECTION_ID ||
-    location.hash === notificationsHubActivityHash()
-      ? IN_APP_NOTIFICATIONS_SECTION_ID
-      : null;
+  const hub = useNotificationsHubView({ module: deepLinkModule });
+  const telegramStats = usePropertyTelegramHubStats();
+
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageTab, setManageTab] = useState<ManageTab>('activity');
+
+  useAdminLayoutFillMain(true);
+
+  /* Legacy "Configure" links (?module=finance) open the Telegram management tab. */
+  useEffect(() => {
+    if (!deepLinkModule) return;
+    setManageTab('telegram');
+    setManageOpen(true);
+  }, [deepLinkModule]);
 
   usePageTitle(
     tenant ? propertyDashboardPageTitle(tenant.property.name, 'Notifications') : undefined
   );
 
-  React.useEffect(() => {
-    const targetId = deepLinkSection
-      ? `section-${deepLinkSection}`
-      : deepLinkModule
-        ? `section-${deepLinkModule}`
-        : null;
-    if (!targetId) return;
-    const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [deepLinkModule, deepLinkSection, location.hash]);
+  const openManage = () => {
+    setManageTab('activity');
+    setManageOpen(true);
+  };
 
   return (
-    <TelegramNotificationsGlobalBotProvider>
-      <AdminMobilePage
-        title="Notifications"
-        subtitle="Manage in-app notifications and Telegram alerts for this property."
-        titleId="notifications-heading"
-        heroTrailing={
-          <HowItWorksButton hero feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
-        }
-        desktopActions={
-          <HowItWorksButton feature="notifications" {...NOTIFICATIONS_HOW_IT_WORKS} />
-        }
-      >
-        <AdminSectionNavLayout
-          className="min-h-0 flex-1"
-          sectionGroups={NOTIFICATION_SECTION_GROUPS}
-        >
-          <div className="space-y-3 sm:space-y-4">
-            <AdminSectionGroupHeading title={IN_APP_NOTIFICATIONS_NAV_GROUP_LABEL} />
+    <AdminMobilePage
+      title="Notifications"
+      subtitle="Manage in-app notifications and Telegram alerts for this property."
+      titleId="notifications-heading"
+      titleHint={
+        <HowItWorksButton
+          {...NOTIFICATIONS_HOW_IT_WORKS}
+          label="How notifications work"
+          className="size-8 text-current opacity-80 hover:bg-transparent hover:text-current hover:opacity-100"
+        />
+      }
+      className="flex min-h-0 flex-1 flex-col"
+      heroTrailing={<NotificationsManageButton variant="hero" onClick={openManage} />}
+      desktopActions={<NotificationsManageButton onClick={openManage} />}
+    >
+      <NotificationsHubShell hub={hub} telegramStats={telegramStats}>
+        <NotificationsTelegramHistory />
+      </NotificationsHubShell>
 
-            <InAppNotificationsSection />
-
+      <NotificationsManageDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        tab={manageTab}
+        onTabChange={setManageTab}
+        focusModuleId={deepLinkModule}
+        telegramContent={
+          <TelegramNotificationsGlobalBotProvider>
             <TelegramNotificationsTelegramSection
-              moduleCount={MODULE_SECTIONS.length}
-              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Get Help" />}
+              helpAction={<TelegramHelpDialog defaultTab="bot-token" triggerLabel="Setup Guide" />}
             >
               <div
                 className={cn(!canEditGlobalBot && 'pointer-events-none opacity-60')}
@@ -238,9 +221,9 @@ export function NotificationsPage() {
                 </div>
               </AdminSection>
             </TelegramNotificationsTelegramSection>
-          </div>
-        </AdminSectionNavLayout>
-      </AdminMobilePage>
-    </TelegramNotificationsGlobalBotProvider>
+          </TelegramNotificationsGlobalBotProvider>
+        }
+      />
+    </AdminMobilePage>
   );
 }
