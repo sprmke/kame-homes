@@ -558,6 +558,38 @@ verify_jwt = false
 [functions.submit-org-verification]
 verify_jwt = false
 
+# ── Live identity verification ────────────────────────────────────────────────
+# verify_jwt = false on every one: the phone is not signed in, and the desktop
+# bootstrap is anonymous. The real gate is the 10-minute HMAC handoff token
+# (`_shared/identitySessionToken.ts`) plus the service-role-only tables.
+
+[functions.identity-session-create]
+verify_jwt = false
+
+[functions.identity-session-get]
+verify_jwt = false
+
+[functions.identity-session-upload]
+verify_jwt = false
+
+[functions.identity-session-submit]
+verify_jwt = false
+
+[functions.identity-session-cancel]
+verify_jwt = false
+
+[functions.identity-verification-mine]
+verify_jwt = false
+
+[functions.identity-verification-delete]
+verify_jwt = false
+
+[functions.identity-verification-review]
+verify_jwt = false
+
+[functions.identity-captures-purge-cron]
+verify_jwt = false
+
 [functions.list-org-verifications]
 verify_jwt = false
 
