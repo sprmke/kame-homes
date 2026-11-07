@@ -48,6 +48,7 @@ export const GATED_SUPER_ADMIN_ACTIONS: Record<string, string> = {
   ai_limits: 'change AI limit profiles, assignments or overrides',
   rate_limit_block: 'block or unblock an identity from the platform',
   feature_availability: 'turn platform features on or off',
+  identity_review: 'approve or reject an identity verification',
 };
 
 export function superAdminActionLabel(action: string | null | undefined): string {

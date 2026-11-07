@@ -845,6 +845,48 @@ export const ACTIVITY_ACTION_CATALOG = {
     summary: (c) =>
       `${c.actorName} reassessed Superhost status for ${label(c, 'the organization')}`,
   },
+  'identity.session_started': {
+    category: 'verification',
+    severity: 'info',
+    targetType: 'identity_verification',
+    summary: (c) => `${c.actorName} started an identity check`,
+  },
+  'identity.session_completed': {
+    category: 'verification',
+    severity: 'notice',
+    targetType: 'identity_verification',
+    summary: (c) =>
+      `${c.actorName} completed an identity check (${str(c.metadata, 'verdict') ?? 'unverified'})`,
+  },
+  'identity.session_failed': {
+    category: 'verification',
+    severity: 'info',
+    targetType: 'identity_verification',
+    summary: (c) =>
+      `${c.actorName}'s identity check did not finish (${str(c.metadata, 'reason') ?? 'failed'})`,
+  },
+  'identity.verdict_overridden': {
+    category: 'verification',
+    severity: 'destructive',
+    targetType: 'identity_verification',
+    summary: (c) =>
+      `${c.actorName} overrode an identity verdict (${str(c.metadata, 'verdict') ?? 'changed'})`,
+  },
+  'identity.verification_reviewed': {
+    category: 'verification',
+    severity: 'notice',
+    targetType: 'identity_verification',
+    summary: (c) =>
+      `${c.actorName} reviewed an identity check (${
+        str(c.metadata, 'decision') ?? 'decided'
+      })`,
+  },
+  'identity.verification_deleted': {
+    category: 'verification',
+    severity: 'destructive',
+    targetType: 'identity_verification',
+    summary: (c) => `${c.actorName} deleted their identity verification`,
+  },
 
   // ── Integrations ────────────────────────────────────────────────────────
   'integrations.connected': {
